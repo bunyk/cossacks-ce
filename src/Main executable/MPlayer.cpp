@@ -67,7 +67,7 @@ bool ProcessMessages();
 int WaitCycle;
 bool NetworkGame;
 
-__declspec( dllexport ) bool GameInProgress;
+DLLEXPORT bool GameInProgress;
 
 #ifndef NODPLAY
 LPDIRECTPLAY3A lpDirectPlay3A;
@@ -92,7 +92,7 @@ int PrevPrevPrevEBSize;
 // int Rand_Index
 // data
 
-extern "C" __declspec( dllexport ) void ShowCentralText( char* ID, int time );
+extern "C" DLLEXPORT void ShowCentralText( char* ID, int time );
 
 void CmdSaveNetworkGame( byte NI, int ID, char* Name );
 extern int tmtmt;
@@ -1249,7 +1249,7 @@ BOOL FAR PASCAL DirectPlayEnumConnectionsCallback(
 }
 #endif
 
-__declspec( dllexport ) void CloseMPL();
+DLLEXPORT void CloseMPL();
 
 bool IPCORE_INIT = 0;
 void WaitWithError( char* ID, int GPID );
@@ -2474,7 +2474,7 @@ extern int MaxPingTime;
 
 extern byte MPL_NatRefTBL[8];
 
-__declspec( dllexport ) bool StartIGame( bool SINGLE )
+DLLEXPORT bool StartIGame( bool SINGLE )
 {
 	memcpy( NatRefTBL, MPL_NatRefTBL, 8 );
 
@@ -2765,7 +2765,7 @@ void ShowCString( int x, int y, char* cc, lpRLCFont f )
 
 extern bool PreNoPause;
 void CmdEndGame( byte NI, byte state, byte cause );
-__declspec( dllexport ) void SendPings();
+DLLEXPORT void SendPings();
 
 int PREVPINGT = 0;
 void Rept( LPSTR sz, ... );
@@ -3401,7 +3401,7 @@ void SendChat( char* str, bool Ally )
 	SendToAllPlayers( ps[1] + 8, ps, 0 );
 }
 
-__declspec( dllexport ) void CloseMPL()
+DLLEXPORT void CloseMPL()
 {
 #ifndef NODPLAY
 	if (int( lpDirectPlay3A ))
@@ -4092,7 +4092,7 @@ void PingSumm::ClearPingInfo()
 
 int PrevPingTime = 0;
 
-__declspec( dllexport ) void SendPings()
+DLLEXPORT void SendPings()
 {
 	if (NPlayers < 2)
 	{

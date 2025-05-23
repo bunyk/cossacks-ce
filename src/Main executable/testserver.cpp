@@ -77,7 +77,7 @@ tpProcessDownloadInternetFiles* ProcessDownloadInternetFiles = nullptr;
 tpSendRecBuffer* SendRecBuffer = nullptr;
 
 
-__declspec( dllexport ) void StartExplorer()
+DLLEXPORT void StartExplorer()
 {
 	//attempt to use advanced version
 	ResFile F = RReset( "Internet\\Cash\\IntExplorerNew.dll" );
@@ -125,7 +125,7 @@ __declspec( dllexport ) void StartExplorer()
 	}
 }
 
-__declspec( dllexport ) void FinExplorer()
+DLLEXPORT void FinExplorer()
 {
 	if (H_Exp)
 	{
@@ -143,7 +143,7 @@ __declspec( dllexport ) void FinExplorer()
 	}
 }
 
-__declspec( dllexport ) void ExplorerBack( int Index )
+DLLEXPORT void ExplorerBack( int Index )
 {
 	if (SXP_StepBack)
 	{
@@ -151,7 +151,7 @@ __declspec( dllexport ) void ExplorerBack( int Index )
 	}
 }
 
-__declspec( dllexport )void ExplorerForw( int Index )
+DLLEXPORTvoid ExplorerForw( int Index )
 {
 	if (SXP_StepBack)
 	{
@@ -159,7 +159,7 @@ __declspec( dllexport )void ExplorerForw( int Index )
 	}
 }
 
-__declspec( dllexport )void ExplorerRefresh( int Index )
+DLLEXPORTvoid ExplorerRefresh( int Index )
 {
 	if (SXP_Refresh)
 	{
@@ -167,7 +167,7 @@ __declspec( dllexport )void ExplorerRefresh( int Index )
 	}
 }
 
-__declspec( dllexport ) void RunExplorer( int Index, char* ref, int x, int y, int x1, int y1 )
+DLLEXPORT void RunExplorer( int Index, char* ref, int x, int y, int x1, int y1 )
 {
 	if (RunSXP)
 	{
@@ -175,7 +175,7 @@ __declspec( dllexport ) void RunExplorer( int Index, char* ref, int x, int y, in
 	}
 }
 
-__declspec( dllexport )void ProcessExplorer( int Index )
+DLLEXPORTvoid ProcessExplorer( int Index )
 {
 	if (ProcessSXP)
 	{
@@ -183,7 +183,7 @@ __declspec( dllexport )void ProcessExplorer( int Index )
 	}
 }
 
-__declspec( dllexport ) void ProcessExplorerDSS( int Index, DialogsSystem* DSS )
+DLLEXPORT void ProcessExplorerDSS( int Index, DialogsSystem* DSS )
 {
 	if (ProcessSXP)
 	{
@@ -191,7 +191,7 @@ __declspec( dllexport ) void ProcessExplorerDSS( int Index, DialogsSystem* DSS )
 	}
 }
 
-__declspec( dllexport ) void ExplorerSetVar( int Index, char* Name, char* value )
+DLLEXPORT void ExplorerSetVar( int Index, char* Name, char* value )
 {
 	if (SXP_SetVar)
 	{
@@ -199,7 +199,7 @@ __declspec( dllexport ) void ExplorerSetVar( int Index, char* Name, char* value 
 	}
 }
 
-__declspec( dllexport ) char* ExplorerGetVar( int Index, char* Name )
+DLLEXPORT char* ExplorerGetVar( int Index, char* Name )
 {
 	if (SXP_SetVar)
 	{
@@ -211,7 +211,7 @@ __declspec( dllexport ) char* ExplorerGetVar( int Index, char* Name )
 	}
 }
 
-__declspec( dllexport ) void ExplorerOpenRef( int Index, char* ref )
+DLLEXPORT void ExplorerOpenRef( int Index, char* ref )
 {
 	if (OpenRef)
 	{
@@ -219,7 +219,7 @@ __declspec( dllexport ) void ExplorerOpenRef( int Index, char* ref )
 	}
 }
 
-__declspec( dllexport ) void ExplorerResize( int Index, int x, int y, int x1, int y1 )
+DLLEXPORT void ExplorerResize( int Index, int x, int y, int x1, int y1 )
 {
 	if (ResizeSXP)
 	{

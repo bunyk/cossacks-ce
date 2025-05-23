@@ -337,7 +337,7 @@ void DrawFilledRect1( int x0, int y0, int x1, int y1, Corners* CR, int GP_File, 
 	DrawRect4( x0, y0, x1, y1, CR, GP_File );
 }
 
-__declspec( dllexport ) void DrawFilledRect3( int x0, int y0, int x1, int y1, Corners* CR, int GP_File, int StartFill, int NFill )
+DLLEXPORT void DrawFilledRect3( int x0, int y0, int x1, int y1, Corners* CR, int GP_File, int StartFill, int NFill )
 {
 	TempWindow TEMP;
 	PushWindow( &TEMP );
@@ -431,7 +431,7 @@ void DrawStdRect2( int x0, int y0, int x1, int y1, int GP )
 	DrawRect4( x0, y0, x1, y1, &P2_NORMAL, GP );
 }
 
-__declspec( dllexport ) void DrawStdBar2( int x0, int y0, int x1, int y1, int GP )
+DLLEXPORT void DrawStdBar2( int x0, int y0, int x1, int y1, int GP )
 {
 	GP_OPT = 1023;
 	DrawFilledRect1( x0, y0, x1, y1, &P2_NORMAL, GP, 11, 3 );

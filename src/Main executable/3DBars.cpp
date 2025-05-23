@@ -274,7 +274,7 @@ int GetBar3DOwner( int x, int y )
 
 void CBar( int x, int y, int Lx, int Ly, unsigned char c );
 
-__declspec( dllexport ) void xLine( int x, int y, int x1, int y1, byte c )
+DLLEXPORT void xLine( int x, int y, int x1, int y1, byte c )
 {
 	int DD = int( sqrt( ( x - x1 )*( x - x1 ) + ( y - y1 )*( y - y1 ) ) );
 	if (!DD)

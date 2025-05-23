@@ -1143,7 +1143,7 @@ ReportFn* ORDLIST[OrdCount] = {
 };
 #ifdef STARFORCE
 ReportFn** PTR_LAND = NULL;
-void __declspec( dllexport ) SFINIT2_InitLAND()
+void DLLEXPORT SFINIT2_InitLAND()
 {
 	PTR_LAND = (ReportFn**) GlobalAlloc( GMEM_FIXED, 4 * OrdCount );
 	memcpy( PTR_LAND, ORDLIST, 4 * OrdCount );
@@ -2875,7 +2875,7 @@ extern int MaxPeaceTime;
 extern int PeaceTimeStage;
 
 // IChat library exports this
-__declspec( dllimport ) void GetGameID( char* s );
+DLLIMPORT void GetGameID( char* s );
 
 void PreSaveGame( SaveBuf* SB, char* Messtr, int ID )
 {

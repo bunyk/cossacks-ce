@@ -1091,7 +1091,7 @@ extern word PlayerMenuMode;
 extern int ItemChoose;
 extern bool use_gsc_network_protocol;
 
-__declspec( dllexport ) void PlayRecfile( char* RecFile )
+DLLEXPORT void PlayRecfile( char* RecFile )
 {
 	int LOG = use_gsc_network_protocol;
 	ShowLoading();

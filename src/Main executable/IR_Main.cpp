@@ -1027,7 +1027,7 @@ void CheckExistingSaves()
 	CURIGAME.Active = 0;
 }
 
-__declspec( dllexport ) void ExplorerOpenRef( int Index, char* ref );
+DLLEXPORT void ExplorerOpenRef( int Index, char* ref );
 
 void DontMakeRaiting()
 {

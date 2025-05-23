@@ -4,7 +4,7 @@ int AddTime = 0;
 int NeedAddTime = 0;
 
 // This is mostly assigned to int or DWORD variables, which is fine as far as the game session takes less than 24 days
-__declspec(dllexport) uint64_t GetSDLTickCount()
+DLLEXPORT uint64_t GetSDLTickCount()
 {
 	return SDL_GetTicks();
 }

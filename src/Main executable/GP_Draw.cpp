@@ -10037,13 +10037,13 @@ LocalGP::LocalGP()
 	Uniq = false;
 }
 
-__declspec( dllexport ) LocalGP::LocalGP( char* Name )
+DLLEXPORT LocalGP::LocalGP( char* Name )
 {
 	GPID = -1;
 	Load( Name );
 }
 
-__declspec( dllexport ) LocalGP::~LocalGP()
+DLLEXPORT LocalGP::~LocalGP()
 {
 	UnLoad();
 }
@@ -10316,7 +10316,7 @@ bool CheckInsideMask( GP_Header* Pic, int x, int y )
 	}
 }
 
-__declspec( dllexport ) bool CheckGP_Inside( int FileIndex, int SprIndex, int dx, int dy )
+DLLEXPORT bool CheckGP_Inside( int FileIndex, int SprIndex, int dx, int dy )
 {
 	if (!( FileIndex < GPS.NGP && ( SprIndex & 4095 ) < GPS.GPNFrames[FileIndex] ))
 		return false;

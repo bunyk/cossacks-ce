@@ -348,7 +348,7 @@ void HISTORY_Call( int i )
 extern bool GoAndAttackMode;
 extern char** NatNames;
 
-__declspec( dllexport ) char* GetTextByID( char* ID );
+DLLEXPORT char* GetTextByID( char* ID );
 
 extern int STOP_ICON;
 bool BreefUInfo = 0;
@@ -2012,7 +2012,7 @@ void LoadMessages()
 	LoadConstStr();
 }
 
-__declspec( dllexport ) char* GetTextByID( char* ID )
+DLLEXPORT char* GetTextByID( char* ID )
 {
 	for (int i = 0; i < NMess; i++)
 	{
@@ -2024,7 +2024,7 @@ __declspec( dllexport ) char* GetTextByID( char* ID )
 	return ID;
 }
 
-__declspec( dllexport ) int GetTextIDByID( char* ID )
+DLLEXPORT int GetTextIDByID( char* ID )
 {
 	for (int i = 0; i < NMess; i++)
 	{

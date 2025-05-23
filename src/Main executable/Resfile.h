@@ -1,6 +1,6 @@
 /*             Work with the resource files
  *   
- *  You must use this module for  accesss to files.This 
+ * You must use this module for accesss to files. This 
  * routine allows you to read  files from disk  or from 
  * the resource file, you even will not recognise where
  * the given file is.

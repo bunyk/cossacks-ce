@@ -492,11 +492,11 @@ void TestUnitsGroup( int id )
 		}
 	}
 }
-extern "C" __declspec( dllexport ) void AssignNation( byte Src, byte Dst )
+extern "C" DLLEXPORT void AssignNation( byte Src, byte Dst )
 {
 	if ( Src < 8 && Dst < 8 )AssignTBL[Src] = Dst;
 }
-extern "C" __declspec( dllexport ) bool RegisterUnits( GAMEOBJ* GOBJ, char* Name )
+extern "C" DLLEXPORT bool RegisterUnits( GAMEOBJ* GOBJ, char* Name )
 {
 	for ( int i = 0; i < NAGroups; i++ )if ( !strcmp( AGroups[i].Name, Name ) )
 	{
@@ -523,14 +523,14 @@ extern "C" __declspec( dllexport ) bool RegisterUnits( GAMEOBJ* GOBJ, char* Name
 }
 
 //Do not remove: Needed elsewhere, loaded at runtime, causes error if not defined
-extern "C" __declspec( dllexport ) bool RegisterUnitsForm( GAMEOBJ* GOBJ, char* Name )
+extern "C" DLLEXPORT bool RegisterUnitsForm( GAMEOBJ* GOBJ, char* Name )
 {
 	return false;
 }
 
 char* GetTextByID( char* ID );
 
-extern "C" __declspec( dllexport ) bool RegisterString( GAMEOBJ* GOBJ, char* ID )
+extern "C" DLLEXPORT bool RegisterString( GAMEOBJ* GOBJ, char* ID )
 {
 	char* id = GetTextByID( ID );
 	if ( !strcmp( id, ID ) )
@@ -553,7 +553,7 @@ extern "C" __declspec( dllexport ) bool RegisterString( GAMEOBJ* GOBJ, char* ID 
 	return true;
 }
 
-extern "C" __declspec( dllexport ) bool RegisterSound( GAMEOBJ* GOBJ, char* Name )
+extern "C" DLLEXPORT bool RegisterSound( GAMEOBJ* GOBJ, char* Name )
 {
 	GOBJ->Type = 'SOUN';
 	GOBJ->Index = SCENINF.NSnd;
@@ -570,7 +570,7 @@ extern "C" __declspec( dllexport ) bool RegisterSound( GAMEOBJ* GOBJ, char* Name
 	return true;
 }
 
-extern "C" __declspec( dllexport ) void RegisterVar( void* Var, int size )
+extern "C" DLLEXPORT void RegisterVar( void* Var, int size )
 {
 	if ( SCENINF.NSaves >= SCENINF.MaxSaves )
 	{
@@ -584,7 +584,7 @@ extern "C" __declspec( dllexport ) void RegisterVar( void* Var, int size )
 	SCENINF.NSaves++;
 }
 
-extern "C" __declspec( dllexport ) void RegisterZone( GAMEOBJ* GOBJ, char* Name )
+extern "C" DLLEXPORT void RegisterZone( GAMEOBJ* GOBJ, char* Name )
 {
 	int NZON = 0;
 	word ZIDS[64];
@@ -624,7 +624,7 @@ extern "C" __declspec( dllexport ) void RegisterZone( GAMEOBJ* GOBJ, char* Name 
 	}
 }
 
-extern "C" __declspec( dllexport ) void RegisterVisibleZone( GAMEOBJ* GOBJ, char* Name )
+extern "C" DLLEXPORT void RegisterVisibleZone( GAMEOBJ* GOBJ, char* Name )
 {
 	int NZON = 0;
 	word ZIDS[64];
@@ -664,7 +664,7 @@ extern "C" __declspec( dllexport ) void RegisterVisibleZone( GAMEOBJ* GOBJ, char
 	}
 }
 
-extern "C" __declspec( dllexport ) bool RegisterUnitType( GAMEOBJ* GOBJ, char* Name )
+extern "C" DLLEXPORT bool RegisterUnitType( GAMEOBJ* GOBJ, char* Name )
 {
 	GeneralObject** GOS = NATIONS[0].Mon;
 	int N = NATIONS[0].NMon;
@@ -684,7 +684,7 @@ extern "C" __declspec( dllexport ) bool RegisterUnitType( GAMEOBJ* GOBJ, char* N
 	return false;
 }
 
-extern "C" __declspec( dllexport ) bool RegisterUpgrade( GAMEOBJ* GOBJ, char* Name )
+extern "C" DLLEXPORT bool RegisterUpgrade( GAMEOBJ* GOBJ, char* Name )
 {
 	NewUpgrade** NUP = NATIONS[0].UPGRADE;
 	int N = NATIONS[0].NUpgrades;
@@ -703,7 +703,7 @@ extern "C" __declspec( dllexport ) bool RegisterUpgrade( GAMEOBJ* GOBJ, char* Na
 	return false;
 }
 
-extern "C" __declspec( dllexport ) bool SafeRegisterUpgrade( GAMEOBJ* GOBJ, char* Name )
+extern "C" DLLEXPORT bool SafeRegisterUpgrade( GAMEOBJ* GOBJ, char* Name )
 {
 	NewUpgrade** NUP = NATIONS[0].UPGRADE;
 	int N = NATIONS[0].NUpgrades;
@@ -726,7 +726,7 @@ extern "C" __declspec( dllexport ) bool SafeRegisterUpgrade( GAMEOBJ* GOBJ, char
 
 void PerformNewUpgrade( Nation* NT, int UIndex, OneObject* OB );
 
-extern "C" __declspec( dllexport ) void InitialUpgrade( char* Grp, char* Upgrade )
+extern "C" DLLEXPORT void InitialUpgrade( char* Grp, char* Upgrade )
 {
 	for ( int i = 0; i < NAGroups; i++ )
 	{
@@ -766,7 +766,7 @@ extern "C" __declspec( dllexport ) void InitialUpgrade( char* Grp, char* Upgrade
 	IntErr( "InitialUpgrade : Unknown <Group>" );
 }
 
-extern "C" __declspec( dllexport ) void DisableUpgrade( byte Nat, GAMEOBJ* Upg )
+extern "C" DLLEXPORT void DisableUpgrade( byte Nat, GAMEOBJ* Upg )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat < 8 )
@@ -782,7 +782,7 @@ extern "C" __declspec( dllexport ) void DisableUpgrade( byte Nat, GAMEOBJ* Upg )
 	}
 }
 
-extern "C" __declspec( dllexport ) void EnableUpgrade( byte Nat, GAMEOBJ* Upg )
+extern "C" DLLEXPORT void EnableUpgrade( byte Nat, GAMEOBJ* Upg )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat < 8 )
@@ -798,7 +798,7 @@ extern "C" __declspec( dllexport ) void EnableUpgrade( byte Nat, GAMEOBJ* Upg )
 	}
 }
 
-extern "C" __declspec( dllexport ) void EnableUnit( byte Nat, GAMEOBJ* Type, bool State )
+extern "C" DLLEXPORT void EnableUnit( byte Nat, GAMEOBJ* Type, bool State )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat < 8 )
@@ -819,7 +819,7 @@ extern "C" __declspec( dllexport ) void EnableUnit( byte Nat, GAMEOBJ* Type, boo
 	}
 }
 
-extern "C" __declspec( dllexport ) bool RegisterFormation( GAMEOBJ* GOBJ, char* Name )
+extern "C" DLLEXPORT bool RegisterFormation( GAMEOBJ* GOBJ, char* Name )
 {
 	for ( int i = 0; i < NEOrders; i++ )
 	{
@@ -838,7 +838,7 @@ extern "C" __declspec( dllexport ) bool RegisterFormation( GAMEOBJ* GOBJ, char* 
 
 //---------------Checking commands----------------
 //1.In zones
-extern "C" __declspec( dllexport ) int GetUnitsAmount0( GAMEOBJ* Zone, byte Nation )
+extern "C" DLLEXPORT int GetUnitsAmount0( GAMEOBJ* Zone, byte Nation )
 {
 	Nation = AssignTBL[Nation];
 	if ( Nation >= 8 )
@@ -979,12 +979,12 @@ void AddUnitToSelected( byte NI, OneObject* OB )
 
 void CopyReIm( byte NI );
 
-extern "C" __declspec( dllexport ) void ClearSelection( byte Nat );
+extern "C" DLLEXPORT void ClearSelection( byte Nat );
 
 extern short AlarmSoundID;
 extern int AlarmDelay;
 
-extern "C" __declspec( dllexport ) void ShowAlarm( GAMEOBJ* Zone )
+extern "C" DLLEXPORT void ShowAlarm( GAMEOBJ* Zone )
 {
 	int x = 0;
 	int y = 0;
@@ -1015,7 +1015,7 @@ extern "C" __declspec( dllexport ) void ShowAlarm( GAMEOBJ* Zone )
 	AlarmDelay = 60;
 }
 
-extern "C" __declspec( dllexport ) void SelectUnitsInZone( GAMEOBJ* Zone, byte Nation, bool add )
+extern "C" DLLEXPORT void SelectUnitsInZone( GAMEOBJ* Zone, byte Nation, bool add )
 {
 	Nation = AssignTBL[Nation];
 	if ( Nation >= 8 )
@@ -1146,7 +1146,7 @@ extern "C" __declspec( dllexport ) void SelectUnitsInZone( GAMEOBJ* Zone, byte N
 	return;
 }
 
-extern "C" __declspec( dllexport ) void ChangeUnitParam( GAMEOBJ* Type,
+extern "C" DLLEXPORT void ChangeUnitParam( GAMEOBJ* Type,
 	byte NI, int AddDamage, int DamType, int AddShield )
 {
 	if ( NI >= 8 || DamType > 4 )
@@ -1164,7 +1164,7 @@ extern "C" __declspec( dllexport ) void ChangeUnitParam( GAMEOBJ* Type,
 	NATIONS[NI].Mon[Type->Index]->MoreCharacter->Changed = 1;
 }
 
-extern "C" __declspec( dllexport ) void SelectTypeOfUnitsInZone( GAMEOBJ* Zone,
+extern "C" DLLEXPORT void SelectTypeOfUnitsInZone( GAMEOBJ* Zone,
 	GAMEOBJ* Type, byte Nation, bool add )
 {
 	Nation = AssignTBL[Nation];
@@ -1296,7 +1296,7 @@ extern "C" __declspec( dllexport ) void SelectTypeOfUnitsInZone( GAMEOBJ* Zone,
 	CopyReIm( Nation );
 	return;
 }
-extern "C" __declspec( dllexport ) int GetUnitsAmount1( GAMEOBJ* Zone, GAMEOBJ* Units )
+extern "C" DLLEXPORT int GetUnitsAmount1( GAMEOBJ* Zone, GAMEOBJ* Units )
 {
 	if ( Units->Type != 'UNIT' )
 	{
@@ -1354,7 +1354,7 @@ extern "C" __declspec( dllexport ) int GetUnitsAmount1( GAMEOBJ* Zone, GAMEOBJ* 
 	}
 	return NU;
 }
-extern "C" __declspec( dllexport ) int GetUnitsAmount2( GAMEOBJ* Zone, GAMEOBJ* UnitType, byte Nation )
+extern "C" DLLEXPORT int GetUnitsAmount2( GAMEOBJ* Zone, GAMEOBJ* UnitType, byte Nation )
 {
 	Nation = AssignTBL[Nation];
 	if ( Nation >= 8 )
@@ -1475,7 +1475,7 @@ extern "C" __declspec( dllexport ) int GetUnitsAmount2( GAMEOBJ* Zone, GAMEOBJ* 
 	return NU;
 }
 //2.total
-extern "C" __declspec( dllexport ) int GetTotalAmount0( GAMEOBJ* Units )
+extern "C" DLLEXPORT int GetTotalAmount0( GAMEOBJ* Units )
 {
 	if ( Units->Type != 'UNIT' )
 	{
@@ -1499,7 +1499,7 @@ extern "C" __declspec( dllexport ) int GetTotalAmount0( GAMEOBJ* Units )
 	}
 	return NU;
 }
-extern "C" __declspec( dllexport ) int GetTotalAmount1( GAMEOBJ* UnitType, byte Nation )
+extern "C" DLLEXPORT int GetTotalAmount1( GAMEOBJ* UnitType, byte Nation )
 {
 	Nation = AssignTBL[Nation];
 	if ( UnitType->Type != 'UTYP' )
@@ -1516,7 +1516,7 @@ extern "C" __declspec( dllexport ) int GetTotalAmount1( GAMEOBJ* UnitType, byte 
 	}
 	return NATIONS[Nation].CITY->UnitAmount[UnitType->Index];
 }
-extern "C" __declspec( dllexport ) int GetTotalAmount2( GAMEOBJ* Units, GAMEOBJ* UnitType, byte Nation )
+extern "C" DLLEXPORT int GetTotalAmount2( GAMEOBJ* Units, GAMEOBJ* UnitType, byte Nation )
 {
 	Nation = AssignTBL[Nation];
 	if ( UnitType->Type != 'UTYP' )
@@ -1548,7 +1548,7 @@ extern "C" __declspec( dllexport ) int GetTotalAmount2( GAMEOBJ* Units, GAMEOBJ*
 	}
 	return NU;
 }
-extern "C" __declspec( dllexport ) int GetReadyAmount( GAMEOBJ* UnitType, byte Nation )
+extern "C" DLLEXPORT int GetReadyAmount( GAMEOBJ* UnitType, byte Nation )
 {
 	Nation = AssignTBL[Nation];
 	if ( UnitType->Type != 'UTYP' )
@@ -1565,7 +1565,7 @@ extern "C" __declspec( dllexport ) int GetReadyAmount( GAMEOBJ* UnitType, byte N
 	}
 	return NATIONS[Nation].CITY->ReadyAmount[UnitType->Index];
 }
-extern "C" __declspec( dllexport ) int GetAmountOfWarriors( byte Nat )
+extern "C" DLLEXPORT int GetAmountOfWarriors( byte Nat )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat >= 8 )
@@ -1590,7 +1590,7 @@ extern "C" __declspec( dllexport ) int GetAmountOfWarriors( byte Nat )
 	return NU;
 }
 //3.Upgrades
-extern "C" __declspec( dllexport ) bool IsUpgradeDoing( GAMEOBJ* Upgrade, byte Nation )
+extern "C" DLLEXPORT bool IsUpgradeDoing( GAMEOBJ* Upgrade, byte Nation )
 {
 	Nation = AssignTBL[Nation];
 	if ( Upgrade->Type != 'UPGR' )
@@ -1607,7 +1607,7 @@ extern "C" __declspec( dllexport ) bool IsUpgradeDoing( GAMEOBJ* Upgrade, byte N
 	}
 	return NATIONS[Nation].UPGRADE[Upgrade->Index]->IsDoing;
 }
-extern "C" __declspec( dllexport ) bool IsUpgradeDone( GAMEOBJ* Upgrade, byte Nation )
+extern "C" DLLEXPORT bool IsUpgradeDone( GAMEOBJ* Upgrade, byte Nation )
 {
 	Nation = AssignTBL[Nation];
 	if ( Upgrade->Type != 'UPGR' )
@@ -1624,7 +1624,7 @@ extern "C" __declspec( dllexport ) bool IsUpgradeDone( GAMEOBJ* Upgrade, byte Na
 	}
 	return NATIONS[Nation].UPGRADE[Upgrade->Index]->Done;
 }
-extern "C" __declspec( dllexport ) bool IsUpgradeEnabled( GAMEOBJ* Upgrade, byte Nation )
+extern "C" DLLEXPORT bool IsUpgradeEnabled( GAMEOBJ* Upgrade, byte Nation )
 {
 	Nation = AssignTBL[Nation];
 	if ( Upgrade->Type != 'UPGR' )
@@ -1642,7 +1642,7 @@ extern "C" __declspec( dllexport ) bool IsUpgradeEnabled( GAMEOBJ* Upgrade, byte
 	return NATIONS[Nation].UPGRADE[Upgrade->Index]->Enabled;
 }
 //4.Died units
-extern "C" __declspec( dllexport ) int GetDied( GAMEOBJ* UnitType, byte Nation )
+extern "C" DLLEXPORT int GetDied( GAMEOBJ* UnitType, byte Nation )
 {
 	Nation = AssignTBL[Nation];
 	if ( UnitType->Type != 'UNIT' )
@@ -1661,7 +1661,7 @@ extern "C" __declspec( dllexport ) int GetDied( GAMEOBJ* UnitType, byte Nation )
 }
 //---------------Creating/Erasure commands--------------
 int CreateNewTerrMons2( byte NI, int x, int y, word Type );
-extern "C" __declspec( dllexport ) bool CreateObject0( GAMEOBJ* DstObj, GAMEOBJ* Form, GAMEOBJ* UnitType, byte NatID, GAMEOBJ* Zone, byte Direction )
+extern "C" DLLEXPORT bool CreateObject0( GAMEOBJ* DstObj, GAMEOBJ* Form, GAMEOBJ* UnitType, byte NatID, GAMEOBJ* Zone, byte Direction )
 {
 	NatID = AssignTBL[NatID];
 	if ( NatID >= 8 )
@@ -1813,7 +1813,7 @@ void ReClearSelection( byte Nat )
 	SerN[Nat] = NULL;
 	NSL[Nat] = NULL;
 }
-extern "C" __declspec( dllexport ) void ClearSelection( byte Nat )
+extern "C" DLLEXPORT void ClearSelection( byte Nat )
 {
 	ReClearSelection( Nat );
 	ImClearSelection( Nat );
@@ -1878,7 +1878,7 @@ void CopyReIm( byte NI )
 		}
 	}
 }
-extern "C" __declspec( dllexport ) void SelectUnits( GAMEOBJ* Units, bool Add )
+extern "C" DLLEXPORT void SelectUnits( GAMEOBJ* Units, bool Add )
 {
 	if ( Units->Type != 'UNIT' )
 	{
@@ -1940,7 +1940,7 @@ extern "C" __declspec( dllexport ) void SelectUnits( GAMEOBJ* Units, bool Add )
 		CopyReIm( Nat );
 	}
 }
-extern "C" __declspec( dllexport ) void SelectUnits1( byte Nat, GAMEOBJ* Units, bool Add )
+extern "C" DLLEXPORT void SelectUnits1( byte Nat, GAMEOBJ* Units, bool Add )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat > 7 )return;
@@ -1991,7 +1991,7 @@ extern "C" __declspec( dllexport ) void SelectUnits1( byte Nat, GAMEOBJ* Units, 
 	}
 	CopyReIm( Nat );
 }
-extern "C" __declspec( dllexport ) void SelectUnitsType( GAMEOBJ* UnitsType, byte Nat, bool Add )
+extern "C" DLLEXPORT void SelectUnitsType( GAMEOBJ* UnitsType, byte Nat, bool Add )
 {
 	Nat = AssignTBL[Nat];
 	if ( UnitsType->Type != 'UTYP' )
@@ -2042,7 +2042,7 @@ extern "C" __declspec( dllexport ) void SelectUnitsType( GAMEOBJ* UnitsType, byt
 
 void DieSelected( byte NI );
 void EraseSelected( byte NI );
-extern "C" __declspec( dllexport ) bool SelDie( byte Nat )
+extern "C" DLLEXPORT bool SelDie( byte Nat )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat >= 8 )
@@ -2055,11 +2055,11 @@ extern "C" __declspec( dllexport ) bool SelDie( byte Nat )
 	return true;
 }
 extern bool BreefUInfo;
-extern "C" __declspec( dllexport ) void DoMessagesBrief()
+extern "C" DLLEXPORT void DoMessagesBrief()
 {
 	BreefUInfo = 1;
 }
-extern "C" __declspec( dllexport ) void SelErase( byte NI )
+extern "C" DLLEXPORT void SelErase( byte NI )
 {
 	if ( NI >= 8 )
 	{
@@ -2069,7 +2069,7 @@ extern "C" __declspec( dllexport ) void SelErase( byte NI )
 	}
 	EraseSelected( NI );
 }
-extern "C" __declspec( dllexport ) void SelAttackGroup( byte Nat, GAMEOBJ* Enemy )
+extern "C" DLLEXPORT void SelAttackGroup( byte Nat, GAMEOBJ* Enemy )
 {
 	Nat = AssignTBL[Nat];
 	if ( Enemy->Type != 'UNIT' )
@@ -2119,7 +2119,7 @@ extern "C" __declspec( dllexport ) void SelAttackGroup( byte Nat, GAMEOBJ* Enemy
 }
 void ComOpenGates( byte NI );
 void ComCloseGates( byte NI );
-extern "C" __declspec( dllexport ) bool SelOpenGates( byte Nat )
+extern "C" DLLEXPORT bool SelOpenGates( byte Nat )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat >= 8 )
@@ -2131,7 +2131,7 @@ extern "C" __declspec( dllexport ) bool SelOpenGates( byte Nat )
 	ComOpenGates( Nat );
 	return true;
 }
-extern "C" __declspec( dllexport ) int GetNInside( byte Nat )
+extern "C" DLLEXPORT int GetNInside( byte Nat )
 {
 	Nat = AssignTBL[Nat];
 	int Ni = 0;
@@ -2152,7 +2152,7 @@ extern "C" __declspec( dllexport ) int GetNInside( byte Nat )
 	}
 	return Ni;
 }
-extern "C" __declspec( dllexport ) int GetMaxInside( byte Nat )
+extern "C" DLLEXPORT int GetMaxInside( byte Nat )
 {
 	Nat = AssignTBL[Nat];
 	int Ni = 0;
@@ -2173,7 +2173,7 @@ extern "C" __declspec( dllexport ) int GetMaxInside( byte Nat )
 	}
 	return Ni;
 }
-extern "C" __declspec( dllexport ) void PushUnitAway( byte Nat )
+extern "C" DLLEXPORT void PushUnitAway( byte Nat )
 {
 	Nat = AssignTBL[Nat];
 	int N = NSL[Nat];
@@ -2194,7 +2194,7 @@ extern "C" __declspec( dllexport ) void PushUnitAway( byte Nat )
 	}
 }
 void LeaveAll( OneObject* OB );
-extern "C" __declspec( dllexport ) void PushAllUnitsAway( byte Nat )
+extern "C" DLLEXPORT void PushAllUnitsAway( byte Nat )
 {
 	Nat = AssignTBL[Nat];
 	if ( NSL[Nat] )
@@ -2214,7 +2214,7 @@ extern "C" __declspec( dllexport ) void PushAllUnitsAway( byte Nat )
 		}
 	}
 }
-extern "C" __declspec( dllexport ) void SendUnitsToTransport( byte Nat )
+extern "C" DLLEXPORT void SendUnitsToTransport( byte Nat )
 {
 	Nat = AssignTBL[Nat];
 	word TransID = 0xFFFF;
@@ -2250,7 +2250,7 @@ extern "C" __declspec( dllexport ) void SendUnitsToTransport( byte Nat )
 		}
 	}
 }
-extern "C" __declspec( dllexport ) bool CheckLeaveAbility( byte Nat )
+extern "C" DLLEXPORT bool CheckLeaveAbility( byte Nat )
 {
 	Nat = AssignTBL[Nat];
 	int N = NSL[Nat];
@@ -2313,7 +2313,7 @@ word SearchUnitInZone( int zx, int zy, int Rz, byte Nat )
 	return 0xFFFF;
 }
 
-extern "C" __declspec( dllexport ) void AttackZoneByArtillery( GAMEOBJ* ArtGroup, GAMEOBJ* Zone, byte Nat )
+extern "C" DLLEXPORT void AttackZoneByArtillery( GAMEOBJ* ArtGroup, GAMEOBJ* Zone, byte Nat )
 {
 	Nat = AssignTBL[Nat];
 	int xc, yc, R;
@@ -2538,7 +2538,7 @@ OneObject* TryToFindEnemy( int x, int y, int r0, int r1, byte mask )
 	if ( DestObj )return DestObj;
 	return NULL;
 }
-extern "C" __declspec( dllexport ) void AttackBuildingsInZone( GAMEOBJ* ArtGroup, GAMEOBJ* Zone, byte Nat )
+extern "C" DLLEXPORT void AttackBuildingsInZone( GAMEOBJ* ArtGroup, GAMEOBJ* Zone, byte Nat )
 {
 	Nat = AssignTBL[Nat];
 	int xc, yc, R;
@@ -2592,7 +2592,7 @@ extern "C" __declspec( dllexport ) void AttackBuildingsInZone( GAMEOBJ* ArtGroup
 	}
 }
 void ProduceObject( byte NI, word Type );
-extern "C" __declspec( dllexport ) void ProduceOneUnit( byte Nat, GAMEOBJ* UnitType )
+extern "C" DLLEXPORT void ProduceOneUnit( byte Nat, GAMEOBJ* UnitType )
 {
 	Nat = AssignTBL[Nat];
 	if ( UnitType->Type != 'UTYP' )
@@ -2602,7 +2602,7 @@ extern "C" __declspec( dllexport ) void ProduceOneUnit( byte Nat, GAMEOBJ* UnitT
 	}
 	ProduceObject( Nat, UnitType->Index );
 }
-extern "C" __declspec( dllexport ) bool SelCloseGates( byte Nat )
+extern "C" DLLEXPORT bool SelCloseGates( byte Nat )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat >= 8 )
@@ -2615,7 +2615,7 @@ extern "C" __declspec( dllexport ) bool SelCloseGates( byte Nat )
 	return true;
 }
 void SendSelectedToXY( byte NI, int xx, int yy, short Dir, byte Prio, byte Type );
-extern "C" __declspec( dllexport ) bool SelSendTo( byte Nat, GAMEOBJ* Zone, byte Dir, byte Type )
+extern "C" DLLEXPORT bool SelSendTo( byte Nat, GAMEOBJ* Zone, byte Dir, byte Type )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat >= 8 )
@@ -2639,7 +2639,7 @@ extern "C" __declspec( dllexport ) bool SelSendTo( byte Nat, GAMEOBJ* Zone, byte
 	SendSelectedToXY( Nat, AZ->x << 4, AZ->y << 4, Dir, 16, Type );
 	return true;
 }
-extern "C" __declspec( dllexport ) bool SelSendAndKill( byte Nat, GAMEOBJ* Zone, byte Dir, byte Type )
+extern "C" DLLEXPORT bool SelSendAndKill( byte Nat, GAMEOBJ* Zone, byte Dir, byte Type )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat >= 8 )
@@ -2664,7 +2664,7 @@ extern "C" __declspec( dllexport ) bool SelSendAndKill( byte Nat, GAMEOBJ* Zone,
 	return true;
 }
 void PatrolGroup( byte NI, int x1, int y1, byte Dir );
-extern "C" __declspec( dllexport ) bool Patrol( byte Nat, GAMEOBJ* Zone, byte Dir )
+extern "C" DLLEXPORT bool Patrol( byte Nat, GAMEOBJ* Zone, byte Dir )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat >= 8 )
@@ -2688,7 +2688,7 @@ extern "C" __declspec( dllexport ) bool Patrol( byte Nat, GAMEOBJ* Zone, byte Di
 	PatrolGroup( Nat, AZ->x << 4, AZ->y << 4, Dir );
 	return true;
 }
-extern "C" __declspec( dllexport ) void ChangeFriends( byte Nat, byte Flags )
+extern "C" DLLEXPORT void ChangeFriends( byte Nat, byte Flags )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat >= 8 )
@@ -2707,7 +2707,7 @@ extern "C" __declspec( dllexport ) void ChangeFriends( byte Nat, byte Flags )
 	}
 	NATIONS[Nat].NMask = Flags;
 }
-extern "C" __declspec( dllexport ) void SelChangeNation( byte SrcNat, byte DstNat )
+extern "C" DLLEXPORT void SelChangeNation( byte SrcNat, byte DstNat )
 {
 	if ( SrcNat >= 8 || DstNat >= 8 )
 	{
@@ -2754,7 +2754,7 @@ extern "C" __declspec( dllexport ) void SelChangeNation( byte SrcNat, byte DstNa
 	}
 	ClearSelection( SrcNat );
 }
-extern "C" __declspec( dllexport ) void SelAutoKill( byte Nat )
+extern "C" DLLEXPORT void SelAutoKill( byte Nat )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat >= 8 )
@@ -2782,7 +2782,7 @@ extern "C" __declspec( dllexport ) void SelAutoKill( byte Nat )
 void MakeStandGround( byte NI );
 void CancelStandGround( byte NI );
 void SetSearchVictim( byte NI, byte Val );
-extern "C" __declspec( dllexport ) void SetStandGround( byte Nat, byte val )
+extern "C" DLLEXPORT void SetStandGround( byte Nat, byte val )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat > 7 )
@@ -2794,7 +2794,7 @@ extern "C" __declspec( dllexport ) void SetStandGround( byte Nat, byte val )
 	if ( val )MakeStandGround( Nat );
 	else CancelStandGround( Nat );
 }
-extern "C" __declspec( dllexport ) void AllowAttack( byte Nat, byte val )
+extern "C" DLLEXPORT void AllowAttack( byte Nat, byte val )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat > 7 )
@@ -2807,7 +2807,7 @@ extern "C" __declspec( dllexport ) void AllowAttack( byte Nat, byte val )
 	else SetSearchVictim( Nat, 3 );
 }
 //-----------------------INFORMATION COMMANDS----------------------------//
-extern "C" __declspec( dllexport ) void HINT( GAMEOBJ* Hint, int time )
+extern "C" DLLEXPORT void HINT( GAMEOBJ* Hint, int time )
 {
 	if ( Hint->Type != 'STRI' )
 	{
@@ -2823,19 +2823,19 @@ extern "C" __declspec( dllexport ) void HINT( GAMEOBJ* Hint, int time )
 	}
 }
 
-extern "C" __declspec( dllexport ) void DisableMission( char MISSID )
+extern "C" DLLEXPORT void DisableMission( char MISSID )
 {
 	SCENINF.TextDisable[GetCPos( MISSID )] = 1;
 	CreateMissText();
 }
 
-extern "C" __declspec( dllexport ) void EnableMission( char MISSID )
+extern "C" DLLEXPORT void EnableMission( char MISSID )
 {
 	SCENINF.TextDisable[GetCPos( MISSID )] = 0;
 	CreateMissText();
 }
 
-extern "C" __declspec( dllexport ) void SetVictoryText( char* ID )
+extern "C" DLLEXPORT void SetVictoryText( char* ID )
 {
 	char* txt = GetTextByID( ID );
 	if ( strcmp( txt, ID ) )
@@ -2849,7 +2849,7 @@ extern "C" __declspec( dllexport ) void SetVictoryText( char* ID )
 	}
 }
 
-extern "C" __declspec( dllexport ) void SetLooseText( char* ID )
+extern "C" DLLEXPORT void SetLooseText( char* ID )
 {
 	char* txt = GetTextByID( ID );
 	if ( strcmp( txt, ID ) )
@@ -2867,7 +2867,7 @@ extern bool ShowStat;
 void CmdEndGame( byte NI, byte state, byte cause );
 extern int HISPEED;
 
-extern "C" __declspec( dllexport ) void ShowVictory()
+extern "C" DLLEXPORT void ShowVictory()
 {
 	SCENINF.Victory = true;
 	HISPEED = 0;
@@ -2880,7 +2880,7 @@ extern "C" __declspec( dllexport ) void ShowVictory()
 	}
 }
 
-extern "C" __declspec( dllexport ) void LooseGame()
+extern "C" DLLEXPORT void LooseGame()
 {
 	SCENINF.LooseGame = true;
 	HISPEED = 0;
@@ -2893,7 +2893,7 @@ extern "C" __declspec( dllexport ) void LooseGame()
 	}
 }
 
-extern "C" __declspec( dllexport ) void ShowCentralText( char* ID, int time )
+extern "C" DLLEXPORT void ShowCentralText( char* ID, int time )
 {
 	SCENINF.CentralText = GetTextByID( ID );
 	SCENINF.CTextTime = time;
@@ -2909,7 +2909,7 @@ void AddHistory( Nation* NAT, char* Name )
 	NAT->NHistory++;
 }
 
-extern "C" __declspec( dllexport ) void ShowPage( char* Name )
+extern "C" DLLEXPORT void ShowPage( char* Name )
 {
 	int NP = 0;
 	AddHistory( NATIONS + MyNation, Name );
@@ -2929,7 +2929,7 @@ extern "C" __declspec( dllexport ) void ShowPage( char* Name )
 	}
 }
 
-extern "C" __declspec( dllexport ) void ShowPageParam( char* Name, ... )
+extern "C" DLLEXPORT void ShowPageParam( char* Name, ... )
 {
 	va_list va;
 	va_start( va, Name );
@@ -2958,7 +2958,7 @@ extern "C" __declspec( dllexport ) void ShowPageParam( char* Name, ... )
 extern byte PlayGameMode;
 bool AskMissionQuestion( char* Bmp, char* Text );
 
-extern "C" __declspec( dllexport ) bool AskQuestion( char* Name )
+extern "C" DLLEXPORT bool AskQuestion( char* Name )
 {
 	if ( PlayGameMode )RGAME.Extract();
 	int NP = 0;
@@ -2988,7 +2988,7 @@ int _pr_Nx = -1;
 byte _pr_or1;
 byte _pr_or2;
 
-extern "C" __declspec( dllexport ) int AskComplexQuestion( int Nx, char* Name1, byte or1, char* Name2, byte or2, char* Quest )
+extern "C" DLLEXPORT int AskComplexQuestion( int Nx, char* Name1, byte or1, char* Name2, byte or2, char* Quest )
 {
 	if ( PlayGameMode )RGAME.Extract();
 	int q1 = -1;
@@ -3101,7 +3101,7 @@ void ShowHistory()
 }
 
 //-----------------------------Resource functions------------------------//
-extern "C" __declspec( dllexport ) int GetResource( byte Nat, byte ID )
+extern "C" DLLEXPORT int GetResource( byte Nat, byte ID )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat < 8 && ID < 6 )
@@ -3116,7 +3116,7 @@ extern "C" __declspec( dllexport ) int GetResource( byte Nat, byte ID )
 	return 0;
 }
 
-extern "C" __declspec( dllexport ) void AddResource( byte Nat, byte ID, int Amount )
+extern "C" DLLEXPORT void AddResource( byte Nat, byte ID, int Amount )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat < 8 && ID < 6 )
@@ -3132,7 +3132,7 @@ extern "C" __declspec( dllexport ) void AddResource( byte Nat, byte ID, int Amou
 
 }
 
-extern "C" __declspec( dllexport ) void SetResource( byte Nat, byte ID, int Amount )
+extern "C" DLLEXPORT void SetResource( byte Nat, byte ID, int Amount )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat < 8 && ID < 6 )
@@ -3150,7 +3150,7 @@ extern "C" __declspec( dllexport ) void SetResource( byte Nat, byte ID, int Amou
 
 void GetUnitCost( byte NI, word NIndex, int* Cost );
 
-extern "C" __declspec( dllexport ) int GetUnitCost( byte Nat, GAMEOBJ* UnitType, byte ResID )
+extern "C" DLLEXPORT int GetUnitCost( byte Nat, GAMEOBJ* UnitType, byte ResID )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat >= 8 )
@@ -3176,7 +3176,7 @@ extern "C" __declspec( dllexport ) int GetUnitCost( byte Nat, GAMEOBJ* UnitType,
 	return Cost[ResID];
 }
 
-extern "C" __declspec( dllexport ) int GetUpgradeCost( byte Nat, GAMEOBJ* Upgrade, byte ResID )
+extern "C" DLLEXPORT int GetUpgradeCost( byte Nat, GAMEOBJ* Upgrade, byte ResID )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat >= 8 )
@@ -3201,7 +3201,7 @@ extern "C" __declspec( dllexport ) int GetUpgradeCost( byte Nat, GAMEOBJ* Upgrad
 }
 
 //----------------------------TRIGGER FUNCTION---------------------------//
-extern "C" __declspec( dllexport ) byte Trigg( byte ID )
+extern "C" DLLEXPORT byte Trigg( byte ID )
 {
 	if ( ID > 511 )
 	{
@@ -3212,7 +3212,7 @@ extern "C" __declspec( dllexport ) byte Trigg( byte ID )
 	return ~SCENINF.TRIGGER[ID];
 }
 
-extern "C" __declspec( dllexport ) void SetTrigg( byte ID, byte Val )
+extern "C" DLLEXPORT void SetTrigg( byte ID, byte Val )
 {
 	if ( ID > 511 )
 	{
@@ -3223,7 +3223,7 @@ extern "C" __declspec( dllexport ) void SetTrigg( byte ID, byte Val )
 	SCENINF.TRIGGER[ID] = ~Val;
 }
 
-extern "C" __declspec( dllexport ) word WTrigg( byte ID )
+extern "C" DLLEXPORT word WTrigg( byte ID )
 {
 	if ( ID > 511 )
 	{
@@ -3234,7 +3234,7 @@ extern "C" __declspec( dllexport ) word WTrigg( byte ID )
 	return ~SCENINF.TRIGGER[ID];
 }
 
-extern "C" __declspec( dllexport ) void SetWTrigg( byte ID, word Val )
+extern "C" DLLEXPORT void SetWTrigg( byte ID, word Val )
 {
 	if ( ID > 511 )
 	{
@@ -3248,7 +3248,7 @@ extern "C" __declspec( dllexport ) void SetWTrigg( byte ID, word Val )
 //------------------------------AI Functions-----------------------------//
 void LoadAIFromDLL( byte Nat, char* Name );
 
-extern "C" __declspec( dllexport ) void RunAI( byte Nat )
+extern "C" DLLEXPORT void RunAI( byte Nat )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat < 1 || Nat>7 )
@@ -3289,7 +3289,7 @@ extern "C" __declspec( dllexport ) void RunAI( byte Nat )
 		}
 	}
 }
-extern "C" __declspec( dllexport ) void RunAIWithPeasants( byte Nat, char* P_Name )
+extern "C" DLLEXPORT void RunAIWithPeasants( byte Nat, char* P_Name )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat < 1 || Nat>7 )
@@ -3322,7 +3322,7 @@ extern "C" __declspec( dllexport ) void RunAIWithPeasants( byte Nat, char* P_Nam
 	}
 }
 //-----------------------------Timer commands----------------------------//
-extern "C" __declspec( dllexport ) void RunTimer( byte ID, int Long )
+extern "C" DLLEXPORT void RunTimer( byte ID, int Long )
 {
 	if ( ID >= 32 )
 	{
@@ -3335,7 +3335,7 @@ extern "C" __declspec( dllexport ) void RunTimer( byte ID, int Long )
 	TM->Used = true;
 	TM->First = false;
 }
-extern "C" __declspec( dllexport ) bool TimerDone( byte ID )
+extern "C" DLLEXPORT bool TimerDone( byte ID )
 {
 	if ( ID >= 32 )
 	{
@@ -3346,7 +3346,7 @@ extern "C" __declspec( dllexport ) bool TimerDone( byte ID )
 	GTimer* TM = SCENINF.TIME + ID;
 	return TM->Time == 0 && TM->Used;
 }
-extern "C" __declspec( dllexport ) bool TimerDoneFirst( byte ID )
+extern "C" DLLEXPORT bool TimerDoneFirst( byte ID )
 {
 	if ( ID >= 32 )
 	{
@@ -3363,7 +3363,7 @@ extern "C" __declspec( dllexport ) bool TimerDoneFirst( byte ID )
 	else return false;
 
 }
-extern "C" __declspec( dllexport ) bool TimerIsEmpty( byte ID )
+extern "C" DLLEXPORT bool TimerIsEmpty( byte ID )
 {
 	if ( ID >= 32 )
 	{
@@ -3374,7 +3374,7 @@ extern "C" __declspec( dllexport ) bool TimerIsEmpty( byte ID )
 	GTimer* TM = SCENINF.TIME + ID;
 	return !TM->Used;
 }
-extern "C" __declspec( dllexport ) void FreeTimer( byte ID )
+extern "C" DLLEXPORT void FreeTimer( byte ID )
 {
 	if ( ID >= 32 )
 	{
@@ -3387,7 +3387,7 @@ extern "C" __declspec( dllexport ) void FreeTimer( byte ID )
 	TM->Time = 0;
 	TM->Used = 0;
 }
-extern "C" __declspec( dllexport ) int GetTime( byte ID )
+extern "C" DLLEXPORT int GetTime( byte ID )
 {
 	if ( ID >= 32 )
 	{
@@ -3399,12 +3399,12 @@ extern "C" __declspec( dllexport ) int GetTime( byte ID )
 	return TM->Time;
 }
 extern int tmtmt;
-extern "C" __declspec( dllexport ) int GetGlobalTime()
+extern "C" DLLEXPORT int GetGlobalTime()
 {
 	return REALTIME;
 }
 //---------------------------Dynamical zones-----------------------------//
-extern "C" __declspec( dllexport ) bool UnitsCenter( GAMEOBJ* DstZone, GAMEOBJ* Units, word R )
+extern "C" DLLEXPORT bool UnitsCenter( GAMEOBJ* DstZone, GAMEOBJ* Units, word R )
 {
 	if ( Units->Type != 'UNIT' )
 	{
@@ -3448,13 +3448,13 @@ extern "C" __declspec( dllexport ) bool UnitsCenter( GAMEOBJ* DstZone, GAMEOBJ* 
 }
 void ProcessScreen();
 void GSYSDRAW();
-extern "C" __declspec( dllexport ) void RefreshScreen()
+extern "C" DLLEXPORT void RefreshScreen()
 {
 	ProcessScreen();
 	GSYSDRAW();
 }
 
-extern "C" __declspec( dllexport ) bool SelCenter( GAMEOBJ* DstZone, byte Nat, int R )
+extern "C" DLLEXPORT bool SelCenter( GAMEOBJ* DstZone, byte Nat, int R )
 {
 	Nat = AssignTBL[Nat];
 	if ( Nat > 7 )
@@ -3498,7 +3498,7 @@ extern "C" __declspec( dllexport ) bool SelCenter( GAMEOBJ* DstZone, byte Nat, i
 	}
 	return true;
 }
-extern "C" __declspec( dllexport ) bool CreateZoneNearUnit( GAMEOBJ* DstZone, GAMEOBJ* Zone, GAMEOBJ* UnitType, byte Nat, int R )
+extern "C" DLLEXPORT bool CreateZoneNearUnit( GAMEOBJ* DstZone, GAMEOBJ* Zone, GAMEOBJ* UnitType, byte Nat, int R )
 {
 	Nat = AssignTBL[Nat];
 	if ( UnitType->Type != 'UTYP' )
@@ -3579,7 +3579,7 @@ extern "C" __declspec( dllexport ) bool CreateZoneNearUnit( GAMEOBJ* DstZone, GA
 	return false;
 }
 
-extern "C" __declspec( dllexport ) bool CreateZoneNearGroup( GAMEOBJ* DstZone, GAMEOBJ* Zone, GAMEOBJ* Grp, int R )
+extern "C" DLLEXPORT bool CreateZoneNearGroup( GAMEOBJ* DstZone, GAMEOBJ* Zone, GAMEOBJ* Grp, int R )
 {
 	if ( Grp->Type != 'UNIT' )
 	{
@@ -3647,7 +3647,7 @@ extern "C" __declspec( dllexport ) bool CreateZoneNearGroup( GAMEOBJ* DstZone, G
 	return false;
 }
 
-extern "C" __declspec( dllexport ) void SetLightSpot( GAMEOBJ* Zone, int R, byte index )
+extern "C" DLLEXPORT void SetLightSpot( GAMEOBJ* Zone, int R, byte index )
 {
 	int x0 = 0;
 	int y0 = 0;
@@ -3680,7 +3680,7 @@ extern "C" __declspec( dllexport ) void SetLightSpot( GAMEOBJ* Zone, int R, byte
 	SCENINF.LSpot[index].y = y0;
 	SCENINF.LSpot[index].Type = R;
 }
-extern "C" __declspec( dllexport ) void ClearLightSpot( byte index )
+extern "C" DLLEXPORT void ClearLightSpot( byte index )
 {
 	if ( index > 63 )
 	{
@@ -3694,7 +3694,7 @@ extern "C" __declspec( dllexport ) void ClearLightSpot( byte index )
 }
 extern int RealLx;
 extern int RealLy;
-extern "C" __declspec( dllexport ) void SetStartPoint( GAMEOBJ* Zone )
+extern "C" DLLEXPORT void SetStartPoint( GAMEOBJ* Zone )
 {
 	int x;
 	int y;
@@ -3729,7 +3729,7 @@ void AttackObjLink( OneObject* OBJ );
 int GetTopDistance( int xa, int ya, int xb, int yb );
 bool CheckVisibility( int x1, int y1, int x2, int y2, word MyID );
 
-extern "C" __declspec( dllexport ) void AttackEnemyInZone( GAMEOBJ* Grp, GAMEOBJ* Zone, byte EnmNation )
+extern "C" DLLEXPORT void AttackEnemyInZone( GAMEOBJ* Grp, GAMEOBJ* Zone, byte EnmNation )
 {
 	int xc, yc, R;
 	if ( ( Zone->Type & 0xFF000000 ) == ( '@   ' - 0x202020 ) )
@@ -3907,12 +3907,12 @@ extern "C" __declspec( dllexport ) void AttackEnemyInZone( GAMEOBJ* Grp, GAMEOBJ
 	}
 }
 
-extern "C" __declspec( dllexport ) int GetMyNation()
+extern "C" DLLEXPORT int GetMyNation()
 {
 	return MyNation;
 }
 int GetTopDistance( int xa, int ya, int xb, int yb );
-extern "C" __declspec( dllexport ) int GetTopDst( GAMEOBJ* Z1, GAMEOBJ* Z2 )
+extern "C" DLLEXPORT int GetTopDst( GAMEOBJ* Z1, GAMEOBJ* Z2 )
 {
 	int xc1, yc1, xc2, yc2;
 	if ( ( Z1->Type & 0xFF000000 ) == ( '@   ' - 0x202020 ) )
@@ -3957,7 +3957,7 @@ extern City CITY[8];
 extern GlobalEnemyInfo GNFO;
 void ResearchCurrentIsland( byte Nat );
 void StartAIEx( byte Nat, char* Name, int Land, int Money, int ResOnMap, int Difficulty );
-extern "C" __declspec( dllexport ) void StartAI( byte Nat, char* Name, int Land, int Money, int ResOnMap, int Difficulty )
+extern "C" DLLEXPORT void StartAI( byte Nat, char* Name, int Land, int Money, int ResOnMap, int Difficulty )
 {
 	byte MSKS[8];
 	for ( int i = 0; i < 8; i++ )
@@ -4060,7 +4060,7 @@ void StartAIEx( byte Nat, char* Name, int Land, int Money, int ResOnMap, int Dif
 	//registering storages&centers
 
 }
-extern "C" __declspec( dllexport ) void DoNotUseSelInAI( byte Nat )
+extern "C" DLLEXPORT void DoNotUseSelInAI( byte Nat )
 {
 	Nat = AssignTBL[Nat];
 	word* SL = Selm[Nat];
@@ -4086,13 +4086,13 @@ extern bool NoPress;
 extern bool TutOver;
 extern bool MiniActive;
 void ClearMINIMENU();
-extern "C" __declspec( dllexport ) void SetTutorial( bool State )
+extern "C" DLLEXPORT void SetTutorial( bool State )
 {
 	Tutorial = State;
 	//MiniActive=0;
 	ClearMINIMENU();
 }
-extern "C" __declspec( dllexport ) bool GetQuestPressed()
+extern "C" DLLEXPORT bool GetQuestPressed()
 {
 	return ( !NoPress ) && TutOver&&Tutorial;
 }
@@ -4103,7 +4103,7 @@ extern "C" __declspec( dllexport ) bool GetQuestPressed()
 #define TOWN_DEFENCE   0x1005
 #define MINES_UPGRADE  0x1006
 #define FAST_DIVERSION 0x1007
-extern "C" __declspec( dllexport ) void SetAIProperty( byte NAT, int Prop, int Val )
+extern "C" DLLEXPORT void SetAIProperty( byte NAT, int Prop, int Val )
 {
 	City* CT = CITY + NAT;
 	switch ( Prop )
@@ -4134,7 +4134,7 @@ extern "C" __declspec( dllexport ) void SetAIProperty( byte NAT, int Prop, int V
 	}
 }
 int ProcessMultilineQuestion( int Nx, char* Bmp1, byte or1, char* Text1, char* Quest );
-extern "C" __declspec( dllexport ) int AskMultilineQuestion( int Nx, char* Name1, byte or1, char* Quest )
+extern "C" DLLEXPORT int AskMultilineQuestion( int Nx, char* Name1, byte or1, char* Quest )
 {
 	if ( PlayGameMode )RGAME.Extract();
 	int q1 = -1;
@@ -4158,7 +4158,7 @@ qq2:
 	}
 	return t;
 }
-extern "C" __declspec( dllexport ) void SetReadyState( GAMEOBJ* Units, bool State )
+extern "C" DLLEXPORT void SetReadyState( GAMEOBJ* Units, bool State )
 {
 	if ( Units->Type != 'UNIT' )
 	{
@@ -4181,7 +4181,7 @@ extern "C" __declspec( dllexport ) void SetReadyState( GAMEOBJ* Units, bool Stat
 		}
 	}
 }
-extern "C" __declspec( dllexport ) void TakeFood( GAMEOBJ* Units )
+extern "C" DLLEXPORT void TakeFood( GAMEOBJ* Units )
 {
 	if ( Units->Type != 'UNIT' )
 	{
@@ -4204,7 +4204,7 @@ extern "C" __declspec( dllexport ) void TakeFood( GAMEOBJ* Units )
 		}
 	}
 }
-extern "C" __declspec( dllexport ) void TakeWood( GAMEOBJ* Units )
+extern "C" DLLEXPORT void TakeWood( GAMEOBJ* Units )
 {
 	if ( Units->Type != 'UNIT' )
 	{
@@ -4227,7 +4227,7 @@ extern "C" __declspec( dllexport ) void TakeWood( GAMEOBJ* Units )
 		}
 	}
 }
-extern "C" __declspec( dllexport ) void TakeStone( GAMEOBJ* Units )
+extern "C" DLLEXPORT void TakeStone( GAMEOBJ* Units )
 {
 	if ( Units->Type != 'UNIT' )
 	{
@@ -4251,7 +4251,7 @@ extern "C" __declspec( dllexport ) void TakeStone( GAMEOBJ* Units )
 	}
 }
 void BuildWithSelected( byte NI, word ObjID, byte OrdType );
-extern "C" __declspec( dllexport ) void RepairBuildingsBySel( byte Nat, GAMEOBJ* Buildings )
+extern "C" DLLEXPORT void RepairBuildingsBySel( byte Nat, GAMEOBJ* Buildings )
 {
 	if ( Nat > 7 )return;
 	if ( Buildings->Type != 'UNIT' )
@@ -4277,7 +4277,7 @@ extern "C" __declspec( dllexport ) void RepairBuildingsBySel( byte Nat, GAMEOBJ*
 		}
 	}
 }
-extern "C" __declspec( dllexport ) bool CheckBuildingsComplete( GAMEOBJ* Buildings )
+extern "C" DLLEXPORT bool CheckBuildingsComplete( GAMEOBJ* Buildings )
 {
 	if ( Buildings->Type != 'UNIT' )
 	{
@@ -4300,7 +4300,7 @@ extern "C" __declspec( dllexport ) bool CheckBuildingsComplete( GAMEOBJ* Buildin
 	}
 	return true;
 }
-extern "C" __declspec( dllexport ) int GetKilled( GAMEOBJ* Units )
+extern "C" DLLEXPORT int GetKilled( GAMEOBJ* Units )
 {
 	if ( Units->Type != 'UNIT' )
 	{
@@ -4325,7 +4325,7 @@ extern "C" __declspec( dllexport ) int GetKilled( GAMEOBJ* Units )
 	}
 	return NK;
 }
-extern "C" __declspec( dllexport ) int GetUnitsByNation( GAMEOBJ* Units, byte Nat )
+extern "C" DLLEXPORT int GetUnitsByNation( GAMEOBJ* Units, byte Nat )
 {
 	if ( Units->Type != 'UNIT' )
 	{
@@ -4347,7 +4347,7 @@ extern "C" __declspec( dllexport ) int GetUnitsByNation( GAMEOBJ* Units, byte Na
 	}
 	return NK;
 }
-extern "C" __declspec( dllexport ) void ProduceUnit( GAMEOBJ* Units, GAMEOBJ* UnitType, GAMEOBJ* DestGroup )
+extern "C" DLLEXPORT void ProduceUnit( GAMEOBJ* Units, GAMEOBJ* UnitType, GAMEOBJ* DestGroup )
 {
 	if ( Units->Type != 'UNIT' )
 	{
@@ -4381,7 +4381,7 @@ extern "C" __declspec( dllexport ) void ProduceUnit( GAMEOBJ* Units, GAMEOBJ* Un
 		}
 	}
 }
-extern "C" __declspec( dllexport ) void ProduceUnitFast( GAMEOBJ* Units, GAMEOBJ* UnitType, GAMEOBJ* DestGroup, int Speed )
+extern "C" DLLEXPORT void ProduceUnitFast( GAMEOBJ* Units, GAMEOBJ* UnitType, GAMEOBJ* DestGroup, int Speed )
 {
 	if ( Speed > 6 )Speed = 6;
 	if ( Units->Type != 'UNIT' )
@@ -4430,7 +4430,7 @@ void AddOneUnitToGroup( GAMEOBJ* Units, OneObject* OB )
 	UIDS[Nu] = OB->Index;
 	SIDS[Nu] = OB->Serial;
 }
-extern "C" __declspec( dllexport ) void SaveSelectedUnits( byte NI, GAMEOBJ* Units, bool add )
+extern "C" DLLEXPORT void SaveSelectedUnits( byte NI, GAMEOBJ* Units, bool add )
 {
 	if ( Units->Type != 'UNIT' )
 	{
@@ -4465,7 +4465,7 @@ extern "C" __declspec( dllexport ) void SaveSelectedUnits( byte NI, GAMEOBJ* Uni
 		}
 	}
 }
-extern "C" __declspec( dllexport ) bool CheckProduction( GAMEOBJ* Units )
+extern "C" DLLEXPORT bool CheckProduction( GAMEOBJ* Units )
 {
 	if ( Units->Type != 'UNIT' )
 	{
@@ -4487,7 +4487,7 @@ extern "C" __declspec( dllexport ) bool CheckProduction( GAMEOBJ* Units )
 	}
 	return false;
 }
-extern "C" __declspec( dllexport ) bool CreateBuilding( byte Nat, GAMEOBJ* Zone, GAMEOBJ* UnitType, GAMEOBJ* DestGroup )
+extern "C" DLLEXPORT bool CreateBuilding( byte Nat, GAMEOBJ* Zone, GAMEOBJ* UnitType, GAMEOBJ* DestGroup )
 {
 	if ( Nat > 7 )return false;
 	if ( UnitType->Type != 'UTYP' )
@@ -4536,7 +4536,7 @@ extern "C" __declspec( dllexport ) bool CreateBuilding( byte Nat, GAMEOBJ* Zone,
 	return false;
 }
 
-extern "C" __declspec( dllexport ) void SetDestPoint( GAMEOBJ* Units, GAMEOBJ* Zone )
+extern "C" DLLEXPORT void SetDestPoint( GAMEOBJ* Units, GAMEOBJ* Zone )
 {
 	if ( Units->Type != 'UNIT' )
 	{
@@ -4583,7 +4583,7 @@ extern "C" __declspec( dllexport ) void SetDestPoint( GAMEOBJ* Units, GAMEOBJ* Z
 	}
 }
 
-extern "C" __declspec( dllexport ) void RegisterDynGroup( GAMEOBJ* Units )
+extern "C" DLLEXPORT void RegisterDynGroup( GAMEOBJ* Units )
 {
 	Units->Type = 'UNIT';
 	if ( SCENINF.NUGRP >= SCENINF.MaxUGRP )
@@ -4600,7 +4600,7 @@ extern "C" __declspec( dllexport ) void RegisterDynGroup( GAMEOBJ* Units )
 	Units->Serial = 0;
 }
 
-extern "C" __declspec( dllexport ) int GetNUnits( GAMEOBJ* Units )
+extern "C" DLLEXPORT int GetNUnits( GAMEOBJ* Units )
 {
 	if ( Units->Type != 'UNIT' )
 	{
@@ -4628,7 +4628,7 @@ struct OneUnit
 	byte Reserved[16];
 };
 
-extern "C" __declspec( dllexport ) bool GetUnitInfo( GAMEOBJ* Units, int Index, OneUnit* Uni )
+extern "C" DLLEXPORT bool GetUnitInfo( GAMEOBJ* Units, int Index, OneUnit* Uni )
 {
 	Uni->Index = 0xFFFF;
 	if ( Units->Type != 'UNIT' )
@@ -4668,7 +4668,7 @@ extern "C" __declspec( dllexport ) bool GetUnitInfo( GAMEOBJ* Units, int Index, 
 	return false;
 }
 
-extern "C" __declspec( dllexport ) void SetUnitInfo( OneUnit* Uni )
+extern "C" DLLEXPORT void SetUnitInfo( OneUnit* Uni )
 {
 	if ( Uni->Index != 0xFFFF )
 	{
@@ -4687,7 +4687,7 @@ extern "C" __declspec( dllexport ) void SetUnitInfo( OneUnit* Uni )
 	}
 }
 
-extern "C" __declspec( dllexport ) void RemoveGroup( GAMEOBJ* Source, GAMEOBJ* Dest )
+extern "C" DLLEXPORT void RemoveGroup( GAMEOBJ* Source, GAMEOBJ* Dest )
 {
 	if ( Source->Type != 'UNIT' )
 	{
@@ -4750,7 +4750,7 @@ void AI_Error()
 	AIER( "ERROR: AI function must be called only from AI section." );
 }
 
-extern "C" __declspec( dllexport ) int GetAINation()
+extern "C" DLLEXPORT int GetAINation()
 {
 	if ( AiIsRunNow )
 	{
@@ -4765,7 +4765,7 @@ extern "C" __declspec( dllexport ) int GetAINation()
 
 extern byte CannonState;
 
-extern "C" __declspec( dllexport ) bool TryUnit( GAMEOBJ* UnitType, int Max, byte CostPercent, byte Probability )
+extern "C" DLLEXPORT bool TryUnit( GAMEOBJ* UnitType, int Max, byte CostPercent, byte Probability )
 {
 	if ( AiIsRunNow )
 	{
@@ -4830,7 +4830,7 @@ extern "C" __declspec( dllexport ) bool TryUnit( GAMEOBJ* UnitType, int Max, byt
 	}
 }
 
-extern "C" __declspec( dllexport ) bool TryUpgrade( GAMEOBJ* Upgrade, int CostPercent, int Probability )
+extern "C" DLLEXPORT bool TryUpgrade( GAMEOBJ* Upgrade, int CostPercent, int Probability )
 {
 	if ( Upgrade->Type == 'SAFE' )
 	{
@@ -4876,7 +4876,7 @@ extern "C" __declspec( dllexport ) bool TryUpgrade( GAMEOBJ* Upgrade, int CostPe
 	}
 }
 
-extern "C" __declspec( dllexport ) void SetMineBalanse( int N, word* Bal )
+extern "C" DLLEXPORT void SetMineBalanse( int N, word* Bal )
 {
 	if ( AiIsRunNow )
 	{
@@ -4888,7 +4888,7 @@ extern "C" __declspec( dllexport ) void SetMineBalanse( int N, word* Bal )
 		AI_Error();
 	}
 }
-extern "C" __declspec( dllexport ) void SetPDistribution( int OnFood, int OnWood, int OnStone )
+extern "C" DLLEXPORT void SetPDistribution( int OnFood, int OnWood, int OnStone )
 {
 	if ( AiIsRunNow )
 	{
@@ -4901,7 +4901,7 @@ extern "C" __declspec( dllexport ) void SetPDistribution( int OnFood, int OnWood
 		AI_Error();
 	}
 }
-extern "C" __declspec( dllexport ) void AssignAmountOfMineUpgrades( int MU )
+extern "C" DLLEXPORT void AssignAmountOfMineUpgrades( int MU )
 {
 	if ( AiIsRunNow )
 	{
@@ -4916,7 +4916,7 @@ extern "C" __declspec( dllexport ) void AssignAmountOfMineUpgrades( int MU )
 		AI_Error();
 	}
 }
-extern "C" __declspec( dllexport ) bool AssignMineUpgrade( word U, char* Str, word val )
+extern "C" DLLEXPORT bool AssignMineUpgrade( word U, char* Str, word val )
 {
 	if ( AiIsRunNow )
 	{
@@ -4961,7 +4961,7 @@ int GETUID( char* Name )
 	if ( k >= N )return -1;
 	return k;
 }
-extern "C" __declspec( dllexport ) void AssignMine( char* Name )
+extern "C" DLLEXPORT void AssignMine( char* Name )
 {
 	if ( AiIsRunNow )
 	{
@@ -4977,7 +4977,7 @@ extern "C" __declspec( dllexport ) void AssignMine( char* Name )
 		AI_Error();
 	}
 }
-extern "C" __declspec( dllexport ) void AssignPeasant( char* Name )
+extern "C" DLLEXPORT void AssignPeasant( char* Name )
 {
 	if ( AiIsRunNow )
 	{
@@ -4993,7 +4993,7 @@ extern "C" __declspec( dllexport ) void AssignPeasant( char* Name )
 		AI_Error();
 	}
 }
-extern "C" __declspec( dllexport ) void AssignHouse( char* Name )
+extern "C" DLLEXPORT void AssignHouse( char* Name )
 {
 	if ( AiIsRunNow )
 	{
@@ -5022,7 +5022,7 @@ extern "C" __declspec( dllexport ) void AssignHouse( char* Name )
 	}
 }
 
-extern "C" __declspec( dllexport ) void AssignWall( char* Name )
+extern "C" DLLEXPORT void AssignWall( char* Name )
 {
 	if ( AiIsRunNow )
 	{
@@ -5039,7 +5039,7 @@ extern "C" __declspec( dllexport ) void AssignWall( char* Name )
 	}
 }
 
-extern "C" __declspec( dllexport ) void SET_MINE_CAPTURE_RADIUS( int x )
+extern "C" DLLEXPORT void SET_MINE_CAPTURE_RADIUS( int x )
 {
 	if ( AiIsRunNow )
 	{
@@ -5051,7 +5051,7 @@ extern "C" __declspec( dllexport ) void SET_MINE_CAPTURE_RADIUS( int x )
 	}
 }
 
-extern "C" __declspec( dllexport ) void SET_MINE_UPGRADE1_RADIUS( int x )
+extern "C" DLLEXPORT void SET_MINE_UPGRADE1_RADIUS( int x )
 {
 	if ( AiIsRunNow )
 	{
@@ -5063,7 +5063,7 @@ extern "C" __declspec( dllexport ) void SET_MINE_UPGRADE1_RADIUS( int x )
 	}
 }
 
-extern "C" __declspec( dllexport ) void SET_MINE_UPGRADE2_RADIUS( int x )
+extern "C" DLLEXPORT void SET_MINE_UPGRADE2_RADIUS( int x )
 {
 	if ( AiIsRunNow )
 	{
@@ -5075,7 +5075,7 @@ extern "C" __declspec( dllexport ) void SET_MINE_UPGRADE2_RADIUS( int x )
 	}
 }
 
-extern "C" __declspec( dllexport ) void SET_DEFAULT_MAX_WORKERS( int x )
+extern "C" DLLEXPORT void SET_DEFAULT_MAX_WORKERS( int x )
 {
 	if ( AiIsRunNow )
 	{
@@ -5087,7 +5087,7 @@ extern "C" __declspec( dllexport ) void SET_DEFAULT_MAX_WORKERS( int x )
 	}
 }
 
-extern "C" __declspec( dllexport ) void SET_MIN_PEASANT_BRIGADE( int x )
+extern "C" DLLEXPORT void SET_MIN_PEASANT_BRIGADE( int x )
 {
 	if ( AiIsRunNow )
 	{
@@ -5099,7 +5099,7 @@ extern "C" __declspec( dllexport ) void SET_MIN_PEASANT_BRIGADE( int x )
 	}
 }
 
-extern "C" __declspec( dllexport ) int GetMoney( byte id )
+extern "C" DLLEXPORT int GetMoney( byte id )
 {
 
 	if ( AiIsRunNow )
@@ -5117,7 +5117,7 @@ extern "C" __declspec( dllexport ) int GetMoney( byte id )
 	}
 }
 
-extern "C" __declspec( dllexport ) int GetUnits( GAMEOBJ* UnitType )
+extern "C" DLLEXPORT int GetUnits( GAMEOBJ* UnitType )
 {
 	if ( AiIsRunNow )
 	{
@@ -5136,7 +5136,7 @@ extern "C" __declspec( dllexport ) int GetUnits( GAMEOBJ* UnitType )
 	}
 }
 
-extern "C" __declspec( dllexport )int GetUnitsByUsage( byte Nat, byte Usage )
+extern "C" DLLEXPORTint GetUnitsByUsage( byte Nat, byte Usage )
 {
 	Nat = AssignTBL[Nat];
 	if ( AiIsRunNow )
@@ -5172,7 +5172,7 @@ byte INVECO[6] = { 2,5,4,0,1,3 };
 void PerformTorg( byte Nation, byte SellRes, byte BuyRes, int SellAmount );
 
 //Performs market exchange for bots
-extern "C" __declspec( dllexport ) void AI_Torg( byte SellRes, byte BuyRes, int SellAmount )
+extern "C" DLLEXPORT void AI_Torg( byte SellRes, byte BuyRes, int SellAmount )
 {
 	PerformTorg( CNAT->NNUM, INVECO[SellRes], INVECO[BuyRes], SellAmount );
 }
@@ -5180,12 +5180,12 @@ extern "C" __declspec( dllexport ) void AI_Torg( byte SellRes, byte BuyRes, int 
 int GetTorgResultEx( byte SellRes, byte BuyRes, int SellAmount );
 
 //Calculates market exchange results for bots
-extern "C" __declspec( dllexport ) int GetTorgResult( byte SellRes, byte BuyRes, int SellAmount )
+extern "C" DLLEXPORT int GetTorgResult( byte SellRes, byte BuyRes, int SellAmount )
 {
 	return GetTorgResultEx( INVECO[SellRes], INVECO[BuyRes], SellAmount );
 }
 
-extern "C" __declspec( dllexport )int GetReadyUnits( GAMEOBJ* UnitType )
+extern "C" DLLEXPORTint GetReadyUnits( GAMEOBJ* UnitType )
 {
 	if ( AiIsRunNow )
 	{
@@ -5204,7 +5204,7 @@ extern "C" __declspec( dllexport )int GetReadyUnits( GAMEOBJ* UnitType )
 	}
 }
 
-extern "C" __declspec( dllexport )void SetUpgradeLock( byte Res, byte Val )
+extern "C" DLLEXPORTvoid SetUpgradeLock( byte Res, byte Val )
 {
 	if ( Res < 8 )
 	{
@@ -5212,7 +5212,7 @@ extern "C" __declspec( dllexport )void SetUpgradeLock( byte Res, byte Val )
 	}
 }
 
-extern "C" __declspec( dllexport )void SetDefSettings( int p1, int p2 )
+extern "C" DLLEXPORTvoid SetDefSettings( int p1, int p2 )
 {
 	if ( AiIsRunNow )
 	{
@@ -5225,7 +5225,7 @@ extern "C" __declspec( dllexport )void SetDefSettings( int p1, int p2 )
 	}
 }
 
-extern "C" __declspec( dllexport )int GetMaxPeasantsInMines()
+extern "C" DLLEXPORTint GetMaxPeasantsInMines()
 {
 	int N = NtNUnits[CNAT->NNUM];
 	word* Uni = NatList[CNAT->NNUM];
@@ -5245,7 +5245,7 @@ extern "C" __declspec( dllexport )int GetMaxPeasantsInMines()
 	return Max;
 }
 
-extern "C" __declspec( dllexport )bool UpgIsDone( GAMEOBJ* Upgrade )
+extern "C" DLLEXPORTbool UpgIsDone( GAMEOBJ* Upgrade )
 {
 	if ( AiIsRunNow )
 	{
@@ -5264,7 +5264,7 @@ extern "C" __declspec( dllexport )bool UpgIsDone( GAMEOBJ* Upgrade )
 	}
 }
 
-extern "C" __declspec( dllexport )bool UpgIsRun( GAMEOBJ* Upgrade )
+extern "C" DLLEXPORTbool UpgIsRun( GAMEOBJ* Upgrade )
 {
 	if ( AiIsRunNow )
 	{
@@ -5287,13 +5287,13 @@ extern "C" __declspec( dllexport )bool UpgIsRun( GAMEOBJ* Upgrade )
 extern int* ResTBL;
 extern int  NInResTBL;
 
-extern "C" __declspec( dllexport )void SetMinesBuildingRules( int* Table, int NElm )
+extern "C" DLLEXPORTvoid SetMinesBuildingRules( int* Table, int NElm )
 {
 	ResTBL = Table;
 	NInResTBL = NElm;
 }
 
-extern "C" __declspec( dllexport )void SetMinesUpgradeRules( int* Table )
+extern "C" DLLEXPORTvoid SetMinesUpgradeRules( int* Table )
 {
 	if ( !AiIsRunNow )
 	{
@@ -5340,42 +5340,42 @@ extern "C" __declspec( dllexport )void SetMinesUpgradeRules( int* Table )
 	Nat->MU3C_PERCENT[2] = Table[26];
 }
 
-extern "C" __declspec( dllexport )bool FieldExist()
+extern "C" DLLEXPORTbool FieldExist()
 {
 	return CCIT->FieldReady;
 }
 
-extern "C" __declspec( dllexport )int GetDifficulty()
+extern "C" DLLEXPORTint GetDifficulty()
 {
 	return CCIT->Difficulty;
 }
 
-extern "C" __declspec( dllexport )int GetStartRes()
+extern "C" DLLEXPORTint GetStartRes()
 {
 	return CCIT->StartRes;
 }
 
-extern "C" __declspec( dllexport )int GetDiff( byte NI )
+extern "C" DLLEXPORTint GetDiff( byte NI )
 {
 	return CITY[NI].Difficulty;
 }
 
-extern "C" __declspec( dllexport )int GetResOnMap()
+extern "C" DLLEXPORTint GetResOnMap()
 {
 	return CCIT->ResOnMap;
 }
 
-extern "C" __declspec( dllexport )int GetLandType()
+extern "C" DLLEXPORTint GetLandType()
 {
 	return CCIT->LandType;
 }
 
-extern "C" __declspec( dllexport )void SetStandartVictory()
+extern "C" DLLEXPORTvoid SetStandartVictory()
 {
 	SCENINF.StandartVictory = 1;
 }
 
-extern "C" __declspec( dllexport )bool NationIsErased( byte Nat )
+extern "C" DLLEXPORTbool NationIsErased( byte Nat )
 {
 	if ( Nat < 8 )
 	{
@@ -5417,7 +5417,7 @@ extern "C" __declspec( dllexport )bool NationIsErased( byte Nat )
 	}
 	else return 1;
 }
-extern "C" __declspec( dllexport ) void AssignFormUnit( char* Name )
+extern "C" DLLEXPORT void AssignFormUnit( char* Name )
 {
 	GeneralObject** GOS = NATIONS[0].Mon;
 	int N = NATIONS[0].NMon;
@@ -5429,7 +5429,7 @@ extern "C" __declspec( dllexport ) void AssignFormUnit( char* Name )
 	IntErr( "AssignFormUnit : Unknown unit type : %s", Name );
 	SCENINF.NErrors++;
 }
-extern "C" __declspec( dllexport ) void SetPlayerName( byte Nat, char* ID )
+extern "C" DLLEXPORT void SetPlayerName( byte Nat, char* ID )
 {
 	for ( int i = 0; i < 8; i++ )if ( PINFO[i].ColorID == Nat )
 	{
@@ -5443,11 +5443,11 @@ extern "C" __declspec( dllexport ) void SetPlayerName( byte Nat, char* ID )
 }
 extern int MaxPeaceTime;
 extern int PeaceTimeStage;
-extern "C" __declspec( dllexport ) int GetMaxPeaceTime()
+extern "C" DLLEXPORT int GetMaxPeaceTime()
 {
 	return MaxPeaceTime / 60;
 }
-extern "C" __declspec( dllexport ) int GetPeaceTimeLeft()
+extern "C" DLLEXPORT int GetPeaceTimeLeft()
 {
 	return PeaceTimeStage;
 }
@@ -5458,7 +5458,7 @@ extern word NPlayers;
 
 extern uint64_t GetSDLTickCount();
 // TODO: maybe not used
-extern "C" __declspec( dllexport ) int GetRandomIndex()
+extern "C" DLLEXPORT int GetRandomIndex()
 {
 	if ( PlayGameMode || RecordMode )
 	{
@@ -5493,12 +5493,12 @@ extern "C" __declspec( dllexport ) int GetRandomIndex()
 
 int AI_Registers[8][32];
 
-extern "C" __declspec( dllexport ) void SetAIRegister( int Reg, int Val )
+extern "C" DLLEXPORT void SetAIRegister( int Reg, int Val )
 {
 	if ( Reg < 32 && CurAINation < 8 )AI_Registers[CurAINation][Reg] = Val;
 }
 
-extern "C" __declspec( dllexport ) int GetAIRegister( int Reg )
+extern "C" DLLEXPORT int GetAIRegister( int Reg )
 {
 	if ( Reg < 32 && CurAINation < 8 )return AI_Registers[CurAINation][Reg];
 	else return 0;
@@ -5509,7 +5509,7 @@ extern int WasInIron[8];
 extern int WasInCoal[8];
 
 //Returns resource amount based on gathering speed
-extern "C" __declspec( dllexport ) int GetExtraction( byte ResID )
+extern "C" DLLEXPORT int GetExtraction( byte ResID )
 {
 	if ( !AiIsRunNow )
 	{
@@ -5548,7 +5548,7 @@ extern "C" __declspec( dllexport ) int GetExtraction( byte ResID )
 						else return 0;
 }
 
-extern "C" __declspec( dllexport ) void SetDefenseState( byte State )
+extern "C" DLLEXPORT void SetDefenseState( byte State )
 {
 	if ( AiIsRunNow )
 	{
@@ -6097,7 +6097,7 @@ WarPack::~WarPack()
 	free( Wars );
 }
 
-extern "C" __declspec( dllexport ) void MissErrorMessage( char* Header, char* Message )
+extern "C" DLLEXPORT void MissErrorMessage( char* Header, char* Message )
 {
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, Header, Message, sdlWindow);
 }
@@ -6110,13 +6110,13 @@ bool RUNUSERMISSION = 0;
 
 char USERMISSPATH[128];
 
-extern "C" __declspec( dllexport ) void RunMapeditor( char* path )
+extern "C" DLLEXPORT void RunMapeditor( char* path )
 {
 	RUNMAPEDITOR = 1;
 	strcpy( USERMISSPATH, path );
 }
 
-extern "C" __declspec( dllexport ) void RunUserMission( char* path )
+extern "C" DLLEXPORT void RunUserMission( char* path )
 {
 	RUNUSERMISSION = 1;
 	strcpy( USERMISSPATH, path );
@@ -6172,7 +6172,7 @@ struct UnitExCaps
 	int OrderType;
 };
 
-extern "C" __declspec( dllexport ) bool GetUnitExCaps( int Index, UnitExCaps* CAPS, bool NeedOrderType )
+extern "C" DLLEXPORT bool GetUnitExCaps( int Index, UnitExCaps* CAPS, bool NeedOrderType )
 {
 	if ( Index >= 0 && Index <= MAXOBJECT )
 	{
@@ -6214,7 +6214,7 @@ extern "C" __declspec( dllexport ) bool GetUnitExCaps( int Index, UnitExCaps* CA
 	}
 }
 
-extern "C" __declspec( dllexport ) int InsertUnitToGroup( GAMEOBJ* Src, GAMEOBJ* Dst, int Index )
+extern "C" DLLEXPORT int InsertUnitToGroup( GAMEOBJ* Src, GAMEOBJ* Dst, int Index )
 {
 	if ( ( !Dst ) || Dst->Type != 'UNIT' )
 	{
@@ -6263,7 +6263,7 @@ extern "C" __declspec( dllexport ) int InsertUnitToGroup( GAMEOBJ* Src, GAMEOBJ*
 	return -1;
 }
 
-extern "C" __declspec( dllexport ) void RemoveUnitFromGroup( GAMEOBJ* Src, int Index )
+extern "C" DLLEXPORT void RemoveUnitFromGroup( GAMEOBJ* Src, int Index )
 {
 	if ( Src->Type != 'UNIT' )return;
 	if ( Src->Index >= SCENINF.NUGRP )return;
@@ -6278,7 +6278,7 @@ extern "C" __declspec( dllexport ) void RemoveUnitFromGroup( GAMEOBJ* Src, int I
 		SG->N--;
 	}
 }
-extern "C" __declspec( dllexport ) bool GetZoneCoor( GAMEOBJ* Zone, int* x, int* y )
+extern "C" DLLEXPORT bool GetZoneCoor( GAMEOBJ* Zone, int* x, int* y )
 {
 	if ( Zone->Type == 'ZONE'&&Zone->Index < SCENINF.NZGRP )
 	{
@@ -6302,7 +6302,7 @@ extern "C" __declspec( dllexport ) bool GetZoneCoor( GAMEOBJ* Zone, int* x, int*
 
 void RM_Load( char* Name, int x, int y );
 extern bool ImmVis;
-extern "C" __declspec( dllexport ) void PastePiece( GAMEOBJ* Zone, char* Name )
+extern "C" DLLEXPORT void PastePiece( GAMEOBJ* Zone, char* Name )
 {
 	int x, y;
 	if ( GetZoneCoor( Zone, &x, &y ) )
@@ -6313,7 +6313,7 @@ extern "C" __declspec( dllexport ) void PastePiece( GAMEOBJ* Zone, char* Name )
 	}
 }
 
-extern "C" __declspec( dllexport ) void SelectBuildingsInZone( byte NI, GAMEOBJ* Zone, GAMEOBJ* UTP, bool Add )
+extern "C" DLLEXPORT void SelectBuildingsInZone( byte NI, GAMEOBJ* Zone, GAMEOBJ* UTP, bool Add )
 {
 	if ( !Add )
 	{

@@ -17,12 +17,12 @@
 #include "VirtScreen.h"
 
 //Dimensions of possible screen resolutions
-__declspec( dllexport ) int ModeLX[32];
-__declspec( dllexport ) int ModeLY[32];
+DLLEXPORT int ModeLX[32];
+DLLEXPORT int ModeLY[32];
 SDL_DisplayMode SDLDisplayModes[32];
 
 //Number of possible screen resolutions
-__declspec( dllexport ) int NModes = 0;
+DLLEXPORT int NModes = 0;
 
 void SERROR();
 void SERROR1();
@@ -33,14 +33,14 @@ void InitRLCWindows();
 const int InitLx = 1024;
 const int InitLy = 768;
 
-__declspec( dllexport ) int RealLx;
-__declspec( dllexport ) int RealLy;
-__declspec( dllexport ) int SCRSizeX;
-__declspec( dllexport ) int SCRSizeY;
-__declspec( dllexport ) int RSCRSizeX;
-__declspec( dllexport ) int RSCRSizeY;
-__declspec( dllexport ) int COPYSizeX;
-__declspec( dllexport ) int Pitch;
+DLLEXPORT int RealLx;
+DLLEXPORT int RealLy;
+DLLEXPORT int SCRSizeX;
+DLLEXPORT int SCRSizeY;
+DLLEXPORT int RSCRSizeX;
+DLLEXPORT int RSCRSizeY;
+DLLEXPORT int COPYSizeX;
+DLLEXPORT int Pitch;
 
 //LPDIRECTDRAW            lpDD = NULL;      // DirectDraw object
 //LPDIRECTDRAWSURFACE     lpDDSPrimary;   // DirectDraw primary surface
@@ -61,7 +61,7 @@ extern bool PalDone;
 extern word PlayerMenuMode;
 
 // Get closest palette color from RGB
-__declspec( dllexport ) byte GetPaletteColor( int r, int g, int b )
+DLLEXPORT byte GetPaletteColor( int r, int g, int b )
 {
 	int dmax = 10000;
 	int bestc = 0;
@@ -101,7 +101,7 @@ extern void yield();
 
 //Copies secundary screen buffer into primary buffer
 //Call rate: menu ~545 Hz, ingame ~38 Hz
-__declspec( dllexport ) void FlipPages( void )
+DLLEXPORT void FlipPages( void )
 {
 	if (!bActive)
 	{
@@ -589,7 +589,7 @@ extern uint64_t GetSDLTickCount();
 // And it worked because changes reflected on the screen immediately
 // TODO: Rewrite SlowLoadPalette to render each palette update or to make fade-in effect different way
 // For now just rendering once after SlowLoadPalette
-__declspec( dllexport ) void SlowLoadPalette( const char* lpFileName )
+DLLEXPORT void SlowLoadPalette( const char* lpFileName )
 {
 	if (SDLError)
 	{
@@ -713,7 +713,7 @@ __declspec( dllexport ) void SlowLoadPalette( const char* lpFileName )
 	}
 }
 
-__declspec( dllexport ) void SlowUnLoadPalette( const char* lpFileName )
+DLLEXPORT void SlowUnLoadPalette( const char* lpFileName )
 {
 	if (SDLError)
 	{
@@ -793,7 +793,7 @@ void FreeDDObjects( void )
 	}
 }
 
-__declspec( dllexport )
+DLLEXPORT
 void GetPalColor( byte idx, byte* r, byte* g, byte* b )
 {
 	//*r = GPal[idx].peRed;

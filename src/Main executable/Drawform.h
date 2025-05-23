@@ -43,7 +43,7 @@ void DrawStHeader( int x, int y, int Lx );
 void DrawStatTable1( int x0, int y0, int x1, int y1, int xm );
 
 void DrawStdRect2( int x0, int y0, int x1, int y1, int GP );
-__declspec( dllexport )
+DLLEXPORT
 void DrawStdBar2( int x0, int y0, int x1, int y1, int GP );
 void DrawStdBar12( int x0, int y0, int x1, int y1, int GP );
 
@@ -55,7 +55,7 @@ extern Corners DnRect;
 extern int BordGP;
 void DrawFilledRect1( int x0, int y0, int x1, int y1, Corners* CR, int GP_File, int StartFill, int NFill );
 void DrawRect1( int x0, int y0, int x1, int y1, Corners* CR, int GP_File );
-__declspec( dllexport )
+DLLEXPORT
 void DrawFilledRect3( int x0, int y0, int x1, int y1, Corners* CR, int GP_File, int StartFill, int NFill );
-__declspec( dllexport )
+DLLEXPORT
 void DrawRect3( int x0, int y0, int x1, int y1, Corners* CR, int GP_File );

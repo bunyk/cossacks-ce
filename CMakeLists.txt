@@ -11,6 +11,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 add_subdirectory(vendored/SDL_image EXCLUDE_FROM_ALL)
 
+add_compile_options(-Wno-write-strings) # Turn off warnings about string literals for now
+
 # Create your game executable target as usual
 add_executable(cossacks src/Main\ executable/Ddex1.cpp)
 

@@ -26,4 +26,4 @@ private:
 };
 
 // IntExplorer library exports this
-__declspec( dllimport ) char* GetAccessKey( int Index );
+DLLIMPORT char* GetAccessKey( int Index );

@@ -1,9 +1,9 @@
 // #include <windows.h>
 
 #ifndef GP_USER
-#define GP_API __declspec(dllexport)
+#define GP_API DLLEXPORT
 #else
-#define GP_API __declspec(dllimport)
+#define GP_API DLLIMPORT
 #endif
 #pragma pack(1)
 typedef unsigned short word;

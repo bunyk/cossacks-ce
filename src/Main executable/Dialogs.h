@@ -1,9 +1,9 @@
 // #include <windows.h>
 
 #ifndef DIALOGS_USER
-#define DIALOGS_API __declspec(dllexport)
+#define DIALOGS_API DLLEXPORT
 #else
-#define DIALOGS_API __declspec(dllimport)
+#define DIALOGS_API DLLIMPORT
 #endif
 #define MAXDLG 1024
 DIALOGS_API int GetSound(char* Name);

@@ -97,7 +97,7 @@ void EraseAllFNames()
 void RCloseEx( ResFile hFile );
 void ExtractArchive( char *ArcName, int Mode, char* Dest );
 
-__declspec( dllexport ) ResFile RReset( LPCSTR lpFileName )
+DLLEXPORT ResFile RReset( LPCSTR lpFileName )
 {
 	SetLastError( 0 );
 
@@ -131,7 +131,7 @@ __declspec( dllexport ) ResFile RReset( LPCSTR lpFileName )
 }
 
 //Rewriting file
-__declspec( dllexport ) ResFile RRewrite( LPCSTR lpFileName )
+DLLEXPORT ResFile RRewrite( LPCSTR lpFileName )
 {
 	FilesInit();
 	//return CreateFile(lpFileName,GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,NULL,
@@ -148,7 +148,7 @@ __declspec( dllexport ) ResFile RRewrite( LPCSTR lpFileName )
 }
 
 //Getting size of the resource file
-__declspec( dllexport ) DWORD RFileSize( ResFile hFile )
+DLLEXPORT DWORD RFileSize( ResFile hFile )
 {
 	if ( hFile == INVALID_HANDLE_VALUE )
 	{
@@ -159,7 +159,7 @@ __declspec( dllexport ) DWORD RFileSize( ResFile hFile )
 }
 
 // Setting file position 
-__declspec( dllexport ) DWORD RSeek( ResFile hFile, int pos )
+DLLEXPORT DWORD RSeek( ResFile hFile, int pos )
 {
 	if (hFile == INVALID_HANDLE_VALUE)
 	{
@@ -173,7 +173,7 @@ __declspec( dllexport ) DWORD RSeek( ResFile hFile, int pos )
 }
 
 //Reading the file
-__declspec( dllexport ) DWORD RBlockRead( ResFile hFile, LPVOID lpBuffer, DWORD BytesToRead )
+DLLEXPORT DWORD RBlockRead( ResFile hFile, LPVOID lpBuffer, DWORD BytesToRead )
 {
 	if (hFile == INVALID_HANDLE_VALUE)
 	{
@@ -188,7 +188,7 @@ __declspec( dllexport ) DWORD RBlockRead( ResFile hFile, LPVOID lpBuffer, DWORD 
 }
 
 //Writing the file
-__declspec( dllexport ) DWORD RBlockWrite( ResFile hFile, LPVOID lpBuffer, DWORD BytesToWrite )
+DLLEXPORT DWORD RBlockWrite( ResFile hFile, LPVOID lpBuffer, DWORD BytesToWrite )
 {
 	if ( hFile == INVALID_HANDLE_VALUE )
 	{
@@ -214,7 +214,7 @@ void RCloseEx( ResFile hFile )
 	GSFILES.gCloseFile( hf );
 }
 
-__declspec( dllexport ) void RClose( ResFile hFile )
+DLLEXPORT void RClose( ResFile hFile )
 {
 	if (hFile == INVALID_HANDLE_VALUE)return;
 	LPGSCfile hf = LPGSCfile( hFile );

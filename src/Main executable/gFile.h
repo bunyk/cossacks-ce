@@ -1,4 +1,7 @@
-// #include <windows.h>
+#ifndef GFILE_H
+#define GFILE_H
+
+#include "Resfile.h"
 
 class GFILE{
 	byte Buf[16384];
@@ -21,8 +24,10 @@ public:
 	int Ggetch();
 };
 
-__declspec(dllexport) GFILE* Gopen(char* Name,char* Mode);
-__declspec(dllexport) int Gscanf(GFILE* F,char* mask,...);
-__declspec(dllexport) int Ggetch(GFILE* F);
-__declspec(dllexport) void Gprintf(GFILE* F,const char *format,...);
-__declspec(dllexport) void Gclose(GFILE* F);
+DLLEXPORT GFILE* Gopen(char* Name, char* Mode);
+DLLEXPORT int Gscanf(GFILE* F, char* mask,...);
+DLLEXPORT int Ggetch(GFILE* F);
+DLLEXPORT void Gprintf(GFILE* F, const char *format,...);
+DLLEXPORT void Gclose(GFILE* F);
+
+#endif

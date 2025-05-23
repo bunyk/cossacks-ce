@@ -157,7 +157,7 @@ DWORD GetSumm(char* Name) {
 #undef malloc
 int TotalSize = 0;
 
-__declspec(dllexport) void _ExFree(void* ptr) 
+DLLEXPORT void _ExFree(void* ptr) 
 {
 	DWORD* Ptr = (DWORD*)ptr;
 	try 
@@ -171,7 +171,7 @@ __declspec(dllexport) void _ExFree(void* ptr)
 	catch (...) {}
 }
 
-__declspec(dllexport) void* _ExMalloc(int Size) 
+DLLEXPORT void* _ExMalloc(int Size) 
 {
 	TotalSize++;
 	return calloc(Size, 1);

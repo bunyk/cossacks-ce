@@ -3005,7 +3005,7 @@ void CmdAddMoney( byte, DWORD );
 
 extern const int kChatMessageDisplayTime;
 
-__declspec( dllexport ) void SetExComm( char* Data, int size )
+DLLEXPORT void SetExComm( char* Data, int size )
 {
 	if (size < 1024)
 	{

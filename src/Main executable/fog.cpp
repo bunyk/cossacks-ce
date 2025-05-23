@@ -250,11 +250,11 @@ void ProcessFog1()
 int FOGOFFS[1024];
 void LoadBlobs();
 
-__declspec( dllexport ) int CurPalette = 0;
+DLLEXPORT int CurPalette = 0;
 extern int CurrentCursorGP;
 byte graysc[256];
 
-__declspec( dllexport ) void LoadFog( int set )
+DLLEXPORT void LoadFog( int set )
 {
 	CurrentCursorGP = set + 5;
 	CurPalette = set;

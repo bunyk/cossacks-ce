@@ -8,7 +8,7 @@
 
  //Catch division by zero by "overloading" div()
  //(in case we will be able to link dynamically sometime, this causes no linking warnings)
-div_t __cdecl SecureDivision( int const numerator, int const denominator );
+div_t CDECL SecureDivision( int const numerator, int const denominator );
 #define div(x,y) SecureDivision(x,y)
 
 #pragma pack(1)
@@ -1357,6 +1357,15 @@ public:
 
 	inline int DistTo( int xx, int yy )
 	{
+		// Calculate Manhattan distance
+		int dx = xx - this->x;
+		if (dx < 0) dx = -dx;
+
+		int dy = yy - this->y;
+		if (dy < 0) dy = -dy;
+
+		return (dx < dy) ? dx : dy;
+		/*
 		__asm
 		{
 			mov		eax, xx
@@ -1375,6 +1384,7 @@ public:
 						mov		eax, ecx
 						uuz :
 		}
+		*/
 	};
 	void CloseObject();
 };
@@ -1868,11 +1878,11 @@ void ExecuteBuffer();
 extern char Prompt[80];
 extern int PromptTime;
 void CreateWaterMap();
-extern __declspec( dllexport ) int SCRSizeX;
-extern __declspec( dllexport ) int SCRSizeY;
-extern __declspec( dllexport ) int RSCRSizeX;
-extern __declspec( dllexport ) int RSCRSizeY;
-extern __declspec( dllexport ) int COPYSizeX;
+extern DLLEXPORT int SCRSizeX;
+extern DLLEXPORT int SCRSizeY;
+extern DLLEXPORT int RSCRSizeX;
+extern DLLEXPORT int RSCRSizeY;
+extern DLLEXPORT int COPYSizeX;
 void CmdGetOil( byte NI, word UI );
 
 extern byte NLocks[64][64];

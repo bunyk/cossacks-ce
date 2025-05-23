@@ -8,12 +8,14 @@
 
 #define NAME "CEW_KERNEL"
 #define TITLE "Cossacks"
+#define NODPLAY
 
 #include <boost/coroutine2/all.hpp>
 
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL_main.h>
 
+#include "stubs.h"
 #include "ddini.h"
 
 bool window_mode;
@@ -21,8 +23,8 @@ bool borderless = false;
 int screen_width;
 int screen_height;
 double screen_ratio;
-DWORD window_style = WS_OVERLAPPED | WS_BORDER | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
 
+#include "gFile.h"
 #include "Resfile.h"
 #include "Fastdraw.h"
 #include "Mgraph.h"
@@ -64,6 +66,7 @@ DWORD window_style = WS_OVERLAPPED | WS_BORDER | WS_CAPTION | WS_SYSMENU | WS_MI
 #include "Activescenary.h"
 #include "Fonts.h"
 #include "Dialogs/InitFonts.h"
+#include "interface.h"
 
 #include "PlayerInfo.h"
 extern PlayerInfo PINFO[8];
@@ -104,9 +107,9 @@ const unsigned int kPostDrawInterval = 16;//~60 Hz
 unsigned long prev_postdraw_time = 0;
 
 //Game version. Must match with other clients
-__declspec( dllexport ) word dwVersion = 100;
-__declspec( dllexport ) char LobbyVersion[32] = "1.00";
-__declspec( dllexport ) char BuildVersion[32] = "V 1.00";
+DLLEXPORT word dwVersion = 100;
+DLLEXPORT char LobbyVersion[32] = "1.00";
+DLLEXPORT char BuildVersion[32] = "V 1.00";
 
 int CostThickness;
 int HISPEED = 0;
@@ -241,8 +244,8 @@ extern BlockBars LockBars;
 extern BlockBars UnLockBars;
 extern CDirSound* CDS;
 
-__declspec( dllexport ) bool KeyPressed;
-__declspec( dllexport ) SDL_Keycode LastKey;
+DLLEXPORT bool KeyPressed;
+DLLEXPORT SDL_Keycode LastKey;
 
 void InitDialogs();
 void SFLB_LoadGame( char* fnm, bool LoadNation );
@@ -3203,7 +3206,7 @@ int GetRankByScore( int Score );
 void StartExplorer();
 void FinExplorer();
 
-void __declspec( dllexport ) SFINIT2_InitLAND();
+void DLLEXPORT SFINIT2_InitLAND();
 
 boost::coroutines2::coroutine<void>::pull_type* AllGameCoroutine = nullptr;
 
@@ -3234,13 +3237,11 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 		if (strcmp(argv[i], "/borderless") == 0)
 		{
 			window_mode = true;
-			window_style = WS_POPUP;
 			borderless = true;
 		}
 	}
 	//window_mode = false;
 	//window_mode = true;
-	//window_style = WS_POPUP;
 
 	// Init SDL window
 	InitSDL();
@@ -3370,8 +3371,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	WindY1 = 767;
 	WindLx = 1024;
 	WindLy = 768;
-
-	MSG msg;
 
 	tima = 0;
 	PlayerMask = 1;

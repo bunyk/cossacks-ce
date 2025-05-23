@@ -21,12 +21,12 @@
 void* _ExMalloc(int Size);
 void _ExFree(void* Ptr);
 
-inline void* _cdecl operator new(size_t size)
+inline void* CDECL operator new(size_t size)
 {
 	return malloc(size);
 }
 
-inline void __cdecl operator delete(void *ptr)
+inline void CDECL operator delete(void *ptr)
 {
 	free(ptr);
 }
@@ -64,7 +64,7 @@ void FreeDDObjects(void);
 /*
  * Flipping Pages
  */
-__declspec(dllexport)
+DLLEXPORT
 void FlipPages(void);
 /*
  * Getting Screen Pointer

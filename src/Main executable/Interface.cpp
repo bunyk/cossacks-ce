@@ -291,7 +291,7 @@ extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
 
 extern uint64_t GetSDLTickCount();
 
-__declspec( dllexport ) bool ProcessMessages()
+DLLEXPORT bool ProcessMessages()
 {
 	if ( PDIF_Inside )
 	{
@@ -573,9 +573,9 @@ void SFLB_InitDialogs()
 }
 
 
-__declspec( dllexport ) int ItemChoose;
+DLLEXPORT int ItemChoose;
 
-__declspec( dllexport ) bool MMItemChoose( SimpleDialog* SD )
+DLLEXPORT bool MMItemChoose( SimpleDialog* SD )
 {
 	ItemChoose = SD->UserParam;
 	Lpressed = false;
@@ -588,7 +588,7 @@ bool CHANGESORT( SimpleDialog* SD )
 	return true;
 }
 
-__declspec( dllexport )
+DLLEXPORT
 void StdKeys()
 {
 	if ( KeyPressed && ( LastKey == SDLK_ESCAPE || LastKey == SDLK_RETURN ) )
@@ -686,7 +686,7 @@ void ClearScreen()
 
 extern byte fog[8192 + 1024];
 
-__declspec( dllexport ) void DarkScreen()
+DLLEXPORT void DarkScreen()
 {
 	byte* sptr = (byte*) ScreenPtr;
 	int sz = ScrWidth * RealLy;
@@ -830,8 +830,8 @@ extern char ROOMNAMETOCONNECT[128];
 bool ProcessOneBattle( int BtlID );
 
 //Necessary for menu positioning in fullscreen. Export for IChat.dll
-__declspec( dllexport ) int menu_x_off = 0;
-__declspec( dllexport ) int menu_y_off = 0;
+DLLEXPORT int menu_x_off = 0;
+DLLEXPORT int menu_y_off = 0;
 int menu_hint_x = 18;
 int menu_hint_y = 701;
 
@@ -1918,7 +1918,7 @@ int MPL_ChooseConnection()
 extern CDPID MyDPID;
 bool PIEnumeratePlayers( PlayerInfo* PIN, bool DoMsg );
 
-__declspec( dllexport ) bool EnumPlr()
+DLLEXPORT bool EnumPlr()
 {
 	return PIEnumeratePlayers( PINFO, false );
 }
@@ -2021,7 +2021,7 @@ extern int PGLOBALTIME;
 extern int CurrentStartTime[8];
 extern int NextStartTime[8];
 
-__declspec( dllexport ) void SendPings();
+DLLEXPORT void SendPings();
 
 bool CheckPingsReady();
 
@@ -2040,7 +2040,7 @@ void ShowCentralMessage( char* Message, int GPIDX )
 	ShowString( ( RealLx - L ) / 2 - DX, ( RealLy - GetRLCHeight( YellowFont.RLC, 'W' ) ) / 2, Message, &YellowFont );
 }
 
-__declspec( dllexport ) void ShowClanString( int x, int y, char* s, byte State, RLCFont* Fn, RLCFont* Fn1, int DY );
+DLLEXPORT void ShowClanString( int x, int y, char* s, byte State, RLCFont* Fn, RLCFont* Fn1, int DY );
 
 void xLine( int x, int y, int x1, int y1, byte c );
 
@@ -2484,7 +2484,7 @@ extern bool RejectThisPlayer;
 bool INSIDE1 = 0;
 
 // IChat library exports this
-__declspec( dllimport ) void SendPrivateMessage( char* Nick, char* MESSAGE );
+DLLIMPORT void SendPrivateMessage( char* Nick, char* MESSAGE );
 
 bool CheckForPersonalChat( char* STR )
 {
@@ -2574,7 +2574,7 @@ int ProcessInternetConnection( bool Active )
 	return Process_GSC_ChatWindow( Active, &GlobalRIF );
 }
 
-__declspec( dllexport ) void SendPings();
+DLLEXPORT void SendPings();
 
 bool CheckPingsReady();
 int GetAveragePing();
@@ -2618,7 +2618,7 @@ void DeepDeletePeer( DWORD ID );
 int GetMyProfile();
 
 // IChat library exports this
-__declspec( dllimport ) void ChatProcess();
+DLLIMPORT void ChatProcess();
 
 //Shows lobby interface for multiplayer deathmatch and single player random map
 bool MPL_WaitingGame( bool Host, bool SINGLE )
@@ -5203,11 +5203,11 @@ int SetCurrentBattle( int BattleID,
 	return BattleID;
 }
 
-__declspec( dllexport ) void AddToGChat( char* Nick, char* Message )
+DLLEXPORT void AddToGChat( char* Nick, char* Message )
 {
 }
 
-__declspec( dllexport ) void ClearGChat()
+DLLEXPORT void ClearGChat()
 {
 }
 
@@ -5931,7 +5931,7 @@ int ProcessWars();
 void processBattleMultiplayer();
 
 // IChat library exports this
-__declspec( dllimport ) void GoHomeAnyway();
+DLLIMPORT void GoHomeAnyway();
 
 int MM_ProcessMultiPlayer()
 {
@@ -7345,8 +7345,8 @@ int EnterHi( int * val, int Type )
 	}
 	else return false;
 };
-extern "C" __declspec( dllexport ) void ShowVictory();
-extern "C" __declspec( dllexport ) void SelChangeNation( byte SrcNat, byte DstNat );
+extern "C" DLLEXPORT void ShowVictory();
+extern "C" DLLEXPORT void SelChangeNation( byte SrcNat, byte DstNat );
 void EnterChat()
 {
 	if ( NPlayers > 1 )return;
@@ -11283,7 +11283,7 @@ extern bool NoWinner;
 void CreateInfoMap();
 extern word COMPSTART[8];
 
-extern "C" __declspec( dllexport ) void StartAI( byte Nat, char* Name, int Land, int Money, int ResOnMap, int Difficulty );
+extern "C" DLLEXPORT void StartAI( byte Nat, char* Name, int Land, int Money, int ResOnMap, int Difficulty );
 
 extern int RM_LandType;
 extern int RM_Resstart;
@@ -16575,7 +16575,7 @@ void ReadClanData()
 	memset( &CIN, 0, sizeof CIN );
 }
 
-__declspec( dllexport ) void ShowClanString( int x, int y, char* s, byte State, RLCFont* Fn, RLCFont* Fn1, int DY )
+DLLEXPORT void ShowClanString( int x, int y, char* s, byte State, RLCFont* Fn, RLCFont* Fn1, int DY )
 {
 	char ccc[64];
 	char NICK[128];
@@ -16639,7 +16639,7 @@ void ERRMESSAGE( char* STR )
 	WaitWithError4( STR, BOR2.GPID );
 }
 
-__declspec( dllexport ) bool CheckUsingAI()
+DLLEXPORT bool CheckUsingAI()
 {
 	for ( int i = 0; i < 8; i++ )
 	{

@@ -138,7 +138,7 @@ void LoadSounds(char* fn) {
 	//};
 	//NoMineSound=GetSound("NOFREEMINES");
 };
-__declspec(dllexport)
+DLLEXPORT
 void PlayEffect(int n, int pan, int vol) {
 	if (!SoundOK)return;
 	vol -= (100 - WarSound) * 40;

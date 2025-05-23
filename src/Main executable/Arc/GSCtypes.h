@@ -4,9 +4,9 @@
 // #include <windows.h>
 
 #ifndef GFILE_USER
-#define GFILE_API __declspec(dllexport)
+#define GFILE_API DLLEXPORT
 #else
-#define GFILE_API __declspec(dllimport)
+#define GFILE_API DLLIMPORT
 #endif
 
 #pragma pack(1)

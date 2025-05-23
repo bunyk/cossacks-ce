@@ -21,7 +21,7 @@ extern int RSCRSizeX;
 extern int RSCRSizeY;
 extern int COPYSizeX;
 extern int LOADED;
-__declspec( dllexport )
+DLLEXPORT
 void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr );
 byte PAL1[256];
 byte PAL2[256];
@@ -101,7 +101,7 @@ int ST_WLX;
 int ST_WLY;
 int ST_SCW;
 
-__declspec( dllexport )
+DLLEXPORT
 void SetRLCWindow( int x, int y, int lx, int ly, int slx );
 void StoreWindow()
 {
@@ -120,7 +120,7 @@ void SetWind( int x, int y, int Lx, int Ly )
 	SetRLCWindow( x, y, Lx, Ly, ScrWidth );
 };
 
-__declspec( dllexport ) void SetRLCWindow( int x, int y, int lx, int ly, int slx )
+DLLEXPORT void SetRLCWindow( int x, int y, int lx, int ly, int slx )
 {
 	WindX = x;
 	WindY = y;
@@ -2509,7 +2509,7 @@ int GetRLCWidthUNICODE( RLCTable lpr, byte* strptr, int* L )
 	}
 }
 
-__declspec( dllexport ) int GetRLCHeight( RLCTable lpr, byte n )
+DLLEXPORT int GetRLCHeight( RLCTable lpr, byte n )
 {
 	int GPID = int( lpr );
 	if (GPID < 4096)
@@ -2549,7 +2549,7 @@ void ShowChar( int x, int y, char c, lpRLCFont lpf )
 	ShowRLCItem( x, y, &( lpf->RLC ), c, 0 );
 }
 
-__declspec( dllexport ) void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr )
+DLLEXPORT void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr )
 {
 	if (strptr[0] == SIGNBYTE)
 	{

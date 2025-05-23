@@ -12,9 +12,9 @@
 // #include <windows.h>
 
 #ifndef FASTDRAW_USER
-#define FASTDRAW_API __declspec(dllexport)
+#define FASTDRAW_API DLLEXPORT
 #else
-#define FASTDRAW_API __declspec(dllimport)
+#define FASTDRAW_API DLLIMPORT
 #endif
 
 //Signbyte for recognizing unicode strings inside char*
@@ -76,7 +76,14 @@ public:
 
 	void SetStdShadow()
 	{
-		ShadowGP = int(RLC);
+		// Originally it was ShadowGP = int(RLC);
+		// but compiler complains, because it's not safe on 64-bit,
+		// so I'll try this:
+		intptr_t ptr_val = reinterpret_cast<intptr_t>(RLC);
+		ShadowGP = static_cast<int>(ptr_val & 0xFFFFFFFF);
+		// Through I'm not undertanding what those casts are, and what I'm doing
+
+
 		ShadowDx = 1;
 		ShadowDy = 1;
 	};
@@ -97,9 +104,9 @@ void SetScreenPtr(void);
 
 int GetRLCWidth(RLCTable lpr, byte n);
 
-__declspec(dllexport) void SetRLCWindow(int x, int y, int lx, int ly, int slx);
+DLLEXPORT void SetRLCWindow(int x, int y, int lx, int ly, int slx);
 
-__declspec(dllexport) int GetRLCHeight(RLCTable lpr, byte n);
+DLLEXPORT int GetRLCHeight(RLCTable lpr, byte n);
 
 //Shows RLC picture
 //This procedure needs window parameters to be initializated

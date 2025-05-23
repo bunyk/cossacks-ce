@@ -1,5 +1,18 @@
 ## How to build on Ubuntu
 
+### Porting
+
+
+```
+Maybe instead of commenting windows specific code, I could:
+
+#ifdef __linux__ 
+    //linux code goes here
+#elif _WIN32
+    // windows code goes here
+#endif
+```
+
 ### Install some dependencies and tools
 
 ```bash

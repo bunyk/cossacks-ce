@@ -4,7 +4,7 @@
 	Catch division by zero by "overloading" div() via #define
 	(in case we will be able to link dynamically sometime, this causes no linking warnings)
 */
-div_t __cdecl SecureDivision(int const numerator, int const denominator)
+div_t CDECL SecureDivision(int const numerator, int const denominator)
 {
 	div_t result;
 

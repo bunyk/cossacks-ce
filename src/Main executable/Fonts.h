@@ -1,8 +1,8 @@
 //fonts
 #ifndef FONTS_USER
-#define FONTS_API __declspec(dllexport)
+#define FONTS_API DLLEXPORT
 #else
-#define FONTS_API __declspec(dllimport)
+#define FONTS_API DLLIMPORT
 #endif
 extern FONTS_API RLCTable t16x16r;
 extern FONTS_API RLCFont  fn10;

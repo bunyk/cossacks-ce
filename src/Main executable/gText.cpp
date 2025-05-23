@@ -360,7 +360,7 @@ GFILE* Gopen(char* Name, char* Mode)
 	}
 }
 
-__declspec(dllexport) int Gscanf(GFILE* F, char* mask, ...)
+DLLEXPORT int Gscanf(GFILE* F, char* mask, ...)
 {
 	va_list args;
 	va_start(args, mask);
@@ -369,19 +369,19 @@ __declspec(dllexport) int Gscanf(GFILE* F, char* mask, ...)
 	return z;
 }
 
-__declspec(dllexport) int Ggetch(GFILE* F)
+DLLEXPORT int Ggetch(GFILE* F)
 {
 	return F->Ggetch();
 }
 
-__declspec(dllexport) void Gprintf(GFILE* F, const char *format, ...)
+DLLEXPORT void Gprintf(GFILE* F, const char *format, ...)
 {
 	va_list args;
 	va_start(args, format);
 	vfprintf(F->rf, format, args);
 	va_end(args);
 }
-__declspec(dllexport) void Gclose(GFILE* F)
+DLLEXPORT void Gclose(GFILE* F)
 {
 	if (F->RealText)
 	{
