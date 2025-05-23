@@ -4201,7 +4201,7 @@ public:
 	int N;
 	word pos[15];//[xi][yi][BrigID][SN][done]
 };
-__forceinline bool ValidTXY( int x, int y )
+inline bool ValidTXY( int x, int y )
 {
 	int TX = TopLx - 1;
 	return x > 0 && y > 0 && x < TX&&y < TX;

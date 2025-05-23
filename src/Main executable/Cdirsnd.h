@@ -53,7 +53,7 @@ public:
 	//short SrcY[MAXSND1];
 	//byte  BufIsRun[MAXSND1];
 	UINT m_currentBufferNum;
-	void CDirSound::CreateDirSound();
+	void CreateDirSound();
     ~CDirSound();
     UINT CreateSoundBuffer(CWave* pWave);
 	UINT DuplicateSoundBuffer(UINT bufferNum);

@@ -1365,7 +1365,7 @@ public:
 		if (dy < 0) dy = -dy;
 
 		return (dx < dy) ? dx : dy;
-		/*
+		/* Original implementation:
 		__asm
 		{
 			mov		eax, xx
@@ -2102,7 +2102,7 @@ extern int FrmDec;
 extern int SpeedSh;
 extern int REALTIME;
 
-typedef DWORD DPID1, FAR *LPDPID;
+typedef DWORD DPID1, *LPDPID;
 
 void CreateTimedHint( char* s, int time );
 void CreateTimedHintEx( char* s, int time, byte opt );
@@ -2140,7 +2140,7 @@ extern byte NatRefTBL[8];
 extern word* TopRef;
 extern int TopLx;
 
-__forceinline word SafeTopRef( int x, int y )
+inline word SafeTopRef( int x, int y )
 {
 	if ( x >= 0 && y >= 0 && x < TopLx&&y < TopLx )
 	{
@@ -2152,7 +2152,7 @@ __forceinline word SafeTopRef( int x, int y )
 	}
 }
 
-__forceinline void SafeSetTopRef( int x, int y, word Val )
+inline void SafeSetTopRef( int x, int y, word Val )
 {
 	if ( x >= 0 && y >= 0 && x < TopLx&&y < TopLx )
 	{

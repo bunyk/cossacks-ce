@@ -3,7 +3,7 @@
 typedef unsigned char byte;
 #include "StringHash.h"
 
-__forceinline byte CalcHash(char* s){
+inline byte CalcHash(char* s){
 	__asm{
 		mov esi,s
 		cld

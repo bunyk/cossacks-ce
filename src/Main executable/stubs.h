@@ -24,8 +24,13 @@ typedef unsigned long DWORD;
 typedef unsigned int BOOL;
 
 typedef const char* LPCSTR; // stands for Long Pointer to a Constant STRing.
+typedef wchar_t* LPWSTR;  // Long Pointer to Wide STRing
+typedef char* LPSTR;  // Long Pointer to STRing (ANSI)
 typedef void* LPVOID; // Long Pointer to a VOID
 typedef unsigned int UINT;
 
+
+// Handle to a DDL or something
+typedef void* HINSTANCE;  
 
 #endif

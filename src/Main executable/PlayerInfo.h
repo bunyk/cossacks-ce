@@ -1,7 +1,7 @@
 #pragma once
 // #include <Windows.h>
 
-typedef DWORD DPID1, FAR *LPDPID;
+typedef DWORD DPID1, *LPDPID;
 typedef unsigned short word;
 
 #pragma pack(1)

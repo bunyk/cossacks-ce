@@ -67,6 +67,7 @@ double screen_ratio;
 #include "Fonts.h"
 #include "Dialogs/InitFonts.h"
 #include "interface.h"
+#include "Menu.h"
 
 #include "PlayerInfo.h"
 extern PlayerInfo PINFO[8];
@@ -184,7 +185,6 @@ Menu LoadFile;
 Menu MainMenu;
 Menu Options;
 Nation WEP;
-WIN32_FIND_DATA findfi;
 Weapon Arrow;
 Weapon Fire1;
 Weapon FlyFire1;
@@ -300,7 +300,7 @@ EventsTag Events[maxTask];
 int RegisterEventHandler( EventHandPro* pro, int Type, void* param )
 {
 	int i;
-	for (i = 0; int( Events[i].Pro ) && i < maxTask; i++);
+	for (i = 0; Events[i].Pro != nullptr && i < maxTask; i++);
 	if (i >= maxTask)
 	{
 		return -1;
@@ -549,7 +549,7 @@ void SaveScreenShot( char* Name )
 	RBlockWrite( f, PAL, 1024 );
 	for (int i = 0; i < RealLy; i++)
 	{
-		char* pos = (char*) ( int( ScreenPtr ) + ( RealLy - i - 1 )*SCRSizeX );
+		char* pos = static_cast<char*>(ScreenPtr) + (RealLy - i - 1) * SCRSizeX;
 		RBlockWrite( f, pos, RealLx );
 	};
 	RClose( f );
@@ -597,7 +597,7 @@ void SaveBMP8( char* Name, int lx, int ly, byte* Data )
 	RBlockWrite( f, PAL, 1024 );
 	for (int i = 0; i < LY; i++)
 	{
-		char* pos = (char*) ( int( Data ) + ( ly - i - 1 )*lx );
+		char* pos = reinterpret_cast<char*>(Data) + (ly - i - 1) * lx;
 		RBlockWrite( f, pos, lx );
 	};
 	RClose( f );
@@ -884,7 +884,6 @@ void IAmLeft();
 void LOOSEANDEXITFAST();
 extern bool DoNewInet;
 bool ReadWinString( GFILE* F, char* STR, int Max );
-void OnWTPacket( WPARAM wSerial, LPARAM hCtx );
 
 void CmdEndGame( byte NI, byte state, byte cause );
 
