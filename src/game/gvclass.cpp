@@ -1,20 +1,20 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "multipl.h"
 #include "fog.h"
 #include "walls.h"
-#include "Nature.h"
+#include "nature.h"
 #include <time.h>
-#include "Nucl.h"
+#include "nucl.h"
 
-#include "Megapolis.h"
+#include "megapolis.h"
 #include "dialogs.h"
-#include "DrawForm.h"
+#include "drawform.h"
 void PreDrawGameProcess();
 void PostDrawGameProcess();
 SimpleDialog* DialogsSystem::addViewPort(int x, int y, int Lx, int Ly) {

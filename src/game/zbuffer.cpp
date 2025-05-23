@@ -1,22 +1,22 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "fog.h"
-#include "Megapolis.h"
+#include "megapolis.h"
 
 #include <assert.h>
 #include "walls.h"
 #include "mode.h"
-#include "GSound.h"
-#include "MapSprites.h"
-#include "NewMon.h"
-#include "Math.h"
-#include "GP_Draw.h"
-#include "3DGraph.h"
+#include "gsound.h"
+#include "mapsprites.h"
+#include "newmon.h"
+#include "math.h"
+#include "gp_draw.h"
+#include "3dgraph.h"
 
 byte CurDrawNation = 0;
 

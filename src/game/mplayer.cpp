@@ -1,12 +1,12 @@
 #define INITGUID
-#include "../CommCore library/CommCore.h"
+#include "../commcore library/commcore.h"
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #ifndef NODPLAY
 // ___MULTIPLAYER___ Chat manipulations
 #include "dpchat.h"
@@ -16,23 +16,23 @@
 #include "fonts.h"
 #include "dialogs.h"
 #include <assert.h>
-#include "LoadSave.h"
-#include "MapSprites.h"
-#include "ActiveScenary.h"
-#include "MPlayer.h"
-#include "DrawForm.h"
-#include "ConstStr.h"
-#include "Sort.h"
-#include "Graphs.h"
+#include "loadsave.h"
+#include "mapsprites.h"
+#include "activescenary.h"
+#include "mplayer.h"
+#include "drawform.h"
+#include "conststr.h"
+#include "sort.h"
+#include "graphs.h"
 #include <Math.h>
-#include "Gp_Draw.h"
-#include "Megapolis.h"
+#include "gp_draw.h"
+#include "megapolis.h"
 #pragma pack(4)
-#include "Pinger.h"
+#include "pinger.h"
 #pragma pack(1)
-#include "IR.h"
+#include "ir.h"
 
-#include "PlayerInfo.h"
+#include "playerinfo.h"
 extern PlayerInfo PINFO[8];
 
 extern const int kSystemMessageDisplayTime;

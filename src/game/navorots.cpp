@@ -1,21 +1,21 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "multipl.h"
 #include "fog.h"
 #include "walls.h"
-#include "Nature.h"
-#include "Nucl.h"
+#include "nature.h"
+#include "nucl.h"
 
-#include "Megapolis.h"
+#include "megapolis.h"
 #include "mode.h"
-#include "MapSprites.h"
+#include "mapsprites.h"
 #include <assert.h>
-#include "GP_Draw.h"
+#include "gp_draw.h"
 int mul3( int );
 
 void GetRect( OneObject* ZZ, int* x, int* y, int* Lx, int* Ly );

@@ -1,16 +1,16 @@
-#include "Cdirsnd.h"
+#include "cdirsnd.h"
 #include "ddini.h"
-#include "ResFile.h"
+#include "resfile.h"
 #include "fastdraw.h"
 #include "mapdiscr.h"
 #include "mouse.h"
-#include "Gsound.h"
-#include "Dialogs.h"
+#include "gsound.h"
+#include "dialogs.h"
 #include "fonts.h"
 #include <assert.h>
-#include "GP_Draw.h"
+#include "gp_draw.h"
 #include "bmptool.h"
-#include "DrawForm.h"
+#include "drawform.h"
 int ROLLU2 = 1;
 extern int UNI_LINEDLY1;
 extern int UNI_LINEDY1;

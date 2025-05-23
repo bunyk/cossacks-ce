@@ -1,7 +1,7 @@
 #ifndef GFILE_H
 #define GFILE_H
 
-#include "Resfile.h"
+#include "resfile.h"
 
 class GFILE{
 	byte Buf[16384];

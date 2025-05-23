@@ -9,28 +9,28 @@
   * nation.gmc - Global Monsters Collection
   */
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "fog.h"
-#include "Megapolis.h"
+#include "megapolis.h"
 
 #include <assert.h>
 #include "walls.h"
 #include "mode.h"
-#include "GSound.h"
-#include "Path.h"
-#include "3dbARS.H"
-#include "TopoGraf.h"
+#include "gsound.h"
+#include "path.h"
+#include "3dbars.h"
+#include "topograf.h"
 
-#include "ConstStr.h"
-#include "ActiveScenary.h"
-#include "StrategyResearch.h"
-#include "Safety.h"
-#include "EinfoClass.h"
+#include "conststr.h"
+#include "activescenary.h"
+#include "strategyresearch.h"
+#include "safety.h"
+#include "einfoclass.h"
 
 extern const int kSystemMessageDisplayTime;
 

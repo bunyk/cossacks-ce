@@ -1,24 +1,24 @@
 /*				  Оружие дальнего действия
  *			Организация перемещающихся анимаций.*/
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "walls.h"
-#include "Nucl.h"
+#include "nucl.h"
 #include <math.h>
-#include "GSound.h"
-#include "3DGraph.h"
-#include "3DMapEd.h"
-#include "MapSprites.h"
-#include "NewMon.h"
+#include "gsound.h"
+#include "3dgraph.h"
+#include "3dmaped.h"
+#include "mapsprites.h"
+#include "newmon.h"
 #include "assert.h"
-#include "GP_Draw.h"
-#include "ZBuffer.h"
-#include "3DBars.h"
+#include "gp_draw.h"
+#include "zbuffer.h"
+#include "3dbars.h"
 #define MaxExpl 8192
 #define ExMask (MaxExpl-1)
 #define WEPSH 14

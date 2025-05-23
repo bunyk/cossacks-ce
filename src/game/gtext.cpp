@@ -2,9 +2,9 @@
 // #include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "ResFile.h"
+#include "resfile.h"
 #include <assert.h>
-#include "gFile.h"
+#include "gfile.h"
 
 class GFSYSTEM
 {

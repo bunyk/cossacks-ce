@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 typedef unsigned char byte;
-#include "StringHash.h"
+#include "stringhash.h"
 
 inline byte CalcHash(char* s){
 	__asm{

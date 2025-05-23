@@ -1,19 +1,19 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "fog.h"
-#include "Megapolis.h"
+#include "megapolis.h"
 
 #include <assert.h>
 #include "walls.h"
 #include "mode.h"
-#include "GSound.h"
-#include "MapSprites.h"
-#include "NewMon.h"
+#include "gsound.h"
+#include "mapsprites.h"
+#include "newmon.h"
 
 int prevrtime = 0;
 FILE* FX = nullptr;

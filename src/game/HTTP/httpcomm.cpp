@@ -6,7 +6,7 @@
 
 // #include <windows.h>
 #pragma pack(1)
-#include "HttpComm.h"
+#include "httpcomm.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction

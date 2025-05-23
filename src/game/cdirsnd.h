@@ -6,7 +6,7 @@
 #define __CDIRSND_H
 
 // #include <windows.h>
-#include "Cwave.h"
+#include "cwave.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_audio.h>
 

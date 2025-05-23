@@ -1,13 +1,13 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "mode.h"
-#include "3DGraph.h"
-#include "AntiBug.h"
+#include "3dgraph.h"
+#include "antibug.h"
 
 //Offset for fog coordinates calculation
 const int kFogOffset = 3;

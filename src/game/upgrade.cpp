@@ -1,16 +1,16 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "multipl.h"
 #include "fog.h"
 #include "walls.h"
-#include "Nature.h"
-#include "NewUpgrade.h"
-#include "ConstStr.h"
+#include "nature.h"
+#include "newupgrade.h"
+#include "conststr.h"
 
 extern const int kMinorMessageDisplayTime;
 

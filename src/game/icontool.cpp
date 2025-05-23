@@ -1,19 +1,19 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "mode.h"
-#include "Nature.h"
+#include "nature.h"
 #include "fonts.h"
 
 #include "walls.h"
-#include "Megapolis.h"
-#include "GSound.h"
-#include "IconTool.h"
-#include "GP_Draw.h"
+#include "megapolis.h"
+#include "gsound.h"
+#include "icontool.h"
+#include "gp_draw.h"
 #include <math.h>
 int CreateRZone( int x, int y, int lx, int ly, HandlePro* HPro, HandlePro* RHPro, int Index, char* Hint, char* HintLo );
 int CreateZone( int x, int y, int lx, int ly, HandlePro* HPro, int Index, char* Hint, char* HintLo );

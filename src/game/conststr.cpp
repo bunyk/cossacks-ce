@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #pragma pack(1)
-#include "ResFile.h"
-#include "gFile.h"
+#include "resfile.h"
+#include "gfile.h"
 #define LOADSCX
 
 extern SDL_Window* sdlWindow;
@@ -22,9 +22,9 @@ void LOADSC(char* ID,char** str){
 // FIXME: something strange's happening here
 #undef LoadSC
 #define LoadSC(z) char* ##z##=NULL;
-#include "ConstStr.h"
+#include "conststr.h"
 #undef LoadSC
 #define LoadSC(x) LOADSC(#x,&##x);
 void LoadConstStr(){
-#include "ConstStr.h"
+#include "conststr.h"
 };

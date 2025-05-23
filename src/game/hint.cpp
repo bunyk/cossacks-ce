@@ -1,19 +1,19 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "multipl.h"
 #include "fog.h"
 #include "walls.h"
-#include "Nature.h"
+#include "nature.h"
 #include <time.h>
-#include "Nucl.h"
+#include "nucl.h"
 
-#include "Megapolis.h"
-#include "Fonts.h"
+#include "megapolis.h"
+#include "fonts.h"
 #include "recorder.h"
 
 //Duration in ms for various messages and hints

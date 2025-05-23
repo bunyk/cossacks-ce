@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "unrar.h"
-#include "Arc\GSCSet.h"
+#include "arc\gscset.h"
 #include "assert.h"
 void AText( char* str );
 //typedef LPGSCfile ResFile;

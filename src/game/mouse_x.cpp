@@ -1,9 +1,9 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mode.h"
-#include "GP_Draw.h"
+#include "gp_draw.h"
 
 #define MaxMX 32
 #define MsizeX 32

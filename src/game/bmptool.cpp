@@ -1,6 +1,6 @@
 #include "stdio.h"
 // #include "windows.h"
-#include "ResFile.h"
+#include "resfile.h"
 #include "math.h"
 #include "bmptool.h"
 

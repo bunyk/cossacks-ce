@@ -1,24 +1,24 @@
 //Properties of the selected objects viewering and corresponding mouse handling
 
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "mode.h"
-#include "Nature.h"
+#include "nature.h"
 #include "fonts.h"
 
 #include "walls.h"
-#include "Megapolis.h"
-#include "GSound.h"
-#include "IconTool.h"
-#include "GP_Draw.h"
-#include "ConstStr.h"
-#include "GSINC.H"
-#include "ActiveScenary.h"
+#include "megapolis.h"
+#include "gsound.h"
+#include "icontool.h"
+#include "gp_draw.h"
+#include "conststr.h"
+#include "gsinc.h"
+#include "activescenary.h"
 
 #include <cstring>
 

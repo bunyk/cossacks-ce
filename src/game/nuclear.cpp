@@ -1,14 +1,14 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "multipl.h"
 #include "fog.h"
 #include "walls.h"
-#include "Nature.h"
+#include "nature.h"
 extern short TSin[257];
 extern short TCos[257];
 extern short TAtg[257];

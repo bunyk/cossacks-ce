@@ -9,11 +9,11 @@
  * picture on the screen wit the procedure ShowRLCItem
  */
 #include "ddini.h"
-#include "ResFile.h"
+#include "resfile.h"
 #include "mode.h"
 #include <stdio.h>
-#include "Fastdraw.h"
-#include "GP_Draw.h"
+#include "fastdraw.h"
+#include "gp_draw.h"
 #include "assert.h"
 extern int SCRSizeX;
 extern int SCRSizeY;

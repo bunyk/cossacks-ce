@@ -1,34 +1,34 @@
 //MULTIPLAYER ORGANIZATION
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "math.h"
 #include "walls.h"
 
-#include "MapSprites.h"
+#include "mapsprites.h"
 #include <assert.h>
 #include "sort.h"
-#include "Path.h"
-#include "Transport.h"
-#include "Megapolis.h"
-#include "ActiveScenary.h"
-#include "ConstStr.h"
-#include "MPlayer.h"
-#include "Recorder.h"
-#include "Graphs.h"
+#include "path.h"
+#include "transport.h"
+#include "megapolis.h"
+#include "activescenary.h"
+#include "conststr.h"
+#include "mplayer.h"
+#include "recorder.h"
+#include "graphs.h"
 
-#include "Fonts.h"
-#include "DrawForm.h"
+#include "fonts.h"
+#include "drawform.h"
 
 #pragma pack(1)
-#include "IR.h"
+#include "ir.h"
 
 
-#include "PlayerInfo.h"
+#include "playerinfo.h"
 extern PlayerInfo PINFO[8];
 
 

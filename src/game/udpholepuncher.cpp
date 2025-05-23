@@ -1,5 +1,5 @@
-#include "UdpHolePuncher.h"
-#include "CommCore.h"
+#include "udpholepuncher.h"
+#include "commcore.h"
 
 extern CCommCore IPCORE;
 

@@ -1,15 +1,15 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include <assert.h>
 #include "mode.h"
-#include "NewMon.h"
+#include "newmon.h"
 #include <math.h>
-#include "Path.h"
-#include "TopoGraf.h"
+#include "path.h"
+#include "topograf.h"
 
 bool AllowPathDelay;
 

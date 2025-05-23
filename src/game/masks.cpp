@@ -1,23 +1,23 @@
 //Masking 2 or 3 textures in triangle
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "multipl.h"
 #include "fog.h"
 #include "walls.h"
-#include "Nature.h"
+#include "nature.h"
 #include <time.h>
-#include "Nucl.h"
+#include "nucl.h"
 
-#include "Megapolis.h"
+#include "megapolis.h"
 #include "dialogs.h"
 #include <assert.h>
 #include <math.h>
-#include "Masks.h"
+#include "masks.h"
 byte ResultMask[MaskLx*256];
 extern byte trans4[65536];
 extern byte trans8[65536];

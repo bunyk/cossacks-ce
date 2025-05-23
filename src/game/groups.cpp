@@ -1,13 +1,13 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mouse.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include <assert.h>
 #include "sort.h"
 #include "math.h"
-#include "NewMon.h"
-#include "Megapolis.h"
+#include "newmon.h"
+#include "megapolis.h"
 
 word GetDir(int, int);
 SortClass::SortClass() {

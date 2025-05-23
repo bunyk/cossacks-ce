@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 #pragma pack(1)
-#include "ResFile.h"
-#include "gFile.h"
+#include "resfile.h"
+#include "gfile.h"
 void NLine(GFILE*);
 void ErrM(char*);
 void normstr(char* str);

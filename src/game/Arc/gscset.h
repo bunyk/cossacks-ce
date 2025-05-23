@@ -6,7 +6,7 @@
 #define AFX_GSCSET_H__E81AB1CB_A7B5_4DFE_B67D_9C1AC503EAD2__INCLUDED_
 
 #include "GSCtypes.h"	// Added by ClassView
-#include "GSCarch.h"
+#include "gscarch.h"
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000

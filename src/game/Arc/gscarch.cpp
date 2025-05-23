@@ -4,10 +4,10 @@
 
 #include <SDL3/SDL.h>
 #include <stdio.h>
-#include "GSCtypes.h"
-#include "GSCarch.h"
-#include "GSCset.h"
-#include "isiMasks.h"
+#include "gsctypes.h"
+#include "gscarch.h"
+#include "gscset.h"
+#include "isimasks.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction

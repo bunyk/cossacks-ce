@@ -7,14 +7,14 @@
  ***********************************************************************/
 #define __ddini_cpp_
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mode.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "fog.h"
-#include "GSound.h"
+#include "gsound.h"
 #include "fonts.h"
-#include "VirtScreen.h"
+#include "virtscreen.h"
 
 //Dimensions of possible screen resolutions
 DLLEXPORT int ModeLX[32];

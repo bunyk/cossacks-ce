@@ -1,34 +1,34 @@
 #include "ddini.h"
 #include <stdlib.h>
-#include "ResFile.h"
-#include "Fastdraw.h"
-#include "MapDiscr.h"
+#include "resfile.h"
+#include "fastdraw.h"
+#include "mapdiscr.h"
 #include "mouse.h"
 #include "mode.h"
 #include "fog.h"
 #include "walls.h"
-#include "Nature.h"
+#include "nature.h"
 #include <math.h>
 
-#include "Megapolis.h"
+#include "megapolis.h"
 
 #include "fonts.h"
-#include "WeaponID.h"
+#include "weaponid.h"
 
-#include "3DSurf.h"
-#include "GSound.h"
+#include "3dsurf.h"
+#include "gsound.h"
 #include <assert.h>
-#include "3DMapEd.h"
-#include "MapSprites.h"
-#include "GP_Draw.h"
-#include "RealWater.h"
-#include "ZBuffer.h"
-#include "NewAI.h"
-#include "TopoGraf.h"
-#include "StrategyResearch.h"
-#include "Curve.h"
-#include "NewMon.h"
-#include "ActiveZone.h"
+#include "3dmaped.h"
+#include "mapsprites.h"
+#include "gp_draw.h"
+#include "realwater.h"
+#include "zbuffer.h"
+#include "newai.h"
+#include "topograf.h"
+#include "strategyresearch.h"
+#include "curve.h"
+#include "newmon.h"
+#include "activezone.h"
 
 ActiveGroup* AGroups = NULL;
 int NAGroups = 0;

@@ -1,5 +1,5 @@
 #ifndef NODPLAY
-#include "Dplay.h"
+#include "dplay.h"
 #endif
 
 #define MaxPL 8

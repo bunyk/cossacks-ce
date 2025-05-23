@@ -1,11 +1,11 @@
 /* Horisontal and vertical lines,rectangles*/
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 void Hline(int x,int y,int xend,byte c){
 	if(y<WindY||y>WindY1)return;
 	int xr;

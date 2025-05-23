@@ -1,16 +1,16 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
-#include "MapDiscr.h"
-#include "Megapolis.h"
-#include "Dialogs.h"
+#include "resfile.h"
+#include "fastdraw.h"
+#include "mapdiscr.h"
+#include "megapolis.h"
+#include "dialogs.h"
 #include "fonts.h"
-#include "GP_Draw.h"
-#include "DrawForm.h"
+#include "gp_draw.h"
+#include "drawform.h"
 
 #define DOTRACE
 
-#include "PlayerInfo.h"
+#include "playerinfo.h"
 extern PlayerInfo PINFO[8];
 
 #pragma pack(1)
@@ -1461,7 +1461,7 @@ void SetBrokenState()
 	}
 }
 
-#include "http\HttpComm.h"
+#include "http\httpcomm.h"
 
 int T0 = 0;
 char CLANR[32] = "";

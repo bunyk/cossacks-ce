@@ -1,17 +1,17 @@
 #include "ddini.h"
-#include "ResFile.h"
+#include "resfile.h"
 #include "mode.h"
 #include "fastdraw.h"
-#include "Lines.h"
+#include "lines.h"
 #include <stdio.h>
 #include <assert.h>
-#include "CTables.h"
-#include "GP_Draw.h"
+#include "ctables.h"
+#include "gp_draw.h"
 #include "mapdiscr.h"
-#include "RealWater.h"
+#include "realwater.h"
 #include <math.h>
-#include "ActiveScenary.h"
-#include "GSINC.h"
+#include "activescenary.h"
+#include "gsinc.h"
 bool NewGPImage;
 #define INTV(x) (((int*)(x))[0])
 

@@ -1,25 +1,25 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "multipl.h"
 #include "fog.h"
 #include "walls.h"
 
 #include <assert.h>
 
-#include "3DSurf.h"
-#include "Cdirsnd.h"
-#include "GSound.h"
-#include "NewMon.h"
-#include "Nature.h"
-#include "ConstStr.h"
-#include "GP_Draw.h"
-#include "DrawForm.h"
-#include "Fonts.h"
+#include "3dsurf.h"
+#include "cdirsnd.h"
+#include "gsound.h"
+#include "newmon.h"
+#include "nature.h"
+#include "conststr.h"
+#include "gp_draw.h"
+#include "drawform.h"
+#include "fonts.h"
 //void FindEmptyPoint(byte* x,byte* y);
 byte rtmap[256][256];//resource type map
 byte ramap[256][256];//resource amount map

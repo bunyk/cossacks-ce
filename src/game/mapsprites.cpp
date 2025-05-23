@@ -1,29 +1,29 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "multipl.h"
 #include "fog.h"
 #include "walls.h"
-#include "Nature.h"
+#include "nature.h"
 #include <time.h>
-#include "Nucl.h"
+#include "nucl.h"
 
-#include "Megapolis.h"
+#include "megapolis.h"
 #include "dialogs.h"
 #include <assert.h>
 #include <math.h>
-#include "Masks.h"
+#include "masks.h"
 #include "fonts.h"
-#include "3DGraph.h"
-#include "MapSprites.h"
-#include "3DmapEd.h"
-#include "NewMon.h"
-#include "ZBuffer.h"
-#include "TopoGraf.h"
+#include "3dgraph.h"
+#include "mapsprites.h"
+#include "3dmaped.h"
+#include "newmon.h"
+#include "zbuffer.h"
+#include "topograf.h"
 
 int GetTopology( int x, int y );
 bool CheckSpritesInArea( int x, int y, int r );

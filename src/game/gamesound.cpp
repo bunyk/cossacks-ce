@@ -1,24 +1,24 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
+#include "mapdiscr.h"
 #include "multipl.h"
 #include "fog.h"
 #include "walls.h"
-#include "Nature.h"
+#include "nature.h"
 #include <time.h>
-#include "Nucl.h"
+#include "nucl.h"
 
-#include "Megapolis.h"
+#include "megapolis.h"
 #include "dialogs.h"
 #include <assert.h>
 
-#include "3DSurf.h"
-#include "CWave.h"
-#include "CDirSnd.h"
+#include "3dsurf.h"
+#include "cwave.h"
+#include "cdirsnd.h"
 int FieldDelay = 0;
 extern int WarSound;
 extern int WorkSound;

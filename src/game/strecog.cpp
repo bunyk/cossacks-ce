@@ -1,15 +1,15 @@
 #include "ddini.h"
-#include "ResFile.h"
-#include "FastDraw.h"
+#include "resfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "MapDiscr.h"
-#include "weaponID.h"
+#include "mapdiscr.h"
+#include "weaponid.h"
 #include <assert.h>
-#include "NewUpgrade.h"
-#include "Megapolis.h"
-#include "StringHash.h"
+#include "newupgrade.h"
+#include "megapolis.h"
+#include "stringhash.h"
 
 #include <stdio.h>
 

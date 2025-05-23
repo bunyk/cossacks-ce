@@ -15,8 +15,8 @@ div_t CDECL SecureDivision( int const numerator, int const denominator );
 
 typedef unsigned short word;
 
-#include "Antibug.h"
-#include "Icons.h"
+#include "antibug.h"
+#include "icons.h"
 #include <stdio.h>
 
 #define NBRANCH 4
@@ -30,7 +30,7 @@ extern byte MYNATION;
 
 extern int ADDSH;
 
-#include "gFile.h"
+#include "gfile.h"
 
 //Maximum size of cells map
 extern int MAXCX;
@@ -175,7 +175,7 @@ struct ObjIcon
 	word spr;
 };
 
-#include "Upgrade.h"
+#include "upgrade.h"
 
 //Описание типов объектов(идентификаторы)
 #define EmptyID 0
@@ -1961,7 +1961,7 @@ extern int UnitsPerFarm;
 extern int ResPerUnit;
 extern int EatenRes;
 
-#include "UnSyncro.h"
+#include "unsyncro.h"
 
 extern word* fmap;
 extern byte* MCount;

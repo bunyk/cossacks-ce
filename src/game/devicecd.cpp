@@ -2,14 +2,14 @@
 //
 
 // #include "windows.h"
-#include "SDL3/SDL.h"
-#include "SDL3/SDL_audio.h"
-#include "NewCode/stb_vorbis.h"
+#include "sdl3/sdl.h"
+#include "sdl3/sdl_audio.h"
+#include "newcode/stb_vorbis.h"
 #pragma pack(1)
-#include "DeviceCD.h"
+#include "devicecd.h"
 #include <stdio.h>
-#include "ResFile.h"
-#include "gFile.h"
+#include "resfile.h"
+#include "gfile.h"
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
