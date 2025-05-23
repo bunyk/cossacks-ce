@@ -13,8 +13,8 @@ add_subdirectory(vendored/SDL_image EXCLUDE_FROM_ALL)
 
 add_compile_options(-Wno-write-strings) # Turn off warnings about string literals for now
 
-# Create your game executable target as usual
-add_executable(cossacks src/Main\ executable/Ddex1.cpp)
+file(GLOB_RECURSE SOURCES "src/game/*.cpp")
+add_executable(cossacks ${SOURCES})
 
 # Link to the actual SDL3 libraries.
 target_link_libraries(cossacks PRIVATE SDL3_image::SDL3_image SDL3::SDL3)
