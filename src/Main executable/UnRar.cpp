@@ -1,5 +1,5 @@
 #define STRICT
-#include <windows.h>
+// #include <windows.h>
 #include <SDL3/SDL.h>;
 #include <stdio.h>
 #include <ctype.h>

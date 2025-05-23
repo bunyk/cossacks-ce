@@ -23,47 +23,47 @@ int screen_height;
 double screen_ratio;
 DWORD window_style = WS_OVERLAPPED | WS_BORDER | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
 
-#include "ResFile.h"
-#include "FastDraw.h"
-#include "mgraph.h"
-#include "mouse.h"
+#include "Resfile.h"
+#include "Fastdraw.h"
+#include "Mgraph.h"
+#include "Mouse.h"
 #include "menu.h"
 #include "MapDiscr.h"
-#include "multipl.h"
-#include "fog.h"
-#include "walls.h"
+#include "Multipl.h"
+#include "Fog.h"
+#include "Walls.h"
 #include "Nature.h"
 #include <time.h>
 #include "Nucl.h"
 
 #include "Megapolis.h"
-#include "dialogs.h"
+#include "Dialogs.h"
 #include <assert.h>
 
 #include "3DSurf.h"
-#include "CDirSnd.h"
+#include "Cdirsnd.h"
 #include "GSound.h"
-#include "MapSprites.h"
-#include "VirtScreen.h"
-#include "RealWater.h"
+#include "Mapsprites.h"
+#include "Virtscreen.h"
+#include "Realwater.h"
 #include "Transport.h"
-#include "AntiBug.h"
+#include "Antibug.h"
 #include "3DBars.h"
 #include "TopoGraf.h"
-#include "StrategyResearch.h"
+#include "Strategyresearch.h"
 
 #include "Safety.h"
-#include "NewAI.h"
+#include "Newai.h"
 #include "Danger.h"
 #include "GP_Draw.h"
 #include "Sort.h"
 #include "Recorder.h"
-#include "MPlayer.h"
+#include "Mplayer.h"
 #include "EinfoClass.h"
-#include "3DmapEd.h"
-#include "ActiveScenary.h"
-#include "fonts.h"
-#include "Dialogs\InitFonts.h"
+#include "3dmaped.h"
+#include "Activescenary.h"
+#include "Fonts.h"
+#include "Dialogs/InitFonts.h"
 
 #include "PlayerInfo.h"
 extern PlayerInfo PINFO[8];
@@ -3549,6 +3549,6 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result)
 	FinExplorer();
 
 	finiObjects();
-	PostQuitMessage(0);
+	// PostQuitMessage(0); TODO: find cross-platform equivalent
 	exit(0);
 }

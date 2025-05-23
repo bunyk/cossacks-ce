@@ -4,7 +4,7 @@
 //	int i=0;
 //	while( (*(LPDWORD)(lpbBuffer+(i++))!=0x0A0D0A0D) && (i<dwRecvSize) );
 
-#include <windows.h>
+// #include <windows.h>
 #pragma pack(1)
 #include "HttpComm.h"
 

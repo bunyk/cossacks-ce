@@ -1,4 +1,4 @@
-#include <windows.h>
+// #include <windows.h>
 
 #ifndef GP_USER
 #define GP_API __declspec(dllexport)

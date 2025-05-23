@@ -1,4 +1,4 @@
-#include <windows.h>
+// #include <windows.h>
 
 #ifndef DIALOGS_USER
 #define DIALOGS_API __declspec(dllexport)

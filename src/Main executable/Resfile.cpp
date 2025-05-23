@@ -6,7 +6,7 @@
  * the given file is.
  */
 
-#include <windows.h>
+// #include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "unrar.h"

@@ -5,7 +5,7 @@
 #include <cstring>
 #include <Winsock2.h>
 #include <WS2tcpip.h>
-#include <Windows.h>
+// #include <Windows.h>
 
 /*
 	Helper class for setting up and keeping alive a dummy udp connection to server.

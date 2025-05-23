@@ -1,6 +1,6 @@
 #pragma warning (disable : 4035)
 
-#include <windows.h>
+// #include <windows.h>
 
 void isiDecryptMem(LPBYTE lpbBuffer, DWORD dwSize, BYTE dbKey)
 {

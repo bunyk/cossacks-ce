@@ -6,7 +6,7 @@
  * the given file is.
  */
 
-#include <windows.h>
+// #include <windows.h>
 
  //#include "Arc\GSCSet.h"
 //typedef LPGSCfile ResFile;

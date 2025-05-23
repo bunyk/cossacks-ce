@@ -1,7 +1,7 @@
 // DeviceCD.cpp : implementation file
 //
 
-#include "windows.h"
+// #include "windows.h"
 #include "SDL3/SDL.h"
 #include "SDL3/SDL_audio.h"
 #include "NewCode/stb_vorbis.h"

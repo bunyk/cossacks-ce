@@ -5,7 +5,7 @@
 #ifndef __CWAVE_H
 #define __CWAVE_H
 
-#include <mmsystem.h>
+// #include <mmsystem.h>
 #include "SDL3/SDL.h"
 #include "SDL3/SDL_audio.h"
 

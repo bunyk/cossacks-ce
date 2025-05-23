@@ -9,7 +9,7 @@
  * picture on the screen wit the procedure ShowRLCItem
  */
 
-#include <windows.h>
+// #include <windows.h>
 
 #ifndef FASTDRAW_USER
 #define FASTDRAW_API __declspec(dllexport)

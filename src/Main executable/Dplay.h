@@ -12,7 +12,7 @@
 #ifndef __DPLAY_INCLUDED__
 #define __DPLAY_INCLUDED__
 
-#include <ole2.h>       // for DECLARE_INTERFACE and HRESULT
+// #include <ole2.h>       // for DECLARE_INTERFACE and HRESULT
 
 #define _FACDP  0x877
 #define MAKE_DPHRESULT( code )    MAKE_HRESULT( 1, _FACDP, code )
