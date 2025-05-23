@@ -12,9 +12,13 @@ add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 add_subdirectory(vendored/SDL_image EXCLUDE_FROM_ALL)
 
 add_compile_options(-Wno-write-strings) # Turn off warnings about string literals for now
+add_compile_options(-fpermissive) # Allow more casts for now
+add_compile_options(-w) # Inhibit all warnings for now 
 
-file(GLOB_RECURSE SOURCES "src/game/*.cpp")
-add_executable(cossacks ${SOURCES})
+add_executable(cossacks
+    src/game/ddex1.cpp
+	src/game/gp_draw.cpp
+)
 
 # Link to the actual SDL3 libraries.
 target_link_libraries(cossacks PRIVATE SDL3_image::SDL3_image SDL3::SDL3)

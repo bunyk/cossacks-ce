@@ -1,7 +1,4 @@
 
-// https://stackoverflow.com/a/38415387/816449
-
-
 #ifdef _WIN32
 
 #define DLLEXPORT __declspec(dllexport)
@@ -14,16 +11,22 @@
 #define DLLIMPORT // Nothing
 #define CDECL // Nothing
 
+// https://stackoverflow.com/a/38415387/816449
 typedef short small;
 typedef short WCHAR;
+typedef char CHAR;
 typedef void * HANDLE;
+#define INVALID_HANDLE_VALUE ((HANDLE)(-1))
+typedef void VOID;
 typedef unsigned short WORD;
 typedef unsigned char BYTE;
+typedef BYTE *LPBYTE;
 typedef unsigned char byte;
 typedef unsigned long DWORD;
 typedef unsigned int BOOL;
+#define TRUE 1
+#define FALSE 0
 
-#define INVALID_HANDLE_VALUE ((HANDLE)(-1))
 
 typedef const char* LPCSTR; // stands for Long Pointer to a Constant STRing.
 typedef wchar_t* LPWSTR;  // Long Pointer to Wide STRing

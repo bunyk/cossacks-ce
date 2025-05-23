@@ -1,5 +1,7 @@
 #pragma once
 
+#include "stubs.h"
+
 /*                    Map discription
  *
  * This file describes map cells, animations, monsters, buildings,

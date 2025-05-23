@@ -6,8 +6,8 @@
 #define __CWAVE_H
 
 // #include <mmsystem.h>
-#include "sdl3/sdl.h"
-#include "sdl3/sdl_audio.h"
+#include "SDL3/SDL.h"
+#include "SDL3/SDL_audio.h"
 
 class CWave //: public CObject
 {

@@ -1,3 +1,6 @@
+#ifndef _MENU_H
+#define _MENU_H
+
 typedef void fnc(void);
 struct AZone{
 	int x,y,x1,y1;
@@ -32,3 +35,5 @@ public:
 #define MCP_MAKESHIFT 2
 #define MCP_CHANGEFONT 4
 #define MCP_ERASEONCHOOSE 8
+
+#endif

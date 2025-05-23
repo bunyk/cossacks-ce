@@ -1,3 +1,4 @@
+#include "stubs.h"
 #include "ddini.h"
 #include "resfile.h"
 #include "mode.h"
@@ -493,7 +494,7 @@ int GP_System::PreLoadGPImage( char* Name )
 	return fidx;
 }
 
-#define GPX(x,y) ((GP_Header*)(int(x)+x##->##y))
+#define GPX(x, y) ((GP_Header*)((int)(x) + (x)->y))
 
 bool GP_System::LoadGP( int i )
 {

@@ -5,7 +5,7 @@
 #if !defined(AFX_GSCARCH_H__96E13529_35D1_407C_8155_20FD14236E7C__INCLUDED_)
 #define AFX_GSCARCH_H__96E13529_35D1_407C_8155_20FD14236E7C__INCLUDED_
 
-#include "GSCtypes.h"	// Added by ClassView
+#include "gsctypes.h"	// Added by ClassView
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000

@@ -117,32 +117,3 @@ void CreateFractal()
 {
 	Generate(6);
 }
-
-int main() {
-    const int width = 1024;
-    const int height = 1024;
-    FILE *fp = fopen("fractal.ppm", "wb");
-
-    if (!fp) {
-        perror("Failed to open output file");
-        return 1;
-    }
-
-    // Write PPM header (binary grayscale P5 format)
-    fprintf(fp, "P5\n%d %d\n255\n", width, height);
-
-    // Generate the fractal map
-    CreateFractal();
-
-    // Write pixel data (scale down 0–512 to 0–255)
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            int val = GetFractalVal(x, y);
-            unsigned char pixel = (unsigned char)(val >> 1); // 512 -> 256 scale
-            fwrite(&pixel, 1, 1, fp);
-        }
-    }
-
-    fclose(fp);
-    return 0;
-}
