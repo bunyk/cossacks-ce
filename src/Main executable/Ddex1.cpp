@@ -643,7 +643,7 @@ void SaveMiniScreenShot( char* Name )
 	RBlockWrite( f, PAL, 1024 );
 	for (int i = 0; i < LY; i++)
 	{
-		char* pos = (char*) ( int( ScreenPtr ) + ( RealLy - i * 4 - 1 )*SCRSizeX );
+		char* pos = static_cast<char*>(ScreenPtr) + (RealLy - i - 1) * SCRSizeX;
 		for (int j = 0; j < LX; j++)RBlockWrite( f, pos + j * 4, 1 );
 	};
 	RClose( f );
@@ -651,7 +651,7 @@ void SaveMiniScreenShot( char* Name )
 void SaveScreen()
 {
 	char ccc[128];
-	CreateDirectory( "Screenshots", 0 );
+	SDL_CreateDirectory( "Screenshots");
 	int i;
 	for (i = 0; i < 1000; i++)
 	{
@@ -799,7 +799,7 @@ MouseStack* ReadMEvent()
 		CURMS = MSTC[0];
 		if (NInStack > 1)
 		{
-			memcpy( MSTC, MSTC + 1, ( NInStack - 1 ) * sizeof MouseStack );
+			memcpy( MSTC, MSTC + 1, ( NInStack - 1 ) * sizeof(MouseStack) );
 		}
 		NInStack--;
 		return &CURMS;
@@ -3081,6 +3081,8 @@ void CreateRadio();
 extern int ScrollSpeed;
 void UnLoading();
 
+
+#ifdef _WIN32
 //Delete random generated *.m3d map files
 void EraseRND()
 {
@@ -3138,6 +3140,12 @@ void EraseRND()
 		}
 	}
 }
+#else 
+void EraseRND()
+{
+	printf( "TODO: EraseRND() not implemented\n" );
+}
+#endif
 
 bool FilesInit();
 void FilesExit();

@@ -23,6 +23,8 @@ typedef unsigned char byte;
 typedef unsigned long DWORD;
 typedef unsigned int BOOL;
 
+#define INVALID_HANDLE_VALUE ((HANDLE)(-1))
+
 typedef const char* LPCSTR; // stands for Long Pointer to a Constant STRing.
 typedef wchar_t* LPWSTR;  // Long Pointer to Wide STRing
 typedef char* LPSTR;  // Long Pointer to STRing (ANSI)
