@@ -25,6 +25,7 @@ typedef unsigned char BYTE;
 typedef BYTE *LPBYTE;
 typedef unsigned char byte;
 typedef unsigned long DWORD;
+typedef long LONG;
 typedef unsigned int BOOL;
 #define TRUE 1
 #define FALSE 0

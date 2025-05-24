@@ -1982,7 +1982,7 @@ void LoadAI(char* fn, Nation* NT) {
 						int nar = NT->N_AI_Req[nai];
 						if (nar) {
 							//sAI_Req* sar=NT->AI_Req[nai];
-							NT->AI_Req[nai] = (sAI_Req*)realloc(NT->AI_Req[nai], (nar + 1) * sizeof sAI_Req);
+							NT->AI_Req[nai] = (sAI_Req*)realloc(NT->AI_Req[nai], (nar + 1) * sizeof(sAI_Req));
 							NT->N_AI_Req[nai]++;
 						}
 						else {
@@ -2022,7 +2022,7 @@ void LoadAI(char* fn, Nation* NT) {
 							int nai = NT->N_AI_Levels;
 							int ncm = NT->N_AI_Cmd[nai];
 							if (ncm) {
-								NT->AI_Cmd[nai] = (sAI_Cmd*)realloc(NT->AI_Cmd[nai], (ncm + 1) * sizeof sAI_Cmd);
+								NT->AI_Cmd[nai] = (sAI_Cmd*)realloc(NT->AI_Cmd[nai], (ncm + 1) * sizeof(sAI_Cmd));
 								NT->N_AI_Cmd[nai]++;
 							}
 							else {
@@ -2030,7 +2030,7 @@ void LoadAI(char* fn, Nation* NT) {
 								NT->N_AI_Cmd[nai]++;
 							};
 							sAI_Cmd* SCM = NT->AI_Cmd[nai] + ncm;
-							memset(SCM->Info, 0, sizeof SCM->Info);
+							memset(SCM->Info, 0, sizeof(SCM->Info));
 							SCM->Kind = Kind;
 							if (Kind < 4) {
 								int z = Gscanf(f1, "%d", &parm1);
@@ -2077,7 +2077,7 @@ void LoadAI(char* fn, Nation* NT) {
 							int nai = NT->N_AI_Levels;
 							int ndr = NT->N_AI_Devlp[nai];
 							if (ndr) {
-								NT->AI_Devlp[nai] = (sAI_Devlp*)realloc(NT->AI_Devlp[nai], (ndr + 1) * sizeof sAI_Devlp);
+								NT->AI_Devlp[nai] = (sAI_Devlp*)realloc(NT->AI_Devlp[nai], (ndr + 1) * sizeof(sAI_Devlp));
 								NT->N_AI_Devlp[nai]++;
 							}
 							else {

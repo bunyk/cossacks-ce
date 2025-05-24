@@ -1023,7 +1023,7 @@ void SaveGates( ResFile f1 )
 	if ( !NGates )return;
 	int i = '1TAG';
 	RBlockWrite( f1, &i, 4 );
-	i = 12 + NGates * sizeof Gate;
+	i = 12 + NGates * sizeof(Gate);
 	RBlockWrite( f1, &i, 4 );
 	RBlockWrite( f1, &NGates, 4 );
 	RBlockWrite( f1, &MaxGates, 4 );
@@ -1033,8 +1033,8 @@ void LoadGates( ResFile f1 )
 {
 	RBlockRead( f1, &NGates, 4 );
 	RBlockRead( f1, &MaxGates, 4 );
-	Gates = (Gate*) realloc( Gates, MaxGates * sizeof Gate );
-	RBlockRead( f1, Gates, NGates * sizeof Gate );
+	Gates = (Gate*) realloc( Gates, MaxGates * sizeof(Gate) );
+	RBlockRead( f1, Gates, NGates * sizeof(Gate) );
 };
 extern byte* WaterBright;
 void SaveWaterCost( ResFile f1 )
@@ -1126,7 +1126,7 @@ void SaveTopology( ResFile f1 )
 	for ( int j = 0; j < NAreas; j++ )
 	{
 		Area Ar1 = TopMap[j];
-		RBlockWrite( f1, &Ar1, sizeof Area );
+		RBlockWrite( f1, &Ar1, sizeof(Area) );
 		Ar1.MaxLink = Ar1.NLinks;
 		if ( Ar1.NMines )RBlockWrite( f1, Ar1.MinesIdx, Ar1.NMines << 1 );
 		if ( Ar1.NLinks )RBlockWrite( f1, Ar1.Link, Ar1.NLinks << 2 );
@@ -1147,7 +1147,7 @@ void LoadTopology( ResFile f1 )
 	for ( int j = 0; j < NAreas; j++ )
 	{
 		Area* Ar1 = TopMap + j;
-		RBlockRead( f1, Ar1, sizeof Area );
+		RBlockRead( f1, Ar1, sizeof(Area) );
 		if ( Ar1->NMines )Ar1->MinesIdx = new word[Ar1->NMines];
 		else Ar1->MinesIdx = NULL;
 		if ( Ar1->NLinks )Ar1->Link = new word[Ar1->NLinks];
@@ -1176,7 +1176,7 @@ void SaveWTopology( ResFile f1 )
 	for ( int j = 0; j < WNAreas; j++ )
 	{
 		Area Ar1 = WTopMap[j];
-		RBlockWrite( f1, &Ar1, sizeof Area );
+		RBlockWrite( f1, &Ar1, sizeof(Area) );
 		Ar1.MaxLink = Ar1.NLinks;
 		if ( Ar1.NMines )RBlockWrite( f1, Ar1.MinesIdx, Ar1.NMines << 1 );
 		if ( Ar1.NLinks )RBlockWrite( f1, Ar1.Link, Ar1.NLinks << 2 );
@@ -1196,7 +1196,7 @@ void LoadTopology1( ResFile f1 )
 	for ( int j = 0; j < NAreas; j++ )
 	{
 		Area* Ar1 = TopMap + j;
-		RBlockRead( f1, Ar1, sizeof Area );
+		RBlockRead( f1, Ar1, sizeof(Area) );
 		if ( Ar1->NMines )Ar1->MinesIdx = new word[Ar1->NMines];
 		else Ar1->MinesIdx = NULL;
 		if ( Ar1->NLinks )Ar1->Link = new word[Ar1->MaxLink << 1];
@@ -1219,7 +1219,7 @@ void LoadWTopology1( ResFile f1 )
 	for ( int j = 0; j < WNAreas; j++ )
 	{
 		Area* Ar1 = WTopMap + j;
-		RBlockRead( f1, Ar1, sizeof Area );
+		RBlockRead( f1, Ar1, sizeof(Area) );
 		if ( Ar1->NMines )Ar1->MinesIdx = new word[Ar1->NMines];
 		else Ar1->MinesIdx = NULL;
 		if ( Ar1->NLinks )Ar1->Link = new word[Ar1->MaxLink << 1];
@@ -1241,7 +1241,7 @@ void SaveZonesAndGroups( ResFile f1 )
 {
 	int i = '1NOZ';
 	RBlockWrite( f1, &i, 4 );
-	int sz = 4 + 8 + NAZones*( sizeof ActiveZone ) + NAGroups*( sizeof ActiveGroup );
+	int sz = 4 + 8 + NAZones*( sizeof(ActiveZone) ) + NAGroups*( sizeof(ActiveGroup) );
 	for ( int i = 0; i < NAZones; i++ )
 	{
 		ActiveZone* AZ = AZones + i;
@@ -1259,7 +1259,7 @@ void SaveZonesAndGroups( ResFile f1 )
 	for ( int i = 0; i < NAZones; i++ )
 	{
 		ActiveZone* AZ = AZones + i;
-		RBlockWrite( f1, AZ, sizeof ActiveZone );
+		RBlockWrite( f1, AZ, sizeof(ActiveZone) );
 		sz = strlen( AZ->Name ) + 1;
 		RBlockWrite( f1, &sz, 1 );
 		RBlockWrite( f1, AZ->Name, sz );
@@ -1267,7 +1267,7 @@ void SaveZonesAndGroups( ResFile f1 )
 	for ( int i = 0; i < NAGroups; i++ )
 	{
 		ActiveGroup* AG = AGroups + i;
-		RBlockWrite( f1, AG, sizeof ActiveGroup );
+		RBlockWrite( f1, AG, sizeof(ActiveGroup) );
 		sz = strlen( AG->Name ) + 1;
 		RBlockWrite( f1, &sz, 1 );
 		RBlockWrite( f1, AG->Name, sz );
@@ -1309,7 +1309,7 @@ void LoadZonesAndGroups( ResFile f1 )
 	for ( int i = 0; i < NAZones; i++ )
 	{
 		ActiveZone* AZ = AZones + i;
-		RBlockRead( f1, AZ, sizeof ActiveZone );
+		RBlockRead( f1, AZ, sizeof(ActiveZone) );
 		byte L;
 		RBlockRead( f1, &L, 1 );
 		AZ->Name = new char[L];
@@ -1318,7 +1318,7 @@ void LoadZonesAndGroups( ResFile f1 )
 	for ( int q = 0; q < NAGroups; q++ )
 	{
 		ActiveGroup* AG = AGroups + q;
-		RBlockRead( f1, AG, sizeof ActiveGroup );
+		RBlockRead( f1, AG, sizeof(ActiveGroup) );
 		byte L;
 		RBlockRead( f1, &L, 1 );
 		AG->Name = new char[L];

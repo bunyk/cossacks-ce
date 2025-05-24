@@ -19,7 +19,6 @@ add_executable(cossacks
     src/game/ddex1.cpp
 	src/game/gp_draw.cpp
 	src/game/fastdraw.cpp
-	src/game/mapa.cpp
 )
 
 # Link to the actual SDL3 libraries.

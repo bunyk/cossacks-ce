@@ -1,3 +1,5 @@
+#include <assert.h>
+
 #include "cdirsnd.h"
 #include "ddini.h"
 #include "resfile.h"
@@ -7,10 +9,11 @@
 #include "gsound.h"
 #include "dialogs.h"
 #include "fonts.h"
-#include <assert.h>
 #include "gp_draw.h"
 #include "bmptool.h"
 #include "drawform.h"
+#include "lines.h"
+
 int ROLLU2 = 1;
 extern int UNI_LINEDLY1;
 extern int UNI_LINEDY1;
@@ -69,7 +72,7 @@ DLLEXPORT int GetSound( char* Name )
 
 DialogsSystem::DialogsSystem( int x, int y )
 {
-	memset( this, 0, sizeof *this );
+	memset( this, 0, sizeof(*this) );
 	BaseX = x;
 	BaseY = y;
 	HintY = RealLy - 80;
@@ -79,7 +82,7 @@ DialogsSystem::DialogsSystem( int x, int y )
 };
 DialogsSystem::DialogsSystem()
 {
-	memset( this, 0, sizeof *this );
+	memset( this, 0, sizeof(*this) );
 	HintY = RealLy - 80;
 	OkSound = GetSound( "STANDART" );
 	CancelSound = GetSound( "STANDART" );
@@ -2841,6 +2844,7 @@ CheckBox* DialogsSystem::addGP_CheckBox( SimpleDialog* Parent,
 //--------end of CheckBox--------------------//
 
 //-----------colored bar---------------------//
+#ifdef _WIN32
 DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 {
 	if (Lx0 <= 0 || Ly0 <= 0 || x0<0 || y0<0 || x0 + Lx0>ScrWidth || y0 + Ly0>SCRSizeY)
@@ -2900,6 +2904,12 @@ DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 			  pop		edi
 	}
 }
+#else
+// TODO: Implement CBar for non-Windows platforms
+DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
+{
+}
+#endif
 
 bool ColoredBar_OnDraw( SimpleDialog* SD )
 {
@@ -3438,6 +3448,7 @@ ChatViewer* DialogsSystem::addChatViewer( SimpleDialog* Parent, int x, int y, in
 extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
 
 //-----------------Bit Pictures Viewer-------------
+#ifdef _WIN32
 bool BPXView_OnDraw( SimpleDialog* SD )
 {
 	if (!SD->Visible)
@@ -3540,6 +3551,11 @@ bool BPXView_OnDraw( SimpleDialog* SD )
 	}
 	return true;
 }
+#else
+bool BPXView_OnDraw( SimpleDialog* SD )
+{
+}
+#endif
 
 bool BPXView_OnKeyDown( SimpleDialog* SD )
 {
@@ -4687,7 +4703,7 @@ GP_PageControl* DialogsSystem::addPageControl( SimpleDialog* Parent, int x, int 
 
 void GP_PageControl::AddPage( int x0, int y0, int px1, int py1, int Index )
 {
-	Pages = (OnePage*) realloc( Pages, ( NPages + 1 ) * sizeof OnePage );
+	Pages = (OnePage*) realloc( Pages, ( NPages + 1 ) * sizeof(OnePage) );
 	Pages[NPages].Index = Index;
 	Pages[NPages].x = x0;
 	Pages[NPages].y = y0;
@@ -4828,7 +4844,7 @@ SimpleDialog::SimpleDialog()
 	Parent = nullptr;
 	Child = nullptr;
 	OnDrawActive = nullptr;
-	OnNewClick = false;
+	OnNewClick = nullptr;
 	MouseOver = false;
 	MouseOverActive = false;
 	Active = false;
@@ -4873,6 +4889,7 @@ void SimpleDialog::AssignSound( char* Name, int Usage )
 extern void yield();
 
 //----copy rectangle to screen----//
+#ifdef _WIN32
 void CopyToScreen( int zx, int zy, int zLx, int zLy )
 {
 	if (!bActive)
@@ -4959,7 +4976,13 @@ void CopyToScreen( int zx, int zy, int zLx, int zLy )
 
 	yield();
 }
+#else
+void CopyToScreen( int zx, int zy, int zLx, int zLy )
+{
+}
+#endif
 
+#ifdef _WIN32
 void CopyToOffScreen( int zx, int zy,
 	int srLx, int srLy,
 	byte* data )
@@ -5016,9 +5039,15 @@ void CopyToOffScreen( int zx, int zy,
 			pop		esi
 	};
 };
-void CopyToRealScreenMMX( int zx, int zy,
+#else
+void CopyToOffScreen( int zx, int zy,
 	int srLx, int srLy,
-	byte* data );
+	byte* data )
+{
+}
+#endif
+
+#ifdef _WIN32
 void CopyToRealScreen( int zx, int zy,
 	int srLx, int srLy,
 	byte* data )
@@ -5077,6 +5106,15 @@ void CopyToRealScreen( int zx, int zy,
 			pop		esi
 	};
 };
+#else
+void CopyToRealScreen( int zx, int zy,
+	int srLx, int srLy,
+	byte* data )
+{
+}
+#endif
+
+#ifdef _WIN32
 void CopyToRealScreenMMX( int zx, int zy,
 	int srLx, int srLy,
 	byte* data )
@@ -5138,7 +5176,16 @@ void CopyToRealScreenMMX( int zx, int zy,
 			emms
 	};
 };
+#else
+void CopyToRealScreenMMX( int zx, int zy,
+	int srLx, int srLy,
+	byte* data )
+{
+}
+#endif
+
 //--------Pictures methods--------//
+#ifdef _WIN32
 void SQPicture::Draw( int x, int y )
 {
 	if (!bActive)return;
@@ -5174,6 +5221,13 @@ void SQPicture::Draw( int x, int y )
 								 pop		esi
 	};
 };
+#else
+void SQPicture::Draw( int x, int y )
+{
+}
+#endif
+
+#ifdef _WIN32
 void SQPicture::DrawTransparent( int x, int y )
 {
 	if (!PicPtr)return;
@@ -5213,7 +5267,15 @@ void SQPicture::DrawTransparent( int x, int y )
 										  pop		esi
 	};
 };
+#else
+void SQPicture::DrawTransparent( int x, int y )
+{
+}
+#endif
+
 bool SafeLoad = 0;
+
+#ifdef _WIN32
 void SQPicture::LoadPicture( char* name )
 {
 	if (this->PicPtr)
@@ -5275,6 +5337,12 @@ void SQPicture::LoadPicture( char* name )
 		ErrD( gg );
 	};
 };
+#else
+void SQPicture::LoadPicture( char* name )
+{
+}
+#endif
+
 SQPicture::~SQPicture()
 {
 	if (PicPtr)free( PicPtr );
@@ -5795,6 +5863,8 @@ void FreeTransBuffer()
 	TransLx = 0;
 	TransLy = 0;
 };
+
+#ifdef _WIN32
 void EncodeLine( byte* src, byte* dst, byte* scr, byte* tbl, byte* oddtbl )
 {
 	int N = TransLx >> 1;
@@ -5830,6 +5900,13 @@ void EncodeLine( byte* src, byte* dst, byte* scr, byte* tbl, byte* oddtbl )
 			pop  esi
 	};
 };
+#else
+void EncodeLine( byte* src, byte* dst, byte* scr, byte* tbl, byte* oddtbl )
+{
+}
+#endif
+
+#ifdef _WIN32
 void EncodeLine1( byte* src, byte* dst, byte* scr, byte* tbl )
 {
 	int N = TransLx >> 1;
@@ -5863,6 +5940,13 @@ void EncodeLine1( byte* src, byte* dst, byte* scr, byte* tbl )
 			pop  esi
 	};
 };
+#else
+void EncodeLine1( byte* src, byte* dst, byte* scr, byte* tbl )
+{
+}
+#endif
+
+#ifdef _WIN32
 void EncodeLine2( byte* src, byte* dst, byte* scr, byte* tbl )
 {
 	int N = TransLx >> 1;
@@ -5896,6 +5980,12 @@ void EncodeLine2( byte* src, byte* dst, byte* scr, byte* tbl )
 			pop  esi
 	};
 };
+#else
+void EncodeLine2( byte* src, byte* dst, byte* scr, byte* tbl )
+{
+}
+#endif
+
 extern byte trans4[65536];
 extern byte trans8[65536];
 void PerformTransMix( int degree )

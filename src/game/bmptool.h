@@ -1,4 +1,5 @@
-typedef unsigned char byte;
+#include "stubs.h"
+
 #pragma pack(1)
 struct BMPformat{ // bmfh 
         WORD    bfType; 

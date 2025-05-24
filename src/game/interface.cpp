@@ -1,6 +1,9 @@
 //If you don't include UdpHolePuncher.h first,
 //it's winsock includes will mess up the project >_<
+
+#ifdef NETWORK
 #include "newcode/udpholepuncher.h"
+#endif
 
 #include <boost/coroutine2/all.hpp>
 
@@ -48,7 +51,9 @@
 #include "playerinfo.h"
 extern PlayerInfo PINFO[8];
 
+#ifdef NETWORK
 UdpHolePuncher udp_hole_puncher;
+#endif
 
 extern const int kChatMessageDisplayTime;
 extern const int kSystemMessageDisplayTime;
@@ -971,6 +976,7 @@ bool EnterName();
 
 extern char ACCESS[16];
 
+#ifdef NETWORK
 //Prepares multiplayer Deathmatch lobby
 //Also handles lobbies for Historical Battles over GSC network
 bool processMultiplayer()
@@ -1186,6 +1192,7 @@ RetryConn:
 
 	return 1;
 }
+#endif //NETWORK
 
 bool ProcessOneBattle( int BtlID );
 

@@ -349,8 +349,8 @@ void ClearModes()
 	SetWallBuildMode( 0xFF, 0 );
 	TexMapMod = false;
 	RiverEditMode = 0;
-	#endif
 	ClearCurve();
+	#endif
 	TexPieceMode = 0;
 }
 

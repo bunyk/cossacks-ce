@@ -20,6 +20,7 @@
 #include "newupgrade.h"
 #include "zbuffer.h"
 #include "3dbars.h"
+#include "lines.h"
 
 OneBar* OBARS[8192];
 int NBars;
