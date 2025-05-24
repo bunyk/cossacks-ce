@@ -27,6 +27,8 @@ typedef unsigned int BOOL;
 #define TRUE 1
 #define FALSE 0
 
+#define _strnicmp strncasecmp
+#define _stricmp strcasecmp 
 
 typedef const char* LPCSTR; // stands for Long Pointer to a Constant STRing.
 typedef wchar_t* LPWSTR;  // Long Pointer to Wide STRing
