@@ -1,10 +1,10 @@
 /*               Fast raster graphics routine
  *
  *  This module presents several useful procedures for fast output,
- * using RLC graphics format (see the discription below). Before the
+ * using RLC graphics format (see the description below). Before the
  * wor you must call SetRlcWindow to set properly the screen
  * capabilities.After this you mast call SetScreenPtr to set the
- * output distanation. Uou can use LoadRLC to load the set of RLC
+ * output destination. You can use LoadRLC to load the set of RLC
  * pictures into the RLCTable structure. Then you can draw the
  * picture on the screen wit the procedure ShowRLCItem
  */

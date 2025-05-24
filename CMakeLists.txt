@@ -18,6 +18,7 @@ add_compile_options(-w) # Inhibit all warnings for now
 add_executable(cossacks
     src/game/ddex1.cpp
 	src/game/gp_draw.cpp
+	src/game/fastdraw.cpp
 )
 
 # Link to the actual SDL3 libraries.
