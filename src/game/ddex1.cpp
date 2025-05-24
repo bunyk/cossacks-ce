@@ -345,9 +345,11 @@ void ClearModes()
 	MEditMode = false;
 	LockMode = 0;
 	WaterEditMode = false;
+	#ifdef _WIN32
 	SetWallBuildMode( 0xFF, 0 );
 	TexMapMod = false;
 	RiverEditMode = 0;
+	#endif
 	ClearCurve();
 	TexPieceMode = 0;
 }

@@ -1,3 +1,5 @@
+#include "stubs.h"
+
 #ifndef NODPLAY
 #include "dplay.h"
 #endif

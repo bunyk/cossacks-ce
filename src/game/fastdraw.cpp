@@ -167,6 +167,7 @@ void ClearScreen();
 */
 
 //Showing RLC image with clipping
+#ifdef _WIN32
 void ShowRLC( int x, int y, void* PicPtr )
 {
 	//for(int i=0;i<256;i++) precomp[i]=i;
@@ -407,8 +408,16 @@ void ShowRLC( int x, int y, void* PicPtr )
 		}
 	}
 }
+#else
+void ShowRLC( int x, int y, void* PicPtr )
+{
+}
+#endif
 //End of RLC with clipping
+
+
 //Showing inverse RLC image with clipping
+#ifdef _WIN32
 void ShowRLCi( int x, int y, void* PicPtr )
 {
 	//for(int i=0;i<256;i++) precomp[i]=i;
@@ -631,8 +640,15 @@ void ShowRLCi( int x, int y, void* PicPtr )
 		}
 	}
 }
+#else
+void ShowRLCi( int x, int y, void* PicPtr )
+{
+}
+#endif
 
 //End of RLC with clipping & with palette
+
+#ifdef _WIN32
 void ShowRLCpal( int x, int y, void* PicPtr, byte* pal )
 {
 	//for(int i=0;i<256;i++) precomp[i]=i;
@@ -868,9 +884,16 @@ void ShowRLCpal( int x, int y, void* PicPtr, byte* pal )
 		}
 	}
 }
-
+#else
+void ShowRLCpal( int x, int y, void* PicPtr, byte* pal )
+{
+}
+#endif
 //End of RLC with clipping & encoding
+
+
 //Showing inverse RLC image with clipping & encodint
+#ifdef _WIN32
 void ShowRLCipal( int x, int y, void* PicPtr, byte* pal )
 {
 	//for(int i=0;i<256;i++) precomp[i]=i;
@@ -1109,9 +1132,15 @@ void ShowRLCipal( int x, int y, void* PicPtr, byte* pal )
 		}
 	}
 }
+#else
+void ShowRLCipal( int x, int y, void* PicPtr, byte* pal )
+{
+}
+#endif
 //End of inverted RLC with clipping & encoding
 
 //End of RLC with clipping & with palette->fon
+#ifdef _WIN32
 void ShowRLCfonpal( int x, int y, void* PicPtr, byte* pal )
 {
 	//for(int i=0;i<256;i++) precomp[i]=i;
@@ -1351,8 +1380,17 @@ void ShowRLCfonpal( int x, int y, void* PicPtr, byte* pal )
 		}
 	}
 }
+#else
+void ShowRLCfonpal( int x, int y, void* PicPtr, byte* pal )
+{
+}
+#endif
 //End of RLC with clipping & encoding
+
+
+
 //Showing inverse RLC image with clipping & encodint
+#ifdef _WIN32
 void ShowRLCifonpal( int x, int y, void* PicPtr, byte* pal )
 {
 	//for(int i=0;i<256;i++) precomp[i]=i;
@@ -1596,9 +1634,15 @@ void ShowRLCifonpal( int x, int y, void* PicPtr, byte* pal )
 		}
 	}
 }
+#else
+void ShowRLCifonpal( int x, int y, void* PicPtr, byte* pal )
+{
+}
+#endif
 //End of inverted RLC with clipping & encoding->fon
 
 //End of RLC with clipping & with palette(half-transparent fog)
+#ifdef _WIN32
 void ShowRLChtpal( int x, int y, void* PicPtr, byte* pal )
 {
 	//for(int i=0;i<256;i++) precomp[i]=i;
@@ -1843,8 +1887,17 @@ void ShowRLChtpal( int x, int y, void* PicPtr, byte* pal )
 		}
 	}
 }
+#else
+void ShowRLChtpal( int x, int y, void* PicPtr, byte* pal )
+{
+}
+#endif
 //End of RLC with clipping & encoding
+
+
+
 //Showing inverse RLC image with clipping & encodint(half-transparent fog)
+#ifdef _WIN32
 void ShowRLCihtpal( int x, int y, void* PicPtr, byte* pal )
 {
 	//for(int i=0;i<256;i++) precomp[i]=i;
@@ -2092,6 +2145,11 @@ void ShowRLCihtpal( int x, int y, void* PicPtr, byte* pal )
 		}
 	}
 }
+#else
+void ShowRLCihtpal( int x, int y, void* PicPtr, byte* pal )
+{
+}
+#endif
 //End of inverted RLC with clipping & encoding(half-transparent fog)
 
 void ShowRLCp1( int x, int y, void* PicPtr )
