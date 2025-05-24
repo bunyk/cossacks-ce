@@ -7,6 +7,7 @@ bool CheckBar(int x, int y, int Lx, int Ly);
 
 //returns (2|x| + |y|) / 2 if x > y
 //returns (2|y| + |x|) / 2 if y > x
+#ifdef _WIN32
 inline int Norma(int x, int y)
 {
 	__asm
@@ -29,6 +30,13 @@ inline int Norma(int x, int y)
 							 mov		eax, ecx
 	}
 }
+#else
+inline int Norma(int x, int y) {
+    x = std::abs(x);
+    y = std::abs(y);
+    return (x > y) ? (2 * x + y) / 2 : (2 * y + x) / 2;
+}
+#endif
 #pragma warning(default : 4035)
 
 void TryToStand(OneObject* OB, bool rest);

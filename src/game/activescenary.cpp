@@ -50,7 +50,7 @@ ScenaryInterface SCENINF;
 
 ScenaryInterface::ScenaryInterface()
 {
-	memset( this, 0, sizeof ScenaryInterface );
+	memset( this, 0, sizeof(ScenaryInterface) );
 }
 
 ScenaryInterface::~ScenaryInterface()
@@ -243,7 +243,7 @@ void ScenaryInterface::UnLoading()
 		free( PageSize );
 	}
 	if ( hLib )FreeLibrary( hLib );
-	memset( this, 0, sizeof ScenaryInterface );
+	memset( this, 0, sizeof(ScenaryInterface) );
 }
 
 void ScenErr( char* Mess )
@@ -356,7 +356,7 @@ void ScenaryInterface::Load( char* Name, char* Text )
 {
 	for ( int i = 0; i < 8; i++ )AssignTBL[i] = i;
 	//ProtectionMode=1;
-	memset( COMPSTART, 0, sizeof COMPSTART );
+	memset( COMPSTART, 0, sizeof(COMPSTART) );
 	ResFile RF = RReset( Text );
 	//ProtectionMode=0;
 	if ( RF != INVALID_HANDLE_VALUE )
@@ -504,7 +504,7 @@ extern "C" DLLEXPORT bool RegisterUnits( GAMEOBJ* GOBJ, char* Name )
 		if ( SCENINF.NUGRP >= SCENINF.MaxUGRP )
 		{
 			SCENINF.MaxUGRP += 32;
-			SCENINF.UGRP = (UnitsGroup*) realloc( SCENINF.UGRP, SCENINF.MaxUGRP * sizeof UnitsGroup );
+			SCENINF.UGRP = (UnitsGroup*) realloc( SCENINF.UGRP, SCENINF.MaxUGRP * sizeof(UnitsGroup) );
 		}
 		GOBJ->Index = SCENINF.NUGRP;
 		UnitsGroup* UG = SCENINF.UGRP + SCENINF.NUGRP;
@@ -606,7 +606,7 @@ extern "C" DLLEXPORT void RegisterZone( GAMEOBJ* GOBJ, char* Name )
 		if ( SCENINF.NZGRP >= SCENINF.MaxZGRP )
 		{
 			SCENINF.MaxZGRP += 16;
-			SCENINF.ZGRP = (ZonesGroup*) realloc( SCENINF.ZGRP, SCENINF.MaxZGRP * sizeof ZonesGroup );
+			SCENINF.ZGRP = (ZonesGroup*) realloc( SCENINF.ZGRP, SCENINF.MaxZGRP * sizeof(ZonesGroup) );
 		}
 
 		SCENINF.ZGRP[SCENINF.NZGRP].N = NZON;
@@ -646,7 +646,7 @@ extern "C" DLLEXPORT void RegisterVisibleZone( GAMEOBJ* GOBJ, char* Name )
 		if ( SCENINF.NZGRP >= SCENINF.MaxZGRP )
 		{
 			SCENINF.MaxZGRP += 16;
-			SCENINF.ZGRP = (ZonesGroup*) realloc( SCENINF.ZGRP, SCENINF.MaxZGRP * sizeof ZonesGroup );
+			SCENINF.ZGRP = (ZonesGroup*) realloc( SCENINF.ZGRP, SCENINF.MaxZGRP * sizeof(ZonesGroup) );
 		}
 
 		SCENINF.ZGRP[SCENINF.NZGRP].N = NZON;
@@ -1720,7 +1720,7 @@ extern "C" DLLEXPORT bool CreateObject0( GAMEOBJ* DstObj, GAMEOBJ* Form, GAMEOBJ
 	if ( SCENINF.NUGRP >= SCENINF.MaxUGRP )
 	{
 		SCENINF.MaxUGRP += 10;
-		SCENINF.UGRP = (UnitsGroup*) realloc( SCENINF.UGRP, SCENINF.MaxUGRP * sizeof UnitsGroup );
+		SCENINF.UGRP = (UnitsGroup*) realloc( SCENINF.UGRP, SCENINF.MaxUGRP * sizeof(UnitsGroup) );
 	}
 	UnitsGroup* UG = SCENINF.UGRP + SCENINF.NUGRP;
 	SCENINF.NUGRP++;
@@ -4589,7 +4589,7 @@ extern "C" DLLEXPORT void RegisterDynGroup( GAMEOBJ* Units )
 	if ( SCENINF.NUGRP >= SCENINF.MaxUGRP )
 	{
 		SCENINF.MaxUGRP += 32;
-		SCENINF.UGRP = (UnitsGroup*) realloc( SCENINF.UGRP, SCENINF.MaxUGRP * sizeof UnitsGroup );
+		SCENINF.UGRP = (UnitsGroup*) realloc( SCENINF.UGRP, SCENINF.MaxUGRP * sizeof(UnitsGroup) );
 	}
 	Units->Index = SCENINF.NUGRP;
 	UnitsGroup *UG = SCENINF.UGRP + SCENINF.NUGRP;
@@ -5615,7 +5615,7 @@ void MissPack::LoadMissions()
 				if ( NMiss >= MaxMiss )
 				{
 					MaxMiss += 32;
-					MISS = (SingleMission*) realloc( MISS, MaxMiss * sizeof SingleMission );
+					MISS = (SingleMission*) realloc( MISS, MaxMiss * sizeof(SingleMission) );
 				}
 				SingleMission* SM = MISS + NMiss;
 				NMiss++;
@@ -5686,7 +5686,7 @@ void MissPack::LoadMissions()
 
 MissPack::MissPack()
 {
-	memset( this, 0, sizeof MissPack );
+	memset( this, 0, sizeof(MissPack) );
 	CurrentMission = -1;
 	LoadMissions();
 }

@@ -17,7 +17,7 @@ strlp1: lodsb
 	};
 };
 StrHash::StrHash(){
-	memset(this,0,sizeof StrHash);
+	memset(this,0,sizeof(StrHash));
 };
 void StrHash::Clear(){
 	for(int i=0;i<256;i++){
@@ -28,7 +28,7 @@ void StrHash::Clear(){
 			free(lpSHI->Value);
 		};
 	};
-	memset(this,0,sizeof StrHash);
+	memset(this,0,sizeof(StrHash));
 };
 StrHash::~StrHash(){
 	Clear();

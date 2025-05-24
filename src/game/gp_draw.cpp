@@ -43,9 +43,9 @@ GP_System::GP_System()
 	GPSize = new int[NGPReady];
 	GPLastTime = new int[NGPReady];
 	RLCImage = new RLCTable[NGPReady];
-	memset( RLCImage, 0, ( sizeof RLCImage )*NGPReady );
+	memset( RLCImage, 0, ( sizeof(RLCImage) )*NGPReady );
 	RLCShadow = new RLCTable[NGPReady];
-	memset( RLCShadow, 0, ( sizeof RLCShadow )*NGPReady );
+	memset( RLCShadow, 0, ( sizeof(RLCShadow) )*NGPReady );
 	GPNFrames = new word[NGPReady];
 	ImageType = new byte[NGPReady];
 	UNITBL = (UNICODETABLE**) malloc( NGPReady << 2 );
@@ -64,7 +64,7 @@ GP_System::GP_System()
 	memset( CASHREF, 0, NGPReady << 2 );
 	memset( Mapping, 0, NGPReady );
 	//PreLoadGPImage("gets2");
-	memset( GP_L_IDXS, 0, sizeof GP_L_IDXS );
+	memset( GP_L_IDXS, 0, sizeof(GP_L_IDXS) );
 };
 GP_System::~GP_System()
 {

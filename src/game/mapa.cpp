@@ -37,6 +37,7 @@
 #include "sort.h"
 #include "mplayer.h"
 #include "graphs.h"
+#include "lines.h"
 
 #include "playerinfo.h"
 extern PlayerInfo PINFO[8];
@@ -401,6 +402,7 @@ int ConvY( int y )
 	return div24( y * 32 );
 }
 
+#ifdef _WIN32
 void RedSquare( int x, int y )
 {
 	if (x < mapx || x >= mapx + smaplx || y < mapy || y >= mapy + smaply)
@@ -428,7 +430,14 @@ void RedSquare( int x, int y )
 					  pop		edi
 	}
 }
+#else
+// TODO: Implement RedSquare for non-Windows platforms
+void RedSquare( int x, int y )
+{
+}
+#endif
 
+#ifdef _WIN32
 void RedMiniSquare( int x, int y )
 {
 	if (x < mapx || x >= mapx + smaplx || y < mapy || y >= mapy + smaply)
@@ -456,6 +465,11 @@ void RedMiniSquare( int x, int y )
 					  pop		edi
 	}
 }
+#else
+void RedMiniSquare( int x, int y )
+{
+}
+#endif
 
 void RedBar( int x, int y, int lx, int ly )
 {
@@ -471,6 +485,7 @@ void RedMiniBar( int x, int y, int lx, int ly )
 			RedMiniSquare( x + i, y + j );
 }
 
+#ifdef _WIN32
 void WhiteSquare( int x, int y )
 {
 	if (x < mapx || x >= mapx + smaplx || y < mapy || y >= mapy + smaply)return;
@@ -492,7 +507,13 @@ void WhiteSquare( int x, int y )
 					  pop		edi
 	}
 }
+#else
+void WhiteSquare( int x, int y )
+{
+}
+#endif
 
+#ifdef _WIN32
 void WhiteMiniSquare( int x, int y )
 {
 	if (x < mapx || x >= mapx + smaplx || y < mapy || y >= mapy + smaply)return;
@@ -514,6 +535,12 @@ void WhiteMiniSquare( int x, int y )
 					  pop		edi
 	};
 };
+#else
+void WhiteMiniSquare( int x, int y )
+{
+}
+#endif
+
 void WhiteBar( int x, int y, int lx, int ly )
 {
 	for (int i = 0; i < lx; i++)
@@ -567,8 +594,8 @@ void FreeAsmBlock( char* p )
 };
 void InitAsmBuf()
 {
-	memset( AsmUsage, 0, sizeof AsmUsage );
-	memset( AsmBuf, 0, sizeof AsmBuf );
+	memset( AsmUsage, 0, sizeof(AsmUsage) );
+	memset( AsmBuf, 0, sizeof(AsmBuf) );
 	LastAsmRequest = 0;
 };
 //Получить блок для LocalOrder
@@ -577,7 +604,7 @@ int CHSM1;
 Order1* GetOrdBlock()
 {
 	Order1* OR1 = new Order1;
-	memset( OR1, 0, sizeof Order1 );
+	memset( OR1, 0, sizeof(Order1) );
 	return OR1;
 }
 
@@ -589,8 +616,8 @@ void OneObject::FreeOrdBlock( Order1* p )
 
 void InitOrdBuf()
 {
-	memset( OrdUsage, 0, sizeof OrdUsage );
-	memset( OrdBuf, 0, sizeof OrdBuf );
+	memset( OrdUsage, 0, sizeof(OrdUsage) );
+	memset( OrdBuf, 0, sizeof(OrdBuf) );
 	//LastOrdRequest=0;
 };
 
@@ -675,14 +702,14 @@ void NewMap( int szX, int szY )//Standard map size is 480x480
 	MAXOBJECT = 0;
 	MAXSPR = 0;
 
-	memset( Group, 0, sizeof Group );
-	memset( NLocks, 0, sizeof NLocks );
+	memset( Group, 0, sizeof(Group) );
+	memset( NLocks, 0, sizeof(NLocks) );
 
 	ClearMaps();
 
 	BuildMode = false;
 
-	memset( &HiMap[0][0], 0, sizeof HiMap );
+	memset( &HiMap[0][0], 0, sizeof(HiMap) );
 
 	MFIELDS[0].ClearMaps();
 	MFIELDS[1].ClearMaps();
@@ -2478,7 +2505,7 @@ void GMiniShow()
 	byte val;
 	byte mycl = CLRT[MyNation];
 
-	memset( BMASK, 0, sizeof BMASK );
+	memset( BMASK, 0, sizeof(BMASK) );
 
 	byte mmsk = GM( MyNation );
 
@@ -3031,7 +3058,7 @@ void HandleMouse( int x, int y )
 		}
 
 		HaveExComm = 0;
-		memset( EXCOMM, 0, sizeof EXCOMM );
+		memset( EXCOMM, 0, sizeof(EXCOMM) );
 	}
 
 	HandlwSMSMouse();
@@ -5047,7 +5074,7 @@ public:
 };
 UnitInfo::UnitInfo()
 {
-	memset( this, 0, sizeof UnitInfo );
+	memset( this, 0, sizeof(UnitInfo) );
 };
 void UnitInfo::Close()
 {
@@ -5058,7 +5085,7 @@ void UnitInfo::Close()
 		free( Hints );
 	};
 	if (SDS)free( SDS );
-	memset( this, 0, sizeof UnitInfo );
+	memset( this, 0, sizeof(UnitInfo) );
 };
 char* UnitInfo::AddHint( char* Hint )
 {
@@ -5081,7 +5108,7 @@ void UnitInfo::AddSD( SimpleDialog* SD, int Page )
 	if (N_SD >= MaxSD)
 	{
 		MaxSD += 32;
-		SDS = (SD_Strip*) realloc( SDS, MaxSD * sizeof SD_Strip );
+		SDS = (SD_Strip*) realloc( SDS, MaxSD * sizeof(SD_Strip) );
 	};
 	SDS[N_SD].SD = SD;
 	SDS[N_SD].Page = Page;
@@ -5966,7 +5993,7 @@ int GetFinPower( int* Fin, int Nation );
 char* GetPName( int i );
 void GetSquare()
 {
-	memset( NatSquare, 0, sizeof NatSquare );
+	memset( NatSquare, 0, sizeof(NatSquare) );
 	for (int i = 0; i < MAXOBJECT; i++)
 	{
 		OneObject* OB = Group[i];
@@ -6261,7 +6288,7 @@ void NamesHash::AddString( char* Str, int Parm1, int Parm2 )
 	if (NHash >= MaxHash)
 	{
 		MaxHash += 32;
-		HASH = (HashItem*) realloc( HASH, MaxHash * sizeof HashItem );
+		HASH = (HashItem*) realloc( HASH, MaxHash * sizeof(HashItem) );
 	};
 	HASH[NHash].Param1 = Parm1;
 	HASH[NHash].Param2 = Parm2;

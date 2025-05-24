@@ -186,7 +186,7 @@ void LoadWeapon()
 	int zz1, zz2;
 	int p1, p2, p3, p4;
 
-	memset(&WPLIST, 0, sizeof WPLIST);
+	memset(&WPLIST, 0, sizeof(WPLIST));
 
 	GFILE* f = Gopen("weapon.nds", "rt");
 	if (!int(f))
@@ -766,7 +766,7 @@ typedef word* lpWORD;
 void InitNation(byte msk, byte NIndex)
 {
 	Nation* nat = &NATIONS[NIndex];
-	memset(nat, 0, sizeof Nation);
+	memset(nat, 0, sizeof(Nation));
 	nat->CreateNation(msk, NIndex);
 	nat->NNUM = NIndex;
 	nat->DangerSound = -1;
@@ -871,8 +871,8 @@ void LoadAllNations(byte NIndex)
 		CITY[NIndex].CloseCity();
 		CITY[NIndex].CreateCity(NIndex);
 		CITY[NIndex].CreateCity(NIndex);
-		memset(NT->NKilled, 0, sizeof NT->NKilled);
-		memset(NT->NProduced, 0, sizeof NT->NProduced);
+		memset(NT->NKilled, 0, sizeof(NT->NKilled));
+		memset(NT->NProduced, 0, sizeof(NT->NProduced));
 		memset(NT->ResTotal, 0, 32);
 		memset(NT->ResOnMines, 0, 32);
 		memset(NT->ResOnBuildings, 0, 32);
@@ -910,9 +910,9 @@ void LoadNation(char* fn, byte NIndex, byte NatID)
 	}
 
 	Nation* nat = &NATIONS[NIndex];
-	memset(nat->ResRem, 0, sizeof nat->ResRem);
-	memset(nat->ResSpeed, 0, sizeof nat->ResSpeed);
-	memset(nat->SoundMask, 0, sizeof nat->SoundMask);
+	memset(nat->ResRem, 0, sizeof(nat->ResRem));
+	memset(nat->ResSpeed, 0, sizeof(nat->ResSpeed));
+	memset(nat->SoundMask, 0, sizeof(nat->SoundMask));
 	nat->GoldBunt = false;
 	int z = 0;
 	int cp;
@@ -1902,15 +1902,15 @@ void LoadAI(char* fn, Nation* NT) {
 	char* grp[32];
 	int ngrp = 0;
 	NT->NGrp = 0;
-	memset(NT->GRSize, 0, sizeof NT->GRSize);
-	memset(NT->GRRef, 0, sizeof NT->GRRef);
-	memset(NT->GAmount, 0, sizeof NT->GAmount);
+	memset(NT->GRSize, 0, sizeof(NT->GRSize));
+	memset(NT->GRRef, 0, sizeof(NT->GRRef));
+	memset(NT->GAmount, 0, sizeof(NT->GAmount));
 	NT->N_AI_Levels = 0;
-	memset(NT->N_AI_Req, 0, sizeof NT->N_AI_Req);
-	memset(NT->N_AI_Devlp, 0, sizeof NT->N_AI_Devlp);
-	memset(NT->N_AI_Cmd, 0, sizeof NT->N_AI_Cmd);
-	memset(NT->AI_Req, 0, sizeof NT->AI_Req);
-	memset(NT->AI_Devlp, 0, sizeof NT->AI_Devlp);
+	memset(NT->N_AI_Req, 0, sizeof(NT->N_AI_Req));
+	memset(NT->N_AI_Devlp, 0, sizeof(NT->N_AI_Devlp));
+	memset(NT->N_AI_Cmd, 0, sizeof(NT->N_AI_Cmd));
+	memset(NT->AI_Req, 0, sizeof(NT->AI_Req));
+	memset(NT->AI_Devlp, 0, sizeof(NT->AI_Devlp));
 	int line = 1;
 	int mode = 0;
 	do {

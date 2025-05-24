@@ -93,7 +93,7 @@ int CreateNewZone( char* Name, int x, int y, int R )
 	if (NAZones >= MaxAZones)
 	{
 		MaxAZones += 32;
-		AZones = (ActiveZone*) realloc( AZones, MaxAZones * sizeof ActiveZone );
+		AZones = (ActiveZone*) realloc( AZones, MaxAZones * sizeof(ActiveZone) );
 	};
 	AZones[NAZones].x = x;
 	AZones[NAZones].y = y;
@@ -111,7 +111,7 @@ void DeleteAZone( int id )
 		free( AZones[id].Name );
 		if (id < NAZones - 1)
 		{
-			memcpy( AZones + id, AZones + id + 1, ( NAZones - id - 1 ) * sizeof ActiveZone );
+			memcpy( AZones + id, AZones + id + 1, ( NAZones - id - 1 ) * sizeof(ActiveZone) );
 		};
 		NAZones--;
 	};
@@ -340,7 +340,7 @@ void CreateNewActiveGroup( char* gName )
 	if (NAGroups >= MaxAGroups)
 	{
 		MaxAGroups += 32;
-		AGroups = (ActiveGroup*) realloc( AGroups, MaxAGroups * sizeof ActiveGroup );
+		AGroups = (ActiveGroup*) realloc( AGroups, MaxAGroups * sizeof(ActiveGroup) );
 	};
 	ActiveGroup* AG = AGroups + NAGroups;
 	NAGroups++;
@@ -390,7 +390,7 @@ bool DeleteActiveGroup()
 	free( AGroups[CurrentAGroup].Name );
 	if (CurrentAGroup < NAGroups - 1)
 	{
-		memcpy( AGroups + CurrentAGroup, AGroups + CurrentAGroup + 1, ( NAGroups - CurrentAGroup - 1 ) * sizeof ActiveGroup );
+		memcpy( AGroups + CurrentAGroup, AGroups + CurrentAGroup + 1, ( NAGroups - CurrentAGroup - 1 ) * sizeof(ActiveGroup) );
 	};
 	NAGroups--;
 	CurrentAGroup = -1;
