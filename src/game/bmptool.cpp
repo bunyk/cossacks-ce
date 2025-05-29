@@ -1,4 +1,9 @@
+#include <stdlib.h>
+
+#include "stubs.h"
 #include "stdio.h"
+
+#ifdef _WIN32
 // #include "windows.h"
 #include "resfile.h"
 #include "math.h"
@@ -153,6 +158,9 @@ DWORD GetSumm(char* Name) {
 	else return 0;
 }
 
+#endif // _WIN32
+
+
 #undef free
 #undef malloc
 int TotalSize = 0;
@@ -170,6 +178,7 @@ DLLEXPORT void _ExFree(void* ptr)
 	}
 	catch (...) {}
 }
+
 
 DLLEXPORT void* _ExMalloc(int Size) 
 {

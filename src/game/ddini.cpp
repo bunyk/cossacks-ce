@@ -6,6 +6,12 @@
  *
  ***********************************************************************/
 #define __ddini_cpp_
+
+#include <stdlib.h>
+#include <SDL3/SDL.h>
+
+#ifdef _WIN32
+
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
@@ -79,10 +85,8 @@ DLLEXPORT byte GetPaletteColor( int r, int g, int b )
 
 //typedef byte barr[ScreenSizeX*ScreenSizeY];
 void* offScreenPtr;
-/*
- * Flipping Pages
- */
 
+// Flipping Pages
 extern int SCRSZY;
 
 void ClearRGB()
@@ -140,6 +144,7 @@ DLLEXPORT void FlipPages( void )
 	int	ly = RealLy;
 	int	addOf = SCRSizeX - ( lx << 2 );
 	int RaddOf = RSCRSizeX - ( lx << 2 );
+	/*
 	__asm 
 	{
 		push	esi
@@ -158,6 +163,17 @@ DLLEXPORT void FlipPages( void )
 			dec		eax
 			jnz		xxx
 	}
+	*/
+
+	/*
+	// AI-Generated, need to test:
+    uint8_t* src = ScreenPtr + ofs;
+    uint8_t* dst = RealScreenPtr + ofs;
+    for (int y = 0; y < ly; ++y) {
+        memcpy(dst, src, lx * 4); // 4 bytes per DWORD
+        src += lx * 4 + addOf;
+        dst += lx * 4 + RaddOf;
+    }
 
 	/*
 	//Refactored asm... doesn't work for 'Connecting to master server' message when in fullscreen?
@@ -796,37 +812,11 @@ void FreeDDObjects( void )
 DLLEXPORT
 void GetPalColor( byte idx, byte* r, byte* g, byte* b )
 {
-	//*r = GPal[idx].peRed;
-	//*g = GPal[idx].peGreen;
-	//*b = GPal[idx].peBlue;
 	*r = sdlPal->colors[idx].r;
 	*g = sdlPal->colors[idx].g;
 	*b = sdlPal->colors[idx].b;
 }
 
-/*
-	DirectDraw substitute.
-	Uses mdraw.dll instead of the original, ddraw.lib exported DirectDrawCreate().
-	Prevents the color palette corruption bug in modern Windows systems.
-	No idea what the mdraw.dll funtion does, but you end up with a working
-	IDirectDraw interface and no legacy bugs.
-*/
-//HRESULT DirectDrawCreate_wrapper( GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter )
-//{
-//	HMODULE mdrawHandle = LoadLibrary( "mdraw.dll" );
-//	if (nullptr != mdrawHandle)
-//	{
-//		typedef HRESULT( __stdcall *mdrawProcType )( GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter );
-//		mdrawProcType mdrawProc = (mdrawProcType) GetProcAddress( mdrawHandle, "DirectDrawCreate" );
-//		if (nullptr != mdrawProc)
-//		{
-//			HRESULT mdrawResult = mdrawProc( lpGUID, lplpDD, pUnkOuter );
-//			return mdrawResult;
-//		}
-//		FreeLibrary( mdrawHandle );
-//	}
-//	return DDERR_GENERIC;
-//}
 
 bool CreateSDLRenderer()
 {
@@ -838,13 +828,11 @@ bool CreateSDLRenderer()
 	if (!renderer)
 	{
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Loading error", "Unable to create SDL renderer", sdlWindow);
-		//SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-		//SDL_RenderClear(renderer);
-		//SDL_RenderPresent(renderer);
 		return false;
 	}
 	return true;
 }
+#endif // _WIN32
 
 bool InitSDL()
 {
@@ -855,3 +843,4 @@ bool InitSDL()
 	}
 	return true;
 }
+

@@ -96,5 +96,5 @@ void NoDebugMode();
 
 bool CreateSDLRenderer();
 
-//#endif
+bool InitSDL();
 #endif //__DDINI_H_

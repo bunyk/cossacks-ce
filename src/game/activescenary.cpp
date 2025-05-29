@@ -1,3 +1,5 @@
+#ifdef _WIN32
+
 #include "ddini.h"
 #include <stdlib.h>
 #include "resfile.h"
@@ -6102,6 +6104,8 @@ extern "C" DLLEXPORT void MissErrorMessage( char* Header, char* Message )
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, Header, Message, sdlWindow);
 }
 
+#endif // _WIN32
+
 //Is the map editor running?
 bool RUNMAPEDITOR = 0;
 
@@ -6109,6 +6113,8 @@ bool RUNMAPEDITOR = 0;
 bool RUNUSERMISSION = 0;
 
 char USERMISSPATH[128];
+
+#ifdef _WIN32
 
 extern "C" DLLEXPORT void RunMapeditor( char* path )
 {
@@ -6372,3 +6378,4 @@ extern "C" DLLEXPORT void SelectBuildingsInZone( byte NI, GAMEOBJ* Zone, GAMEOBJ
 		}
 	}
 }
+#endif // _WIN32

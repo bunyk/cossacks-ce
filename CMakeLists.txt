@@ -16,10 +16,17 @@ add_compile_options(-fpermissive) # Allow more casts for now
 add_compile_options(-w) # Inhibit all warnings for now 
 
 add_executable(cossacks
-    src/game/ddex1.cpp
-	src/game/gp_draw.cpp
-	src/game/fastdraw.cpp
+    src/game/main.cpp
+    src/game/ddini.cpp
+    src/game/activescenary.cpp
+    src/game/interface.cpp
+    src/game/bmptool.cpp
 )
 
 # Link to the actual SDL3 libraries.
 target_link_libraries(cossacks PRIVATE SDL3_image::SDL3_image SDL3::SDL3)
+
+
+# And Boost
+find_package(Boost REQUIRED COMPONENTS context)
+target_link_libraries(cossacks PRIVATE Boost::context)

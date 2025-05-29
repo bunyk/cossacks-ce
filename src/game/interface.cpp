@@ -1,11 +1,14 @@
 //If you don't include UdpHolePuncher.h first,
 //it's winsock includes will mess up the project >_<
 
+#include <boost/coroutine2/all.hpp>
+
+#ifdef _WIN32
+
 #ifdef NETWORK
 #include "newcode/udpholepuncher.h"
 #endif
 
-#include <boost/coroutine2/all.hpp>
 
 #include "ddini.h"
 #include "resfile.h"
@@ -1485,6 +1488,8 @@ bool SingleOptions();
 
 bool SelectSingleMission();
 
+#endif // _WIN32
+
 boost::coroutines2::coroutine<void>::push_type* yieldObject;
 
 // Call this function from anywhere while AllGame() is running to return control to the main loop
@@ -1492,6 +1497,8 @@ void yield()
 {
 	(*yieldObject)();
 }
+
+#ifdef _WIN32
 
 int MM_ProcessSinglePlayer()
 {
@@ -9232,11 +9239,14 @@ int GetRndVid( int N )
 	return cv;
 }
 
+#endif // _WIN32
+
 //Main game loop function
 void AllGame(boost::coroutines2::coroutine<void>::push_type& yield)
 {
 	// Save yield for reuse in nested functions
 	yieldObject = &yield;
+
 
 	int menuChoice;
 	// Each iteration = separate screen
@@ -9263,6 +9273,8 @@ void AllGame(boost::coroutines2::coroutine<void>::push_type& yield)
 
 	yieldObject = nullptr;
 }
+
+#ifdef _WIN32
 
 extern int PLNAT[8];
 void PrepareGameMedia( byte myid, bool );
@@ -16657,3 +16669,5 @@ DLLEXPORT bool CheckUsingAI()
 	}
 	return false;
 }
+
+#endif // _WIN32
