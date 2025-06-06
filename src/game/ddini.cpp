@@ -33,7 +33,6 @@ SDL_DisplayMode SDLDisplayModes[32];
 //Number of possible screen resolutions
 DLLEXPORT int NModes = 0;
 
-#ifdef _WIN32
 void SERROR();
 void SERROR1();
 void SERROR2();
@@ -57,8 +56,6 @@ DLLEXPORT int Pitch;
 //LPDIRECTDRAWSURFACE     lpDDSBack;      // DirectDraw back surface
 BOOL                    bActive;        // is application active (not minimized / has focus)?
 //BOOL                    DDError;        //=FALSE if Direct Draw works normally 
-
-#endif // _WIN32
 
 SDL_Renderer* renderer;                 // SDL Renderer object
 SDL_Surface* primarySurface;            // SDL primary surface

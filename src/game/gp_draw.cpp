@@ -1,13 +1,17 @@
+
 #include "os.h"
 #include "ddini.h"
 #include "resfile.h"
-#include "mode.h"
 #include "fastdraw.h"
+#include "gp_draw.h"
+
+#ifdef _WIN32
+
+#include "mode.h"
 #include "lines.h"
 #include <stdio.h>
 #include <assert.h>
 #include "ctables.h"
-#include "gp_draw.h"
 #include "mapdiscr.h"
 #include "realwater.h"
 #include <math.h>
@@ -660,7 +664,6 @@ bool GP_System::LoadGP( int i )
 //DWORD Unpacked data size+8(UDataSize)
 
 //Draw units in shadows and menu effects
-#ifdef _WIN32
 void GP_ShowMaskedPict( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
 {
 	x += Pic->dx;
@@ -1172,14 +1175,6 @@ void GP_ShowMaskedPict( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder
 		}
 	}
 }
-#else
-void GP_ShowMaskedPict( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
-{
-	// TODO: Implement this function for non-Windows platforms
-}
-#endif
-
-#ifdef _WIN32
 void GP_ShowMaskedPictInv( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
 {
 	x -= Pic->dx;
@@ -1681,15 +1676,6 @@ void GP_ShowMaskedPictInv( int x, int y, GP_Header* Pic, byte* CData, byte* Enco
 		};
 	};
 };
-#else
-void GP_ShowMaskedPictInv( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
-{
-	// TODO: Implement this function for non-Windows platforms
-}
-#endif
-
-// Shadow drawing
-#ifdef _WIN32
 void GP_ShowMaskedPictShadow( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
 {
 	x += Pic->dx;
@@ -2209,14 +2195,6 @@ void GP_ShowMaskedPictShadow( int x, int y, GP_Header* Pic, byte* CData, byte* E
 		};
 	};
 };
-#else
-void GP_ShowMaskedPictShadow( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
-{
-	// TODO: Implement this function for non-Windows platforms
-}
-#endif
-
-#ifdef _WIN32
 void GP_ShowMaskedPictShadowInv( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
 {
 	x -= Pic->dx;
@@ -2736,16 +2714,10 @@ void GP_ShowMaskedPictShadowInv( int x, int y, GP_Header* Pic, byte* CData, byte
 		};
 	};
 };
-#else
-void GP_ShowMaskedPictShadowInv( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
-{
-}
-#endif
 
 //key word: DARK_OVERPOINT
 //***				       OVERPOINT   D R A W I N G						****//
 
-#ifdef _WIN32
 void GP_ShowMaskedPictOverpoint( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
 {
 	x += Pic->dx;
@@ -3285,13 +3257,6 @@ void GP_ShowMaskedPictOverpoint( int x, int y, GP_Header* Pic, byte* CData, byte
 		};
 	};
 };
-#else
-void GP_ShowMaskedPictOverpoint( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
-{
-}
-#endif
-
-#ifdef _WIN32
 void GP_ShowMaskedPictOverpointInv( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
 {
 	x -= Pic->dx;
@@ -3811,16 +3776,9 @@ void GP_ShowMaskedPictOverpointInv( int x, int y, GP_Header* Pic, byte* CData, b
 		};
 	};
 };
-#else
-void GP_ShowMaskedPictOverpointInv( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
-{
-}
-#endif
-
 //key word: PALDRAW
 //****						PALETTED IMAGE  DRAWING							****//
 
-#ifdef _WIN32
 void GP_ShowMaskedPalPict( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
 {
 	x += Pic->dx;
@@ -4334,13 +4292,6 @@ void GP_ShowMaskedPalPict( int x, int y, GP_Header* Pic, byte* CData, byte* Enco
 		};
 	};
 };
-#else
-void GP_ShowMaskedPalPict( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
-{
-}
-#endif
-
-#ifdef _WIN32
 void GP_ShowMaskedPalPictInv( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
 {
 	x -= Pic->dx;
@@ -4860,15 +4811,8 @@ void GP_ShowMaskedPalPictInv( int x, int y, GP_Header* Pic, byte* CData, byte* E
 		};
 	};
 };
-#else
-void GP_ShowMaskedPalPictInv( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
-{
-}
-#endif
-
 //key word: MULTIDRAW
 //****				      COMPOSED WITH BACKGROUND PICTURE					****//
-#ifdef _WIN32
 void GP_ShowMaskedMultiPalPict( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
 {
 	x += Pic->dx;
@@ -5394,13 +5338,6 @@ void GP_ShowMaskedMultiPalPict( int x, int y, GP_Header* Pic, byte* CData, byte*
 		};
 	};
 };
-#else
-void GP_ShowMaskedMultiPalPict( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
-{
-}
-#endif
-
-#ifdef _WIN32
 void GP_ShowMaskedMultiPalPictInv( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
 {
 	x -= Pic->dx;
@@ -5932,16 +5869,9 @@ void GP_ShowMaskedMultiPalPictInv( int x, int y, GP_Header* Pic, byte* CData, by
 		};
 	};
 };
-#else
-void GP_ShowMaskedMultiPalPictInv( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
-{
-}
-#endif
-
 
 //key word: MULTIDRAW
 //****			      COMPOSED WITH BACKGROUND PICTURE(TRANSPOSED)			****//
-#ifdef _WIN32
 void GP_ShowMaskedMultiPalTPict( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
 {
 	x += Pic->dx;
@@ -6461,13 +6391,6 @@ void GP_ShowMaskedMultiPalTPict( int x, int y, GP_Header* Pic, byte* CData, byte
 		};
 	};
 };
-#else
-void GP_ShowMaskedMultiPalTPict( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
-{
-}
-#endif
-
-#ifdef _WIN32
 void GP_ShowMaskedMultiPalTPictInv( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
 {
 	x -= Pic->dx;
@@ -6993,16 +6916,10 @@ void GP_ShowMaskedMultiPalTPictInv( int x, int y, GP_Header* Pic, byte* CData, b
 		};
 	};
 };
-#else
-void GP_ShowMaskedMultiPalTPictInv( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
-{
-}
-#endif
 
 //key word: WMIRROR
 extern byte refl[3072];
 //****									MIRROR								****//
-#ifdef _WIN32
 void GP_ShowMaskedMirrorPict( int x, int y, GP_Header* Pic, byte* CData, int* WSHIFT )
 {
 	x += Pic->dx;
@@ -7581,13 +7498,6 @@ void GP_ShowMaskedMirrorPict( int x, int y, GP_Header* Pic, byte* CData, int* WS
 		};
 	};
 };
-#else
-void GP_ShowMaskedMirrorPict( int x, int y, GP_Header* Pic, byte* CData, int* WSHIFT )
-{
-}
-#endif
-
-#ifdef _WIN32
 void GP_ShowMaskedMirrorPictInv( int x, int y, GP_Header* Pic, byte* CData, int* WSHIFT )
 {
 	x -= Pic->dx;
@@ -8155,13 +8065,6 @@ void GP_ShowMaskedMirrorPictInv( int x, int y, GP_Header* Pic, byte* CData, int*
 		};
 	};
 };
-#else
-void GP_ShowMaskedMirrorPictInv( int x, int y, GP_Header* Pic, byte* CData, int* WSHIFT )
-{
-}
-#endif
-
-#ifdef _WIN32
 inline void NatUnpack( byte* Dest, byte* Src, int Len )
 {
 	__asm {
@@ -8195,25 +8098,6 @@ inline void NatUnpack( byte* Dest, byte* Src, int Len )
 						  pop		edi
 						  pop		esi
 	};
-};
-#else 
-// TODO: AI halluzinated this, needs double checking
-inline void NatUnpack( byte* Dest, byte* Src, int Len )
-{
-    int count = Len / 4;
-    for (int i = 0; i < count; ++i) {
-        uint8_t val = Src[i];
-        uint32_t out = 0;
-        out |= ((val & 0b11000000) >> 6) << 18;
-        out |= ((val & 0b00110000) >> 4) << 16;
-        out |= ((val & 0b00001100) >> 2) << 8;
-        out |= (val & 0b00000011);
-        ((uint32_t*)Dest)[i] = out;
-    }
-};
-#endif
-
-#ifdef _WIN32
 inline void GreyUnpack( byte* Dest, byte* Src, int Len )
 {
 	Len >>= 1;
@@ -8243,20 +8127,7 @@ inline void GreyUnpack( byte* Dest, byte* Src, int Len )
 						  pop		esi
 	};
 };
-#else
-// TODO: Copilot hallucinated this, needs double checking
-inline void GreyUnpack( byte* Dest, byte* Src, int Len )
-{
-	Len >>= 1;
-	for (int i = 0; i < Len; ++i) {
-		uint8_t val = Src[i];
-		uint16_t out = ((val & 0b00001111) << 1) | ((val & 0b11110000) >> 3);
-		((uint16_t*)Dest)[i] = out;
-	}
-};
-#endif
 
-#ifdef _WIN32
 inline void StdUnpack( byte* Dest, byte* Src, int Len, byte* Voc )
 {
 	//COUNTER++;
@@ -8308,29 +8179,6 @@ inline void StdUnpack( byte* Dest, byte* Src, int Len, byte* Voc )
 			pop		esi
 	};
 };
-#else
-// TODO: Copilot hallucinated this, needs double checking
-inline void StdUnpack( byte* Dest, byte* Src, int Len, byte* Voc )
-{
-	int i = 0;
-	while (i < Len) {
-		uint8_t header = Src[i++];
-		if (header & 0x80) {
-			int count = (header & 0x7F) + 3;
-			int offset = (Src[i] | (Src[i + 1] << 8)) & 0xFFF;
-			i += 2;
-			for (int j = 0; j < count; ++j) {
-				Dest[i + j] = Voc[offset + j];
-			}
-			i += count;
-		} else {
-			Dest[i++] = header;
-		}
-	}
-};
-#endif
-
-#ifdef _WIN32
 inline void LZUnpack( byte* Dest, byte* Src, int Len )
 {
 	byte Calc;
@@ -8383,28 +8231,6 @@ inline void LZUnpack( byte* Dest, byte* Src, int Len )
 			pop		esi
 	};
 };
-#else
-// TODO: Copilot hallucinated this, needs double checking
-inline void LZUnpack( byte* Dest, byte* Src, int Len )
-{
-	int i = 0;
-	while (i < Len) {
-		uint8_t header = Src[i++];
-		if (header & 0x01) {
-			int count = (header >> 1) + 3;
-			int offset = (Src[i] | (Src[i + 1] << 8)) & 0x1FFF;
-			i += 2;
-			offset = -offset; // Negate the offset
-			for (int j = 0; j < count; ++j) {
-				Dest[i + j] = Dest[offset + j];
-			}
-			i += count;
-		} else {
-			Dest[i++] = header;
-		}
-	}
-}
-#endif
 
 extern byte Bright[8192];
 
@@ -9913,13 +9739,15 @@ void GP_System::ShowGPGrad( int x, int y, int FileIndex, int SprIndex, byte Nati
 	ShowGP( x, y, FileIndex, SprIndex, Nation );
 };
 
+#endif
 GP_System GPS;
+
+#ifdef _WIN32
 
 extern int mapx;
 extern int mapy;
 static int npp = 0;
 
-#ifdef _WIN32
 void OvpBar1( int x, int y, int Lx, int Ly, byte c )
 {
 	int ofst = int( ScreenPtr ) + x + y*ScrWidth;
@@ -9943,13 +9771,6 @@ void OvpBar1( int x, int y, int Lx, int Ly, byte c )
 					  pop		edi
 	};
 };
-#else
-void OvpBar1( int x, int y, int Lx, int Ly, byte c )
-{
-}
-#endif
-
-#ifdef _WIN32
 void OvpBar2( int x, int y, int Lx, int Ly, byte c )
 {
 	int ofst = int( ScreenPtr ) + x + y*ScrWidth;
@@ -9973,17 +9794,11 @@ void OvpBar2( int x, int y, int Lx, int Ly, byte c )
 					  pop		edi
 	};
 };
-#else
-void OvpBar2( int x, int y, int Lx, int Ly, byte c )
-{
-}
-#endif
 
 extern byte WaterCost[65536];
 
 //Waves
 
-#ifdef _WIN32
 void ShowGradPicture( int x, int y, int Lx, int Ly,
 	int z1, int z2, int z3, int z4,
 	byte* Bitmap, int BMLx )
@@ -10031,13 +9846,6 @@ void ShowGradPicture( int x, int y, int Lx, int Ly,
 					  pop		esi
 	}
 }
-#else
-void ShowGradPicture( int x, int y, int Lx, int Ly,
-	int z1, int z2, int z3, int z4,
-	byte* Bitmap, int BMLx )
-{
-}
-#endif
 
 class WaterSpot
 {
@@ -10399,7 +10207,6 @@ UNICODETABLE* UNIFONTS::FindFont( char* Name )
 	return nullptr;
 }
 
-#ifdef _WIN32
 bool CheckInsideMask( GP_Header* Pic, int x, int y )
 {
 	x -= Pic->dx;
@@ -10500,11 +10307,6 @@ bool CheckInsideMask( GP_Header* Pic, int x, int y )
 			DO_END :
 	}
 }
-#else
-bool CheckInsideMask( GP_Header* Pic, int x, int y )
-{
-}
-#endif
 
 DLLEXPORT bool CheckGP_Inside( int FileIndex, int SprIndex, int dx, int dy )
 {
@@ -10646,3 +10448,4 @@ void GetRealGPSize( int File, int spr, int* dx, int* dy )
 	*dx = GPX( lpGPH, LGPH[spr] )->GetDx();
 	*dy = GPX( lpGPH, LGPH[spr] )->GetDy();
 }
+#endif
