@@ -1,3 +1,5 @@
+// Multiplayer game
+
 #define INITGUID
 #include "../commcore library/commcore.h"
 #include "ddini.h"

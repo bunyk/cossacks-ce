@@ -1,4 +1,8 @@
-//Properties of the selected objects viewering and corresponding mouse handling
+//Properties of the selected objects viewing and corresponding mouse handling
+
+#include "stubs.h"
+
+#ifdef _WIN32
 
 #include "ddini.h"
 #include "resfile.h"
@@ -2011,9 +2015,11 @@ void LoadMessages()
 	LoadMessagesFromFile( "moretx.dat" );
 	LoadConstStr();
 }
+#endif //_WIN32
 
 DLLEXPORT char* GetTextByID( char* ID )
 {
+	#ifdef _WIN32
 	for (int i = 0; i < NMess; i++)
 	{
 		if (!strcmp( GMessIDS[i], ID ))
@@ -2021,9 +2027,11 @@ DLLEXPORT char* GetTextByID( char* ID )
 			return GMessage[i];
 		}
 	}
-	return ID;
+	#endif
+	return ID; // No text found, return key
 }
 
+#ifdef _WIN32
 DLLEXPORT int GetTextIDByID( char* ID )
 {
 	for (int i = 0; i < NMess; i++)
@@ -2035,3 +2043,4 @@ DLLEXPORT int GetTextIDByID( char* ID )
 	}
 	return -1;
 }
+#endif

@@ -1,4 +1,5 @@
 #include <SDL3/SDL_timer.h>
+#include "stubs.h"
 
 int AddTime = 0;
 int NeedAddTime = 0;

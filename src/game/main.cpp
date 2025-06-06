@@ -9,12 +9,29 @@
 
 #include "ddini.h"
 #include "interface.h"
+#include "fastdraw.h"
+#include "gsound.h"
 
 extern bool RUNMAPEDITOR;
 extern bool RUNUSERMISSION;
 extern char USERMISSPATH[128];
 bool window_mode;
 bool borderless = false;
+
+bool EditMapMode;
+extern bool InGame;
+extern bool InEditor;
+
+int screen_width;
+int screen_height;
+double screen_ratio;
+
+//Last used display resolutions for both modes
+int exRealLx, exRealLy;
+int ex_other_RealLx, ex_other_RealLy;//Necessary for saving settings
+									 //
+extern int RealLx;
+extern int RealLy;
 
 SDL_Window* sdlWindow;
 
@@ -622,5 +639,77 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result)
 	// PostQuitMessage(0); TODO: find cross-platform equivalent
 	#endif // _WIN32
 	exit(0);
+}
+
+bool PalDone;
+
+bool InitScreen()
+{
+	PalDone = false;
+	CreateDDObjects( sdlWindow );
+	PalDone = false;
+	LoadPalette( "agew_1.pal" );
+	if (!SDLError)
+	{
+		LockSurface();
+
+		UnlockSurface();
+
+		if (!RealScreenPtr)
+		{
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Loading error[1]", "Unable to initialise SDL. It is possible that hardware acceleration is turned off.", sdlWindow);
+			exit( 0 );
+		}
+
+		return true;
+	}
+	else
+	{
+		PlayEffect( 0, 0, 0 );
+	}
+	return false;
+}
+
+// Mouse grab confines the mouse cursor to the window, when InGame or InEditor is true.
+void ClipCursorToWindowArea()
+{
+	if (!window_mode)
+	{//Just in case
+		return;
+	}
+
+	SDL_SetWindowMouseGrab(sdlWindow, InGame || InEditor);
+}
+
+
+void ResizeAndCenterWindow()
+{
+	if (!window_mode)
+	{//Just in case
+		return;
+	}
+
+	int width = RealLx;
+	int height = RealLy;
+
+	int x = screen_width / 2 - width / 2;
+	int y = screen_height / 2 - height / 2;
+
+	if (x < 0)
+	{
+		x = 0;
+	}
+	if (y < 0)
+	{
+		y = 0;
+	}
+
+	SDL_SetWindowPosition( sdlWindow, x, y );
+	SDL_SetWindowSize( sdlWindow, width, height );
+	SDL_SyncWindow( sdlWindow );
+
+	ClipCursorToWindowArea();
+
+	SDL_WarpMouseInWindow( sdlWindow, width / 2, height / 2 );
 }
 

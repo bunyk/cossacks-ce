@@ -13,10 +13,6 @@
 #include "stubs.h"
 #include "ddini.h"
 
-int screen_width;
-int screen_height;
-double screen_ratio;
-
 #include "gfile.h"
 #include "resfile.h"
 #include "fastdraw.h"
@@ -37,7 +33,6 @@ double screen_ratio;
 
 #include "3dsurf.h"
 #include "cdirsnd.h"
-#include "gsound.h"
 #include "mapsprites.h"
 #include "virtscreen.h"
 #include "realwater.h"
@@ -71,7 +66,6 @@ extern PlayerInfo PINFO[8];
 bool AttackMode;
 bool ChoosePosition;
 bool DeathMode;
-bool EditMapMode;
 bool EgoFlag;
 bool FASTMODE;
 bool FastMode = false;
@@ -154,10 +148,6 @@ int tmtim;
 //Main internal counter for intervals
 int tmtmt;
 
-//Last used display resolutions for both modes
-int exRealLx, exRealLy;
-int ex_other_RealLx, ex_other_RealLy;//Necessary for saving settings
-
 static int Light = 0;
 
 char* FormationStr = nullptr;
@@ -216,8 +206,6 @@ extern int MidiSound;
 extern int NMyUnits;
 extern int NThemUnits;
 extern int OrderSound;
-extern int RealLx;
-extern int RealLy;
 extern int RealPause;
 extern int ShowGameScreen;
 extern int WarSound;
@@ -388,51 +376,7 @@ extern byte* RivDir;
 void Init_GP_IMG();
 void ReadClanData();
 
-extern bool InGame;
-extern bool InEditor;
-
 //Calculates window coordinates and locks cursor inside client area
-void ClipCursorToWindowArea()
-{
-	if (!window_mode)
-	{//Just in case
-		return;
-	}
-
-	SDL_SetWindowMouseGrab(sdlWindow, InGame || InEditor);
-}
-
-void ResizeAndCenterWindow()
-{
-	if (!window_mode)
-	{//Just in case
-		return;
-	}
-
-	int width = RealLx;
-	int height = RealLy;
-
-	int x = screen_width / 2 - width / 2;
-	int y = screen_height / 2 - height / 2;
-
-	if (x < 0)
-	{
-		x = 0;
-	}
-	if (y < 0)
-	{
-		y = 0;
-	}
-
-	SDL_SetWindowPosition( sdlWindow, x, y );
-	SDL_SetWindowSize( sdlWindow, width, height );
-	SDL_SyncWindow( sdlWindow );
-
-	ClipCursorToWindowArea();
-
-	SDL_WarpMouseInWindow( sdlWindow, width / 2, height / 2 );
-}
-
 //Load ids, textures etc
 bool Loading()
 {
@@ -1892,34 +1836,6 @@ void EditorKeyCheck()
 void SERROR();
 void SERROR1();
 void SERROR2();
-bool PalDone;
-
-bool InitScreen()
-{
-	PalDone = false;
-	CreateDDObjects( sdlWindow );
-	PalDone = false;
-	LoadPalette( "agew_1.pal" );
-	if (!SDLError)
-	{
-		LockSurface();
-
-		UnlockSurface();
-
-		if (!RealScreenPtr)
-		{
-			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Loading error[1]", "Unable to initialise SDL. It is possible that hardware acceleration is turned off.", sdlWindow);
-			exit( 0 );
-		}
-
-		return true;
-	}
-	else
-	{
-		PlayEffect( 0, 0, 0 );
-	}
-	return false;
-}
 
 bool ProcessMessages();
 extern int PlayMode;
@@ -2943,7 +2859,3 @@ void StartExplorer();
 void FinExplorer();
 
 void DLLEXPORT SFINIT2_InitLAND();
-
-
-
-

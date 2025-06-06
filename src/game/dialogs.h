@@ -6,6 +6,8 @@
 #define DIALOGS_API DLLIMPORT
 #endif
 #define MAXDLG 1024
+
+#ifdef _WIN32
 DIALOGS_API int GetSound(char* Name);
 DIALOGS_API char* GetTextByID(char*);
 
@@ -653,6 +655,8 @@ public:
 
 //extern char* SoundID[MaxSnd];
 int SearchStr(char** Res, char* s, int count);
+
+#endif // _WIN32
 
 //Current dialog IDs?
 #define mcmExit		0xFF

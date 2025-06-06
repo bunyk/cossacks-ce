@@ -3,6 +3,11 @@
 
 #include <boost/coroutine2/all.hpp>
 
+#include "dialogs.h"
+#include "ddini.h"
+#include "fastdraw.h"
+#include "mapdiscr.h"
+
 #ifdef _WIN32
 
 #ifdef NETWORK
@@ -10,13 +15,10 @@
 #endif
 
 
-#include "ddini.h"
 #include "resfile.h"
-#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "mapdiscr.h"
 #include "multipl.h"
 #include "fog.h"
 #include "walls.h"
@@ -25,7 +27,6 @@
 #include "nucl.h"
 
 #include "megapolis.h"
-#include "dialogs.h"
 #include "fonts.h"
 #include "gsound.h"
 #include "3dgraph.h"
@@ -60,13 +61,24 @@ UdpHolePuncher udp_hole_puncher;
 
 extern const int kChatMessageDisplayTime;
 extern const int kSystemMessageDisplayTime;
+#endif // _WIN32
 
 extern bool RUNMAPEDITOR;
 extern bool RUNUSERMISSION;
 extern char USERMISSPATH[128];
 extern word dwVersion;
 
+extern int exRealLx;
+extern int exRealLy;
+
 extern int exFMode;
+
+extern int RealLx;
+extern int RealLy;
+
+bool IgnoreSlow = false;
+
+#ifdef _WIN32
 
 //Was used to distinguish between GameSpy and GSC-Game.Net
 //Probably obsolete, but could also be some sort of "game active" indicator
@@ -121,14 +133,15 @@ void CreateNationalMaskForMap( char* Name );
 extern bool realLpressed;
 void CreateMiniMap();
 void SFLB_CreateGamesList( ListBox* LB );
+#endif // _WIN32
+
 char* GetTextByID( char* ID );
+
+#ifdef _WIN32
 void CreateRandomMap( char* Name );
 void RandomMapDialog( char* Result );
 void RandomMapDialog1( char* Result, int N, char* Nats );
-bool IgnoreSlow = false;
 void PrepareGameMedia( byte myid, bool );
-extern int exRealLx;
-extern int exRealLy;
 bool CHKV( char* Name );
 bool WaitingHostGame( int );
 void NewMap( int szX, int szY );
@@ -155,7 +168,18 @@ char CurrentMap[64];
 
 void CBar( int x, int y, int Lx, int Ly, unsigned char c );
 void PrepareEditMedia( byte myid );
+#endif _WIN32
+
 extern bool EditMapMode;
+bool InGame;
+bool InEditor;
+
+extern SDL_Keycode LastKey;
+extern bool KeyPressed;
+bool GameNeedToDraw;
+int GameMode;
+
+#ifdef _WIN32
 extern int RES[8][8];
 extern byte mapPos[16];
 void PreLoadExtendedMap( char* s );
@@ -163,9 +187,6 @@ void PostLoadExtendedMap( char* s );
 void InitGame();
 int nsmaplx;
 int nsmaply;
-int GameMode;
-extern SDL_Keycode LastKey;
-extern bool KeyPressed;
 void MFix();
 
 int WarSound;
@@ -185,18 +206,19 @@ extern bool CheapMode;
 int PanelLx;
 int PanelLy;
 bool MultiplayerStart;
-bool GameNeedToDraw;
 extern bool ChoosePosition;
+#endif // _WIN32
+
 extern word NPlayers;
+
+#ifdef _WIN32
 void CloseMPL();
 void LBEnumerateSessions( ListBox* LB, int );
 void AnalyseMessages();
 bool CreateNamedSession( char* Name, DWORD User2, int Max );
-bool InGame;
-bool InEditor;
 #ifndef NODPLAY
 bool JoinNameToSession( int ns, char* Name );
-#endif
+#endif // NODPLAY
 void FreeDDObjects( void );
 bool StartIGame( bool );
 extern bool GameInProgress;
@@ -204,7 +226,7 @@ byte MyRace;
 #ifndef NODPLAY
 // TODO: remove all refs to this from Interface
 extern LPDIRECTPLAY3A		lpDirectPlay3A;
-#endif
+#endif // NODPLAY
 extern word PlayerMenuMode;
 extern LPVOID lplpConnectionBuffer[16];
 extern bool SHOWSLIDE;
@@ -218,8 +240,6 @@ int LastCTRLPressTime = 0;
 int PrevProgStage = 0;
 char* PROGSTR = nullptr;
 extern int CurPalette;
-extern int RealLx;
-extern int RealLy;
 
 void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr );
 
@@ -296,11 +316,13 @@ extern tpSendRecBuffer* SendRecBuffer;
 //-----------------------------------------------------------//
 
 extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
+#endif // _WIN32
 
 extern uint64_t GetSDLTickCount();
 
 DLLEXPORT bool ProcessMessages()
 {
+#ifdef _WIN32
 	if ( PDIF_Inside )
 	{
 		return false;
@@ -517,8 +539,10 @@ DLLEXPORT bool ProcessMessages()
 	}
 
 	return false;
+#endif // _WIN32
 }
 
+#ifdef _WIN32
 extern bool EnterChatMode;
 
 void ProcessChatKeys();
@@ -557,7 +581,11 @@ bool ProcessMessagesEx()
 
 void normstr( char* str );
 char PlName[64];
+#endif // _WIN32
+
 void ProcessHelp();
+
+#ifdef _WIN32
 void ProcessCampagins( int Options );
 
 void SFLB_ReadFirstPlayerName( char* ccc );
@@ -646,15 +674,18 @@ void CreateNewMapsList( ListBox* LB )
 	};
 }
 
+#endif // _WIN32
 //----------------Graphics menu----------------//
 bool InitScreen();
+void GSSetup800();
+void DrawAllScreen();
+
+#ifdef _WIN32
 int OldSizeX;
 int OldSizeY;
 int mul3( int );
 //extern LPDIRECTDRAW lpDD;
 
-void GSSetup800();
-void DrawAllScreen();
 extern int COPYSizeX;
 extern int RealLx;
 extern int RealLy;
@@ -682,8 +713,10 @@ void SERROR2()
 	{
 	} while ( GetSDLTickCount() - time < 1000 );
 };
-extern int SCRSZY;
 
+#endif // _WIN32
+
+extern int SCRSZY;
 void ClearScreen()
 {
 	if ( RealScreenPtr )
@@ -692,6 +725,7 @@ void ClearScreen()
 	}
 }
 
+#ifdef _WIN32
 extern byte fog[8192 + 1024];
 
 DLLEXPORT void DarkScreen()
@@ -748,6 +782,7 @@ void ShowLoading()
 
 	CopyToScreen( 0, 0, RealLx, RSCRSizeY );
 }
+#endif // _WIN32
 
 void ResizeAndCenterWindow();
 
@@ -790,6 +825,7 @@ bool SetGameDisplayMode( int SizeX, int SizeY )
 	return true;
 }
 
+#ifdef _WIN32
 extern int ScrollSpeed;
 
 //-----------------SINGLE PLAYER---------------//
@@ -6445,14 +6481,17 @@ int GetRndVid( int N );
 void processMLoadGame();
 bool InMainMenuLoop = 0;
 extern bool RejectThisPlayer;
+#endif // _WIN32
 
 void ResizeAndCenterWindow();
 
 extern int curptr;
 
+
 //Draw main menu and process events
 int processMainMenu()
 {
+#ifdef _WIN32
 	InGame = false;
 	InEditor = false;
 
@@ -6724,9 +6763,12 @@ int processMainMenu()
 
 	GameMode = 0;
 	return ItemChoose;
+#endif // _WIN32
+	return mcmSingle; // Let's just start single game for now
 }
 //--------------=< G A M E   S C R E E N >=------------//
 
+#ifdef _WIN32
 extern int PrpX;
 extern int PrpY;
 extern int PrpNx;
@@ -6754,10 +6796,13 @@ void GSYSDRAW()
 //Picture* Pan3;
 ColoredBar* Pan4;
 ColoredBar* Pan5;
+
+#endif
 bool GameExit;
 int MenuType;
 bool MakeMenu;
 
+#ifdef _WIN32
 int NNames;
 char* names[128];
 char* fnames[128];
@@ -7361,8 +7406,11 @@ int EnterHi( int * val, int Type )
 };
 extern "C" DLLEXPORT void ShowVictory();
 extern "C" DLLEXPORT void SelChangeNation( byte SrcNat, byte DstNat );
+#endif
+
 void EnterChat()
 {
+	#ifdef _WIN32
 	if ( NPlayers > 1 )return;
 	Lpressed = false;
 	char passw[128];
@@ -7485,7 +7533,10 @@ void EnterChat()
 				};
 			};
 	};
+	#endif // _WIN32
 };
+
+#ifdef _WIN32
 void SaveGame( char* fnm, char* Messtr, int ID );
 void ProcessGSaveGame()
 {
@@ -7745,9 +7796,11 @@ void CreateUnitList( ListBox* LB, int Country )
 extern int NNations;
 extern char** NatNames;
 void UnPress();
+#endif
 
 void ChooseUnit()
 {
+#ifdef _WIN32
 	ItemChoose = -1;
 	SQPicture Pan( "Units.bpx" );
 	//SQPicture Lstr("195x20.bpx");
@@ -7822,88 +7875,10 @@ void ChooseUnit()
 		ContinueGame = true;
 	};
 	UnPress();
+#endif
 }
 
-void ChooseUnitOld()
-{
-	ItemChoose = -1;
-	SQPicture Pan( "Units.bpx" );
-	SQPicture Lstr( "195x20.bpx" );
-	SQPicture scr_U( "scr_v_u.bpx" );
-	SQPicture scr_D( "scr_v_d.bpx" );
-	SQPicture scr_V( "scr_v.bpx" );
-	SQPicture scr_Line( "scr_13.bpx" );
-	RLCFont BtnF0( GETS( "@CUFONT0" ) );
-	RLCFont BtnF1( GETS( "@CUFONT1" ) );
-	RLCFont BtnL0( GETS( "@CULISTF0" ) );
-	RLCFont BtnL1( GETS( "@CULISTF1" ) );
-	int mmlx = Pan.GetLx();
-	int mmly = Pan.GetLy();
-	DialogsSystem DSY( smapx + ( nsmaplx << 4 ) - ( mmlx >> 1 ), smapy + ( mul3( nsmaply ) << 2 ) - ( mmly >> 1 ) );
-	Picture* PIC1 = DSY.addPicture( nullptr, 0, 0, &Pan, &Pan, &Pan );
-	//TextButton* LoadBtn=DSY.addTextButton(PIC1,352>>1,30,"ВЫБОР ОБЪЕКТА",&FActive,&FPassive,&FDisable,1);
-	ListBox* LBU = DSY.addListBox( PIC1, GETV( "CUUNITX" ), GETV( "CUUNITY" ), GETV( "CUNY" ), GETV( "CULX" ), GETV( "CULY" ), &BtnL1, &BtnL0, nullptr );
-	ListBox* LBB = DSY.addListBox( PIC1, GETV( "CUBUILDX" ), GETV( "CUBUILDY" ), GETV( "CUNY" ), GETV( "CULX" ), GETV( "CULY" ), &BtnL1, &BtnL0, nullptr );
-
-	VScrollBar* VSU = DSY.addVScrollBar( PIC1, GETV( "CUUNITSX" ), GETV( "CUUNITSY" ), 1000, 4, &scr_U, &scr_U, &scr_U, &scr_D, &scr_D, &scr_D, &scr_Line, &scr_Line, &scr_V );
-	VScrollBar* VSB = DSY.addVScrollBar( PIC1, GETV( "CUBUILDSX" ), GETV( "CUBUILDSY" ), 1000, 4, &scr_U, &scr_U, &scr_U, &scr_D, &scr_D, &scr_D, &scr_Line, &scr_Line, &scr_V );
-
-	LBU->VS = VSU;
-	LBB->VS = VSB;
-
-	TextButton* OkBtn = DSY.addTextButton( PIC1, GETV( "CUOKX" ), GETV( "CUOKY" ), GETS( "@CUOKSTR" ), &BtnF0, &BtnF1, &BtnF1, 1 );
-	OkBtn->UserParam = mcmOk;
-	OkBtn->OnUserClick = &MMItemChoose;
-	TextButton* CancelBtn = DSY.addTextButton( PIC1, GETV( "CUNOX" ), GETV( "CUNOY" ), GETS( "@CUNOSTR" ), &BtnF0, &BtnF1, &BtnF1, 1 );
-	CancelBtn->UserParam = mcmCancel;
-	CancelBtn->OnUserClick = &MMItemChoose;
-	Nation* NT = &NATIONS[MyNation];
-	for ( int j = 0; j < NT->NMon; j++ )
-	{
-		NewMonster* NM = NT->Mon[j]->newMons;
-		if ( NM->Building )LBB->AddItem( NT->Mon[j]->Message, j );
-		else LBU->AddItem( NT->Mon[j]->Message, j );
-	};
-	LBU->CurItem = 0;
-	LBU->FLItem = 0;
-	LBB->CurItem = 0;
-	LBB->FLItem = 0;
-
-	ItemChoose = -1;
-	int curpan = -1;
-	do
-	{
-		ProcessMessages();
-		if ( curpan == -1 )OkBtn->Enabled = false;
-		else OkBtn->Enabled = true;
-		DSY.MarkToDraw();
-		DSY.ProcessDialogs();
-		//DSY.MarkToDraw();
-		DSY.RefreshView();
-		if ( curpan == -1 )
-		{
-			if ( LBU->CurItem != -1 )curpan = 1;
-			if ( LBB->CurItem != -1 )curpan = 2;
-		};
-		if ( curpan == 1 && LBB->CurItem != -1 )
-		{
-			LBU->CurItem = -1;
-			curpan = 2;
-		};
-		if ( curpan == 2 && LBU->CurItem != -1 )
-		{
-			LBB->CurItem = -1;
-			curpan = 1;
-		};
-	} while ( ItemChoose == -1 );
-	if ( curpan != -1 && ItemChoose == mcmOk )
-	{
-		if ( curpan == 1 )Creator = ( LBU->GetItem( LBU->CurItem ) )->Param1;
-		if ( curpan == 2 )Creator = ( LBB->GetItem( LBB->CurItem ) )->Param1;
-		ContinueGame = true;
-	};
-	UnPress();
-}
+#ifdef _WIN32
 //------MAIN MENU IN MAP EDITOR----------//
 
 int ProcessE_GMainMenu();
@@ -7931,8 +7906,11 @@ word GetTexture()
 }
 
 extern int MaxTex;
+#endif // WIN32
+	   //
 int SelectTexture()
 {
+	#ifdef _WIN32
 	ContinueGame = false;
 	GameMode = 2;
 	NTextures = 0;
@@ -8014,13 +7992,16 @@ int SelectTexture()
 	GameMode = 0;
 	UnPress();
 	return ItemChoose;
+#endif // _WIN32
 }
 //----------MAIN MENU IN GAME------------//
 bool IsGameActive();
 int LastLookTime = 0;
 
+
 int ProcessGMainMenu()
 {
+#ifdef _WIN32
 	if ( NPlayers > 1 )
 	{
 		if ( LastLookTime && ( GetSDLTickCount() - LastLookTime < 180000 ) )
@@ -8118,8 +8099,10 @@ stg:
 	GameMode = 0;
 	ClearMStack();
 	return ItemChoose;
+#endif
 }
 
+#ifdef _WIN32
 int ProcessE_GMainMenu()
 {
 	LocalGP BTNS( "Interface\\E_GameMenu" );
@@ -8287,8 +8270,11 @@ void DelUnusedZones()
 
 void EconomePostDraw();
 extern bool ECOSHOW;
+#endif
+
 extern byte PlayGameMode;
 
+#ifdef _WIN32
 void DrawZones()
 {
 	if ( PlayGameMode == 1 )
@@ -8369,8 +8355,11 @@ extern int InfDX;
 extern int InfY1;
 extern int InfY2;
 
+#endif // _WIN32
+
 void GSSetup800()
 {
+#ifdef _WIN32
 	SetDarkPalette();
 
 	CBar( 0, 0, SCRSizeX, SCRSizeY, 0 );
@@ -8507,6 +8496,7 @@ void GSSetup800()
 	{
 		mapy = msy - smaply + 1;
 	}
+#endif // _WIN32
 }
 
 void GFieldShow();
@@ -8518,6 +8508,7 @@ void GlobalHandleMouse( bool process_scrolling );
 //Load palettes
 void DrawAllScreen()
 {
+	#ifdef _WIN32
 	//Draw a lot of stuff on screen
 	GFieldShow();
 
@@ -8558,10 +8549,12 @@ void DrawAllScreen()
 		CreateMiniMap();
 	}
 	NeedLoadGamePalette = false;
+	#endif // _WIN32
 }
 
 void FastScreenProcess()
 {
+	#ifdef _WIN32
 	GFieldShow();
 
 	ProcessMessages();
@@ -8606,17 +8599,20 @@ void FastScreenProcess()
 		CreateMiniMap();
 	}
 	NeedLoadGamePalette = false;
+#endif // _WIN32
 }
 
+int StartAboutTime = 0;
 void PreDrawGameProcess();
 void PostDrawGameProcess();
+
 void IAmLeft();
 extern bool LockPause;
-bool ShowStatistics();
-extern bool ShowStat;
 extern int WaitState;
+#ifdef _WIN32
+extern bool ShowStat;
+bool ShowStatistics();
 void CmdEndGame( byte NI, byte state, byte cause );
-int StartAboutTime = 0;
 int NAboutLn = -1;
 
 void ShowAbout()
@@ -8660,9 +8656,11 @@ void ShowAbout()
 	}
 	PopWindow( &TM );
 }
+#endif // _WIN32
 
 bool IngameYesNoDialog( char* dialog_text )
 {
+	#ifdef _WIN32
 	ItemChoose = -1;
 	int dialog_width = 600;
 	int dialog_height = 200;
@@ -8720,6 +8718,9 @@ bool IngameYesNoDialog( char* dialog_text )
 		ItemChoose = -1;
 		return false;
 	}
+	#else
+	return false; // TODO: implement
+	#endif // _WIN32
 }
 
 bool Lobby = 0;
@@ -8740,12 +8741,14 @@ void PlayGame()
 		ResizeAndCenterWindow();
 	}
 
+	#ifdef _WIN32
 	GSSetup800();
 
 	LoadFog( 0 );
 
 	//Zero NucList, NucSN, NNuc
 	InitGame();
+	#endif
 
 	if ( exRealLx != RealLx )
 	{//Use last used game resoultion (loaded from settings)
@@ -8806,6 +8809,7 @@ StartPlay://IMPORTANT: Main game loop
 						{
 							LockPause = 1;
 							WaitState = 1;
+#ifdef _WIN32
 							if ( SCENINF.hLib && !SCENINF.StandartVictory )
 							{
 								SCENINF.LooseGame = 1;
@@ -8814,6 +8818,7 @@ StartPlay://IMPORTANT: Main game loop
 							{
 								CmdEndGame( MyNation, 1, 101 );
 							}
+						#endif
 							int t0 = GetSDLTickCount();
 							do
 							{
@@ -8821,8 +8826,10 @@ StartPlay://IMPORTANT: Main game loop
 							} while ( GetSDLTickCount() - t0 < 500 );
 						}
 						GameExit = true;
+						#ifdef _WIN32 // No multiplayer so far
 						ShutdownMultiplayer( 0 );
 						CloseMPL();
+						#endif // _WIN32
 					}
 					break;
 				case 2:
@@ -8846,8 +8853,10 @@ StartPlay://IMPORTANT: Main game loop
 				{
 					IAmLeft();
 					LOOSEANDEXITFAST();
+					#ifdef _WIN32 // No Linux multiplayer so far
 					CloseMPL();
 					ShutdownMultiplayer( 0 );
+					#endif 
 				}
 			}
 		}
@@ -8860,6 +8869,7 @@ StartPlay://IMPORTANT: Main game loop
 
 	} while ( !GameExit );
 
+#ifdef _WIN32
 	Lobby = 0;
 	PlayGameMode = 0;
 
@@ -8906,14 +8916,16 @@ StartPlay://IMPORTANT: Main game loop
 			RetryVideo = 0;
 		}
 	}
+#endif // _WIN32
 
 	IgnoreSlow = true;
 
-	int ExRX = RealLx;
-	int ExRY = RealLy;
-
+#ifdef _WIN32
 	if ( ShowStat )
 	{
+		int ExRX = RealLx;
+		int ExRY = RealLy;
+
 		if ( !ShowStatistics() )
 		{
 			GameExit = false;
@@ -8930,6 +8942,7 @@ StartPlay://IMPORTANT: Main game loop
 		}
 		SlowUnLoadPalette( "0\\agew_1.pal" );
 	}
+#endif // _WIN32
 
 	ClearScreen();
 	IgnoreSlow = false;
@@ -8947,6 +8960,8 @@ StartPlay://IMPORTANT: Main game loop
 		SetGameDisplayModeAnyway( screen_width, screen_height );
 	}
 }
+
+#ifdef _WIN32
 
 void DrawAllEditScreen()
 {
@@ -8983,9 +8998,13 @@ void FastEditScreenProcess()
 
 void CheckGP();
 
+#endif // _WIN32
+
+
 //Main map editor function
 void EditGame()
 {
+	#ifdef _WIN32
 	InEditor = true;
 
 	if ( window_mode )
@@ -9096,8 +9115,10 @@ void EditGame()
 	}
 
 	IgnoreSlow = false;
+	#endif // _WIN32
 }
 
+#ifdef _WIN32
 void ShowFailure( int CreateGame )
 {
 	ClearScreen();
@@ -9267,7 +9288,7 @@ void AllGame(boost::coroutines2::coroutine<void>::push_type& yield)
 				PlayGame();
 			}
 			//Zero variables and pointers
-			UnLoading();
+			// UnLoading(); // TODO
 		}
 	} while ( mcmExit != menuChoice );
 
@@ -9327,9 +9348,11 @@ void RedrawGameBackground()
 		DrawAllScreen();
 	}
 }
+#endif // _WIN32
 
 void ProcessHelp()
 {
+#ifdef _WIN32
 	if ( !SCENINF.hLib )return;
 	ResFile F = RReset( "miss.txt" );
 	int sz = 0;
@@ -9400,7 +9423,10 @@ void ProcessHelp()
 	} while ( ItemChoose == -1 );
 	ContinueGame = true;
 	UnPress();
+	#endif // _WIN32
 };
+
+#ifdef _WIN32
 extern bool ProtectionMode;
 int ProcessComplexQuestion( int Nx, char* Bmp1, byte or1, char* Text1, char* Bmp2, byte or2, char* Text2, char* Quest )
 {

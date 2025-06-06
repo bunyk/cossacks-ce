@@ -138,6 +138,8 @@ void LoadSounds(char* fn) {
 	//};
 	//NoMineSound=GetSound("NOFREEMINES");
 };
+
+#ifdef _WIN32
 DLLEXPORT
 void PlayEffect(int n, int pan, int vol) {
 	if (!SoundOK)return;
@@ -175,6 +177,10 @@ void PlayEffect(int n, int pan, int vol) {
 		};
 	};
 };
+#else 
+void PlayEffect(int n, int pan, int vol) {}
+#endif
+
 void PlayCoorEffect(int n, int x, int y, int pan, int vol) {
 	if (!SoundOK)return;
 	vol -= (100 - WarSound) * 40;

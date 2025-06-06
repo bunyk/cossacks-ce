@@ -9,6 +9,7 @@
 
 #include <stdlib.h>
 #include <SDL3/SDL.h>
+#include "stubs.h"
 
 #ifdef _WIN32
 
@@ -22,6 +23,8 @@
 #include "fonts.h"
 #include "virtscreen.h"
 
+#endif // _WIN32
+
 //Dimensions of possible screen resolutions
 DLLEXPORT int ModeLX[32];
 DLLEXPORT int ModeLY[32];
@@ -30,6 +33,7 @@ SDL_DisplayMode SDLDisplayModes[32];
 //Number of possible screen resolutions
 DLLEXPORT int NModes = 0;
 
+#ifdef _WIN32
 void SERROR();
 void SERROR1();
 void SERROR2();
@@ -261,30 +265,7 @@ int BestVX = 640;
 int BestVY = 480;
 int BestBPP = 32;
 
-//Save results of DirectX display mode enumeration
-//HRESULT CALLBACK ModeCallback( LPDDSURFACEDESC pdds, LPVOID lParam )
-//{
-//	if (1024 > pdds->dwWidth || 768 > pdds->dwHeight)
-//	{//Don't allow for resolutions less than 1024 x 768 ot bigger than 1920x[...]
-//		return S_FALSE;
-//	}
-//
-//	if (1920 < pdds->dwWidth)
-//	{//Also disable all resolutions above ~1920 px wide for fairness reasons
-//		return S_FALSE;
-//	}
-//
-//	if (32 == pdds->ddpfPixelFormat.dwRGBBitCount)
-//	{
-//		ModeLX[NModes] = pdds->dwWidth;
-//		ModeLY[NModes] = pdds->dwHeight;
-//		NModes++;
-//	}
-//
-//	//return S_TRUE to stop enuming modes, S_FALSE to continue
-//	return S_FALSE;
-//}
-
+#endif // _WIN32
 void SDLModeCallback(SDL_DisplayMode* mode)
 {
 	
@@ -331,6 +312,7 @@ bool EnumModesOnly()
 	return true;
 }
 
+#ifdef _WIN32
 bool CreateDDObjects( SDL_Window* sdlWindow )
 {
 	bool success;

@@ -2,7 +2,7 @@
 
 #include "stubs.h"
 
-/*                    Map discription
+/*                    Map description
  *
  * This file describes map cells, animations, monsters, buildings,
  * flying monsters, on-water monsters...

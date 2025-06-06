@@ -21,6 +21,8 @@ add_executable(cossacks
     src/game/activescenary.cpp
     src/game/interface.cpp
     src/game/bmptool.cpp
+    src/game/timing.cpp
+	src/game/selprop.cpp
 )
 
 # Link to the actual SDL3 libraries.

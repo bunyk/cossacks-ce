@@ -21,6 +21,7 @@ typedef void * HANDLE;
 #define INVALID_HANDLE_VALUE ((HANDLE)(-1))
 typedef void VOID;
 typedef unsigned short WORD;
+typedef unsigned short word;
 typedef unsigned char BYTE;
 typedef BYTE *LPBYTE;
 typedef unsigned char byte;
