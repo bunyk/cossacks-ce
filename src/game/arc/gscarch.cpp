@@ -1,6 +1,4 @@
 // GSCarch.cpp: implementation of the CGSCarch class.
-//
-//////////////////////////////////////////////////////////////////////
 
 #include <SDL3/SDL.h>
 #include <stdio.h>
@@ -8,6 +6,7 @@
 #include "gscarch.h"
 #include "gscset.h"
 #include "isimasks.h"
+#include "../os.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -27,6 +26,7 @@ void GSC_OpenError()
 
 BOOL CGSCarch::Open( LPCSTR lpcsArchFileName )
 {
+#ifdef _WIN32
 	strcpy( m_ArchName, lpcsArchFileName );
 
 	m_hMapFile = CreateFile( m_ArchName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, 0 );
@@ -55,12 +55,13 @@ BOOL CGSCarch::Open( LPCSTR lpcsArchFileName )
 	m_FAT = (TGSCarchFAT*) ( LPBYTE( m_pViewOfFile ) + sizeof( TGSCarchHDR ) );
 	m_Data = LPBYTE( m_pViewOfFile ) + sizeof( TGSCarchHDR )
 		+ ( m_Header->m_Entries * sizeof( TGSCarchFAT ) );
-
+#endif
 	return TRUE;
 }
 
 BOOL CGSCarch::Close()
 {
+#ifdef _WIN32
 	if (m_pViewOfFile)
 	{
 		UnmapViewOfFile( m_pViewOfFile );
@@ -71,11 +72,13 @@ BOOL CGSCarch::Close()
 		CloseHandle( m_hMapFile );
 	}
 
+#endif
 	return TRUE;
 }
 
 LPGSCfile CGSCarch::GetFileHandle( LPCSTR lpcsFileName )
 {
+#ifdef _WIN32
 	DWORD			i = 0;
 	LPGSCfile		lpFileHandle = NULL;
 	LPGSCarchFAT	pFAT = NULL;
@@ -101,6 +104,7 @@ LPGSCfile CGSCarch::GetFileHandle( LPCSTR lpcsFileName )
 			}
 	}
 
+#endif
 	return NULL;
 }
 
@@ -112,9 +116,11 @@ VOID CGSCarch::CloseFileHandle( LPGSCfile lpFileHandle )
 
 VOID CGSCarch::MemDecrypt( LPBYTE lpbDestination, DWORD dwSize )
 {
+#ifdef _WIN32
 	BYTE Key = (BYTE) ~( HIBYTE( _CRYPT_KEY_ ) );
 
 	isiDecryptMem( lpbDestination, dwSize, Key );
+#endif
 }
 
 DWORD CGSCarch::GetFileSize( LPGSCfile lpFileHandle )
@@ -189,6 +195,7 @@ DWORD CGSCarch::CalcHash(LPCSTR lpcsFileName)
 
 LPGSCFindData CGSCarch::FindFile( LPCSTR lpcsMask )
 {
+#ifdef _WIN32
 	LPGSCarchFAT pFAT;
 	LPGSCFindData pFindData;
 	LPSTR	lpsDelim;
@@ -222,11 +229,13 @@ LPGSCFindData CGSCarch::FindFile( LPCSTR lpcsMask )
 	};
 
 	delete pFindData;
+#endif
 	return NULL;
 };
 
 BOOL CGSCarch::NextFile( LPGSCFindData gFindData )
 {
+#ifdef _WIN32
 	LPGSCarchFAT pFAT;
 	LPSTR lpsDelim;
 
@@ -248,5 +257,6 @@ BOOL CGSCarch::NextFile( LPGSCFindData gFindData )
 	};
 
 	delete gFindData;
+#endif
 	return FALSE;
 }

@@ -15,13 +15,13 @@
 #include "resfile.h"
 #include "fastdraw.h"
 #include "mapdiscr.h"
+#include "virtscreen.h"
 
 #ifdef _WIN32
 #include "mode.h"
 #include "fog.h"
 #include "gsound.h"
 #include "fonts.h"
-#include "virtscreen.h"
 
 #endif // _WIN32
 
@@ -316,7 +316,6 @@ bool EnumModesOnly()
 	return true;
 }
 
-#ifdef _WIN32
 bool CreateDDObjects( SDL_Window* sdlWindow )
 {
 	bool success;
@@ -467,7 +466,6 @@ SDMOD:;
 	return false;
 }
 
-#endif // _WIN32
 
 /*   Direct Draw palette loading*/
 void LoadPalette( LPCSTR lpFileName )
@@ -798,9 +796,9 @@ void FreeDDObjects( void )
 		renderer = nullptr;
 	}
 }
+#endif // _WIN32
 
-DLLEXPORT
-void GetPalColor( byte idx, byte* r, byte* g, byte* b )
+DLLEXPORT void GetPalColor( byte idx, byte* r, byte* g, byte* b )
 {
 	*r = sdlPal->colors[idx].r;
 	*g = sdlPal->colors[idx].g;
@@ -822,7 +820,6 @@ bool CreateSDLRenderer()
 	}
 	return true;
 }
-#endif // _WIN32
 
 bool InitSDL()
 {

@@ -1,3 +1,6 @@
+#include "os.h"
+
+#ifdef _WIN32
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
@@ -138,10 +141,10 @@ void LoadSounds(char* fn) {
 	//};
 	//NoMineSound=GetSound("NOFREEMINES");
 };
+#endif
 
+DLLEXPORT void PlayEffect(int n, int pan, int vol) {
 #ifdef _WIN32
-DLLEXPORT
-void PlayEffect(int n, int pan, int vol) {
 	if (!SoundOK)return;
 	vol -= (100 - WarSound) * 40;
 	if (n < NSounds) {
@@ -176,11 +179,10 @@ void PlayEffect(int n, int pan, int vol) {
 			*/
 		};
 	};
-};
-#else 
-void PlayEffect(int n, int pan, int vol) {}
 #endif
+};
 
+#ifdef _WIN32
 void PlayCoorEffect(int n, int x, int y, int pan, int vol) {
 	if (!SoundOK)return;
 	vol -= (100 - WarSound) * 40;
@@ -434,3 +436,4 @@ void AddOrderEffect(int x, int y, int id)
 		}
 	}
 }
+#endif

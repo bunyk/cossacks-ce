@@ -207,11 +207,9 @@ int PanelLx;
 int PanelLy;
 bool MultiplayerStart;
 extern bool ChoosePosition;
-#endif // _WIN32
 
-extern word NPlayers;
+extern word NPlayers; // comes from mplayer.cpp
 
-#ifdef _WIN32
 void CloseMPL();
 void LBEnumerateSessions( ListBox* LB, int );
 void AnalyseMessages();
@@ -8606,10 +8604,10 @@ int StartAboutTime = 0;
 void PreDrawGameProcess();
 void PostDrawGameProcess();
 
-void IAmLeft();
 extern bool LockPause;
 extern int WaitState;
 #ifdef _WIN32
+void IAmLeft();
 extern bool ShowStat;
 bool ShowStatistics();
 void CmdEndGame( byte NI, byte state, byte cause );
@@ -8805,11 +8803,12 @@ StartPlay://IMPORTANT: Main game loop
 				case 1:
 					if ( mcmExit == ProcessGMainMenu() && IngameYesNoDialog( GetTextByID( "CONFIRM" ) ) )
 					{
+						#ifdef _WIN32
+						// Is it some kind of multiplayer?
 						if ( NPlayers > 1 && !NATIONS[MyNation].VictState )
 						{
 							LockPause = 1;
 							WaitState = 1;
-#ifdef _WIN32
 							if ( SCENINF.hLib && !SCENINF.StandartVictory )
 							{
 								SCENINF.LooseGame = 1;
@@ -8818,7 +8817,6 @@ StartPlay://IMPORTANT: Main game loop
 							{
 								CmdEndGame( MyNation, 1, 101 );
 							}
-						#endif
 							int t0 = GetSDLTickCount();
 							do
 							{
@@ -8826,7 +8824,6 @@ StartPlay://IMPORTANT: Main game loop
 							} while ( GetSDLTickCount() - t0 < 500 );
 						}
 						GameExit = true;
-						#ifdef _WIN32 // No multiplayer so far
 						ShutdownMultiplayer( 0 );
 						CloseMPL();
 						#endif // _WIN32
@@ -8851,9 +8848,9 @@ StartPlay://IMPORTANT: Main game loop
 			{
 				if ( GameExit )
 				{
+					#ifdef _WIN32 // No Linux multiplayer so far
 					IAmLeft();
 					LOOSEANDEXITFAST();
-					#ifdef _WIN32 // No Linux multiplayer so far
 					CloseMPL();
 					ShutdownMultiplayer( 0 );
 					#endif 

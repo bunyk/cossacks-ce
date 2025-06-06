@@ -718,3 +718,555 @@ void ResizeAndCenterWindow()
 	SDL_WarpMouseInWindow( sdlWindow, width / 2, height / 2 );
 }
 
+void PostDrawGameProcess()
+{
+#ifdef _WIN32
+	RGAME.TryToFlushNetworkStream( 0 );
+	if (PlayGameMode == 0 && NPlayers < 2)
+	{
+		PitchTicks = 0;
+	}
+
+	if (PlayGameMode == 0)
+	{
+		if (MaxPingTime)
+		{
+			WaitToTime( NeedCurrentTime );
+		}
+		else
+		{
+			PitchTicks = 0;
+		}
+	}
+
+	if (PlayGameMode)
+	{
+		ReadPichTicks();
+		if (PitchTicks)
+		{
+			MaxPingTime = 1;
+		}
+		else
+		{
+			MaxPingTime = 0;
+		}
+	}
+	else
+	{
+		WritePitchTicks();
+	}
+
+	ProcessNature();
+
+	NeedEBuf = 0;
+
+	GLOBALTIME++;
+
+	if (RealStTime == 0)
+	{
+		RealGameLength = 0;
+	}
+
+	NeedCurrentTime += CurrentStepTime;
+
+	if (GLOBALTIME - PGLOBALTIME > PitchTicks)
+	{
+		CurrentStepTime -= CurrentStepTime >> 5;
+		RealGameLength = GetSDLTickCount() - RealStTime;
+		HandleMultiplayer();
+
+		SYN.Copy( &SYN1 );
+		PreNoPause = 0;
+		ExecuteBuffer();
+
+		if (PreNoPause)
+		{
+			NOPAUSE = 0;
+		}
+
+		PGLOBALTIME = GLOBALTIME;
+		RealStTime = GetSDLTickCount();
+
+		if (PlayGameMode)
+		{
+
+			ReadPichTicks();
+			if (PitchTicks)
+			{
+				MaxPingTime = 1;
+			}
+		}
+		else
+		{
+			if (NPlayers > 1 && MaxPingTime)
+			{
+				if (CurrentStepTime)
+				{
+					PitchTicks = 4 + ( ( MaxPingTime ) / CurrentStepTime );
+				}
+				else
+				{
+					PitchTicks = 0;
+				}
+			}
+			else
+			{
+				PitchTicks = 0;
+			}
+			WritePitchTicks();
+		}
+	}
+
+	if (!HISPEED)
+	{
+		SHOWSLIDE = true;
+	}
+	else
+	{
+		SHOWSLIDE = !div( tmtmt, HISPEED + 1 ).rem;
+	}
+
+	int difTime = GetSDLTickCount() - AutoTime;
+
+	ProcessUpdate();
+
+	int MaxDT = 60000;
+
+	switch (SaveState)
+	{
+	case 1:
+		MaxDT = 60000 * 2;
+		break;
+	case 2:
+		MaxDT = 60000 * 4;
+		break;
+	case 3:
+		MaxDT = 60000 * 6;
+		break;
+	case 4:
+		MaxDT = 60000 * 8;
+		break;
+	case 5:
+		MaxDT = 60000 * 10;
+		break;
+	case 6:
+		MaxDT = 60000 * 2000;
+		break;
+	}
+
+	if (difTime > MaxDT && !( PlayGameMode || SaveState == 6 ))
+	{
+		if (NPlayers > 1)
+		{
+			for (int i = 0; i < NPlayers; i++)
+			{
+				if (EBufs[i].Enabled)
+				{
+					if (PINFO[i].PlayerID == MyDPID)
+					{
+						int NP = 0;
+						for (int j = 0; j < NPlayers; j++)
+						{
+							if (EBufs[j].Enabled)
+							{
+								NP++;
+							}
+						}
+						char cc1[128];
+						sprintf( cc1, "NetAutoSave %d players", NP );
+						CmdSaveNetworkGame( MyNation, 0, cc1 );
+					}
+					i = 100;
+				}
+			}
+			//SaveGame("AUTO.sav",SaveFileName,0);
+		}
+		else
+		{
+			if (!EditMapMode)
+			{
+				if (NATIONS[MyNation].VictState != 1 && !SCENINF.LooseGame)
+				{
+					ShowCentralText0( GetTextByID( "Autosaving" ) );
+					FlipPages();
+					SaveGame( "AUTO.sav", "auto.sav", 0 );
+				}
+			}
+		}
+		AutoTime = GetSDLTickCount();
+	}
+
+	if (!PrevCheckTime)
+	{
+		PrevCheckTime = GetSDLTickCount();
+	}
+
+	if (GetSDLTickCount() - PrevCheckTime > 90000)
+	{
+		PrevCheckTime = GetSDLTickCount();
+		if (PeaceTimeLeft / 60 < PeaceTimeStage)
+		{
+			CmdChangePeaceTimeStage( PeaceTimeLeft / 60 );
+		}
+	}
+
+	/* Multiplayer save functions
+	if(NPlayers > 1 && MyDPID == ServerDPID && SaveTime - GetSDLTickCount() > 60000*5)
+	{
+		CmdSaveNetworkGame(MyNation, GetSDLTickCount(), "NETWORK SAVE");
+		SaveTime = GetSDLTickCount();
+	}
+	*/
+
+	if (0 == prev_postdraw_time)
+	{
+		prev_postdraw_time = GetSDLTickCount();
+	}
+
+
+	unsigned long time_since_last_call = 0;
+	do
+	{
+		ProcessMessages();
+		if (PauseMode)
+		{
+			GameKeyCheck();
+		}
+		time_since_last_call = GetSDLTickCount() - prev_postdraw_time;
+	} while (PauseMode || time_since_last_call < kPostDrawInterval);
+
+	prev_postdraw_time = GetSDLTickCount();
+#endif // _WIN32
+}
+
+void PreDrawGameProcess()
+{
+#ifdef _WIN32
+	//Autosave in map editor every 5 min
+	ProcessMapAutosave();
+
+	//Something about ship traces?
+	AddRandomBlobs();
+
+	//DirectX related sound procedures
+	CDS->ProcessSoundSystem();
+
+	if (NOPAUSE)
+	{
+		//Refresh "peasants in mines" amounts
+		for (int w = 0; w < 8; w++)
+		{
+			WasInGold[w] = NInGold[w];
+			WasInCoal[w] = NInCoal[w];
+			WasInIron[w] = NInIron[w];
+			NInGold[w] = 0;
+			NInCoal[w] = 0;
+			NInIron[w] = 0;
+		}
+	}
+
+	for (int g = 0; g < 8; g++)
+	{
+		if (CITY[g].Account < 0)
+		{
+			CITY[g].Account = 0;
+		}
+	}
+
+	//Check if fast/slow mode was changed
+	if (exFMode != SpeedSh)
+	{
+		CmdSetSpeed( exFMode );
+	}
+
+	//Calculate population values for all players
+	if (( tmtmt % 256 ) == 32)
+	{
+		EnumPopulation();
+	}
+
+	//???
+	ProcessCostPoints();
+
+	//Auto-attack or guard logic?
+	ProcessGuard();
+
+	if (NOPAUSE)
+	{
+		//Refresh market exchange rates
+		ProcessEconomy();
+
+		//Take a guess...
+		ProcessDeathList();
+	}
+
+	int tt = tmtmt % 256;
+
+	//Remove dead wall cells
+	HealWalls();
+
+	if (LastAttackDelay)
+	{
+		LastAttackDelay--;
+	}
+
+	for (int i = 0; i < 8; i++)
+	{
+		memset( NATIONS[i].SoundMask, 0, 2048 );
+	}
+
+	//NDestn = 0
+	InitDestn();
+
+	//Many diffirent key checks for various game modes
+	GameKeyCheck();
+
+	//Take a guess...
+	ProcessMessages();
+
+	if (2 == tmtmt % 41)
+	{
+		//Crawl the map and enumerate objects
+		CreateStrategyInfo();
+	}
+
+	//Take a guess...
+	ProcessFishing();
+
+	//Open and close gates, check for squashed units
+	ControlGates();
+
+	//Order the acquisition of resources from mines
+	HandleMines();
+
+	//Calculate XShift for... mirroring and water and stuff?
+	InitXShift();
+
+	//Long live compiler optimization!
+	int tmtmt_div_256 = tmtmt / 256;
+	int tmtmt_mod_256 = tmtmt % 256;
+	if (1 == tmtmt_mod_256)
+	{
+		//Each player is processed every 256 * 8 internal tick
+		int nation_byte = tmtmt_div_256 % 8;
+		//Some island AI logic
+		ResearchCurrentIsland( nation_byte );
+	}
+
+	int tmtmt_div_128 = tmtmt / 128;
+	int tmtmt_mod_128 = tmtmt % 128;
+	if (7 == tmtmt_mod_128)
+	{
+		//Each player is processed every 256 * 8 internal tick
+		int nation_byte = tmtmt_div_128 % 8;
+
+		//Take a guess...
+		ResearchBestPortToFish( nation_byte );
+	}
+
+	if (SHOWSLIDE)
+	{
+		//Count peasants and city centers?
+		WinnerControl( false );
+	}
+
+	if (tima != time( nullptr ))
+	{
+		Flips = tmtim;
+		tmtim = 0;
+		tima = time( nullptr );
+	}
+
+	if (0 == tmtmt % 64)
+	{
+		LASTRAND = rando();
+		LASTIND = rpos;
+	}
+
+	if (NOPAUSE)
+	{
+		tmtim++;
+
+		tmtmt++;
+
+		REALTIME += FrmDec;
+
+		for (int g = 0; g < 8; g++)
+		{
+			if (CITY[g].AutoEraseTime)
+			{
+				CITY[g].AutoEraseTime--;
+				if (!CITY[g].AutoEraseTime)
+				{
+					int SCORES[8];
+					for (int i = 0; i < 8; i++)
+					{
+						SCORES[i] = CITY[i].Account;
+					}
+
+					for (int i = 0; i < MAXOBJECT; i++)
+					{
+						OneObject* OB = Group[i];
+						if (OB && ( !OB->Sdoxlo ) && ( OB->NNUM == g ))
+						{
+							//erasing
+							OB->delay = 6000;
+
+							if (OB->LockType)
+							{
+								OB->RealDir = 32;
+							}
+
+							OB->Die();
+							OB = Group[i];
+
+							if (OB)
+							{
+								OB->Sdoxlo = 2500;
+							}
+						}
+					}
+
+					for (int i = 0; i < 8; i++)
+					{
+						CITY[i].Account = SCORES[i];
+					}
+				}
+			}
+		}
+	}
+
+	if (NOPAUSE)
+	{
+		ProcessSprites();
+	}
+
+	NMONS = 0;
+
+	//Transport ships logic
+	HandleTransport();
+
+	int tmtmt_mod_8 = tmtmt % 8;
+	//Process production queues, upgrades, farm growing etc
+	if (0 == tmtmt_mod_8)
+	{
+		//For yourself - always
+		CITY[0].ProcessCreation();
+	}
+	if (NOPAUSE)
+	{
+		//Every other player is processed every 8th internal tick
+		if (tmtmt_mod_8 == 1)
+		{
+			CITY[1].ProcessCreation();
+		}
+		if (tmtmt_mod_8 == 2)
+		{
+			CITY[2].ProcessCreation();
+		}
+		if (tmtmt_mod_8 == 3)
+		{
+			CITY[3].ProcessCreation();
+		}
+		if (tmtmt_mod_8 == 4)
+		{
+			CITY[4].ProcessCreation();
+		}
+		if (tmtmt_mod_8 == 5)
+		{
+			CITY[5].ProcessCreation();
+		}
+		if (tmtmt_mod_8 == 6)
+		{
+			CITY[6].ProcessCreation();
+		}
+
+		if (tmtmt_mod_8 == 7 || TutOver)
+		{
+			HandleMission();
+			TutOver = 0;
+		}
+
+		int xt = ( tmtmt % 256 );
+		GNFO.Process();
+
+		for (int i = 0; i < 8; i++)
+		{
+			Nation* NT = NATIONS + i;
+			NT->Harch += NT->NGidot*ResPerUnit;
+			int mult = 2000 >> SpeedSh;
+			int DHarch = NT->Harch / mult;
+			if (DHarch)
+			{
+				if (XRESRC( i, EatenRes ) > DHarch)
+				{
+					AddXRESRC( i, EatenRes, -DHarch );
+					NATIONS[i].ResOnLife[EatenRes] += DHarch;
+					NT->AddResource( EatenRes, -DHarch );
+					NT->Harch -= mult*DHarch;
+					if (!NT->Harch)
+					{
+						NT->Harch = 1;
+					}
+				}
+				else
+				{
+					SetXRESRC( i, EatenRes, 0 );
+					NT->Harch = 0;
+				}
+
+			}
+			if (!NT->Harch)
+			{
+				if (XRESRC( i, FoodID ))NT->Harch = 1;
+				NATIONS[i].ResOnLife[FoodID]++;
+			}
+			mult = 2000000 >> SpeedSh;
+			for (int j = 0; j < 8; j++)
+			{
+				int R = NT->ResRem[j];
+				R += NT->ResSpeed[j] * 100;
+				div_t dd = div( R, mult );
+				R = dd.rem;
+				AddXRESRC( i, j, -dd.quot );
+				NATIONS[i].ResOnLife[j] += dd.quot;
+				if (XRESRC( i, j ) < 0)
+				{
+					NATIONS[i].ResOnLife[j] += XRESRC( i, j );
+					SetXRESRC( i, j, 0 );
+				}
+				NT->AddResource( j, -dd.quot );
+				NT->ResRem[j] = R;
+				if (j == GoldID)
+				{
+					if (XRESRC( i, j ) < 2)
+					{
+						NT->GoldBunt = true;
+					}
+					else
+					{
+						NT->GoldBunt = false;
+					}
+				}
+			}
+		}
+
+
+		ProcessNewMonsters();
+
+		ObjTimer.Handle();
+	}
+
+	//Process explosion animations
+	ProcessExpl();
+
+	for (int i = 0; i < 8; i++)
+	{
+		//Place observation balloon
+		HandleShar( NATIONS + i );
+	}
+
+	//Something about area linking?
+	ProcessDynamicalTopology();
+#endif
+}

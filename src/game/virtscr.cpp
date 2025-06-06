@@ -26,7 +26,7 @@
 extern byte *tex1;
 extern RLCTable SimpleMask;
 
-int mul3( int );
+// int mul3( int );
 int prp34( int i );
 
 //class that is used for fast cashing of the 3D surface
@@ -71,7 +71,8 @@ void VirtualScreen::SetSize( int scLx, int scLy )
 	RealVLy = MaxSizeY;
 
 	ShiftsPerCellX = div( CellSX, 32 ).quot;
-	ShiftsPerCellY = div( CellSY, mul3( 8 ) ).quot;
+	//ShiftsPerCellY = div( CellSY, mul3( 8 ) ).quot;
+	ShiftsPerCellY = div( CellSY, 16 ).quot;
 
 	CellNX = div( RealVLx, CellSX ).quot;
 	CellNY = div( RealVLy, CellSY ).quot;
@@ -126,7 +127,7 @@ void VirtualScreen::CopyVSPart( int vx, int vy, int sx, int sy, int SizeX, int S
 	{
 		return;
 	}
-
+#ifdef _WIN32
 	//debugging control
 	//assert(sx>=0&&sy>=0&&sx+SizeX<=SCRSizeX&&sy+SizeY<=SCRSizeY);
 	//-----------------
@@ -157,6 +158,7 @@ void VirtualScreen::CopyVSPart( int vx, int vy, int sx, int sy, int SizeX, int S
 			   pop		edi
 			   pop		esi
 	}
+#endif
 }
 
 void VirtualScreen::CopyVSPartMMX( int vx, int vy, int sx, int sy, int SizeX, int SizeY )
@@ -164,7 +166,7 @@ void VirtualScreen::CopyVSPartMMX( int vx, int vy, int sx, int sy, int SizeX, in
 	if (!( SizeY&&SizeY ))return;
 	//debugging control
 	//assert(sx>=0&&sy>=0&&sx+SizeX<=SCRSizeX&&sy+SizeY<=SCRSizeY);
-	//-----------------
+#ifdef _WIN32
 	int vsofs = int( VirtualScreenPointer ) + vx + vy*RealVLx;
 	int scofs = int( ScreenPtr ) + sx + sy*SCRSizeX;
 	int szx4 = SizeX >> 3;
@@ -198,7 +200,10 @@ void VirtualScreen::CopyVSPartMMX( int vx, int vy, int sx, int sy, int SizeX, in
 			pop		esi
 			emms
 	};
+#endif
 };
+
+#ifdef _WIN32
 void VirtualScreen::CopyVSToScreen()
 {
 	int TotLx = smaplx << 5;
@@ -1062,3 +1067,4 @@ int AddTHMap( int i )
 {
 	return ( TexFlags[TexMap[i]] & 8 ? 0 : word( randoma[word( i % 8133 )] ) & 7 );
 }
+#endif

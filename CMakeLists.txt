@@ -27,7 +27,11 @@ add_executable(cossacks
 	src/game/fastdraw.cpp
 	src/game/resfile.cpp
 	src/game/arc/gscset.cpp
+	src/game/arc/gscarch.cpp
 	src/game/gp_draw.cpp
+	src/game/virtscr.cpp
+	src/game/gamesound.cpp
+	src/game/loadsave.cpp
 )
 
 # Link to the actual SDL3 libraries.

@@ -112,7 +112,7 @@ DLLEXPORT ResFile RReset( LPCSTR lpFileName )
 	SetLastError( 0 );
 
 	ResFile F = RResetEx( lpFileName );
-
+#ifdef _WIN32
 	if (F == INVALID_HANDLE_VALUE)
 	{
 		RCloseEx( F );
@@ -136,7 +136,7 @@ DLLEXPORT ResFile RReset( LPCSTR lpFileName )
 			}
 		}
 	}
-
+#endif // _WIN32
 	return F;
 }
 

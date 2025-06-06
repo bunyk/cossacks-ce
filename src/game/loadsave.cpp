@@ -1,3 +1,5 @@
+#ifdef _WIN32
+
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
@@ -3240,6 +3242,8 @@ extern word* WTopRef;
 extern short* THMap;// Map of heights in vertices
 extern byte* TexMap;//Map of textures in vertices
 extern byte* SectMap;//Map of sections on lines
+					 
+#endif // _WIN32
 
 //Bitshift for mapsize dependent calculations
 //1 = normal maps
@@ -3247,6 +3251,7 @@ extern byte* SectMap;//Map of sections on lines
 //3 = huge (4x) maps
 int ADDSH = 1;
 
+#ifdef _WIN32
 int VAL_SHFCX;
 int VAL_MAXCX;
 int VAL_MAXCIOFS;
@@ -3801,3 +3806,4 @@ void CleanNMSL()
 	CurMCash = 0;
 	memset( MRef, 0xFF, VAL_MAXCIOFS << 1 );
 }
+#endif // _WIN32

@@ -15,12 +15,14 @@
 #include "fastdraw.h"
 #include "gp_draw.h"
 #include "assert.h"
+
 extern int SCRSizeX;
 extern int SCRSizeY;
+#ifdef _WIN32
 extern int RSCRSizeX;
 extern int RSCRSizeY;
 extern int COPYSizeX;
-extern int LOADED;
+extern int LOADED; // comes from gp_draw.cpp
 DLLEXPORT
 void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr );
 byte PAL1[256];
@@ -66,6 +68,7 @@ RLCFont::~RLCFont()
 	RLC = nullptr;
 };
 typedef RLCFont* lpRLCFont;
+#endif // _WIN32
 //Window parameters
 int WindX = 0;
 int WindY = 0;
@@ -78,6 +81,7 @@ int ScrHeight;
 int BytesPerPixel = 1;
 void* ScreenPtr = nullptr;
 void* RealScreenPtr = nullptr;
+
 extern int RealLx;
 extern int RealLy;
 void InitRLCWindows()
@@ -89,6 +93,8 @@ void InitRLCWindows()
 	ScrWidth = SCRSizeX;
 	ScrHeight = SCRSizeY;
 };
+
+#ifdef _WIN32
 /*  Creating window
  */
 bool ProcessMessages();
@@ -2796,3 +2802,5 @@ void RLCFont::SetColorTable( int n )
 	//SetStdShadow();
 }
 /* End of Graphics routine */
+
+#endif // _WIN32

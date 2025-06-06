@@ -52,4 +52,6 @@ typedef void* HINSTANCE;
 BOOL DeleteFile(LPCTSTR lpFileName);
 void SetLastError(DWORD dwErrCode);
 
+#define HIBYTE(w) ((BYTE)(((w) >> 8) & 0xFF))
+
 #endif
