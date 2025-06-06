@@ -117,8 +117,6 @@ int HiStyle;
 int IronID;
 int LASTRAND, LASTIND;
 int LastAttackDelay = 0;
-int MaxSizeX;
-int MaxSizeY;
 int Multip;
 int NMONS;
 int REALTIME;
@@ -2650,7 +2648,6 @@ void PrepareToEdit()
 	}
 }
 
-byte PlayGameMode = 0;
 
 extern char CurrentMap[64];
 extern int TIMECHANGE[8];

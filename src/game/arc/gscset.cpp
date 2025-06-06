@@ -1,8 +1,8 @@
 // GSCset.cpp: implementation of the CGSCset class.
-//
-//////////////////////////////////////////////////////////////////////
 
 #include <stdio.h>
+#include <cstring>
+
 #include "gsctypes.h"
 #include "gscarch.h"
 #include "gscset.h"
@@ -23,22 +23,24 @@ CGSCset::~CGSCset()
 
 LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool Only )
 {
+	printf("gOpenFile: %s\n", lpcsFileName);
 	LPGSCfile		gFile = NULL;
+#ifdef _WIN32
 	HANDLE			hFindFile;
 	WIN32_FIND_DATA	FindData;
-	BOOL			isArch = TRUE;
+	bool			inArchive = true;
 
 	if (!Only)
 	{
 		hFindFile = FindFirstFile( lpcsFileName, &FindData );
 		if (hFindFile != INVALID_HANDLE_VALUE)
 		{
-			isArch = FALSE;
+			inArchive = false;
 		}
 		FindClose( hFindFile );
 	}
 
-	if (isArch)
+	if (inArchive)
 	{
 		LPGSCArchList	pArchList = m_ArchList;
 
@@ -77,11 +79,13 @@ LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool Only )
 		}
 	}
 
+#endif
 	return gFile;
 }
 
 VOID CGSCset::gCloseFile( LPGSCfile gFile )
 {
+#ifdef _WIN32
 	if (nullptr == gFile)//BUGFIX: Exception when closing game via Alt+F4
 	{
 		return;
@@ -95,10 +99,12 @@ VOID CGSCset::gCloseFile( LPGSCfile gFile )
 	{
 		CloseHandle( HANDLE( gFile->m_FileHandle ) );
 	}
+#endif
 }
 
 VOID CGSCset::gReadFile( LPGSCfile gFile, LPBYTE lpbBuffer, DWORD dwSize )
 {
+#ifdef _WIN32
 	DWORD	dwBytesRead = 0;
 
 	if (gFile->m_Flags)
@@ -109,10 +115,12 @@ VOID CGSCset::gReadFile( LPGSCfile gFile, LPBYTE lpbBuffer, DWORD dwSize )
 	{
 		ReadFile( HANDLE( gFile->m_FileHandle ), lpbBuffer, dwSize, &dwBytesRead, NULL );
 	};
+#endif
 }
 
 VOID CGSCset::gSeekFile( LPGSCfile gFile, DWORD dwPosition )
 {
+#ifdef _WIN32
 	if (gFile->m_Flags)
 	{
 		gFile->m_Position = dwPosition;
@@ -121,10 +129,12 @@ VOID CGSCset::gSeekFile( LPGSCfile gFile, DWORD dwPosition )
 	{
 		SetFilePointer( HANDLE( gFile->m_FileHandle ), dwPosition, NULL, FILE_BEGIN );
 	}
+#endif
 }
 
 DWORD CGSCset::gFilePos( LPGSCfile gFile )
 {
+#ifdef _WIN32
 	if (gFile->m_Flags)
 	{
 		return gFile->m_Position;
@@ -133,6 +143,7 @@ DWORD CGSCset::gFilePos( LPGSCfile gFile )
 	{
 		return SetFilePointer( HANDLE( gFile->m_FileHandle ), 0, NULL, FILE_BEGIN );
 	};
+#endif
 }
 
 VOID AddItem( LPGSCFileList pFileList, LPCSTR lpcsFileName )
@@ -169,6 +180,7 @@ VOID AddItem( LPGSCFileList pFileList, LPCSTR lpcsFileName )
 LPGSCFindInfo CGSCset::gFindFirst( LPCSTR lpcsMask )
 {
 	LPGSCFindInfo lpFindInfo = NULL;
+#ifdef _WIN32
 	WIN32_FIND_DATA	FindData;
 	HANDLE	hFindFile;
 	LPGSCFileList	lpFileList = NULL;
@@ -238,6 +250,7 @@ LPGSCFindInfo CGSCset::gFindFirst( LPCSTR lpcsMask )
 		pArchList = pArchList->m_NextArch;
 	};
 
+#endif
 	if (lpFindInfo)
 	{
 		strcpy( lpFindInfo->m_FileName, lpFindInfo->m_Pos->m_FileName );
@@ -286,10 +299,11 @@ void GSC_OpenError();
 //4) A*.gsc
 BOOL CGSCset::gOpen()
 {
+	BOOL retval = TRUE;
+#ifdef _WIN32
 	HANDLE hFindFile;
 	WIN32_FIND_DATA FindData;
 	LPGSCArchList pArchList = nullptr;
-	BOOL retval = TRUE;
 
 	m_ArchList = nullptr;
 
@@ -349,6 +363,7 @@ BOOL CGSCset::gOpen()
 	FindClose( hFindFile );
 
 	return retval;
+#endif
 }
 
 VOID CGSCset::gClose()
@@ -372,6 +387,7 @@ VOID CGSCset::gClose()
 
 DWORD CGSCset::gFileSize( LPGSCfile gFile )
 {
+#ifdef _WIN32	
 	if (gFile->m_Flags)//m_Flags = 1 means it's in an archive
 	{
 		return gFile->m_Arch->GetFileSize( gFile );
@@ -380,6 +396,7 @@ DWORD CGSCset::gFileSize( LPGSCfile gFile )
 	{
 		return GetFileSize( HANDLE( gFile->m_FileHandle ), NULL );
 	};
+#endif
 }
 
 LPBYTE CGSCset::gMapFile( LPGSCfile gFile )
@@ -396,6 +413,7 @@ LPBYTE CGSCset::gMapFile( LPGSCfile gFile )
 
 BOOL CGSCset::gWriteFile( LPGSCfile gFile, LPBYTE lpbBuffer, DWORD dwSize )
 {
+#ifdef _WIN32	
 	DWORD dwBytesWritten;
 	if (gFile->m_Flags)
 	{
@@ -406,13 +424,13 @@ BOOL CGSCset::gWriteFile( LPGSCfile gFile, LPBYTE lpbBuffer, DWORD dwSize )
 		WriteFile( HANDLE( gFile->m_FileHandle ), lpbBuffer, dwSize, &dwBytesWritten, NULL );
 		return TRUE;
 	};
-
+#endif
 }
 
 LPGSCfile CGSCset::gWriteOpen( LPCSTR lpcsFileName )
 {
 	LPGSCfile gFile;
-
+#ifdef _WIN32
 	gFile = new TGSCfile;
 	gFile->m_Flags = 0;
 	gFile->m_Position = 0;
@@ -430,5 +448,6 @@ LPGSCfile CGSCset::gWriteOpen( LPCSTR lpcsFileName )
 		delete gFile;
 		return NULL;
 	};
+#endif
 	return gFile;
 }

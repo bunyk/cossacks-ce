@@ -22,6 +22,7 @@ bool borderless = false;
 bool EditMapMode;
 extern bool InGame;
 extern bool InEditor;
+byte PlayGameMode = 0;
 
 int screen_width;
 int screen_height;
@@ -33,6 +34,9 @@ int ex_other_RealLx, ex_other_RealLy;//Necessary for saving settings
 									 //
 extern int RealLx;
 extern int RealLy;
+
+int MaxSizeX;
+int MaxSizeY;
 
 SDL_Window* sdlWindow;
 

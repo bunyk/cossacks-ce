@@ -11,13 +11,13 @@
 #include <SDL3/SDL.h>
 #include "os.h"
 
-#ifdef _WIN32
-
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
-#include "mode.h"
 #include "mapdiscr.h"
+
+#ifdef _WIN32
+#include "mode.h"
 #include "fog.h"
 #include "gsound.h"
 #include "fonts.h"
@@ -55,20 +55,24 @@ DLLEXPORT int Pitch;
 //LPDIRECTDRAW            lpDD = NULL;      // DirectDraw object
 //LPDIRECTDRAWSURFACE     lpDDSPrimary;   // DirectDraw primary surface
 //LPDIRECTDRAWSURFACE     lpDDSBack;      // DirectDraw back surface
+BOOL                    bActive;        // is application active (not minimized / has focus)?
+//BOOL                    DDError;        //=FALSE if Direct Draw works normally 
+
+#endif // _WIN32
+
 SDL_Renderer* renderer;                 // SDL Renderer object
 SDL_Surface* primarySurface;            // SDL primary surface
 SDL_Texture* primaryTexture;            // SDL primary texture
 SDL_Surface* backSurface;               // SDL back surface
-BOOL                    bActive;        // is application active (not minimized / has focus)?
-//BOOL                    DDError;        //=FALSE if Direct Draw works normally 
 bool                    SDLError;       // false if SDL works normally
+										
 //DDSURFACEDESC           ddsd;
 //PALETTEENTRY            GPal[256];
 //LPDIRECTDRAWPALETTE     lpDDPal;
-SDL_Palette*            sdlPal;
 
+SDL_Palette*            sdlPal;
 extern bool PalDone;
-extern word PlayerMenuMode;
+
 
 // Get closest palette color from RGB
 DLLEXPORT byte GetPaletteColor( int r, int g, int b )
@@ -89,7 +93,9 @@ DLLEXPORT byte GetPaletteColor( int r, int g, int b )
 
 //typedef byte barr[ScreenSizeX*ScreenSizeY];
 void* offScreenPtr;
+extern void* ScreenPtr; // is defined fastdraw.cpp
 
+#ifdef _WIN32
 // Flipping Pages
 extern int SCRSZY;
 
@@ -199,6 +205,8 @@ DLLEXPORT void FlipPages( void )
 	yield();
 }
 
+#endif // _WIN32
+
 /*
  * Getting Screen Pointer
  *
@@ -265,7 +273,6 @@ int BestVX = 640;
 int BestVY = 480;
 int BestBPP = 32;
 
-#endif // _WIN32
 void SDLModeCallback(SDL_DisplayMode* mode)
 {
 	
@@ -463,6 +470,8 @@ SDMOD:;
 	return false;
 }
 
+#endif // _WIN32
+
 /*   Direct Draw palette loading*/
 void LoadPalette( LPCSTR lpFileName )
 {
@@ -557,6 +566,8 @@ void LoadPalette( LPCSTR lpFileName )
 		}
 	}
 }
+
+#ifdef _WIN32
 void CBar( int x, int y, int Lx, int Ly, unsigned char c );
 
 void SetDarkPalette()

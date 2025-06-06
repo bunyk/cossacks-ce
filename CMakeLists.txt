@@ -26,6 +26,7 @@ add_executable(cossacks
 	src/game/selprop.cpp
 	src/game/fastdraw.cpp
 	src/game/resfile.cpp
+	src/game/arc/gscset.cpp
 )
 
 # Link to the actual SDL3 libraries.

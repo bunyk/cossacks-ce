@@ -29,7 +29,6 @@ CGSCset GSFILES;
 //Opening the resource file
 bool ProtectionMode = false;
 
-#ifdef _WIN32
 ResFile RResetEx( LPCSTR lpFileName )
 {
 	bool Only = GSFILES.m_ArchList&&ProtectionMode;
@@ -62,7 +61,6 @@ bool GetRarName( LPCSTR Name, char* Dest )
 	}
 	else return 0;
 };
-#endif // _WIN32
 
 char** FHNames = NULL;
 ResFile* FHANDLES = NULL;
@@ -106,7 +104,6 @@ void EraseAllFNames()
 	for (int i = 0; i < NHNames; i++)DeleteFile( FHNames[i] );
 }
 
-#ifdef _WIN32
 void RCloseEx( ResFile hFile );
 void ExtractArchive( char *ArcName, int Mode, char* Dest );
 
@@ -142,6 +139,7 @@ DLLEXPORT ResFile RReset( LPCSTR lpFileName )
 
 	return F;
 }
+
 
 //Rewriting file
 DLLEXPORT ResFile RRewrite( LPCSTR lpFileName )
@@ -236,9 +234,6 @@ DLLEXPORT void RClose( ResFile hFile )
 	EraseFName( hFile );
 }
 
-void CloseRARLib();
-
-#endif 
 
 //Loads unrar.dll and resource archives
 bool FilesInit()

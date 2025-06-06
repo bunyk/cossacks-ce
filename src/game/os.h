@@ -50,5 +50,6 @@ typedef unsigned int UINT;
 typedef void* HINSTANCE;  
 
 BOOL DeleteFile(LPCTSTR lpFileName);
+void SetLastError(DWORD dwErrCode);
 
 #endif
