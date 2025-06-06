@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-#include "stubs.h"
+#include "os.h"
 #include "stdio.h"
 
 #ifdef _WIN32

@@ -1,4 +1,4 @@
-#include "stubs.h"
+#include "os.h"
 
 #pragma pack(1)
 struct BMPformat{ // bmfh 

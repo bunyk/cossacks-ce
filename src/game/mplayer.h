@@ -1,4 +1,4 @@
-#include "stubs.h"
+#include "os.h"
 
 #ifndef NODPLAY
 #include "dplay.h"

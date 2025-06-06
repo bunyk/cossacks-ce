@@ -10,11 +10,10 @@
 #define TITLE "Cossacks"
 #define NODPLAY
 
-#include "stubs.h"
+#include "os.h"
 #include "ddini.h"
 
 #include "gfile.h"
-#include "resfile.h"
 #include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
@@ -2793,8 +2792,6 @@ void EraseRND()
 }
 #endif
 
-bool FilesInit();
-void FilesExit();
 void PlayCDTrack( int Id );
 void PlayRandomTrack();
 extern int PlayMode;
@@ -2836,7 +2833,6 @@ tpShowDialog* lpShowDialog;
 extern int ModeLX[32];
 extern int ModeLY[32];
 extern int NModes;
-bool EnumModesOnly();
 
 int ROLL = 1;
 void NRFUNC()

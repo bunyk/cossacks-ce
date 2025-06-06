@@ -1,9 +1,12 @@
+// OS compatibility definitions
+// Mostly reimplemeting stuff from windows.h
 
 #ifdef _WIN32
 
 #define DLLEXPORT __declspec(dllexport)
 #define DLLIMPORT __declspec(dllimport)
 #define CDECL _cdecl
+#include <windows.h>
 
 #else
 
@@ -34,7 +37,9 @@ typedef unsigned int BOOL;
 #define _strnicmp strncasecmp
 #define _stricmp strcasecmp 
 
+// https://softwareengineering.stackexchange.com/a/194768/96231
 typedef const char* LPCSTR; // stands for Long Pointer to a Constant STRing.
+typedef const char* LPCTSTR; 
 typedef wchar_t* LPWSTR;  // Long Pointer to Wide STRing
 typedef char* LPSTR;  // Long Pointer to STRing (ANSI)
 typedef void* LPVOID; // Long Pointer to a VOID
@@ -43,5 +48,7 @@ typedef unsigned int UINT;
 
 // Handle to a DDL or something
 typedef void* HINSTANCE;  
+
+BOOL DeleteFile(LPCTSTR lpFileName);
 
 #endif

@@ -6,20 +6,30 @@
  * the given file is.
  */
 
-// #include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <cstring>
+
+#include "arc/gscset.h"
+#include "resfile.h"
+#include "os.h"
+
+bool InitDone = 0;
+
+#ifdef _WIN32
 #include "unrar.h"
-#include "arc\gscset.h"
 #include "assert.h"
 void AText( char* str );
 //typedef LPGSCfile ResFile;
 typedef HANDLE ResFile;
-bool InitDone = 0;
+#endif
+
 CGSCset GSFILES;
-bool FilesInit();
+
 //Opening the resource file
 bool ProtectionMode = false;
+
+#ifdef _WIN32
 ResFile RResetEx( LPCSTR lpFileName )
 {
 	bool Only = GSFILES.m_ArchList&&ProtectionMode;
@@ -52,6 +62,8 @@ bool GetRarName( LPCSTR Name, char* Dest )
 	}
 	else return 0;
 };
+#endif // _WIN32
+
 char** FHNames = NULL;
 ResFile* FHANDLES = NULL;
 int NHNames = 0;
@@ -94,6 +106,7 @@ void EraseAllFNames()
 	for (int i = 0; i < NHNames; i++)DeleteFile( FHNames[i] );
 }
 
+#ifdef _WIN32
 void RCloseEx( ResFile hFile );
 void ExtractArchive( char *ArcName, int Mode, char* Dest );
 
@@ -223,6 +236,10 @@ DLLEXPORT void RClose( ResFile hFile )
 	EraseFName( hFile );
 }
 
+void CloseRARLib();
+
+#endif 
+
 //Loads unrar.dll and resource archives
 bool FilesInit()
 {
@@ -231,6 +248,7 @@ bool FilesInit()
 		return true;
 	}
 
+	#ifdef _WIN32
 	char CDR[256];
 	GetCurrentDirectory( 256, CDR );
 	if (CDR[strlen( CDR ) - 1] == '\\')
@@ -261,6 +279,7 @@ bool FilesInit()
 			SetCurrentDirectory( CDR );
 		}
 	}
+	#endif // _WIN32
 
 	InitDone = 1;
 
@@ -269,11 +288,11 @@ bool FilesInit()
 	return retval;
 }
 
-void CloseRARLib();
-
 void FilesExit()
 {
+	#ifdef _WIN32
 	CloseRARLib();
+	#endif // _WIN32
 	EraseAllFNames();
 	GSFILES.gClose();
 }

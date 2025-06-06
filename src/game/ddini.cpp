@@ -9,7 +9,7 @@
 
 #include <stdlib.h>
 #include <SDL3/SDL.h>
-#include "stubs.h"
+#include "os.h"
 
 #ifdef _WIN32
 

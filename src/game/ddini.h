@@ -15,7 +15,7 @@
 #include <stdarg.h>
 // #include "resource.h"
 // #include "lines.h"
-#include "stubs.h"
+#include "os.h"
 
 #define free _ExFree
 #define malloc _ExMalloc
@@ -91,10 +91,13 @@ void LoadPalette(LPCSTR lpFileName);
 void SetDebugMode();
 void NoDebugMode();
 
+
 // Define own DirectDrawCreate helper function which loads mdraw.dll at runtime
 //HRESULT DirectDrawCreate_wrapper(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter);
 
 bool CreateSDLRenderer();
+
+bool EnumModesOnly();
 
 bool InitSDL();
 #endif //__DDINI_H_

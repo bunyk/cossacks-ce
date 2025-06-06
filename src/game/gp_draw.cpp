@@ -1,4 +1,4 @@
-#include "stubs.h"
+#include "os.h"
 #include "ddini.h"
 #include "resfile.h"
 #include "mode.h"

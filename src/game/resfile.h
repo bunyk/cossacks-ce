@@ -27,3 +27,6 @@ DWORD RBlockWrite(ResFile hFile,LPVOID lpBuffer,DWORD BytesToWrite);
 DWORD IOresult(void);
 //Close the file
 void RClose(ResFile hFile);
+
+bool FilesInit();
+void FilesExit();

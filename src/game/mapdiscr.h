@@ -1,6 +1,6 @@
 #pragma once
 
-#include "stubs.h"
+#include "os.h"
 
 /*                    Map description
  *

@@ -17,12 +17,15 @@ add_compile_options(-w) # Inhibit all warnings for now
 
 add_executable(cossacks
     src/game/main.cpp
+	src/game/os.cpp
     src/game/ddini.cpp
     src/game/activescenary.cpp
     src/game/interface.cpp
     src/game/bmptool.cpp
     src/game/timing.cpp
 	src/game/selprop.cpp
+	src/game/fastdraw.cpp
+	src/game/resfile.cpp
 )
 
 # Link to the actual SDL3 libraries.

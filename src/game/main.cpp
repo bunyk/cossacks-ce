@@ -11,6 +11,7 @@
 #include "interface.h"
 #include "fastdraw.h"
 #include "gsound.h"
+#include "resfile.h"
 
 extern bool RUNMAPEDITOR;
 extern bool RUNUSERMISSION;
@@ -72,7 +73,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	InitSDL();
 	printf("SDL initialized.\n");
 
-	#ifdef _WIN32
 	//Init DirectDraw and find possible resolutions
 	EnumModesOnly();
 
@@ -91,6 +91,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 		SDL_PushEvent(&e);
 	}
 
+	#ifdef _WIN32
 	//Delete random generated *.m3d map files
 	EraseRND();
 
