@@ -70,7 +70,6 @@ bool FullMini = true;
 bool HealthMode;
 bool HelpMode;
 bool InfoMode;
-bool MEditMode;
 bool MUSTDRAW;
 
 //Unknown mode classification
@@ -84,8 +83,6 @@ bool fixed;
 //Timespan in ms after last LastCTRLPressTime which allows setting unit control groups
 const int kCtrlStickyTime = 50;
 
-//Minimal delay between two PostDrawGameProcess() returns, in ms
-const unsigned int kPostDrawInterval = 16;//~60 Hz
 
 
 //Game version. Must match with other clients
@@ -99,13 +96,10 @@ int TerrBrush;
 int BlobMode;
 int CoalID;
 int CurGroundTexture = 0;
-int DrawGroundMode = 0;
-int DrawPixMode = 0;
 int Flips;
 int FoodID;
 int FrmDec = 2;
 int GoldID;
-int HeightEditMode;
 int HiStyle;
 int IronID;
 int LASTRAND, LASTIND;
@@ -123,7 +117,6 @@ int SpeedSh = 1;
 
 int StoneID;
 int TreeID;
-int WaterEditMode;
 
 
 static int Light = 0;
@@ -150,14 +143,12 @@ Weapon Sphere;
 Weapon Vibux1;
 
 extern bool AttGrMode;
-extern bool BuildMode;
 extern bool CINFMOD;
 extern bool ChangeNation;
 extern bool CheapMode;
 extern bool FullScreenMode;
 extern bool GameInProgress;
 extern bool GameNeedToDraw;
-extern bool GetCoord;
 extern bool GoAndAttackMode;
 extern bool LockPause;
 extern bool MakeMenu;
@@ -241,25 +232,7 @@ void WaterCorrection();
 extern bool TexMapMod;
 extern bool RiverEditMode;
 void ClearCurve();
-extern bool TexPieceMode;
 extern int DrawPixMode;
-
-void ClearModes()
-{
-	DrawPixMode = 0;
-	DrawGroundMode = 0;
-	HeightEditMode = false;
-	MEditMode = false;
-	LockMode = 0;
-	WaterEditMode = false;
-	#ifdef _WIN32
-	SetWallBuildMode( 0xFF, 0 );
-	TexMapMod = false;
-	RiverEditMode = 0;
-	ClearCurve();
-	#endif
-	TexPieceMode = 0;
-}
 
 void TimerProc( void )
 {
@@ -725,10 +698,8 @@ wchar_t unicode_chat_string[128];
 void ProcessChatKeys();
 extern int WaitState;
 
-bool RetryVideo = 0;
 
 extern byte PlayGameMode;
-extern bool GameExit;
 extern int LastCTRLPressTime;
 bool CheckFNSend( int idx );
 void ProcessVotingKeys();
@@ -738,434 +709,6 @@ extern word NPlayers;
 bool CheckFlagsNeed();
 void SetGameDisplayModeAnyway( int SizeX, int SizeY );
 
-//Many diffirent key checks for various game modes
-void GameKeyCheck()
-{
-	if (PlayGameMode == 1)
-	{
-		if (KeyPressed)
-		{
-			GameExit = true;
-			RetryVideo = 0;
-			KeyPressed = 0;
-			return;
-		}
-	}
-
-	ProcessVotingKeys();
-
-	if (EnterChatMode)
-	{
-		ProcessChatKeys();
-		return;
-	}
-
-	if (EditMapMode)
-	{
-		EditorKeyCheck();
-		return;
-	}
-
-	if (KeyPressed)
-	{
-		KeyPressed = false;
-		SDL_Keycode wParam = LastKey;
-		switch (wParam)
-		{
-		case SDLK_ESCAPE:
-			ClearModes();
-			BuildMode = false;
-			GetCoord = false;
-			curptr = 0;
-			curdx = 0;
-			curdy = 0;
-			PauseMode = 0;
-			SetDestMode = false;
-			GoAndAttackMode = false;
-			GUARDMODE = 0;
-			PATROLMODE = 0;
-
-			if (WaitState == 1)
-				WaitState = 2;
-
-			if (ShowGameScreen)
-				ShowGameScreen = 2;
-
-			AttGrMode = 0;
-			break;
-		case SDLK_SPACE:
-			SpecCmd = 111;
-			break;
-		case SDLK_BACKSPACE:
-			SpecCmd = 112;
-			break;
-		case SDLK_U:
-			if (Inform != 2)
-			{
-				Inform = 2;
-			}
-			else
-			{
-				Inform = 0;
-			}
-			MiniActive = 0;
-			Recreate = 1;
-			break;
-		case SDLK_M:
-			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
-			{
-				SpecCmd = 114;
-			}
-			else
-			{
-				FullMini = !FullMini;
-			}
-			MiniActive = 0;
-			Recreate = 1;
-			break;
-		case SDLK_F12:
-			MenuType = 1;
-			MakeMenu = true;
-			break;
-		case SDLK_F1:
-			if (!CheckFNSend( 0 ))
-			{
-				MenuType = 4;
-				MakeMenu = true;
-			}
-			break;
-		case SDLK_F2:
-			CheckFNSend( 1 );
-			break;
-		case SDLK_F3:
-			CheckFNSend( 2 );
-			break;
-		case SDLK_F4:
-			CheckFNSend( 3 );
-			break;
-		case SDLK_F5:
-			CheckFNSend( 4 );
-			break;
-		case SDLK_F6:
-			CheckFNSend( 5 );
-			break;
-		case SDLK_F7:
-			CheckFNSend( 6 );
-			break;
-		case SDLK_F8:
-			CheckFNSend( 7 );
-			break;
-		case SDLK_F9:
-			if (!CheckFNSend( 8 ))
-			{
-				Creator = 4096 + 255;
-			}
-			break;
-		case SDLK_TILDE:
-			HealthMode = !HealthMode;
-			break;
-		case SDLK_DELETE:
-			SpecCmd = 200;
-			break;
-
-		/*
-		case SDLK_D:
-			if (!( GetSDLKeyState( SDL_SCANCODE_LCTRL ) ))
-			{
-				if (NPlayers < 2)
-				{
-					if (( GetSDLKeyState( SDL_SCANCODE_LSHIFT ) ))
-					{
-						switch (HISPEED)
-						{
-						case 0:
-							HISPEED = 1;
-							break;
-						case 1:
-							HISPEED = 2;
-							break;
-						case 2:
-							HISPEED = 3;
-							break;
-						default:
-							HISPEED = 0;
-							break;
-						}
-					}
-				}
-			}
-			else
-			{
-				//CmdChangeSpeed();//BUGFIX: real time speed changing
-			}
-			break;
-		*/
-
-		case SDLK_A:
-			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
-				SpecCmd = 1;
-			else if (NSL[MyNation])
-				GoAndAttackMode = 1;
-			break;
-		case SDLK_S:
-			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
-				SpecCmd = 201;
-			break;
-		case SDLK_W:
-			break;
-		case SDLK_J:
-			if (PlayGameMode == 2)
-			{
-				int ExRX = RealLx;
-				int ExRY = RealLy;
-				if (RealLx != 1024 || RealLy != 768)
-				{
-					SetGameDisplayModeAnyway( 1024, 768 );
-				}
-				ShowStatistics();
-				if (RealLx != ExRX || RealLy != ExRY)
-				{
-					SetGameDisplayModeAnyway( ExRX, ExRY );
-				}
-			}
-			break;
-		case SDLK_K:
-			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
-			{
-				RealPause -= 2;
-			}
-			else
-			{
-				RealPause += 2;
-			}
-			break;
-		case SDLK_Q:
-			LockGrid += 2;
-			if (LockGrid > 3)
-			{
-				LockGrid = 0;
-			}
-			MiniActive = 0;
-			Recreate = 1;
-			break;
-		case SDLK_B:
-			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
-			{
-				SpecCmd = 9;
-			}
-			else
-			{
-				SpecCmd = 10;
-			}
-			break;
-		case SDLK_Z:
-			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
-			{
-				SpecCmd = 11;
-			}
-			else
-			{
-				//Select all units of the selected type on screen
-				SpecCmd = 241;
-			}
-			break;
-		case SDLK_F:
-			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
-			{
-				SpecCmd = 13;
-			}
-			else
-			{
-				SpecCmd = 14;
-			}
-			break;
-		case SDLK_KP_1:
-			if (MEditMode)
-			{
-				EditMedia = 0;
-			}
-			else
-			{
-				if (NPlayers < 2 && ChangeNation)
-				{
-					SetMyNation( 0 );
-				}
-				PlayerMask = 1;
-			}
-			break;
-		case SDLK_KP_2:
-			if (MEditMode)EditMedia = 1;
-			else
-			{
-				if (NPlayers < 2 && ChangeNation)
-				{
-					SetMyNation( 1 );
-				}
-				PlayerMask = 2;
-			}
-			break;
-		case SDLK_KP_3:
-			if (MEditMode)
-			{
-				EditMedia = 2;
-			}
-			else
-			{
-				if (NPlayers < 2 && ChangeNation)
-				{
-					SetMyNation( 2 );
-				}
-				PlayerMask = 4;
-			}
-			break;
-		case SDLK_KP_4:
-			if (MEditMode)
-			{
-				EditMedia = 3;
-			}
-			else
-			{
-				if (NPlayers < 2 && ChangeNation)
-				{
-					SetMyNation( 3 );
-				}
-				PlayerMask = 8;
-			}
-			break;
-		case SDLK_KP_5:
-			if (MEditMode)
-			{
-				EditMedia = 4;
-			}
-			else
-			{
-				if (NPlayers < 2 && ChangeNation)
-				{
-					SetMyNation( 4 );
-				}
-				PlayerMask = 16;
-			}
-			break;
-		case SDLK_KP_6:
-			if (MEditMode)
-			{
-				BlobMode = 1;
-			}
-			else
-			{
-				if (NPlayers < 2 && ChangeNation)
-				{
-					SetMyNation( 5 );
-				}
-				PlayerMask = 32;
-			}
-			break;
-		case SDLK_KP_7:
-			if (MEditMode)
-			{
-				BlobMode = -1;
-			}
-			else
-			{
-				if (NPlayers < 2 && ChangeNation)
-				{
-					SetMyNation( 6 );
-				}
-				PlayerMask = 64;
-			}
-			break;
-		case SDLK_KP_8:
-			if (NPlayers < 2 && ChangeNation)
-			{
-				SetMyNation( 7 );
-			}
-			PlayerMask = 128;
-			break;
-		case SDLK_I:
-			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
-			{
-				InfoMode = !InfoMode;
-			}
-			else
-			{
-				if (Inform != 1)
-				{
-					Inform = 1;
-				}
-				else
-				{
-					Inform = 0;
-				}
-				MiniActive = 0;
-				Recreate = 1;
-			}
-			break;
-
-		case SDLK_CAPSLOCK:
-			EgoFlag = !EgoFlag;
-			break;
-
-		case SDLK_O:
-			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
-			{
-				if (PlayGameMode == 2 || CheckFlagsNeed())
-				{
-					OptHidden = !OptHidden;
-					if (!OptHidden)
-					{
-						Inform = 0;
-					}
-				};
-			}
-			else
-			{
-				TransMode = !TransMode;
-				MiniActive = 0;
-				Recreate = 1;
-			}
-			break;
-		case SDLK_P:
-			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
-			{
-				SpecCmd = 113;
-			}
-			else
-			{
-				if (MultiTvar)
-				{
-					NeedToPopUp = 2;
-					Inform = 0;
-				}
-			}
-			break;
-		case SDLK_PAUSE:
-			if (tmtmt > 32 && !LockPause)
-			{
-				SpecCmd = 137;
-			}
-			break;
-		case SDLK_RETURN:
-			if (!RESMODE)
-			{
-				EnterChatMode = 1;
-				ClearKeyStack();
-			}
-			break;
-		default:
-			if (SDLK_0 <= wParam && wParam <= SDLK_9)
-			{
-				if (GetSDLTickCount() - LastCTRLPressTime < kCtrlStickyTime)
-				{
-					CmdMemSelection( MyNation, wParam - SDLK_0 );
-				}
-				else
-				{
-					CmdRememSelection( MyNation, wParam - SDLK_0 );
-				}
-			}
-		}
-	}
-}
 
 void CreateFastLocking();
 void AddHill();
@@ -1747,7 +1290,6 @@ void SERROR();
 void SERROR1();
 void SERROR2();
 
-bool ProcessMessages();
 extern int PlayMode;
 void StopPlayCD();
 void PlayRandomTrack();
@@ -1799,7 +1341,6 @@ void ProcessGuard();
 void DecreaseVeruVPobedu();
 
 
-bool ProcessMessages();
 extern word NPlayers;
 void CmdSaveNetworkGame( byte NI, int ID, char* Name );
 extern char SaveFileName[128];

@@ -24,6 +24,18 @@ extern bool InGame;
 extern bool InEditor;
 byte PlayGameMode = 0;
 extern word PlayerMenuMode;
+extern bool GameExit; // owned by interface.cpp
+
+int DrawGroundMode = 0;
+int DrawPixMode = 0;
+int HeightEditMode;
+bool MEditMode;
+int WaterEditMode;
+extern bool BuildMode; // owned by mapa.cpp WHY? 
+extern bool TexPieceMode; // owned by 3drandmap.cpp
+
+
+extern bool GetCoord; // owned by selprop.cpp
 
 int screen_width;
 int screen_height;
@@ -47,11 +59,15 @@ bool PalDone;
 SDL_Window* sdlWindow;
 int CurPalette;
 
+bool RetryVideo = 0;
+
 //Game speed mode
 //0: Slow mode
 //1: Fast mode
 int exFMode = 1;
 
+//Minimal delay between two PostDrawGameProcess() returns, in ms
+const unsigned int kPostDrawInterval = 16;//~60 Hz
 
 int xxx;
 
@@ -78,6 +94,7 @@ extern int PeaceTimeLeft;
 extern int PeaceTimeStage;
 void CmdChangePeaceTimeStage( int Stage );
 
+
 //Timer Callback
 int cadr;
 int tima;
@@ -90,6 +107,8 @@ int HISPEED = 0;
 bool SHOWSLIDE = true;
 int AutoTime;
 
+bool ProcessMessages();
+
 extern uint64_t GetSDLTickCount();
 
 boost::coroutines2::coroutine<void>::pull_type* AllGameCoroutine = nullptr;
@@ -98,6 +117,7 @@ boost::coroutines2::coroutine<void>::pull_type* AllGameCoroutine = nullptr;
 RLCTable RCross;
 RLCTable mRCross;
 
+void GameKeyCheck();
 
 //For parallel processable tasks
 #define maxTask 32
@@ -1046,7 +1066,6 @@ void PostDrawGameProcess()
 		prev_postdraw_time = GetSDLTickCount();
 	}
 
-	#ifdef _WIN32
 	unsigned long time_since_last_call = 0;
 	do
 	{
@@ -1059,7 +1078,6 @@ void PostDrawGameProcess()
 	} while (PauseMode || time_since_last_call < kPostDrawInterval);
 
 	prev_postdraw_time = GetSDLTickCount();
-#endif // _WIN32
 }
 
 void PreDrawGameProcess()
@@ -1523,4 +1541,455 @@ static BOOL doInit()
 	// TODO: this was mapped from winapi, not needed here, could be moved to SDL_AppQuit
 	SDL_DestroyWindow( sdlWindow );
 	return FALSE;
+}
+
+void ClearModes()
+{
+	DrawPixMode = 0;
+	DrawGroundMode = 0;
+	HeightEditMode = false;
+	MEditMode = false;
+	LockMode = 0;
+	WaterEditMode = false;
+	#ifdef _WIN32
+	SetWallBuildMode( 0xFF, 0 );
+	TexMapMod = false;
+	RiverEditMode = 0;
+	ClearCurve();
+	#endif
+	TexPieceMode = 0;
+}
+
+
+//Many diffirent key checks for various game modes
+void GameKeyCheck()
+{
+	if (PlayGameMode == 1)
+	{
+		if (KeyPressed)
+		{
+			GameExit = true;
+			RetryVideo = 0;
+			KeyPressed = 0;
+			return;
+		}
+	}
+
+	#ifdef _WIN32
+	ProcessVotingKeys();
+
+	if (EnterChatMode)
+	{
+		ProcessChatKeys();
+		return;
+	}
+
+	if (EditMapMode)
+	{
+		EditorKeyCheck();
+		return;
+	}
+	#endif // _WIN32
+
+	if (KeyPressed)
+	{
+		KeyPressed = false;
+		SDL_Keycode wParam = LastKey;
+		switch (wParam)
+		{
+		case SDLK_ESCAPE:
+			ClearModes();
+			BuildMode = false;
+			GetCoord = false;
+			curptr = 0;
+			curdx = 0;
+			curdy = 0;
+			PauseMode = 0;
+			SetDestMode = false;
+			GoAndAttackMode = false;
+			GUARDMODE = 0;
+			PATROLMODE = 0;
+
+			if (WaitState == 1)
+				WaitState = 2;
+
+			if (ShowGameScreen)
+				ShowGameScreen = 2;
+
+			AttGrMode = 0;
+			break;
+#ifdef _WIN32
+		case SDLK_SPACE:
+			SpecCmd = 111;
+			break;
+		case SDLK_BACKSPACE:
+			SpecCmd = 112;
+			break;
+		case SDLK_U:
+			if (Inform != 2)
+			{
+				Inform = 2;
+			}
+			else
+			{
+				Inform = 0;
+			}
+			MiniActive = 0;
+			Recreate = 1;
+			break;
+		case SDLK_M:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				SpecCmd = 114;
+			}
+			else
+			{
+				FullMini = !FullMini;
+			}
+			MiniActive = 0;
+			Recreate = 1;
+			break;
+		case SDLK_F12:
+			MenuType = 1;
+			MakeMenu = true;
+			break;
+		case SDLK_F1:
+			if (!CheckFNSend( 0 ))
+			{
+				MenuType = 4;
+				MakeMenu = true;
+			}
+			break;
+		case SDLK_F2:
+			CheckFNSend( 1 );
+			break;
+		case SDLK_F3:
+			CheckFNSend( 2 );
+			break;
+		case SDLK_F4:
+			CheckFNSend( 3 );
+			break;
+		case SDLK_F5:
+			CheckFNSend( 4 );
+			break;
+		case SDLK_F6:
+			CheckFNSend( 5 );
+			break;
+		case SDLK_F7:
+			CheckFNSend( 6 );
+			break;
+		case SDLK_F8:
+			CheckFNSend( 7 );
+			break;
+		case SDLK_F9:
+			if (!CheckFNSend( 8 ))
+			{
+				Creator = 4096 + 255;
+			}
+			break;
+		case SDLK_TILDE:
+			HealthMode = !HealthMode;
+			break;
+		case SDLK_DELETE:
+			SpecCmd = 200;
+			break;
+
+		/*
+		case SDLK_D:
+			if (!( GetSDLKeyState( SDL_SCANCODE_LCTRL ) ))
+			{
+				if (NPlayers < 2)
+				{
+					if (( GetSDLKeyState( SDL_SCANCODE_LSHIFT ) ))
+					{
+						switch (HISPEED)
+						{
+						case 0:
+							HISPEED = 1;
+							break;
+						case 1:
+							HISPEED = 2;
+							break;
+						case 2:
+							HISPEED = 3;
+							break;
+						default:
+							HISPEED = 0;
+							break;
+						}
+					}
+				}
+			}
+			else
+			{
+				//CmdChangeSpeed();//BUGFIX: real time speed changing
+			}
+			break;
+		*/
+
+		case SDLK_A:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+				SpecCmd = 1;
+			else if (NSL[MyNation])
+				GoAndAttackMode = 1;
+			break;
+		case SDLK_S:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+				SpecCmd = 201;
+			break;
+		case SDLK_W:
+			break;
+		case SDLK_J:
+			if (PlayGameMode == 2)
+			{
+				int ExRX = RealLx;
+				int ExRY = RealLy;
+				if (RealLx != 1024 || RealLy != 768)
+				{
+					SetGameDisplayModeAnyway( 1024, 768 );
+				}
+				ShowStatistics();
+				if (RealLx != ExRX || RealLy != ExRY)
+				{
+					SetGameDisplayModeAnyway( ExRX, ExRY );
+				}
+			}
+			break;
+		case SDLK_K:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				RealPause -= 2;
+			}
+			else
+			{
+				RealPause += 2;
+			}
+			break;
+		case SDLK_Q:
+			LockGrid += 2;
+			if (LockGrid > 3)
+			{
+				LockGrid = 0;
+			}
+			MiniActive = 0;
+			Recreate = 1;
+			break;
+		case SDLK_B:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				SpecCmd = 9;
+			}
+			else
+			{
+				SpecCmd = 10;
+			}
+			break;
+		case SDLK_Z:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				SpecCmd = 11;
+			}
+			else
+			{
+				//Select all units of the selected type on screen
+				SpecCmd = 241;
+			}
+			break;
+		case SDLK_F:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				SpecCmd = 13;
+			}
+			else
+			{
+				SpecCmd = 14;
+			}
+			break;
+		case SDLK_KP_1:
+			if (MEditMode)
+			{
+				EditMedia = 0;
+			}
+			else
+			{
+				if (NPlayers < 2 && ChangeNation)
+				{
+					SetMyNation( 0 );
+				}
+				PlayerMask = 1;
+			}
+			break;
+		case SDLK_KP_2:
+			if (MEditMode)EditMedia = 1;
+			else
+			{
+				if (NPlayers < 2 && ChangeNation)
+				{
+					SetMyNation( 1 );
+				}
+				PlayerMask = 2;
+			}
+			break;
+		case SDLK_KP_3:
+			if (MEditMode)
+			{
+				EditMedia = 2;
+			}
+			else
+			{
+				if (NPlayers < 2 && ChangeNation)
+				{
+					SetMyNation( 2 );
+				}
+				PlayerMask = 4;
+			}
+			break;
+		case SDLK_KP_4:
+			if (MEditMode)
+			{
+				EditMedia = 3;
+			}
+			else
+			{
+				if (NPlayers < 2 && ChangeNation)
+				{
+					SetMyNation( 3 );
+				}
+				PlayerMask = 8;
+			}
+			break;
+		case SDLK_KP_5:
+			if (MEditMode)
+			{
+				EditMedia = 4;
+			}
+			else
+			{
+				if (NPlayers < 2 && ChangeNation)
+				{
+					SetMyNation( 4 );
+				}
+				PlayerMask = 16;
+			}
+			break;
+		case SDLK_KP_6:
+			if (MEditMode)
+			{
+				BlobMode = 1;
+			}
+			else
+			{
+				if (NPlayers < 2 && ChangeNation)
+				{
+					SetMyNation( 5 );
+				}
+				PlayerMask = 32;
+			}
+			break;
+		case SDLK_KP_7:
+			if (MEditMode)
+			{
+				BlobMode = -1;
+			}
+			else
+			{
+				if (NPlayers < 2 && ChangeNation)
+				{
+					SetMyNation( 6 );
+				}
+				PlayerMask = 64;
+			}
+			break;
+		case SDLK_KP_8:
+			if (NPlayers < 2 && ChangeNation)
+			{
+				SetMyNation( 7 );
+			}
+			PlayerMask = 128;
+			break;
+		case SDLK_I:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				InfoMode = !InfoMode;
+			}
+			else
+			{
+				if (Inform != 1)
+				{
+					Inform = 1;
+				}
+				else
+				{
+					Inform = 0;
+				}
+				MiniActive = 0;
+				Recreate = 1;
+			}
+			break;
+
+		case SDLK_CAPSLOCK:
+			EgoFlag = !EgoFlag;
+			break;
+
+		case SDLK_O:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				if (PlayGameMode == 2 || CheckFlagsNeed())
+				{
+					OptHidden = !OptHidden;
+					if (!OptHidden)
+					{
+						Inform = 0;
+					}
+				};
+			}
+			else
+			{
+				TransMode = !TransMode;
+				MiniActive = 0;
+				Recreate = 1;
+			}
+			break;
+		case SDLK_P:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				SpecCmd = 113;
+			}
+			else
+			{
+				if (MultiTvar)
+				{
+					NeedToPopUp = 2;
+					Inform = 0;
+				}
+			}
+			break;
+		case SDLK_PAUSE:
+			if (tmtmt > 32 && !LockPause)
+			{
+				SpecCmd = 137;
+			}
+			break;
+		case SDLK_RETURN:
+			if (!RESMODE)
+			{
+				EnterChatMode = 1;
+				ClearKeyStack();
+			}
+			break;
+#endif
+		default:
+			if (SDLK_0 <= wParam && wParam <= SDLK_9)
+			{
+				if (GetSDLTickCount() - LastCTRLPressTime < kCtrlStickyTime)
+				{
+					CmdMemSelection( MyNation, wParam - SDLK_0 );
+				}
+				else
+				{
+					CmdRememSelection( MyNation, wParam - SDLK_0 );
+				}
+			}
+		}
+	}
 }
