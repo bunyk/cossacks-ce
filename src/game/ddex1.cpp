@@ -7,7 +7,6 @@
  ***************************************************************************/
 
 #define NAME "CEW_KERNEL"
-#define TITLE "Cossacks"
 #define NODPLAY
 
 #include "os.h"
@@ -60,7 +59,6 @@
 extern PlayerInfo PINFO[8];
 
 #define TIMER_ID 1
-#define maxTask 32
 
 bool AttackMode;
 bool ChoosePosition;
@@ -132,15 +130,6 @@ int StoneID;
 int TreeID;
 int WaterEditMode;
 
-//Game speed mode
-//0: Slow mode
-//1: Fast mode
-int exFMode = 1;
-
-//Timer Callback
-int cadr;
-int tima;
-int tmtim;
 
 //Main internal counter for intervals
 int tmtmt;
@@ -149,14 +138,6 @@ static int Light = 0;
 
 char* FormationStr = nullptr;
 
-byte EditMedia;
-byte LockGrid;
-byte LockMode;
-byte PauseMode = 0;
-byte PlayerMask;
-byte Quality;
-word Creator;
-static word MsPerFrame = 40;
 CDirSound CDIRSND;
 City CITY[8];
 HugeExplosion HE;
@@ -216,14 +197,10 @@ extern char SaveFileName[128];
 
 extern bool ScanPressed[SDL_SCANCODE_KP_0 + 1];
 extern byte SpecCmd;
-extern word PlayerMenuMode;
 extern word rpos;
 extern BlockBars LockBars;
 extern BlockBars UnLockBars;
 extern CDirSound* CDS;
-
-DLLEXPORT bool KeyPressed;
-DLLEXPORT SDL_Keycode LastKey;
 
 void InitDialogs();
 void SFLB_LoadGame( char* fnm, bool LoadNation );
@@ -260,52 +237,15 @@ void WinnerControl( bool );
 void makeFden();
 int processMainMenu();
 
-//For parallel processable tasks
-typedef void EventHandPro( void* );
-struct EventsTag
-{
-	EventHandPro* Pro;
-	int	Type;
-	int	Handle;
-	bool Blocking;
-	void* Param;
-};
 
 void PlayerMenuWork();
 int GetResID( char* );
-
-EventsTag Events[maxTask];
-int RegisterEventHandler( EventHandPro* pro, int Type, void* param )
-{
-	int i;
-	for (i = 0; Events[i].Pro != nullptr && i < maxTask; i++);
-	if (i >= maxTask)
-	{
-		return -1;
-	}
-
-	Events[i].Pro = pro;
-	Events[i].Type = Type;
-	Events[i].Handle = i;
-	Events[i].Blocking = false;
-	Events[i].Param = param;
-	return i;
-}
-
-void CloseEventHandler( int i )
-{
-	memset( &Events[i], 0, sizeof Events[i] );
-}
 
 #ifndef NODPLAY
 HWND hwnd;
 #endif
 
-//fonts
-RLCTable RCross;
-RLCTable mRCross;
 
-int xxx;
 void ShowFon1();
 void WaterCorrection();
 extern bool TexMapMod;
@@ -439,7 +379,6 @@ bool Loading()
 	return 1;
 }
 
-extern int CurPalette;
 void SaveScreenShot( char* Name )
 {
 	byte PAL[1024];
@@ -664,16 +603,6 @@ void RenderAllMap()
 	NoText = false;
 }
 
-/*
- * finiObjects
- *
- * finished with all objects we use; release them
- */
-static void finiObjects( void )
-{
-	FreeDDObjects();
-} /* finiObjects */
-
 #define MaxQu 32
 MouseStack MSTC[MaxQu];
 MouseStack CURMS;
@@ -795,10 +724,6 @@ void CmdEndGame( byte NI, byte state, byte cause );
 
 extern uint64_t GetSDLTickCount();
 
-/*
- * doInit - do work required for every instance of the application:
- *                create the window, initialize data
- */
 void ProcessGSaveMap();
 void EditorKeyCheck();
 void ProcessSaveInSquares();
@@ -1846,123 +1771,6 @@ extern bool Lpressed;
 
 void FilesExit();
 
-//Register winapi window class, init DirectDraw, sounds and cursor
-static BOOL doInit()
-{
-	SDL_WindowFlags windowFlags = 0;
-	if (!window_mode)
-	{
-		windowFlags |= SDL_WINDOW_FULLSCREEN;
-	}
-	if (borderless)
-	{
-		windowFlags |= SDL_WINDOW_BORDERLESS;
-	}
-
-	sdlWindow = SDL_CreateWindow(
-		TITLE,
-		window_mode ? RealLx : screen_width,
-		window_mode ? RealLy : screen_height,
-		windowFlags
-	);
-	if (!sdlWindow)
-	{
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Loading error", "Unable to create SDL window", nullptr);
-		return false;
-	}
-#ifndef NODPLAY
-	hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(sdlWindow), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
-#endif
-	SDL_HideCursor();
-	if (window_mode)
-	{
-		ResizeAndCenterWindow();
-	}
-	
-	// TODO: this was mapped from winapi, not really needed
-	SDL_ShowWindow( sdlWindow );
-	SDL_UpdateWindowSurface( sdlWindow );
-
-	CDIRSND.CreateDirSound();
-
-	CDS = &CDIRSND;
-
-	LoadSounds( "SoundList.txt" );
-
-	ResFile F = RReset( "version.dat" );
-	if (F != INVALID_HANDLE_VALUE)
-	{
-		word B = 0;
-		RBlockRead( F, &B, 2 );
-		RClose( F );
-		if (B > 102)
-		{
-			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "WARNING!", "Unable to use this testing version.", sdlWindow);
-			FilesExit();
-			SDL_Event e;
-			e.type = SDL_EVENT_QUIT;
-			e.quit.timestamp = SDL_GetTicks();
-			SDL_PushEvent(&e);
-			return 0;
-		}
-	}
-
-	if (!Loading())
-	{
-		FilesExit();
-		SDL_Event e;
-		e.type = SDL_EVENT_QUIT;
-		e.quit.timestamp = SDL_GetTicks();
-		SDL_PushEvent(&e);
-		return 0;
-	}
-
-	//create the main DirectDraw object
-	PalDone = false;
-
-	KeyPressed = false;
-
-	//Fullscreen? Prepare for small not stretched menu
-	if (!window_mode)
-	{//Set initial window resolution to native screen resolution
-		if (1920 < screen_width)
-		{//Limit max resolution for menu screen to fullhd
-			//Also necessary for correct offsets in stats screen
-			screen_width = 1920;
-			screen_height = 1080;
-		}
-		RealLx = screen_width;
-		RealLy = screen_height;
-	}
-
-	//Create the screen object with RealLx x RealLy resolution
-	CreateDDObjects( sdlWindow );
-
-	CHKALL();
-
-	if (!SDLError)
-	{
-		LockSurface();
-		UnlockSurface();
-
-		LockSurface();
-		UnlockSurface();
-
-		if (!RealScreenPtr)
-		{
-			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Loading error[2]", "Unable to initialise SDL. It is possible that hardware acceleration is turned off.", sdlWindow);
-			exit( 0 );
-		}
-
-		return TRUE;
-	}
-
-	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ERROR", "SDL Init Failed\n", sdlWindow);
-	finiObjects();
-	// TODO: this was mapped from winapi, not needed here, could be moved to SDL_AppQuit
-	SDL_DestroyWindow( sdlWindow );
-	return FALSE;
-}
 
 void AddDestn( byte x, byte y );
 void ProcessNewMonsters();
@@ -2280,9 +2088,6 @@ void CreateReg()
 
 typedef bool tpShowDialog( int NModes, int* Sizex, int* Sizey, int* Current );
 tpShowDialog* lpShowDialog;
-extern int ModeLX[32];
-extern int ModeLY[32];
-extern int NModes;
 
 int ROLL = 1;
 void NRFUNC()

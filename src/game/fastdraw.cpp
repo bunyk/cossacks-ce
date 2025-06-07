@@ -18,13 +18,12 @@
 
 extern int SCRSizeX;
 extern int SCRSizeY;
-#ifdef _WIN32
 extern int RSCRSizeX;
 extern int RSCRSizeY;
 extern int COPYSizeX;
 extern int LOADED; // comes from gp_draw.cpp
-DLLEXPORT
-void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr );
+
+DLLEXPORT void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr );
 byte PAL1[256];
 byte PAL2[256];
 byte PAL3[256];
@@ -34,6 +33,7 @@ byte PAL6[256];
 byte PAL7[256];
 void ErrM( char* s );
 extern void* offScreenPtr;
+#ifdef _WIN32
 
 typedef RLCHeader* lpRLCHeader;
 
@@ -2337,6 +2337,7 @@ void ShowRLCiFire( int x, int y, void* PicPtr )
 {
 	ShowRLCihtpal( x, y, PicPtr, yfog );
 }
+#endif // _WIN32
 
 //Load rlc file, allocate and fill provided RLCTable
 bool LoadRLC( LPCSTR lpFileName, RLCTable *RLCtbl )
@@ -2365,11 +2366,14 @@ bool LoadRLC( LPCSTR lpFileName, RLCTable *RLCtbl )
 
 	char gg[128];
 	sprintf( gg, "Could not load RLC file: %s", lpFileName );
+	#ifdef _WIN32
 	ErrM( gg );
+	#endif
 
 	return false;
 }
 
+#ifdef _WIN32
 void ShowRLCItem( int x, int y, lpRLCTable lprt, int n, byte nt )
 {
 	cntr++;

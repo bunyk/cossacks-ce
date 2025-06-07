@@ -217,7 +217,6 @@ bool CreateNamedSession( char* Name, DWORD User2, int Max );
 #ifndef NODPLAY
 bool JoinNameToSession( int ns, char* Name );
 #endif // NODPLAY
-void FreeDDObjects( void );
 bool StartIGame( bool );
 extern bool GameInProgress;
 byte MyRace;

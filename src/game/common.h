@@ -1,5 +1,7 @@
 // TODO: this include forces IChat and IntExplorer to add SDL includes
 // Need to find a way to avoid this
+
+#ifdef _WIN32
 #include <SDL3/SDL_keycode.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,6 +70,9 @@ DLLIMPORT void SlowLoadPalette(const char* lpFileName);
 DLLIMPORT void SlowUnLoadPalette(const char* lpFileName);
 DLLIMPORT void SavePlayerData();
 DLLIMPORT void LoadPlayerData();
-DLLIMPORT int CurPalette;
 
 DLLIMPORT uint64_t GetSDLTickCount();
+#endif // _WIN32
+
+DLLIMPORT int CurPalette;
+

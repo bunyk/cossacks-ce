@@ -23,10 +23,15 @@ bool EditMapMode;
 extern bool InGame;
 extern bool InEditor;
 byte PlayGameMode = 0;
+extern word PlayerMenuMode;
 
 int screen_width;
 int screen_height;
 double screen_ratio;
+
+extern int ModeLX[32];
+extern int ModeLY[32];
+extern int NModes;
 
 //Last used display resolutions for both modes
 int exRealLx, exRealLy;
@@ -37,10 +42,77 @@ extern int RealLy;
 
 int MaxSizeX;
 int MaxSizeY;
+bool PalDone;
 
 SDL_Window* sdlWindow;
+int CurPalette;
+
+//Game speed mode
+//0: Slow mode
+//1: Fast mode
+int exFMode = 1;
+
+//Timer Callback
+int cadr;
+int tima;
+int tmtim;
+
+int xxx;
+
+byte EditMedia;
+byte LockGrid;
+byte LockMode;
+byte PauseMode = 0;
+byte PlayerMask;
+byte Quality;
+word Creator;
+static word MsPerFrame = 40;
 
 boost::coroutines2::coroutine<void>::pull_type* AllGameCoroutine = nullptr;
+
+//fonts
+RLCTable RCross;
+RLCTable mRCross;
+
+
+//For parallel processable tasks
+#define maxTask 32
+typedef void EventHandPro( void* );
+struct EventsTag
+{
+	EventHandPro* Pro;
+	int	Type;
+	int	Handle;
+	bool Blocking;
+	void* Param;
+};
+EventsTag Events[maxTask];
+int RegisterEventHandler( EventHandPro* pro, int Type, void* param )
+{
+	int i;
+	for (i = 0; Events[i].Pro != nullptr && i < maxTask; i++);
+	if (i >= maxTask)
+	{
+		return -1;
+	}
+
+	Events[i].Pro = pro;
+	Events[i].Type = Type;
+	Events[i].Handle = i;
+	Events[i].Blocking = false;
+	Events[i].Param = param;
+	return i;
+}
+
+void CloseEventHandler( int i )
+{
+	memset( &Events[i], 0, sizeof Events[i] );
+}
+
+BOOL doInit();
+DLLEXPORT bool KeyPressed;
+DLLEXPORT SDL_Keycode LastKey;
+
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 {
@@ -98,10 +170,12 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	#ifdef _WIN32
 	//Delete random generated *.m3d map files
 	EraseRND();
+	#endif
 
 	//Pointer to the DirectDraw screen buffer
 	ScreenPtr = nullptr;
 
+	#ifdef _WIN32
 	ChangeNation = false;
 	MultiTvar = false;
 	MEditMode = false;
@@ -117,12 +191,14 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	SpecCmd = 0;
 	sfVersion = 285;
 	Quality = 2;
+	#endif
 
 	RealLx = 1024;
 	RealLy = 768;
 	exRealLx = 1024;
 	exRealLy = 768;
 
+	#ifdef _WIN32
 	WarSound = 0;
 	WorkSound = 0;
 	OrderSound = 0;
@@ -168,6 +244,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 		Gscanf(rec_settings_file, "%d%s", &RecordMode, &RECFILE);
 		Gclose(rec_settings_file);
 	}
+	#endif // _WIN32
 
 	//Look if loaded values match possible screen resolutions
 	bool ExMode = 0;
@@ -204,6 +281,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	WindLx = 1024;
 	WindLy = 768;
 
+	#ifdef _WIN32
 	tima = 0;
 	PlayerMask = 1;
 	Flips = 0;
@@ -240,11 +318,13 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	makeFden();
 
 	PlayerMenuMode = 1;
+	#endif // _WIN32
 
 	Creator = 4096 + 255;
 	xxx = 0;
 	cadr = 0;
 
+	#ifdef _WIN32
 	//MouseZones?
 	InitZones();
 
@@ -262,6 +342,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 
 	//Water colors and buffers
 	InitWater();
+	#endif // _WIN32
 
 	//Load fonts(?)
 	LoadRLC("xrcross.rlc", &RCross);
@@ -275,9 +356,12 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	}
 
 	//Load specific palette and fog resources (alphas etc)
+	#ifdef _WIN32
 	LoadFog(2);
+	#endif // _WIN32
 	LoadPalette("2\\agew_1.pal");
 
+	#ifdef _WIN32
 	//Init DirectPlay and DPInfo structure
 	SetupMultiplayer();
 
@@ -311,6 +395,17 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	AllGameCoroutine = new boost::coroutines2::coroutine<void>::pull_type(AllGame);
 
 	return SDL_APP_CONTINUE;
+}
+
+// Mouse grab confines the mouse cursor to the window, when InGame or InEditor is true.
+void ClipCursorToWindowArea()
+{
+	if (!window_mode)
+	{//Just in case
+		return;
+	}
+
+	SDL_SetWindowMouseGrab(sdlWindow, InGame || InEditor);
 }
 
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
@@ -433,6 +528,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 		}
 		break;
 	}
+	#endif
 
 	case SDL_EVENT_WINDOW_MOVED:
 	case SDL_EVENT_WINDOW_RESIZED:
@@ -456,7 +552,9 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 			CreateDDObjects(sdlWindow);
 			LockSurface();
 			UnlockSurface();
+			#ifdef _WIN32
 			LoadFog(CurPalette);
+			#endif
 			char cc[64];
 			sprintf(cc, "%d\\agew_1.pal", CurPalette);
 			PalDone = 0;
@@ -469,6 +567,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 	//	SetCursor(NULL);
 	//	return TRUE;
 
+#ifdef _WIN32
 	case SDL_EVENT_KEY_DOWN:
 	{
 		SDL_Keycode keycode = event->key.key;
@@ -640,13 +739,12 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result)
 	StopPlayCD();
 	FinExplorer();
 
-	finiObjects();
+	FreeDDObjects();
 	// PostQuitMessage(0); TODO: find cross-platform equivalent
 	#endif // _WIN32
 	exit(0);
 }
 
-bool PalDone;
 
 bool InitScreen()
 {
@@ -675,16 +773,6 @@ bool InitScreen()
 	return false;
 }
 
-// Mouse grab confines the mouse cursor to the window, when InGame or InEditor is true.
-void ClipCursorToWindowArea()
-{
-	if (!window_mode)
-	{//Just in case
-		return;
-	}
-
-	SDL_SetWindowMouseGrab(sdlWindow, InGame || InEditor);
-}
 
 
 void ResizeAndCenterWindow()
@@ -1269,4 +1357,135 @@ void PreDrawGameProcess()
 	//Something about area linking?
 	ProcessDynamicalTopology();
 #endif
+}
+
+//Register winapi window class, init DirectDraw, sounds and cursor
+/*
+ * doInit - do work required for every instance of the application:
+ *                create the window, initialize data
+ */
+static BOOL doInit()
+{
+	SDL_WindowFlags windowFlags = 0;
+	if (!window_mode)
+	{
+		windowFlags |= SDL_WINDOW_FULLSCREEN;
+	}
+	if (borderless)
+	{
+		windowFlags |= SDL_WINDOW_BORDERLESS;
+	}
+
+	sdlWindow = SDL_CreateWindow(
+		"Cossacks",
+		window_mode ? RealLx : screen_width,
+		window_mode ? RealLy : screen_height,
+		windowFlags
+	);
+	if (!sdlWindow)
+	{
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Loading error", "Unable to create SDL window", nullptr);
+		return false;
+	}
+#ifndef NODPLAY
+	hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(sdlWindow), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
+#endif
+	SDL_HideCursor();
+	if (window_mode)
+	{
+		ResizeAndCenterWindow();
+	}
+	
+	// TODO: this was mapped from winapi, not really needed
+	SDL_ShowWindow( sdlWindow );
+	SDL_UpdateWindowSurface( sdlWindow );
+
+	#ifdef _WIN32
+	CDIRSND.CreateDirSound();
+
+	CDS = &CDIRSND;
+
+
+	LoadSounds( "SoundList.txt" );
+	#endif // _WIN32
+
+	ResFile F = RReset( "version.dat" );
+	if (F != INVALID_HANDLE_VALUE)
+	{
+		word B = 0;
+		RBlockRead( F, &B, 2 );
+		RClose( F );
+		if (B > 102)
+		{
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "WARNING!", "Unable to use this testing version.", sdlWindow);
+			FilesExit();
+			SDL_Event e;
+			e.type = SDL_EVENT_QUIT;
+			e.quit.timestamp = SDL_GetTicks();
+			SDL_PushEvent(&e);
+			return 0;
+		}
+	}
+
+	
+	#ifdef _WIN32
+	if (!Loading())
+	{
+		FilesExit();
+		SDL_Event e;
+		e.type = SDL_EVENT_QUIT;
+		e.quit.timestamp = SDL_GetTicks();
+		SDL_PushEvent(&e);
+		return 0;
+	}
+	#endif // _WIN32
+
+	//create the main DirectDraw object
+	PalDone = false;
+
+	KeyPressed = false;
+
+	//Fullscreen? Prepare for small not stretched menu
+	if (!window_mode)
+	{//Set initial window resolution to native screen resolution
+		if (1920 < screen_width)
+		{//Limit max resolution for menu screen to fullhd
+			//Also necessary for correct offsets in stats screen
+			screen_width = 1920;
+			screen_height = 1080;
+		}
+		RealLx = screen_width;
+		RealLy = screen_height;
+	}
+
+	//Create the screen object with RealLx x RealLy resolution
+	CreateDDObjects( sdlWindow );
+
+	#ifdef _WIN32
+	CHKALL();
+	#endif // _WIN32
+
+	if (!SDLError)
+	{
+		LockSurface();
+		UnlockSurface();
+
+		// TODO: why twice?
+		LockSurface();
+		UnlockSurface();
+
+		if (!RealScreenPtr)
+		{
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Loading error[2]", "Unable to initialise SDL. It is possible that hardware acceleration is turned off.", sdlWindow);
+			exit( 0 );
+		}
+
+		return TRUE;
+	}
+
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ERROR", "SDL Init Failed\n", sdlWindow);
+	FreeDDObjects();
+	// TODO: this was mapped from winapi, not needed here, could be moved to SDL_AppQuit
+	SDL_DestroyWindow( sdlWindow );
+	return FALSE;
 }

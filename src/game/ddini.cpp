@@ -300,12 +300,14 @@ bool EnumModesOnly()
 	SDL_DisplayID primaryDisplay = SDL_GetPrimaryDisplay();
 	if (primaryDisplay)
 	{
+		printf("primaryDisplay: %s\n", SDL_GetDisplayName(primaryDisplay));
 		int numModes;
 		SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(primaryDisplay, &numModes);
 		if (modes)
 		{
 			for (int i = 0; i < numModes; i++)
 			{
+				printf("Display mode %d: %dx%d @ %dHz, format: %s\n", i, modes[i]->w, modes[i]->h, modes[i]->refresh_rate, SDL_GetPixelFormatName(modes[i]->format));
 				SDLModeCallback(modes[i]);
 			}
 
@@ -763,6 +765,7 @@ DLLEXPORT void SlowUnLoadPalette( const char* lpFileName )
 		} while (mul != 255);
 	}
 }
+#endif // _WIN32
 
 /*     Closing all Direct Draw objects
  *
@@ -796,7 +799,6 @@ void FreeDDObjects( void )
 		renderer = nullptr;
 	}
 }
-#endif // _WIN32
 
 DLLEXPORT void GetPalColor( byte idx, byte* r, byte* g, byte* b )
 {
