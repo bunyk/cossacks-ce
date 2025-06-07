@@ -108,7 +108,7 @@ static GeneralObject* LastGO;
 static Nation* LastNT;
 static word LastAmount;
 static word LastID;
-extern int curptr;
+extern int mousePointerType;
 extern int curdx;
 extern int curdy;
 
@@ -1256,7 +1256,7 @@ word MaxMagic;
 
 void UNIPARAM( int i )
 {
-	curptr = 2;
+	mousePointerType = 2;
 	curdx = 16;
 	curdy = 15;
 	GetCoord = true;

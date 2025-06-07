@@ -158,7 +158,7 @@ byte bly;
 word BuildingID;
 Nation* BNat;
 extern int NAsk;
-extern int curptr;
+extern int mousePointerType;
 int	smapx;
 int	smapy;
 
@@ -3068,7 +3068,7 @@ void HandleMouse( int x, int y )
 		GoAndAttackMode = 0;
 	}
 
-	curptr = 0;
+	mousePointerType = 0;
 
 	//Check if a wall is beeing build
 	if (Rpressed && BuildMode)
@@ -3161,17 +3161,17 @@ void HandleMouse( int x, int y )
 
 		if (GoAndAttackMode)
 		{
-			curptr = 1;
+			mousePointerType = 1;
 		}
 
 		if (SetDestMode)
 		{
-			curptr = 8;
+			mousePointerType = 8;
 		}
 
 		if (AttGrMode)
 		{
-			curptr = AttGrPtr;
+			mousePointerType = AttGrPtr;
 		}
 	}
 
@@ -3336,7 +3336,7 @@ void HandleMouse( int x, int y )
 			}
 
 			Lpressed = false;
-			curptr = 0;
+			mousePointerType = 0;
 			curdx = 0;
 			curdy = 0;
 			GetCoord = false;
@@ -3350,7 +3350,7 @@ void HandleMouse( int x, int y )
 
 		if (Rpressed)
 		{
-			curptr = 0;
+			mousePointerType = 0;
 			curdx = 0;
 			curdy = 0;
 			GetCoord = false;
@@ -3926,11 +3926,11 @@ void HandleMouse( int x, int y )
 					{
 						if (AOB->newMons->CanBeKilledInside && AOB->NInside&&CanShoot)
 						{
-							curptr = 1;
+							mousePointerType = 1;
 						}
 						if (AOB->newMons->MathMask&MTMASK)
 						{
-							curptr = 1;
+							mousePointerType = 1;
 						}
 						else
 						{
@@ -3938,23 +3938,23 @@ void HandleMouse( int x, int y )
 							{
 								if (CanAttBLD)
 								{
-									curptr = 1;
+									mousePointerType = 1;
 								}
 							}
 						}
 						if (AOB->newMons->Capture && CanCapt&&TestCapture( AOB ) != -1)
 						{
-							curptr = 2;
+							mousePointerType = 2;
 						}
 						if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
 						{
 							if (AOB->newMons->CanBeCapturedWhenFree)
 							{
-								curptr = 8;
+								mousePointerType = 8;
 							}
 							else
 							{
-								curptr = 8;
+								mousePointerType = 8;
 							}
 						}
 					}
@@ -3975,7 +3975,7 @@ void HandleMouse( int x, int y )
 				OneObject* FRI = Group[Friend];
 				if (FRI&&FRI->newMons->Transport&&CheckTransportEntering( FRI ) && CanEnter)
 				{
-					curptr = EnterTrPtr;
+					mousePointerType = EnterTrPtr;
 				}
 			}
 			byte rk = 0xFF;
@@ -3988,24 +3988,24 @@ void HandleMouse( int x, int y )
 					{
 						if (FR->Ready&&FR->Ref.General->MoreCharacter->MaxInside + FR->AddInside > FR->NInside)
 						{
-							curptr = 4;
+							mousePointerType = 4;
 						}
 						if (FR->Life < FR->Ref.General->MoreCharacter->Life)
 						{
-							curptr = 3;
+							mousePointerType = 3;
 						}
 					}
 				}
 				if (CheckWallClick( xmx, yreal ))
 				{
-					curptr = 3;
+					mousePointerType = 3;
 				}
 				rk = DetermineResource( xmx, yreal );
-				if (!curptr)
+				if (!mousePointerType)
 				{
-					if (rk == TreeID)curptr = 6;
-					if (rk == StoneID)curptr = 5;
-					if (rk == FoodID)curptr = 7;
+					if (rk == TreeID)mousePointerType = 6;
+					if (rk == StoneID)mousePointerType = 5;
+					if (rk == FoodID)mousePointerType = 7;
 				}
 			}
 			if (Rpressed)
@@ -4044,11 +4044,11 @@ void HandleMouse( int x, int y )
 					}
 					xmx = SStartX;
 					yreal = SStartY;
-					if (rk < 0xFE && ( curptr == 5 || curptr == 6 || curptr == 7 ) && Nr <= 30)
+					if (rk < 0xFE && ( mousePointerType == 5 || mousePointerType == 6 || mousePointerType == 7 ) && Nr <= 30)
 					{
 						CmdTakeRes( MyNation, xmx, yreal, rk );
 					}
-					if (Friend != 0xFFFF && curptr != 5 && curptr != 6 && curptr != 7 && Nr <= 30)
+					if (Friend != 0xFFFF && mousePointerType != 5 && mousePointerType != 6 && mousePointerType != 7 && Nr <= 30)
 					{
 						OneObject* OB = Group[Friend];
 						if (OB&&OB->NewBuilding && !OB->Sdoxlo)
@@ -4110,16 +4110,16 @@ void HandleMouse( int x, int y )
 				};
 				if (Friend != 0xFFFF)
 				{
-					curptr = GuardPtr2;
+					mousePointerType = GuardPtr2;
 				}
 				else
 				{
-					curptr = GuardPtr1;
+					mousePointerType = GuardPtr1;
 				};
 			};
 			if (PATROLMODE)
 			{
-				curptr = PatrolPtr;
+				mousePointerType = PatrolPtr;
 			};
 			if (DOPATROL)
 			{
@@ -4376,7 +4376,7 @@ void EDGETEST()
 
 	if (GetSDLKeyState( SDL_SCANCODE_LSHIFT ))
 	{
-		curptr = 0;
+		mousePointerType = 0;
 	}
 
 	//Adjust Lpressed and Rpressed

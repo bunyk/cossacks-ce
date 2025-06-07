@@ -98,7 +98,7 @@ extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
 
 extern bool GoAndAttackMode;
 void AddXYPulse( int x, int y );
-extern int curptr;
+extern int mousePointerType;
 //[2][ni][x][y]
 void CmdSendToXY( byte NI, int x, int y, short Dir )
 {
@@ -116,7 +116,7 @@ void CmdSendToXY( byte NI, int x, int y, short Dir )
 	*(short*) ( &ExBuf[EBPos + 10] ) = Dir;
 	ExBuf[EBPos + 12] = Type;
 	EBPos += 13;
-	if ( !curptr )AddXYPulse( x >> 4, y >> 4 );
+	if ( !mousePointerType )AddXYPulse( x >> 4, y >> 4 );
 
 }
 

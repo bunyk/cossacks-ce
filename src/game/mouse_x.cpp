@@ -1,9 +1,12 @@
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
+
+#ifdef _WIN32
 #include "mgraph.h"
 #include "mode.h"
 #include "gp_draw.h"
+#endif
 
 #define MaxMX 32
 #define MsizeX 32
@@ -32,7 +35,7 @@ bool realRpressed;
 //11: Enter transport
 //12: Guard (highlighted shield)
 //13: Patrol (shield and sword)
-int curptr;
+int curptr; // TODO: make this enum and use constant names instead of numbers
 
 int mouseX;
 int	mouseY;
@@ -60,6 +63,7 @@ extern int mapy;
 extern int smapx;
 extern int smapy;
 
+#ifdef _WIN32
 //retreives data from the screen buffer to field 32x32
 void GetMData( void* dest, void* src, int x, int y, int SSizeX, int SSizeY )
 {
@@ -368,3 +372,4 @@ void PostRedrawMouse()
 
 	LockMouse = false;
 }
+#endif // _WIN32

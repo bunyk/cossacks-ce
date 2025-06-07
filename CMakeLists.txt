@@ -34,6 +34,7 @@ add_executable(cossacks
 	src/game/loadsave.cpp
 	src/game/3drandmap.cpp
 	src/game/multi.cpp
+	src/game/mouse_x.cpp
 )
 
 # Link to the actual SDL3 libraries.

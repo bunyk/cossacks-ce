@@ -6481,7 +6481,7 @@ extern bool RejectThisPlayer;
 
 void ResizeAndCenterWindow();
 
-extern int curptr;
+extern int mousePointerType;
 
 
 //Draw main menu and process events
@@ -6491,7 +6491,7 @@ int processMainMenu()
 	InGame = false;
 	InEditor = false;
 
-	curptr = 0;
+	mousePointerType = 0;
 
 	if ( window_mode )
 	{//Adjust to default menu size after exiting game
@@ -12916,7 +12916,7 @@ void PrintNum( int N, char* res )
 //Draws post game stats screen
 bool ShowStatistics()
 {
-	curptr = 0;
+	mousePointerType = 0;
 
 	int res = 0;
 	int cur = 0;

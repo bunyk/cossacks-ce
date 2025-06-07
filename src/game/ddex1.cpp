@@ -80,8 +80,6 @@ bool TransMode;
 bool VHMode = 0;
 bool fixed;
 
-//Timespan in ms after last LastCTRLPressTime which allows setting unit control groups
-const int kCtrlStickyTime = 50;
 
 
 
@@ -171,9 +169,6 @@ extern int RealPause;
 extern int ShowGameScreen;
 extern int WarSound;
 extern int WorkSound;
-extern int curdx;
-extern int curdy;
-extern int curptr;
 extern int sfVersion;
 
 extern char SaveFileName[128];
@@ -700,7 +695,6 @@ extern int WaitState;
 
 
 extern byte PlayGameMode;
-extern int LastCTRLPressTime;
 bool CheckFNSend( int idx );
 void ProcessVotingKeys();
 extern bool RESMODE;
@@ -870,7 +864,7 @@ void EditorKeyCheck()
 				BuildMode = false;
 				//BuildWall=false;
 				GetCoord = false;
-				curptr = 0;
+				mousePointerType = 0;
 				curdx = 0;
 				curdy = 0;
 				GUARDMODE = 0;

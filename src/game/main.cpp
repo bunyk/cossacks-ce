@@ -26,6 +26,8 @@ byte PlayGameMode = 0;
 extern word PlayerMenuMode;
 extern bool GameExit; // owned by interface.cpp
 
+extern int LastCTRLPressTime; // in interface.cpp
+
 int DrawGroundMode = 0;
 int DrawPixMode = 0;
 int HeightEditMode;
@@ -69,6 +71,9 @@ int exFMode = 1;
 //Minimal delay between two PostDrawGameProcess() returns, in ms
 const unsigned int kPostDrawInterval = 16;//~60 Hz
 
+//Timespan in ms after last LastCTRLPressTime which allows setting unit control groups
+const int kCtrlStickyTime = 50;
+
 int xxx;
 
 byte EditMedia;
@@ -108,6 +113,11 @@ bool SHOWSLIDE = true;
 int AutoTime;
 
 bool ProcessMessages();
+
+
+extern int mousePointerType; // owned by mouse_x.cpp
+extern int curdx;
+extern int curdy;
 
 extern uint64_t GetSDLTickCount();
 
@@ -1601,10 +1611,11 @@ void GameKeyCheck()
 			ClearModes();
 			BuildMode = false;
 			GetCoord = false;
-			curptr = 0;
+			mousePointerType = 0;
 			curdx = 0;
 			curdy = 0;
 			PauseMode = 0;
+			#ifdef _WIN32
 			SetDestMode = false;
 			GoAndAttackMode = false;
 			GUARDMODE = 0;
@@ -1617,6 +1628,7 @@ void GameKeyCheck()
 				ShowGameScreen = 2;
 
 			AttGrMode = 0;
+			#endif
 			break;
 #ifdef _WIN32
 		case SDLK_SPACE:
