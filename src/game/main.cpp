@@ -166,6 +166,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 		e.quit.timestamp = SDL_GetTicks();
 		SDL_PushEvent(&e);
 	}
+	printf("Files initialized.\n");
 
 	#ifdef _WIN32
 	//Delete random generated *.m3d map files
@@ -273,6 +274,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	double scale = 0.01;
 	screen_ratio = (double)screen_width / screen_height;
 	screen_ratio = (int)(screen_ratio / scale) * scale;
+	printf("Screen resolution: %dx%d, ratio: %.2f\n", screen_width, screen_height, screen_ratio);
 
 	WindX = 0;
 	WindY = 0;

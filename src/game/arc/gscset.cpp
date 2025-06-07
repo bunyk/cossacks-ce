@@ -300,6 +300,7 @@ void GSC_OpenError();
 BOOL CGSCset::gOpen()
 {
 	BOOL retval = TRUE;
+	printf("gOpen()\n");
 #ifdef _WIN32
 	HANDLE hFindFile;
 	WIN32_FIND_DATA FindData;
@@ -362,8 +363,8 @@ BOOL CGSCset::gOpen()
 
 	FindClose( hFindFile );
 
-	return retval;
 #endif
+	return retval;
 }
 
 VOID CGSCset::gClose()

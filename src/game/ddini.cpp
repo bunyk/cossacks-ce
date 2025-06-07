@@ -307,7 +307,6 @@ bool EnumModesOnly()
 		{
 			for (int i = 0; i < numModes; i++)
 			{
-				printf("Display mode %d: %dx%d @ %dHz, format: %s\n", i, modes[i]->w, modes[i]->h, modes[i]->refresh_rate, SDL_GetPixelFormatName(modes[i]->format));
 				SDLModeCallback(modes[i]);
 			}
 
