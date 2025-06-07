@@ -32,6 +32,8 @@ add_executable(cossacks
 	src/game/virtscr.cpp
 	src/game/gamesound.cpp
 	src/game/loadsave.cpp
+	src/game/3drandmap.cpp
+	src/game/multi.cpp
 )
 
 # Link to the actual SDL3 libraries.

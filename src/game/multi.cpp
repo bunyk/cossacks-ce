@@ -2,6 +2,8 @@
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
+
+#ifdef _WIN32
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
@@ -65,13 +67,17 @@ void CreateUnit( Nation* NT, byte x, byte y, word ID );
 
 //Execute buffer 
 DWORD Signatur[2049];
+#endif // _WIN32
+
 byte ExBuf[8192];
 int EBPos;
+
 void InitEBuf()
 {
 	EBPos = 0;
 }
 
+#ifdef _WIN32
 extern bool NOPAUSE;
 //[1][ni][x][y][x1][y1]
 void CmdCreateSelection( byte NI, byte x, byte y, byte x1, byte y1 )
@@ -1108,6 +1114,7 @@ void CmdChangeNatRefTBL( byte* TBL )
 	memcpy( ExBuf + EBPos + 2, TBL, 8 );
 	EBPos += 10;
 }
+#endif // _WIN32
 
 void CmdChangePeaceTimeStage( int Stage )
 {
@@ -1116,6 +1123,7 @@ void CmdChangePeaceTimeStage( int Stage )
 	EBPos += 3;
 }
 
+#ifdef _WIN32
 void CmdAddMoney( byte NI, DWORD Value )
 {
 	ExBuf[EBPos] = 96;
@@ -5972,3 +5980,5 @@ int _implSelUnitsSet_OLD( byte* Ptr )
 	return 3 + N * 2;
 };
 int PrevCallTime = 0;
+
+#endif // _WIN32

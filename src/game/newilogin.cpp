@@ -41,8 +41,6 @@
 #include "ir.h"
 #include "bmptool.h"
 
-void StartExplorer();
-void FinExplorer();
 void RunExplorer( int Index, char* ref, int x, int y, int x1, int y1 );
 void ProcessExplorer( int Index );
 extern int ItemChoose;

@@ -1004,9 +1004,11 @@ bool historical_battle_over_gsc_network = false;
 
 bool DoNewInet = 0;
 extern int GMMAXPL;
-extern bool TOTALEXIT;
 bool ProcessNewInternetLogin();
 extern char** NatsIDS;
+
+char IPADDR[128] = "";
+bool TOTALEXIT = 0;
 
 bool EnterName();
 
@@ -1820,9 +1822,6 @@ bool EnterName()
 
 	return ENRETVAL;
 }
-
-char IPADDR[128] = "";
-bool TOTALEXIT = 0;
 
 //Show network protocol menu
 int MPL_ChooseConnection()
@@ -8738,9 +8737,9 @@ void PlayGame()
 		ResizeAndCenterWindow();
 	}
 
-	#ifdef _WIN32
 	GSSetup800();
 
+	#ifdef _WIN32
 	LoadFog( 0 );
 
 	//Zero NucList, NucSN, NNuc

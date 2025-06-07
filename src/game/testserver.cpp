@@ -77,7 +77,7 @@ tpProcessDownloadInternetFiles* ProcessDownloadInternetFiles = nullptr;
 tpSendRecBuffer* SendRecBuffer = nullptr;
 
 
-DLLEXPORT void StartExplorer()
+DLLEXPORT void StartInternetExplorer()
 {
 	//attempt to use advanced version
 	ResFile F = RReset( "Internet\\Cash\\IntExplorerNew.dll" );
@@ -125,7 +125,7 @@ DLLEXPORT void StartExplorer()
 	}
 }
 
-DLLEXPORT void FinExplorer()
+DLLEXPORT void FinishInternetExplorer()
 {
 	if (H_Exp)
 	{

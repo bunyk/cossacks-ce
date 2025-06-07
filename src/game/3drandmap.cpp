@@ -1,3 +1,6 @@
+#include "os.h"
+
+#ifdef _WIN32
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
@@ -3303,10 +3306,12 @@ void GenerateRandomRoad( int idx );
 extern int LastAddSpr;
 
 void GenerateWithStyle( char* terr );
+#endif // _WIN32
 
-extern int PeaceTimeLeft;
-extern int MaxPeaceTime;
-extern int PeaceTimeStage;
+int PeaceTimeLeft = 300;
+int MaxPeaceTime = 0;
+int PeaceTimeStage = 0;
+
 
 byte BalloonState = 0;
 byte CannonState = 0;
@@ -3318,6 +3323,7 @@ byte DipCentreState = 0;
 byte ShipyardState = 0;
 byte MarketState = 0;
 
+#ifdef _WIN32
 int DecodeOptionsFromNumber( const int number, int *result );
 
 bool CreateRandomTerrain( char* Name, int NPlay, int MountStyle,
@@ -4212,9 +4218,6 @@ int CRoundY[8];
 bool GenerateStartUnits( char* NationID, byte NI, int x, int y, int GenIndex );
 void PictureCordons();
 byte CordonIDX[8];
-int PeaceTimeLeft = 300;
-int MaxPeaceTime = 0;
-int PeaceTimeStage = 0;
 
 int GetUnitActivity( OneObject* OB )
 {
@@ -6944,3 +6947,4 @@ void MakeDesert()
 		};
 	};
 };
+#endif // _WIN32

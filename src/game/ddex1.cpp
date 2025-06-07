@@ -77,7 +77,6 @@ bool MUSTDRAW;
 bool MiniMode;
 
 bool PeaceMode;
-bool SHOWSLIDE = true;
 bool TransMode;
 bool VHMode = 0;
 bool fixed;
@@ -88,8 +87,6 @@ const int kCtrlStickyTime = 50;
 //Minimal delay between two PostDrawGameProcess() returns, in ms
 const unsigned int kPostDrawInterval = 16;//~60 Hz
 
-//Time of the last PostDrawGameProcess() return
-unsigned long prev_postdraw_time = 0;
 
 //Game version. Must match with other clients
 DLLEXPORT word dwVersion = 100;
@@ -97,10 +94,8 @@ DLLEXPORT char LobbyVersion[32] = "1.00";
 DLLEXPORT char BuildVersion[32] = "V 1.00";
 
 int CostThickness;
-int HISPEED = 0;
 int ReliefBrush;
 int TerrBrush;
-int AutoTime;
 int BlobMode;
 int CoalID;
 int CurGroundTexture = 0;
@@ -130,9 +125,6 @@ int StoneID;
 int TreeID;
 int WaterEditMode;
 
-
-//Main internal counter for intervals
-int tmtmt;
 
 static int Light = 0;
 
@@ -214,7 +206,6 @@ void CreateUnitsLocking();
 void EraseAreas();
 void GSSetup800();
 void GetForces();
-void HandleMultiplayer();
 void Init3DMapSystem();
 void InitDestn();
 void InitFishMap();
@@ -238,7 +229,6 @@ void makeFden();
 int processMainMenu();
 
 
-void PlayerMenuWork();
 int GetResID( char* );
 
 #ifndef NODPLAY
@@ -331,8 +321,7 @@ bool Loading()
 	LoadRDS();
 
 	GoldID = GetResID( "GOLD" );
-	FoodID = GetResID( "FOOD" );
-	StoneID = GetResID( "STONE" );
+	FoodID = GetResID( "STONE" );
 	TreeID = GetResID( "WOOD" );
 	CoalID = GetResID( "COAL" );
 	IronID = GetResID( "IRON" );
@@ -722,7 +711,6 @@ bool ReadWinString( GFILE* F, char* STR, int Max );
 
 void CmdEndGame( byte NI, byte state, byte cause );
 
-extern uint64_t GetSDLTickCount();
 
 void ProcessGSaveMap();
 void EditorKeyCheck();
@@ -1816,15 +1804,7 @@ extern word NPlayers;
 void CmdSaveNetworkGame( byte NI, int ID, char* Name );
 extern char SaveFileName[128];
 void ProcessNature();
-bool NeedEBuf = 0;
-int GLOBALTIME = 0;
-int PGLOBALTIME = 0;
-int PitchTicks = 0;
-int MaxPingTime = 0;
-int RealPause = 0;
-int RealStTime = 0;
-int RealGameLength = 0;
-int CurrentStepTime = 80;
+
 
 int SUBTIME = 0;
 void ProcessScreen();
@@ -1857,19 +1837,13 @@ void WaitToTime( int Time )
 	//SUBTIME=0;
 }
 
-int NeedCurrentTime = 0;
 extern bool PreNoPause;
 void StopPlayCD();
 void ProcessUpdate();
 extern byte CaptState;
 extern byte SaveState;
 void WritePitchTicks();
-void ReadPichTicks();
 void ShowCentralText0( char* sss );
-void CmdChangePeaceTimeStage( int Stage );
-int PrevCheckTime = 0;
-extern int PeaceTimeStage;
-extern int PeaceTimeLeft;
 
 
 void InitWaves();
@@ -2094,19 +2068,3 @@ void NRFUNC()
 {
 	ROLL = 0;
 }
-
-void SFLB_InitDialogs();
-
-extern bool RUNMAPEDITOR;
-extern bool RUNUSERMISSION;
-extern char USERMISSPATH[128];
-
-void TestHash();
-void CheckIntegrity();
-extern bool TOTALEXIT;
-int GetRankByScore( int Score );
-
-void StartExplorer();
-void FinExplorer();
-
-void DLLEXPORT SFINIT2_InitLAND();

@@ -52,10 +52,6 @@ int CurPalette;
 //1: Fast mode
 int exFMode = 1;
 
-//Timer Callback
-int cadr;
-int tima;
-int tmtim;
 
 int xxx;
 
@@ -67,6 +63,34 @@ byte PlayerMask;
 byte Quality;
 word Creator;
 static word MsPerFrame = 40;
+
+int GLOBALTIME = 0;
+int PGLOBALTIME = 0;
+int PitchTicks = 0;
+int MaxPingTime = 0;
+int RealPause = 0;
+int RealStTime = 0;
+int RealGameLength = 0;
+int CurrentStepTime = 80;
+int NeedCurrentTime = 0;
+
+extern int PeaceTimeLeft;
+extern int PeaceTimeStage;
+void CmdChangePeaceTimeStage( int Stage );
+
+//Timer Callback
+int cadr;
+int tima;
+int tmtim;
+
+//Main internal counter for intervals
+int tmtmt;
+
+int HISPEED = 0;
+bool SHOWSLIDE = true;
+int AutoTime;
+
+extern uint64_t GetSDLTickCount();
 
 boost::coroutines2::coroutine<void>::pull_type* AllGameCoroutine = nullptr;
 
@@ -145,7 +169,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 		}
 	}
 
-	// Init SDL window
 	InitSDL();
 	printf("SDL initialized.\n");
 
@@ -386,7 +409,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 		PlayRandomTrack();
 	}
 
-	StartExplorer();
+	StartInternetExplorer();
 
 	#endif // _WIN32
 
@@ -395,6 +418,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	SDL_StartTextInput(sdlWindow);
 
 	AllGameCoroutine = new boost::coroutines2::coroutine<void>::pull_type(AllGame);
+
+	printf("SDL_AppInit: All game coroutine created, starting game loop.\n");
 
 	return SDL_APP_CONTINUE;
 }
@@ -739,7 +764,7 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result)
 
 	FilesExit();
 	StopPlayCD();
-	FinExplorer();
+	FinishInternetExplorer();
 
 	FreeDDObjects();
 	// PostQuitMessage(0); TODO: find cross-platform equivalent
@@ -810,7 +835,7 @@ void ResizeAndCenterWindow()
 
 void PostDrawGameProcess()
 {
-#ifdef _WIN32
+	#ifdef _WIN32
 	RGAME.TryToFlushNetworkStream( 0 );
 	if (PlayGameMode == 0 && NPlayers < 2)
 	{
@@ -845,10 +870,8 @@ void PostDrawGameProcess()
 	{
 		WritePitchTicks();
 	}
-
 	ProcessNature();
-
-	NeedEBuf = 0;
+	#endif // _WIN32
 
 	GLOBALTIME++;
 
@@ -863,9 +886,12 @@ void PostDrawGameProcess()
 	{
 		CurrentStepTime -= CurrentStepTime >> 5;
 		RealGameLength = GetSDLTickCount() - RealStTime;
+
+		#ifdef _WIN32
 		HandleMultiplayer();
 
 		SYN.Copy( &SYN1 );
+
 		PreNoPause = 0;
 		ExecuteBuffer();
 
@@ -905,6 +931,7 @@ void PostDrawGameProcess()
 			}
 			WritePitchTicks();
 		}
+		#endif
 	}
 
 	if (!HISPEED)
@@ -918,8 +945,10 @@ void PostDrawGameProcess()
 
 	int difTime = GetSDLTickCount() - AutoTime;
 
-	ProcessUpdate();
+	#ifdef _WIN32
+	ProcessUpdate(); // Some multiplayer updates
 
+	// Autosave logic
 	int MaxDT = 60000;
 
 	switch (SaveState)
@@ -985,7 +1014,9 @@ void PostDrawGameProcess()
 		}
 		AutoTime = GetSDLTickCount();
 	}
+	#endif // _WIN32
 
+	static int PrevCheckTime = 0;
 	if (!PrevCheckTime)
 	{
 		PrevCheckTime = GetSDLTickCount();
@@ -1008,12 +1039,14 @@ void PostDrawGameProcess()
 	}
 	*/
 
+	//Time of the last PostDrawGameProcess() return
+	static unsigned long prev_postdraw_time = 0;
 	if (0 == prev_postdraw_time)
 	{
 		prev_postdraw_time = GetSDLTickCount();
 	}
 
-
+	#ifdef _WIN32
 	unsigned long time_since_last_call = 0;
 	do
 	{
