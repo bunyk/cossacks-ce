@@ -32,6 +32,11 @@ git clone https://github.com/libsdl-org/SDL_image.git vendored/SDL_image
 Configure:
 
 ```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+```
+
+Release build is configuredwithout debug symbols:
+```
 cmake -S . -B build
 ```
 
@@ -39,4 +44,16 @@ Build
 
 ```bash
 cmake --build build
+```
+
+### Run
+
+In debugger:
+```bash
+gdb --args build/Debug/cossacks /window
+```
+
+Or run directly:
+```bash
+build/Debug/cossacks /window
 ```
