@@ -12,6 +12,7 @@
 #include "fastdraw.h"
 #include "gsound.h"
 #include "resfile.h"
+#include "mapdiscr.h"
 
 extern bool RUNMAPEDITOR;
 extern bool RUNUSERMISSION;

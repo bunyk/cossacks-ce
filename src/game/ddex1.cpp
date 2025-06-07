@@ -9,15 +9,10 @@
 #define NAME "CEW_KERNEL"
 #define NODPLAY
 
-#include "os.h"
-#include "ddini.h"
-
 #include "gfile.h"
-#include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "mapdiscr.h"
 #include "multipl.h"
 #include "fog.h"
 #include "walls.h"

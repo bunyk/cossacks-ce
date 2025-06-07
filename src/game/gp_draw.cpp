@@ -1,5 +1,5 @@
 
-#include "os.h"
+#include "newcode/os.h"
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"

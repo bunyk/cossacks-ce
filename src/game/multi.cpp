@@ -53,7 +53,9 @@ void CorrectBrigadesSelection( byte NT );
 void ImCorrectBrigadesSelection( byte NT );
 byte* NPresence;
 Nation NATIONS[8];
+#endif
 byte MYNATION;
+#ifdef _WIN32
 word* Selm[8];
 word* SerN[8];
 word* ImSelm[8];

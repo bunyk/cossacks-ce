@@ -1,5 +1,7 @@
 #include <cstdlib>
 
+#include "os.h"
+
 /*
 	Catch division by zero by "overloading" div() via #define
 	(in case we will be able to link dynamically sometime, this causes no linking warnings)

@@ -1,4 +1,4 @@
-#include "os.h"
+#include "newcode/os.h"
 
 #pragma pack(1)
 struct BMPformat{ // bmfh 

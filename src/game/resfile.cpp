@@ -12,7 +12,7 @@
 
 #include "arc/gscset.h"
 #include "resfile.h"
-#include "os.h"
+#include "newcode/os.h"
 
 bool InitDone = 0;
 

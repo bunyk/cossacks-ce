@@ -17,7 +17,6 @@ add_compile_options(-w) # Inhibit all warnings for now
 
 add_executable(cossacks
     src/game/main.cpp
-	src/game/os.cpp
     src/game/ddini.cpp
     src/game/activescenary.cpp
     src/game/interface.cpp
@@ -35,6 +34,8 @@ add_executable(cossacks
 	src/game/3drandmap.cpp
 	src/game/multi.cpp
 	src/game/mouse_x.cpp
+	src/game/newcode/securedivision.cpp
+	src/game/newcode/os.cpp
 )
 
 # Link to the actual SDL3 libraries.

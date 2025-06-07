@@ -15,7 +15,7 @@
 #include <stdarg.h>
 // #include "resource.h"
 // #include "lines.h"
-#include "os.h"
+#include "newcode/os.h"
 
 #define free _ExFree
 #define malloc _ExMalloc

@@ -9,7 +9,7 @@
 #include "SDL3/SDL.h"
 #include "SDL3/SDL_audio.h"
 
-#include "os.h"
+#include "newcode/os.h"
 
 class CWave //: public CObject
 {

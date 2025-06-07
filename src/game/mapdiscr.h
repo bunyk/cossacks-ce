@@ -1,6 +1,6 @@
 #pragma once
 
-#include "os.h"
+#include "newcode/os.h"
 
 /*                    Map description
  *
@@ -25,8 +25,9 @@ typedef unsigned short word;
 #define ULIMIT 65535
 #define LULIMIT 65000
 
-extern byte MYNATION;
+extern byte MYNATION; // in multi.cpp
 
+// TODO: is this needed?
 #define SetMyNation(x) {MYNATION=x^133;}
 #define MyNation (MYNATION^133)
 

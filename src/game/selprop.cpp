@@ -1,6 +1,6 @@
 //Properties of the selected objects viewing and corresponding mouse handling
 
-#include "os.h"
+#include "newcode/os.h"
 
 #ifdef _WIN32
 

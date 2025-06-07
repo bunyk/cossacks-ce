@@ -1,7 +1,7 @@
 #ifndef _INC_GSC_TYPES
 #define _INC_GSC_TYPES
 
-#include "../os.h"
+#include "../newcode/os.h"
 
 #ifndef GFILE_USER
 #define GFILE_API DLLEXPORT

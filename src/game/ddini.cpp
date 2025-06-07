@@ -9,7 +9,7 @@
 
 #include <stdlib.h>
 #include <SDL3/SDL.h>
-#include "os.h"
+#include "newcode/os.h"
 
 #include "ddini.h"
 #include "resfile.h"

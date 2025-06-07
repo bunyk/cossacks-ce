@@ -6,7 +6,7 @@
 #include "gscarch.h"
 #include "gscset.h"
 #include "isimasks.h"
-#include "../os.h"
+#include "../newcode/os.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
