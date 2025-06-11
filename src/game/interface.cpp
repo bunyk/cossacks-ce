@@ -232,8 +232,10 @@ void ProcessNetCash();
 void ProcessReceive();
 int NPROCM = 0;
 int TPROCM = 0;
+#endif // _WIN32
 int LastCTRLPressTime = 0;
 
+#ifdef _WIN32
 int PrevProgStage = 0;
 char* PROGSTR = nullptr;
 extern int CurPalette;

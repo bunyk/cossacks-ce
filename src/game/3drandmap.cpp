@@ -2766,9 +2766,11 @@ void DelExt()
 	}
 }
 
+#endif // _WIN32
 bool EnterStr( char * str, char* Message );
 bool TexPieceMode = false;
 
+#ifdef _WIN32
 void ProcessRM_Load()
 {
 	ImmVis = true;

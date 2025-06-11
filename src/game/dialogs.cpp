@@ -48,11 +48,11 @@ void ErrD( LPCSTR s )
 
 void ShowString( int x, int y, LPCSTR lps, lpRLCFont lpf );
 
-extern int curptr;
+extern int mousePointerType;
 
 DLLEXPORT void SetCurPtr( int v )
 {
-	curptr = v;
+	mousePointerType = v;
 }
 
 DLLEXPORT int GetSound( char* Name )

@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include "resfile.h"
 #include "fastdraw.h"
+
+#ifdef _WIN32
 #include "mapdiscr.h"
 #include "mouse.h"
 #include "mode.h"
@@ -150,7 +152,10 @@ void CreateMiniMap();
 word Nsel;
 int TerrHi;
 
+#endif // _WIN32
 bool BuildMode;
+
+#ifdef _WIN32
 byte SpecCmd;
 OneSlide* OSB;
 byte blx;
@@ -402,9 +407,9 @@ int ConvY( int y )
 	return div24( y * 32 );
 }
 
-#ifdef _WIN32
 void RedSquare( int x, int y )
 {
+#ifdef _WIN32
 	if (x < mapx || x >= mapx + smaplx || y < mapy || y >= mapy + smaply)
 	{
 		return;
@@ -429,17 +434,12 @@ void RedSquare( int x, int y )
 
 					  pop		edi
 	}
-}
-#else
-// TODO: Implement RedSquare for non-Windows platforms
-void RedSquare( int x, int y )
-{
-}
 #endif
+}
 
-#ifdef _WIN32
 void RedMiniSquare( int x, int y )
 {
+	#ifdef _WIN32
 	if (x < mapx || x >= mapx + smaplx || y < mapy || y >= mapy + smaply)
 	{
 		return;
@@ -464,12 +464,8 @@ void RedMiniSquare( int x, int y )
 
 					  pop		edi
 	}
-}
-#else
-void RedMiniSquare( int x, int y )
-{
-}
 #endif
+}
 
 void RedBar( int x, int y, int lx, int ly )
 {
@@ -7020,3 +7016,4 @@ void ProcessRESSEND()
 		UnPress();
 	}
 }
+#endif // _WIN32

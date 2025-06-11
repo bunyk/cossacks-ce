@@ -21,6 +21,7 @@ SelGroup::SelGroup()
 	Egoizm = false;
 }
 
+#ifdef _WIN32
 void SelGroup::CreateFromSelection(byte NI)
 {
 	if (int(Member))
@@ -135,7 +136,10 @@ void SelGroup::SelectMembers(byte NI, bool Shift)
 	};
 	NSL[NI] = NR;
 };
+#endif // _WIN32
+
 void SelGroup::ImSelectMembers(byte NI, bool Shift) {
+#ifdef _WIN32
 	SelCenter[NI] = 0;
 	word MID;
 	OneObject* OB;
@@ -185,7 +189,10 @@ void SelGroup::ImSelectMembers(byte NI, bool Shift) {
 		};
 	};
 	ImNSL[NI] = NR;
+#endif // _WIN32
 };
+
+// Check if point (xp, yp) is inside rectangle defined by (x, y) and (x1, y1)
 inline bool PxInside(int x, int y, int x1, int y1, int xp, int yp) {
 	if (xp >= x&&xp <= x1&&yp >= y&&yp <= y1)return true;
 	else return false;

@@ -35,7 +35,7 @@ bool realRpressed;
 //11: Enter transport
 //12: Guard (highlighted shield)
 //13: Patrol (shield and sword)
-int curptr; // TODO: make this enum and use constant names instead of numbers
+int mousePointerType; // TODO: make this enum and use constant names instead of numbers
 
 int mouseX;
 int	mouseY;
@@ -282,7 +282,7 @@ void RedrawOffScreenMouse()
 		return;
 	}
 
-	if (curptr == 8)
+	if (mousePointerType == 8)
 	{
 		curdx = 16;
 		curdy = 17;
@@ -301,7 +301,7 @@ void RedrawOffScreenMouse()
 
 	GetMData( (void*) buf1, ScreenPtr, MX, MY, SCRSizeX, SCRSizeY );
 
-	GPS.ShowGP( MX, MY, CurrentCursorGP, curptr, 0 );
+	GPS.ShowGP( MX, MY, CurrentCursorGP, mousePointerType, 0 );
 
 	GetMData( (void*) buf2, ScreenPtr, MX, MY, SCRSizeX, SCRSizeY );
 }
@@ -321,7 +321,7 @@ void RedrawScreenMouse()
 	ScrWidth = RSCRSizeX;
 	ScreenPtr = RealScreenPtr;
 	SCRSizeX = RSCRSizeX;
-	GPS.ShowGP( MX, MY, CurrentCursorGP, curptr, 0 );
+	GPS.ShowGP( MX, MY, CurrentCursorGP, mousePointerType, 0 );
 	SCRSizeX = osx;
 	ScreenPtr = osp;
 	ScrWidth = sw;
@@ -361,7 +361,7 @@ void PostRedrawMouse()
 		ScrWidth = RSCRSizeX;
 		ScreenPtr = RealScreenPtr;
 		SCRSizeX = RSCRSizeX;
-		GPS.ShowGP( MX, MY, CurrentCursorGP, curptr, 0 );
+		GPS.ShowGP( MX, MY, CurrentCursorGP, mousePointerType, 0 );
 		SCRSizeX = osx;
 		ScreenPtr = osp;
 		ScrWidth = sw;

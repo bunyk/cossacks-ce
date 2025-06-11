@@ -2,12 +2,12 @@
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
+#include "mapdiscr.h"
 
 #ifdef _WIN32
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
-#include "mapdiscr.h"
 #include "math.h"
 #include "walls.h"
 
@@ -79,6 +79,8 @@ void InitEBuf()
 	EBPos = 0;
 }
 
+extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
+
 #ifdef _WIN32
 extern bool NOPAUSE;
 //[1][ni][x][y][x1][y1]
@@ -96,7 +98,6 @@ void CmdCreateSelection( byte NI, byte x, byte y, byte x1, byte y1 )
 
 };
 
-extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
 
 extern bool GoAndAttackMode;
 void AddXYPulse( int x, int y );
@@ -190,6 +191,7 @@ void CmdProduceObj( byte NI, word Type )
 	EBPos += 5;
 
 };
+#endif // _WIN32
 //[7][ni][index]
 void CmdMemSelection( byte NI, byte Index )
 {
@@ -201,6 +203,7 @@ void CmdMemSelection( byte NI, byte Index )
 	EBPos += 3;
 
 };
+
 //[8][ni][Index]
 void CmdRememSelection( byte NI, byte Index )
 {
@@ -209,7 +212,9 @@ void CmdRememSelection( byte NI, byte Index )
 	byte SHIFT = ( GetSDLKeyState( SDL_SCANCODE_LSHIFT ) ) != 0;
 	bool shift = 0 != SHIFT;
 	SelSet[NI * 10 + ( Index & 127 )].ImSelectMembers( NI, shift );
+	#ifdef _WIN32
 	ImCorrectBrigadesSelection( NI );
+	#endif // _WIN32
 	ExBuf[EBPos] = 8;
 	ExBuf[EBPos + 1] = NI + ( SHIFT * 32 );
 	ExBuf[EBPos + 2] = Index;
@@ -217,6 +222,7 @@ void CmdRememSelection( byte NI, byte Index )
 
 }
 
+#ifdef _WIN32
 //[9][ni][ObjID:16][OT]
 void CmdBuildObj( byte NI, word ObjID )
 {

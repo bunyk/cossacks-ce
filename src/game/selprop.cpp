@@ -112,9 +112,11 @@ extern int mousePointerType;
 extern int curdx;
 extern int curdy;
 
+#endif // _WIN32
 //uniq properties
 bool GetCoord;
 
+#ifdef _WIN32
 UniqMethood* UNIM;
 
 void InitPrpBar()

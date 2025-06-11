@@ -36,6 +36,8 @@ add_executable(cossacks
 	src/game/mouse_x.cpp
 	src/game/newcode/securedivision.cpp
 	src/game/newcode/os.cpp
+	src/game/mapa.cpp
+	src/game/select.cpp
 )
 
 # Link to the actual SDL3 libraries.
