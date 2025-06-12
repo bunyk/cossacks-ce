@@ -1,11 +1,15 @@
 ﻿#include <stdio.h>
 #include <boost/coroutine2/all.hpp>
 
+#define TEST
+
+#ifndef TEST
 // There is no main function, instead we have
 // SDL_AppInit, SDL_AppEvent, SDL_AppIterate and SDL_AppQuit callbacks.
 // https://wiki.libsdl.org/SDL3/README-main-functions
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL_main.h>
+#endif // TEST
 
 #include "ddini.h"
 #include "interface.h"
@@ -2006,3 +2010,15 @@ void GameKeyCheck()
 		}
 	}
 }
+
+#ifdef TEST
+
+#include "dialogs.h"
+
+int main() {
+	printf("<<< Cossacks Linux Test >>>\n");
+
+	SQPicture Back( "Interface\\Background_Wizard.bmp" );
+	printf("Back: %d x %d\n", Back.GetLx(), Back.GetLy());
+}
+#endif // TEST

@@ -5,6 +5,7 @@
 #include "fastdraw.h"
 #include "mapdiscr.h"
 #include "dialogs.h"
+#include "bmptool.h"
 
 #ifdef _WIN32
 #include "cdirsnd.h"
@@ -12,7 +13,6 @@
 #include "gsound.h"
 #include "fonts.h"
 #include "gp_draw.h"
-#include "bmptool.h"
 #include "drawform.h"
 #include "lines.h"
 
@@ -37,6 +37,7 @@ extern byte LastAsciiKey;
 void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr );
 void ShowChar( int x, int y, char c, lpRLCFont lpf );
 void ClearKeyStack();
+#endif // _WIN32
 extern int CurPalette;
 
 void ErrD( LPCSTR s )
@@ -48,6 +49,7 @@ void ErrD( LPCSTR s )
 	assert( false );
 }
 
+#ifdef _WIN32
 void ShowString( int x, int y, LPCSTR lps, lpRLCFont lpf );
 
 extern int mousePointerType;
@@ -5230,7 +5232,6 @@ bool SafeLoad = 0;
 
 void SQPicture::LoadPicture( char* name )
 {
-#ifdef _WIN32
 	if (this->PicPtr)
 	{
 		free( PicPtr );
@@ -5266,6 +5267,7 @@ void SQPicture::LoadPicture( char* name )
 			PicPtr[1] = Ly;
 			int pptr = int( PicPtr + 2 );
 			int Len = Lx*Ly;
+#ifdef _WIN32
 			__asm {
 				push	esi
 				mov		ecx, Len
@@ -5278,6 +5280,15 @@ void SQPicture::LoadPicture( char* name )
 							jnz		lll
 							pop		esi
 			};
+#else
+			for (int i = 0; i < Len; i++)
+			{
+				if (PicPtr[i] == 0xFF)
+				{
+					PicPtr[i] = 0xF6;
+				};
+			};
+#endif // _WIN32
 		}
 		else PicPtr = nullptr;
 		RClose( ff1 );
@@ -5289,7 +5300,6 @@ void SQPicture::LoadPicture( char* name )
 		sprintf( gg, "Could not load picture: %s", name );
 		ErrD( gg );
 	};
-#endif // _WIN32
 };
 
 

@@ -21,17 +21,17 @@ CGSCset::~CGSCset()
 
 }
 
-LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool Only )
+LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool onlyInArchive )
 {
-	printf("gOpenFile: %s\n", lpcsFileName);
+	printf("gOpenFile: %s %b\n", lpcsFileName, onlyInArchive );
 	LPGSCfile		gFile = NULL;
-#ifdef _WIN32
-	HANDLE			hFindFile;
-	WIN32_FIND_DATA	FindData;
 	bool			inArchive = true;
 
-	if (!Only)
+#ifdef _WIN32
+	if (!onlyInArchive)
 	{
+		HANDLE			hFindFile;
+		WIN32_FIND_DATA	FindData;
 		hFindFile = FindFirstFile( lpcsFileName, &FindData );
 		if (hFindFile != INVALID_HANDLE_VALUE)
 		{
@@ -39,6 +39,7 @@ LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool Only )
 		}
 		FindClose( hFindFile );
 	}
+#endif _WIN32
 
 	if (inArchive)
 	{
@@ -57,6 +58,7 @@ LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool Only )
 			pArchList = pArchList->m_NextArch;
 		}
 	}
+#ifdef _WIN32
 	else
 	{
 		gFile = new TGSCfile;
@@ -78,8 +80,8 @@ LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool Only )
 			return NULL;
 		}
 	}
-
 #endif
+
 	return gFile;
 }
 
@@ -301,7 +303,6 @@ BOOL CGSCset::gOpen()
 {
 	BOOL retval = TRUE;
 	printf("gOpen()\n");
-#ifdef _WIN32
 	HANDLE hFindFile;
 	WIN32_FIND_DATA FindData;
 	LPGSCArchList pArchList = nullptr;
@@ -363,7 +364,6 @@ BOOL CGSCset::gOpen()
 
 	FindClose( hFindFile );
 
-#endif
 	return retval;
 }
 

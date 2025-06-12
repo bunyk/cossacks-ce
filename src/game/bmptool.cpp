@@ -1,13 +1,12 @@
 #include <stdlib.h>
 
 #include "newcode/os.h"
+#include "resfile.h"
 #include "stdio.h"
+#include "bmptool.h"
+#include "math.h"
 
 #ifdef _WIN32
-// #include "windows.h"
-#include "resfile.h"
-#include "math.h"
-#include "bmptool.h"
 
 void SaveToBMP24(char* Name, int Lx, int Ly, byte* data)
 {
@@ -75,11 +74,12 @@ bool ReadBMP8(char* Name, BMPformat* BM, byte** data) {
 	}
 	else return false;
 };
+#endif // _WIN32
 bool ReadBMP8TOBPX(char* Name, byte** data) {
 	BMPformat BM;
 	ResFile f1 = RReset(Name);
 	if (f1 != INVALID_HANDLE_VALUE) {
-		RBlockRead(f1, &BM, sizeof BMPformat);
+		RBlockRead(f1, &BM, sizeof(BMPformat));
 		if (IOresult() || BM.bfType != 'MB')return false;
 		if (BM.biBitCount != 8)return false;
 		*data = new byte[BM.biWidth*BM.biHeight + 4];
@@ -97,6 +97,7 @@ bool ReadBMP8TOBPX(char* Name, byte** data) {
 	}
 	else return false;
 };
+#ifdef _WIN32
 bool LoadBitmapLikeGrayscale(char* Name, int* Lx, int* Ly, byte** res) {
 	byte* data;
 	BMPformat BM;
