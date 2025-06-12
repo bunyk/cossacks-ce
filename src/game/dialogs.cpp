@@ -1,15 +1,15 @@
 #include <assert.h>
 #include "newcode/os.h"
-
-#ifdef _WIN32
-#include "cdirsnd.h"
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
 #include "mapdiscr.h"
+#include "dialogs.h"
+
+#ifdef _WIN32
+#include "cdirsnd.h"
 #include "mouse.h"
 #include "gsound.h"
-#include "dialogs.h"
 #include "fonts.h"
 #include "gp_draw.h"
 #include "bmptool.h"
@@ -2906,7 +2906,7 @@ DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 			  jnz		qwr
 			  pop		edi
 	}
-#endif
+#endif // _WIN32
 }
 
 #ifdef _WIN32
@@ -3447,9 +3447,9 @@ ChatViewer* DialogsSystem::addChatViewer( SimpleDialog* Parent, int x, int y, in
 extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
 
 //-----------------Bit Pictures Viewer-------------
-#ifdef _WIN32
 bool BPXView_OnDraw( SimpleDialog* SD )
 {
+#ifdef _WIN32
 	if (!SD->Visible)
 	{
 		return false;
@@ -3549,12 +3549,8 @@ bool BPXView_OnDraw( SimpleDialog* SD )
 		}
 	}
 	return true;
+#endif // _WIN32
 }
-#else
-bool BPXView_OnDraw( SimpleDialog* SD )
-{
-}
-#endif
 
 bool BPXView_OnKeyDown( SimpleDialog* SD )
 {
@@ -4888,7 +4884,6 @@ void SimpleDialog::AssignSound( char* Name, int Usage )
 extern void yield();
 
 //----copy rectangle to screen----//
-#ifdef _WIN32
 void CopyToScreen( int zx, int zy, int zLx, int zLy )
 {
 	if (!bActive)
@@ -4975,13 +4970,7 @@ void CopyToScreen( int zx, int zy, int zLx, int zLy )
 
 	yield();
 }
-#else
-void CopyToScreen( int zx, int zy, int zLx, int zLy )
-{
-}
-#endif
 
-#ifdef _WIN32
 void CopyToOffScreen( int zx, int zy,
 	int srLx, int srLy,
 	byte* data )
@@ -5038,15 +5027,6 @@ void CopyToOffScreen( int zx, int zy,
 			pop		esi
 	};
 };
-#else
-void CopyToOffScreen( int zx, int zy,
-	int srLx, int srLy,
-	byte* data )
-{
-}
-#endif
-
-#ifdef _WIN32
 void CopyToRealScreen( int zx, int zy,
 	int srLx, int srLy,
 	byte* data )
@@ -5105,15 +5085,6 @@ void CopyToRealScreen( int zx, int zy,
 			pop		esi
 	};
 };
-#else
-void CopyToRealScreen( int zx, int zy,
-	int srLx, int srLy,
-	byte* data )
-{
-}
-#endif
-
-#ifdef _WIN32
 void CopyToRealScreenMMX( int zx, int zy,
 	int srLx, int srLy,
 	byte* data )
@@ -5175,16 +5146,8 @@ void CopyToRealScreenMMX( int zx, int zy,
 			emms
 	};
 };
-#else
-void CopyToRealScreenMMX( int zx, int zy,
-	int srLx, int srLy,
-	byte* data )
-{
-}
-#endif
 
 //--------Pictures methods--------//
-#ifdef _WIN32
 void SQPicture::Draw( int x, int y )
 {
 	if (!bActive)return;
@@ -5220,15 +5183,10 @@ void SQPicture::Draw( int x, int y )
 								 pop		esi
 	};
 };
-#else
-void SQPicture::Draw( int x, int y )
-{
-}
-#endif
-
-#ifdef _WIN32
+#endif // _WIN32
 void SQPicture::DrawTransparent( int x, int y )
 {
+#ifdef _WIN32
 	if (!PicPtr)return;
 	int sofst = int( ScreenPtr ) + x + y*SCRSizeX;
 	int pofst = int( PicPtr + 2 );
@@ -5265,18 +5223,14 @@ void SQPicture::DrawTransparent( int x, int y )
 									uu3 : pop		edi
 										  pop		esi
 	};
+#endif // _WIN32
 };
-#else
-void SQPicture::DrawTransparent( int x, int y )
-{
-}
-#endif
 
 bool SafeLoad = 0;
 
-#ifdef _WIN32
 void SQPicture::LoadPicture( char* name )
 {
+#ifdef _WIN32
 	if (this->PicPtr)
 	{
 		free( PicPtr );
@@ -5335,12 +5289,9 @@ void SQPicture::LoadPicture( char* name )
 		sprintf( gg, "Could not load picture: %s", name );
 		ErrD( gg );
 	};
+#endif // _WIN32
 };
-#else
-void SQPicture::LoadPicture( char* name )
-{
-}
-#endif
+
 
 SQPicture::~SQPicture()
 {
@@ -5356,6 +5307,7 @@ SQPicture::SQPicture( char* Name )
 	PicPtr = nullptr;
 	LoadPicture( Name );
 };
+#ifdef _WIN32
 //-----end of pictures
 //--------------Handling dialog system----------------//
 void MFix();

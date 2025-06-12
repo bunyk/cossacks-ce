@@ -6546,13 +6546,13 @@ int processMainMenu()
 
 	//Loading resources.
 	LocalGP BTNS( "Interface\\Main_Menu" );
-#ifdef _WIN32
 	LocalGP HFONT( "rom10" );
 	RLCFont hfnt( HFONT.GPID );
 	hfnt.SetWhiteColor();
 
 	SQPicture MnPanel( "Interface\\Background_Main_Menu.bmp" );
 
+#ifdef _WIN32
 	DialogsSystem MMenu( menu_x_off, menu_y_off );
 	MMenu.HintFont = &hfnt;
 	MMenu.HintX = menu_hint_x;

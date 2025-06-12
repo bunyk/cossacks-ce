@@ -33,7 +33,6 @@ byte PAL6[256];
 byte PAL7[256];
 void ErrM( char* s );
 extern void* offScreenPtr;
-#ifdef _WIN32
 
 typedef RLCHeader* lpRLCHeader;
 
@@ -68,7 +67,6 @@ RLCFont::~RLCFont()
 	RLC = nullptr;
 };
 typedef RLCFont* lpRLCFont;
-#endif // _WIN32
 //Window parameters
 int WindX = 0;
 int WindY = 0;
@@ -2782,6 +2780,7 @@ RLCFont::RLCFont( char* Name )
 	Options = 0;
 	ShadowGP = -1;
 }
+#endif // _WIN32
 
 void RLCFont::SetRedColor()
 {
@@ -2806,5 +2805,3 @@ void RLCFont::SetColorTable( int n )
 	//SetStdShadow();
 }
 /* End of Graphics routine */
-
-#endif // _WIN32

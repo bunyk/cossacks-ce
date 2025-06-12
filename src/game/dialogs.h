@@ -1,4 +1,4 @@
-// #include <windows.h>
+#include "newcode/os.h"
 
 #ifndef DIALOGS_USER
 #define DIALOGS_API DLLEXPORT
@@ -7,7 +7,6 @@
 #endif
 #define MAXDLG 1024
 
-#ifdef _WIN32
 DIALOGS_API int GetSound(char* Name);
 DIALOGS_API char* GetTextByID(char*);
 
@@ -39,6 +38,7 @@ public:
 	};
 };
 
+#ifdef _WIN32
 class DIALOGS_API SimpleDialog;
 typedef bool VCall(SimpleDialog* SD);
 typedef bool VCallXY(SimpleDialog* SD, int x, int y, int ActiveID);
