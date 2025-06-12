@@ -563,7 +563,6 @@ void LoadPalette( LPCSTR lpFileName )
 	}
 }
 
-#ifdef _WIN32
 void CBar( int x, int y, int Lx, int Ly, unsigned char c );
 
 void SetDarkPalette()
@@ -587,6 +586,7 @@ void SetDarkPalette()
 		SDL_SetSurfacePalette(primarySurface, sdlPal);
 	}
 }
+#ifdef _WIN32
 
 extern uint64_t GetSDLTickCount();
 

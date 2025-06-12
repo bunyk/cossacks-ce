@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <assert.h>
+#include <math.h>
 
 #include "newcode/os.h"
 #include "ddini.h"
@@ -9,15 +12,15 @@
 
 #include "mode.h"
 #include "lines.h"
-#include <stdio.h>
-#include <assert.h>
 #include "ctables.h"
 #include "mapdiscr.h"
 #include "realwater.h"
-#include <math.h>
 #include "activescenary.h"
 #include "gsinc.h"
+#endif
+
 bool NewGPImage;
+
 #define INTV(x) (((int*)(x))[0])
 
 //What are you?
@@ -28,7 +31,6 @@ void ShowRLCItemPal( int x, int y, lpRLCTable lprt, int n, byte* Pal );
 void ShowRLCItemGrad( int x, int y, lpRLCTable lprt, int n, byte* Pal );
 word GP_L_IDXS[MaxGPIdx];
 
-#endif
 int LOADED = 0;
 
 typedef short* lpShort;
@@ -207,6 +209,7 @@ byte* GP_System::GetCash( int Size )
 	CashPos += UsedSize + 8;
 	return cps;
 };
+#endif // _WIN32
 
 int GP_System::PreLoadGPImage( char* Name, bool Shadow )
 {
@@ -266,6 +269,8 @@ int GP_System::PreLoadGPImage( char* Name, bool Shadow )
 	return NGP-1;
 	*/
 };
+
+#ifdef _WIN32
 void GP_System::SetWhiteFont( int n )
 {
 	if (n >= NGP)return;
@@ -286,6 +291,7 @@ void GP_System::SetOptionalColor( int n, int c )
 	if (n >= NGP)return;
 	ImageType[n] = ( ImageType[n] & 7 ) | ( c << 4 );
 };
+#endif //_WIN32
 void GP_System::UnLoadGP( int i )
 {
 	if (i >= NGP)return;
@@ -327,6 +333,7 @@ void GP_System::UnLoadGP( int i )
 		NGP--;
 	};
 };
+#ifdef _WIN32
 int GP_Header::GetLx()
 {
 	GP_Header* GPH = this;
@@ -416,6 +423,7 @@ int GP_Header::GetDy()
 }
 
 extern bool ProtectionMode;
+#endif // _WIN32
 
 int GP_System::PreLoadGPImage( char* Name )
 {
@@ -517,6 +525,7 @@ int GP_System::PreLoadGPImage( char* Name )
 	return fidx;
 }
 
+#ifdef _WIN32
 #define GPX(x, y) ((GP_Header*)((int)(x) + (x)->y))
 
 bool GP_System::LoadGP( int i )
@@ -9185,8 +9194,10 @@ void GP_System::ShowGPTransparentLayers( int x, int y, int FileIndex, int SprInd
 		PACKOFS = (byte*) ( *PAK );//lpGPCUR->Pack;
 	} while (DIFF != -1);
 };
+#endif // _WIN32
 void GP_System::FreeRefs( int FileIndex )
 {
+#ifdef _WIN32
 	//	assert(FileIndex<NGP);
 	if (( ImageType[FileIndex] & 7 ) > 1 || !GPH[FileIndex])
 	{
@@ -9251,7 +9262,9 @@ void GP_System::FreeRefs( int FileIndex )
 			PACKOFS = (byte*) ( *PAK );//lpGPCUR->Pack;
 		} while (DIFF != -1);
 	}
+#endif // _WIN32
 }
+#ifdef _WIN32
 
 void GP_System::ShowGPPal(//IMPORTANT: color masking for buildings (only in placement mode) and ???
 	int x, int y, int FileIndex, int SprIndex,
@@ -10030,6 +10043,7 @@ void InitXShift()
 		XShift[i] -= XShift[i - 1];
 	}
 }
+#endif // _WIN32
 
 LocalGP::LocalGP()
 {
@@ -10069,6 +10083,7 @@ void LocalGP::UnLoad()
 	};
 };
 UNIFONTS UFONTS;
+
 UNIFONTS::UNIFONTS()
 {
 	NFonts = 0;
@@ -10086,6 +10101,7 @@ void FONERR()
 	assert( 0 );
 };
 
+#ifdef _WIN32
 int UNI_LINEDLY1 = 0;
 int UNI_LINEDY1 = 0;
 int UNI_LINEDLY2 = 0;
@@ -10202,6 +10218,7 @@ void UNIFONTS::LoadFonts()
 	};
 	Gclose( F );
 }
+#endif // _WIN32
 
 UNICODETABLE* UNIFONTS::FindFont( char* Name )
 {
@@ -10215,6 +10232,7 @@ UNICODETABLE* UNIFONTS::FindFont( char* Name )
 	return nullptr;
 }
 
+#ifdef _WIN32
 bool CheckInsideMask( GP_Header* Pic, int x, int y )
 {
 	x -= Pic->dx;

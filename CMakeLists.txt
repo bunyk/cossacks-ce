@@ -38,6 +38,8 @@ add_executable(cossacks
 	src/game/newcode/os.cpp
 	src/game/mapa.cpp
 	src/game/select.cpp
+	src/game/dialogs.cpp
+	src/game/newmon.cpp
 )
 
 # Link to the actual SDL3 libraries.

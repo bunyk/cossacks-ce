@@ -7,6 +7,8 @@
 #include "ddini.h"
 #include "fastdraw.h"
 #include "mapdiscr.h"
+#include "resfile.h"
+#include "gp_draw.h"
 
 #ifdef _WIN32
 
@@ -15,7 +17,6 @@
 #endif
 
 
-#include "resfile.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
@@ -36,7 +37,6 @@
 #include <math.h>
 #include "newmon.h"
 #include "icontool.h"
-#include "gp_draw.h"
 #include "3drandmap.h"
 #include "activescenary.h"
 #include "drawform.h"
@@ -148,7 +148,9 @@ void NewMap( int szX, int szY );
 bool WaitingJoinGame( int );
 void SlowLoadPalette( const char* lpFileName );
 void SlowUnLoadPalette( const char* lpFileName );
+#endif // _WIN32
 void SetDarkPalette();
+#ifdef _WIN32
 void CopyToScreen( int x, int y, int Lx, int Ly );
 void ChooseInterior( int Type );
 void Save3DMap( char* Map );
@@ -165,10 +167,10 @@ int EncodeOptionsInNumber( int *selected_opt_values );
 int DecodeOptionsFromNumber( const int number, int *result );
 
 char CurrentMap[64];
+#endif _WIN32
 
 void CBar( int x, int y, int Lx, int Ly, unsigned char c );
 void PrepareEditMedia( byte myid );
-#endif _WIN32
 
 extern bool EditMapMode;
 bool InGame;
@@ -209,8 +211,18 @@ bool MultiplayerStart;
 extern bool ChoosePosition;
 
 extern word NPlayers; // comes from mplayer.cpp
+#endif // _WIN32
 
-void CloseMPL();
+#ifdef _WIN32
+void CloseMPL(); // comes from mplayer.cpp
+#else
+void CloseMPL()
+{
+	// No multiplayer in non-Windows builds yet
+}
+#endif
+
+#ifdef _WIN32
 void LBEnumerateSessions( ListBox* LB, int );
 void AnalyseMessages();
 bool CreateNamedSession( char* Name, DWORD User2, int Max );
@@ -606,10 +618,11 @@ void SFLB_InitDialogs()
 	FDisable = YellowFont;
 	SFLB_LoadMEDButtons();
 }
-
+#endif // _WIN32
 
 DLLEXPORT int ItemChoose;
 
+#ifdef _WIN32
 DLLEXPORT bool MMItemChoose( SimpleDialog* SD )
 {
 	ItemChoose = SD->UserParam;
@@ -871,6 +884,7 @@ extern City CITY[8];
 extern char ROOMNAMETOCONNECT[128];
 
 bool ProcessOneBattle( int BtlID );
+#endif // _WIN32
 
 //Necessary for menu positioning in fullscreen. Export for IChat.dll
 DLLEXPORT int menu_x_off = 0;
@@ -878,6 +892,7 @@ DLLEXPORT int menu_y_off = 0;
 int menu_hint_x = 18;
 int menu_hint_y = 701;
 
+#ifdef _WIN32
 bool MPL_JoinGame( int ID )
 {
 	LocalGP BTNS( "Interface\\Game_Select" );
@@ -6095,11 +6110,13 @@ void StopPlayCD();
 void PlayRandomTrack();
 extern byte TracksMask[16];
 char RECFILE[128] = "";
+#endif // _WIN32
 
 extern int screen_width;
 extern int screen_height;
 extern double screen_ratio;
 
+#ifdef _WIN32
 bool ProcessMenuOptions()
 {
 	LocalGP BTNS( "Interface\\Options" );
@@ -6489,7 +6506,6 @@ extern int mousePointerType;
 //Draw main menu and process events
 int processMainMenu()
 {
-#ifdef _WIN32
 	InGame = false;
 	InEditor = false;
 
@@ -6513,8 +6529,10 @@ int processMainMenu()
 
 	SetRLCWindow( 0, 0, RealLx, RSCRSizeY, SCRSizeX );
 
-	NPlayers = 1;
+#ifdef _WIN32 // No multiplayer yet
+	NPlayers = 1; 
 	MultiplayerStart = false;
+#endif // _WIN32
 	ItemChoose = -1;
 	CBar( 0, 0, RealLx, RSCRSizeY, 0 );
 
@@ -6528,6 +6546,7 @@ int processMainMenu()
 
 	//Loading resources.
 	LocalGP BTNS( "Interface\\Main_Menu" );
+#ifdef _WIN32
 	LocalGP HFONT( "rom10" );
 	RLCFont hfnt( HFONT.GPID );
 	hfnt.SetWhiteColor();
@@ -8183,7 +8202,7 @@ extern int HintX;
 extern int HintY;
 byte ZoneOpt[128];
 //  /-------------------------------------------------------\
-//  | /--------\  2    3    4    5    6    7    8   /------\|       
+//  | /--------\  2    3    4    5    6    7    8   /------\|
 //  | | 1      |                                    |      ||
 //  | |        |  9    10   11   12  ...            |      ||
 //  | |        |                                    |      ||
@@ -8853,7 +8872,7 @@ StartPlay://IMPORTANT: Main game loop
 					LOOSEANDEXITFAST();
 					CloseMPL();
 					ShutdownMultiplayer( 0 );
-					#endif 
+					#endif
 				}
 			}
 		}
@@ -9043,7 +9062,7 @@ void EditGame()
 			//if(GameNeedToDraw){
 			//	DrawAllScreen();
 			//	GameNeedToDraw=false;
-			//}else 
+			//}else
 
 			FastScreenProcess();
 			//DrawAllScreen();

@@ -1,0 +1,1074 @@
+# depslib dependency file v1.0
+1749541592 source:/home/tbunyk/projects/cossacks-ce/src/game/3drandmap.cpp
+	"newcode/os.h"
+	"ddini.h"
+	"resfile.h"
+	"fastdraw.h"
+	"mgraph.h"
+	"mouse.h"
+	"menu.h"
+	"mapdiscr.h"
+	"multipl.h"
+	"fog.h"
+	"walls.h"
+	"nature.h"
+	<time.h>
+	"nucl.h"
+	"megapolis.h"
+	"dialogs.h"
+	<assert.h>
+	<math.h>
+	"masks.h"
+	"fonts.h"
+	"3dgraph.h"
+	"mapsprites.h"
+	"virtscreen.h"
+	"newmon.h"
+	"path.h"
+	"realwater.h"
+	"newai.h"
+	"topograf.h"
+	"3dmaped.h"
+	"mode.h"
+	"sort.h"
+	"curve.h"
+	"process.h"
+	"3drandmap.h"
+	"bmptool.h"
+	"gp_draw.h"
+	"drawform.h"
+	"fonts.h"
+
+1749239207 /home/tbunyk/projects/cossacks-ce/src/game/newcode/os.h
+	<windows.h>
+
+1749297555 /home/tbunyk/projects/cossacks-ce/src/game/ddini.h
+	<SDL3/SDL.h>
+	<SDL3_image/SDL_image.h>
+	<stdlib.h>
+	<stdarg.h>
+	"newcode/os.h"
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_assert.h>
+	<SDL3/SDL_asyncio.h>
+	<SDL3/SDL_atomic.h>
+	<SDL3/SDL_audio.h>
+	<SDL3/SDL_bits.h>
+	<SDL3/SDL_blendmode.h>
+	<SDL3/SDL_camera.h>
+	<SDL3/SDL_clipboard.h>
+	<SDL3/SDL_cpuinfo.h>
+	<SDL3/SDL_dialog.h>
+	<SDL3/SDL_endian.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_events.h>
+	<SDL3/SDL_filesystem.h>
+	<SDL3/SDL_gamepad.h>
+	<SDL3/SDL_gpu.h>
+	<SDL3/SDL_guid.h>
+	<SDL3/SDL_haptic.h>
+	<SDL3/SDL_hidapi.h>
+	<SDL3/SDL_hints.h>
+	<SDL3/SDL_init.h>
+	<SDL3/SDL_iostream.h>
+	<SDL3/SDL_joystick.h>
+	<SDL3/SDL_keyboard.h>
+	<SDL3/SDL_keycode.h>
+	<SDL3/SDL_loadso.h>
+	<SDL3/SDL_locale.h>
+	<SDL3/SDL_log.h>
+	<SDL3/SDL_messagebox.h>
+	<SDL3/SDL_metal.h>
+	<SDL3/SDL_misc.h>
+	<SDL3/SDL_mouse.h>
+	<SDL3/SDL_mutex.h>
+	<SDL3/SDL_pen.h>
+	<SDL3/SDL_pixels.h>
+	<SDL3/SDL_platform.h>
+	<SDL3/SDL_power.h>
+	<SDL3/SDL_process.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_rect.h>
+	<SDL3/SDL_render.h>
+	<SDL3/SDL_scancode.h>
+	<SDL3/SDL_sensor.h>
+	<SDL3/SDL_storage.h>
+	<SDL3/SDL_surface.h>
+	<SDL3/SDL_system.h>
+	<SDL3/SDL_thread.h>
+	<SDL3/SDL_time.h>
+	<SDL3/SDL_timer.h>
+	<SDL3/SDL_tray.h>
+	<SDL3/SDL_touch.h>
+	<SDL3/SDL_version.h>
+	<SDL3/SDL_video.h>
+	<SDL3/SDL_oldnames.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_stdinc.h
+	<SDL3/SDL_platform_defines.h>
+	<stdarg.h>
+	<stdint.h>
+	<string.h>
+	<wchar.h>
+	<inttypes.h>
+	<stdbool.h>
+	<alloca.h>
+	<stdlib.h>
+	<malloc.h>
+	<malloc.h>
+	<malloc.h>
+	<stdlib.h>
+	<sal.h>
+	<SDL3/SDL_begin_code.h>
+	<stdio.h>
+	<stdlib.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_platform_defines.h
+	<AvailabilityMacros.h>
+	<TargetConditionals.h>
+	<TargetConditionals.h>
+	<winapifamily.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_begin_code.h
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_close_code.h
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_assert.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_begin_code.h>
+	<assert.h>
+	<signal.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_asyncio.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_atomic.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_platform_defines.h>
+	<SDL3/SDL_begin_code.h>
+	<mbarrier.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_audio.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_endian.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_mutex.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_iostream.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_endian.h
+	<SDL3/SDL_stdinc.h>
+	<intrin.h>
+	<endian.h>
+	<sys/byteorder.h>
+	<endian.h>
+	<sys/endian.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_error.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_mutex.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_atomic.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_thread.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_thread.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_atomic.h>
+	<process.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_properties.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_iostream.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_bits.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_blendmode.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_camera.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_pixels.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_surface.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_pixels.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_endian.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_surface.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_blendmode.h>
+	<SDL3/SDL_pixels.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_rect.h>
+	<SDL3/SDL_iostream.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_rect.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_clipboard.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_cpuinfo.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_dialog.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_video.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_video.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_pixels.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_rect.h>
+	<SDL3/SDL_surface.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_events.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_audio.h>
+	<SDL3/SDL_camera.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_gamepad.h>
+	<SDL3/SDL_joystick.h>
+	<SDL3/SDL_keyboard.h>
+	<SDL3/SDL_keycode.h>
+	<SDL3/SDL_mouse.h>
+	<SDL3/SDL_pen.h>
+	<SDL3/SDL_power.h>
+	<SDL3/SDL_sensor.h>
+	<SDL3/SDL_scancode.h>
+	<SDL3/SDL_touch.h>
+	<SDL3/SDL_video.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_gamepad.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_guid.h>
+	<SDL3/SDL_iostream.h>
+	<SDL3/SDL_joystick.h>
+	<SDL3/SDL_power.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_sensor.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_guid.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_joystick.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_guid.h>
+	<SDL3/SDL_mutex.h>
+	<SDL3/SDL_power.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_sensor.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_power.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_sensor.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_keyboard.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_keycode.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_rect.h>
+	<SDL3/SDL_scancode.h>
+	<SDL3/SDL_video.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_keycode.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_scancode.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_scancode.h
+	<SDL3/SDL_stdinc.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_mouse.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_surface.h>
+	<SDL3/SDL_video.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_pen.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_mouse.h>
+	<SDL3/SDL_touch.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_touch.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_mouse.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_filesystem.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_gpu.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_pixels.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_rect.h>
+	<SDL3/SDL_surface.h>
+	<SDL3/SDL_video.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_haptic.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_joystick.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_hidapi.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_hints.h
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_init.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_events.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_loadso.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_locale.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_log.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_messagebox.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_video.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_metal.h
+	<SDL3/SDL_video.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_misc.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_platform.h
+	<SDL3/SDL_platform_defines.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_process.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_iostream.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_render.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_blendmode.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_events.h>
+	<SDL3/SDL_pixels.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_rect.h>
+	<SDL3/SDL_surface.h>
+	<SDL3/SDL_video.h>
+	<SDL3/SDL_gpu.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_storage.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_filesystem.h>
+	<SDL3/SDL_properties.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_system.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_keyboard.h>
+	<SDL3/SDL_video.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_time.h
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_timer.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_tray.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_surface.h>
+	<SDL3/SDL_video.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_version.h
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_oldnames.h
+	<SDL3/SDL_platform_defines.h>
+
+1748008464 /home/tbunyk/projects/cossacks-ce/vendored/SDL_image/include/SDL3_image/SDL_image.h
+	<SDL3/SDL.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+
+1749672198 /home/tbunyk/projects/cossacks-ce/src/game/resfile.h
+	"newcode/os.h"
+
+1748024645 /home/tbunyk/projects/cossacks-ce/src/game/fastdraw.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/mgraph.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/mouse.h
+
+1748033338 /home/tbunyk/projects/cossacks-ce/src/game/menu.h
+
+1749668840 /home/tbunyk/projects/cossacks-ce/src/game/mapdiscr.h
+	"newcode/os.h"
+	"antibug.h"
+	"icons.h"
+	<stdio.h>
+	"gfile.h"
+	"upgrade.h"
+	"unsyncro.h"
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/antibug.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/icons.h
+
+1748030442 /home/tbunyk/projects/cossacks-ce/src/game/gfile.h
+	"resfile.h"
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/upgrade.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/unsyncro.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/multipl.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/fog.h
+
+1748025926 /home/tbunyk/projects/cossacks-ce/src/game/walls.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/nature.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/nucl.h
+
+1748026099 /home/tbunyk/projects/cossacks-ce/src/game/megapolis.h
+
+1748507043 /home/tbunyk/projects/cossacks-ce/src/game/dialogs.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/masks.h
+
+1748021376 /home/tbunyk/projects/cossacks-ce/src/game/fonts.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/3dgraph.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/mapsprites.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/virtscreen.h
+
+1748101397 /home/tbunyk/projects/cossacks-ce/src/game/newmon.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/path.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/realwater.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/newai.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/topograf.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/3dmaped.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/mode.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/sort.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/curve.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/process.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/3drandmap.h
+
+1749297520 /home/tbunyk/projects/cossacks-ce/src/game/bmptool.h
+	"newcode/os.h"
+
+1748021896 /home/tbunyk/projects/cossacks-ce/src/game/gp_draw.h
+
+1748021582 /home/tbunyk/projects/cossacks-ce/src/game/drawform.h
+
+1748460450 source:/home/tbunyk/projects/cossacks-ce/src/game/activescenary.cpp
+	"ddini.h"
+	<stdlib.h>
+	"resfile.h"
+	"fastdraw.h"
+	"mapdiscr.h"
+	"mouse.h"
+	"mode.h"
+	"fog.h"
+	"walls.h"
+	"nature.h"
+	<math.h>
+	"megapolis.h"
+	"fonts.h"
+	"weaponid.h"
+	"3dsurf.h"
+	"gsound.h"
+	<assert.h>
+	"3dmaped.h"
+	"mapsprites.h"
+	"gp_draw.h"
+	"realwater.h"
+	"zbuffer.h"
+	"newai.h"
+	"topograf.h"
+	"strategyresearch.h"
+	"curve.h"
+	"newmon.h"
+	"sort.h"
+	"activezone.h"
+	"activescenary.h"
+	"drawform.h"
+	"recorder.h"
+	"safety.h "
+	"einfoclass.h"
+	"playerinfo.h"
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/weaponid.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/3dsurf.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/gsound.h
+
+1749297563 /home/tbunyk/projects/cossacks-ce/src/game/zbuffer.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/strategyresearch.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/activezone.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/activescenary.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/recorder.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/einfoclass.h
+
+1748025683 /home/tbunyk/projects/cossacks-ce/src/game/playerinfo.h
+
+1749297550 source:/home/tbunyk/projects/cossacks-ce/src/game/arc/gscarch.cpp
+	<SDL3/SDL.h>
+	<stdio.h>
+	"gsctypes.h"
+	"gscarch.h"
+	"gscset.h"
+	"isimasks.h"
+	"../newcode/os.h"
+
+1749297546 /home/tbunyk/projects/cossacks-ce/src/game/arc/gsctypes.h
+	"../newcode/os.h"
+
+1748033560 /home/tbunyk/projects/cossacks-ce/src/game/arc/gscarch.h
+	"gsctypes.h"
+
+1748033537 /home/tbunyk/projects/cossacks-ce/src/game/arc/gscset.h
+	"gsctypes.h"
+	"gscarch.h"
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/arc/isimasks.h
+
+1749280064 source:/home/tbunyk/projects/cossacks-ce/src/game/arc/gscset.cpp
+	<stdio.h>
+	<cstring>
+	"gsctypes.h"
+	"gscarch.h"
+	"gscset.h"
+
+1749297497 source:/home/tbunyk/projects/cossacks-ce/src/game/bmptool.cpp
+	<stdlib.h>
+	"newcode/os.h"
+	"stdio.h"
+	"resfile.h"
+	"math.h"
+	"bmptool.h"
+
+1749297541 source:/home/tbunyk/projects/cossacks-ce/src/game/ddini.cpp
+	<stdlib.h>
+	<SDL3/SDL.h>
+	"newcode/os.h"
+	"ddini.h"
+	"resfile.h"
+	"fastdraw.h"
+	"mapdiscr.h"
+	"virtscreen.h"
+	"mode.h"
+	"fog.h"
+	"gsound.h"
+	"fonts.h"
+
+1749278138 source:/home/tbunyk/projects/cossacks-ce/src/game/fastdraw.cpp
+	"ddini.h"
+	"resfile.h"
+	"mode.h"
+	<stdio.h>
+	"fastdraw.h"
+	"gp_draw.h"
+	"assert.h"
+
+1749297600 source:/home/tbunyk/projects/cossacks-ce/src/game/gamesound.cpp
+	"newcode/os.h"
+	"ddini.h"
+	"resfile.h"
+	"fastdraw.h"
+	"mgraph.h"
+	"mouse.h"
+	"menu.h"
+	"mapdiscr.h"
+	"multipl.h"
+	"fog.h"
+	"walls.h"
+	"nature.h"
+	<time.h>
+	"nucl.h"
+	"megapolis.h"
+	"dialogs.h"
+	<assert.h>
+	"3dsurf.h"
+	"cwave.h"
+	"cdirsnd.h"
+
+1749297507 /home/tbunyk/projects/cossacks-ce/src/game/cwave.h
+	"SDL3/SDL.h"
+	"SDL3/SDL_audio.h"
+	"newcode/os.h"
+
+1748030442 /home/tbunyk/projects/cossacks-ce/src/game/cdirsnd.h
+	"cwave.h"
+	<SDL3/SDL.h>
+	<SDL3/SDL_audio.h>
+
+1749297493 source:/home/tbunyk/projects/cossacks-ce/src/game/gp_draw.cpp
+	"newcode/os.h"
+	"ddini.h"
+	"resfile.h"
+	"fastdraw.h"
+	"gp_draw.h"
+	"mode.h"
+	"lines.h"
+	<stdio.h>
+	<assert.h>
+	"ctables.h"
+	"mapdiscr.h"
+	"realwater.h"
+	<math.h>
+	"activescenary.h"
+	"gsinc.h"
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/lines.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/ctables.h
+
+1748033517 /home/tbunyk/projects/cossacks-ce/src/game/gsinc.h
+	"arc/gscset.h"
+
+1749670165 source:/home/tbunyk/projects/cossacks-ce/src/game/interface.cpp
+	<boost/coroutine2/all.hpp>
+	"dialogs.h"
+	"ddini.h"
+	"fastdraw.h"
+	"mapdiscr.h"
+	"newcode/udpholepuncher.h"
+	"resfile.h"
+	"mgraph.h"
+	"mouse.h"
+	"menu.h"
+	"multipl.h"
+	"fog.h"
+	"walls.h"
+	"nature.h"
+	<time.h>
+	"nucl.h"
+	"megapolis.h"
+	"fonts.h"
+	"gsound.h"
+	"3dgraph.h"
+	"3dmaped.h"
+	"mapsprites.h"
+	<assert.h>
+	<math.h>
+	"newmon.h"
+	"icontool.h"
+	"gp_draw.h"
+	"3drandmap.h"
+	"activescenary.h"
+	"drawform.h"
+	"conststr.h"
+	"mplayer.h"
+	"recorder.h"
+	"gsinc.h"
+	"topograf.h"
+	"strategyresearch.h"
+	"safety.h"
+	"einfoclass.h"
+	"mode.h"
+	"ir.h"
+	"bmptool.h"
+	"playerinfo.h"
+
+1748021833 /home/tbunyk/projects/cossacks-ce/src/game/newcode/udpholepuncher.h
+	<iterator>
+	<vector>
+	<string>
+	<cstring>
+	<Winsock2.h>
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/icontool.h
+
+1748086083 /home/tbunyk/projects/cossacks-ce/src/game/conststr.h
+
+1749672165 /home/tbunyk/projects/cossacks-ce/src/game/mplayer.h
+	"newcode/os.h"
+	"dplay.h"
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/safety.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/ir.h
+
+1749240138 source:/home/tbunyk/projects/cossacks-ce/src/game/loadsave.cpp
+	"ddini.h"
+	"resfile.h"
+	"fastdraw.h"
+	"mgraph.h"
+	"mouse.h"
+	"menu.h"
+	"mapdiscr.h"
+	"multipl.h"
+	"fog.h"
+	"walls.h"
+	"nature.h"
+	<time.h>
+	"nucl.h"
+	"megapolis.h"
+	<assert.h>
+	"3dsurf.h"
+	"3dbars.h"
+	"path.h"
+	"mapsprites.h"
+	"strategyresearch.h"
+	"topograf.h"
+	"safety.h"
+	"newai.h"
+	"danger.h"
+	"activezone.h"
+	"activescenary.h"
+	"graphs.h"
+	"einfoclass.h"
+	"virtscreen.h"
+	"playerinfo.h"
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/3dbars.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/danger.h
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/graphs.h
+
+1749671065 source:/home/tbunyk/projects/cossacks-ce/src/game/main.cpp
+	<boost/coroutine2/all.hpp>
+	<SDL3/SDL_main.h>
+	"ddini.h"
+	"interface.h"
+	"fastdraw.h"
+	"gsound.h"
+	"resfile.h"
+	"mapdiscr.h"
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_main.h
+	<SDL3/SDL_platform_defines.h>
+	<SDL3/SDL_stdinc.h>
+	<SDL3/SDL_error.h>
+	<SDL3/SDL_events.h>
+	"SDL_main_private.h"
+	<SDL3/SDL_init.h>
+	<SDL3/SDL_begin_code.h>
+	<SDL3/SDL_close_code.h>
+	<SDL3/SDL_main_impl.h>
+
+1747723079 /home/tbunyk/projects/cossacks-ce/vendored/SDL/include/SDL3/SDL_main_impl.h
+	"SDL_main_impl_private.h"
+
+1749282687 /home/tbunyk/projects/cossacks-ce/src/game/interface.h
+
+1749541740 source:/home/tbunyk/projects/cossacks-ce/src/game/mapa.cpp
+	"ddini.h"
+	<stdlib.h>
+	"resfile.h"
+	"fastdraw.h"
+	"mapdiscr.h"
+	"mouse.h"
+	"mode.h"
+	"fog.h"
+	"walls.h"
+	"nature.h"
+	<math.h>
+	"megapolis.h"
+	"fonts.h"
+	"weaponid.h"
+	"3dsurf.h"
+	"gsound.h"
+	<assert.h>
+	"3dmaped.h"
+	"mapsprites.h"
+	"gp_draw.h"
+	"realwater.h"
+	"zbuffer.h"
+	"newai.h"
+	"topograf.h"
+	"strategyresearch.h"
+	"curve.h"
+	"newmon.h"
+	"activescenary.h"
+	"conststr.h"
+	"drawform.h"
+	"icontool.h"
+	"dialogs.h"
+	"path.h"
+	"sort.h"
+	"mplayer.h"
+	"graphs.h"
+	"lines.h"
+	"playerinfo.h"
+
+1749541861 source:/home/tbunyk/projects/cossacks-ce/src/game/mouse_x.cpp
+	"ddini.h"
+	"resfile.h"
+	"fastdraw.h"
+	"mgraph.h"
+	"mode.h"
+	"gp_draw.h"
+
+1749668988 source:/home/tbunyk/projects/cossacks-ce/src/game/multi.cpp
+	"ddini.h"
+	"resfile.h"
+	"fastdraw.h"
+	"mapdiscr.h"
+	"mgraph.h"
+	"mouse.h"
+	"menu.h"
+	"math.h"
+	"walls.h"
+	"mapsprites.h"
+	<assert.h>
+	"sort.h"
+	"path.h"
+	"transport.h"
+	"megapolis.h"
+	"activescenary.h"
+	"conststr.h"
+	"mplayer.h"
+	"recorder.h"
+	"graphs.h"
+	"fonts.h"
+	"drawform.h"
+	"ir.h"
+	"playerinfo.h"
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/transport.h
+
+1749297617 source:/home/tbunyk/projects/cossacks-ce/src/game/newcode/os.cpp
+	<cstdio>
+	"os.h"
+
+1749297534 source:/home/tbunyk/projects/cossacks-ce/src/game/newcode/securedivision.cpp
+	<cstdlib>
+	"os.h"
+
+1749297486 source:/home/tbunyk/projects/cossacks-ce/src/game/resfile.cpp
+	<stdlib.h>
+	<stdio.h>
+	<cstring>
+	"arc/gscset.h"
+	"resfile.h"
+	"newcode/os.h"
+	"unrar.h"
+	"assert.h"
+
+1747683383 /home/tbunyk/projects/cossacks-ce/src/game/unrar.h
+
+1749669274 source:/home/tbunyk/projects/cossacks-ce/src/game/select.cpp
+	"ddini.h"
+	"resfile.h"
+	"fastdraw.h"
+	"mgraph.h"
+	"mouse.h"
+	"menu.h"
+	"mapdiscr.h"
+
+1749669045 source:/home/tbunyk/projects/cossacks-ce/src/game/selprop.cpp
+	"newcode/os.h"
+	"ddini.h"
+	"resfile.h"
+	"fastdraw.h"
+	"mgraph.h"
+	"mouse.h"
+	"menu.h"
+	"mapdiscr.h"
+	"mode.h"
+	"nature.h"
+	"fonts.h"
+	"walls.h"
+	"megapolis.h"
+	"gsound.h"
+	"icontool.h"
+	"gp_draw.h"
+	"conststr.h"
+	"gsinc.h"
+	"activescenary.h"
+	<cstring>
+
+1749297517 source:/home/tbunyk/projects/cossacks-ce/src/game/timing.cpp
+	<SDL3/SDL_timer.h>
+	"newcode/os.h"
+
+1749239977 source:/home/tbunyk/projects/cossacks-ce/src/game/virtscr.cpp
+	"ddini.h"
+	"resfile.h"
+	"fastdraw.h"
+	"mgraph.h"
+	"mouse.h"
+	"menu.h"
+	"mapdiscr.h"
+	"multipl.h"
+	"fog.h"
+	"walls.h"
+	"nature.h"
+	<time.h>
+	"nucl.h"
+	"megapolis.h"
+	"dialogs.h"
+	<assert.h>
+	<math.h>
+	"masks.h"
+	"fonts.h"
+	"3dgraph.h"
+	"virtscreen.h"
+	"mapsprites.h"
+	"newmon.h"
+

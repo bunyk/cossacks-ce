@@ -11,6 +11,7 @@
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
+#ifdef _WIN32
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
@@ -291,6 +292,7 @@ void DosToWin( char* Str )
 		Str[i] = c;
 	}
 }
+#endif // _WIN32
 
 extern int CurPalette;
 extern bool PalDone;
@@ -311,6 +313,7 @@ void ErrM( char* s )
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "LOADING FAILED...", s, sdlWindow);
 }
 
+#ifdef _WIN32
 void NEPar( char* name, int line, char* Sect, int Need )
 {
 	char gx[128];
@@ -349,12 +352,15 @@ void UpConv( char* str )
 		i++;
 	} while ( c != 0 );
 }
+#endif // _WIN32
 
 //------------------------------------------New RLC information
 word RLCNSpr[1024 + 512];
+#ifdef _WIN32
 word NNewMon;
 NewMonster NewMon[512];
 char* MonNames[512];
+
 //-----------------New weapon animation discription------------
 NewAnimation WNewAnm[256];
 char* WAnmNames[256];
@@ -16624,3 +16630,4 @@ void ProcessGuard()
 		}
 	}
 }
+#endif // _WIN32

@@ -1,5 +1,7 @@
 #include <assert.h>
+#include "newcode/os.h"
 
+#ifdef _WIN32
 #include "cdirsnd.h"
 #include "ddini.h"
 #include "resfile.h"
@@ -2842,11 +2844,12 @@ CheckBox* DialogsSystem::addGP_CheckBox( SimpleDialog* Parent,
 	return nullptr;
 };
 //--------end of CheckBox--------------------//
+#endif // _WIN32
 
 //-----------colored bar---------------------//
-#ifdef _WIN32
 DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 {
+#ifdef _WIN32
 	if (Lx0 <= 0 || Ly0 <= 0 || x0<0 || y0<0 || x0 + Lx0>ScrWidth || y0 + Ly0>SCRSizeY)
 	{
 		return;
@@ -2903,14 +2906,10 @@ DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 			  jnz		qwr
 			  pop		edi
 	}
-}
-#else
-// TODO: Implement CBar for non-Windows platforms
-DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
-{
-}
 #endif
+}
 
+#ifdef _WIN32
 bool ColoredBar_OnDraw( SimpleDialog* SD )
 {
 	if (!SD->Visible)return false;
@@ -6110,3 +6109,4 @@ void ProcessMixing()
 		FreeTransBuffer();
 	};
 };
+#endif // _WIN32

@@ -1,7 +1,10 @@
-#ifdef _WIN32
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+#include <math.h>
 
 #include "ddini.h"
-#include <stdlib.h>
+#ifdef _WIN32
 #include "resfile.h"
 #include "fastdraw.h"
 #include "mapdiscr.h"
@@ -10,7 +13,6 @@
 #include "fog.h"
 #include "walls.h"
 #include "nature.h"
-#include <math.h>
 
 #include "megapolis.h"
 
@@ -19,7 +21,6 @@
 
 #include "3dsurf.h"
 #include "gsound.h"
-#include <assert.h>
 #include "3dmaped.h"
 #include "mapsprites.h"
 #include "gp_draw.h"
@@ -5579,6 +5580,8 @@ bool ReadWinString( GFILE* F, char* STR, int Max )
 	return ( cc != EOF ) || STR[0];
 	//DosToWin(STR);
 }
+#endif // _WIN32
+
 extern int CurPalette;
 void ErrM( char* s, char* s1 )
 {
@@ -5590,6 +5593,7 @@ void ErrM( char* s, char* s1 )
 	assert( false );
 }
 
+#ifdef _WIN32
 extern bool ProtectionMode;
 void MissPack::LoadMissions()
 {

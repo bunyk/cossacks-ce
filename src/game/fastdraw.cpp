@@ -94,7 +94,6 @@ void InitRLCWindows()
 	ScrHeight = SCRSizeY;
 };
 
-#ifdef _WIN32
 /*  Creating window
  */
 bool ProcessMessages();
@@ -152,6 +151,7 @@ void SetScreenPtr( void )
 	//RealScreenPtr = lpSurface;
 }
 
+#ifdef _WIN32
 void ClearScreen();
 /*
 {

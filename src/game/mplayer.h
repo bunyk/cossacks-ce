@@ -1,4 +1,4 @@
-#include "os.h"
+#include "newcode/os.h"
 
 #ifndef NODPLAY
 #include "dplay.h"
@@ -203,7 +203,7 @@ typedef struct
 	// the following fields are only available when using
 	// the IDirectPlay3 interface or greater
 	CDPNAME      dpnName;        // structure with name info
-	CDPID	    dpIdParent;     // id of parent group	
+	CDPID	    dpIdParent;     // id of parent group
 	DWORD		dwFlags;		// player or group flags
 } * CLPDPMSG_DESTROYPLAYERORGROUP;
 #endif

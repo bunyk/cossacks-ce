@@ -1,12 +1,12 @@
 /*             Work with the resource files
- *   
- * You must use this module for accesss to files. This 
- * routine allows you to read  files from disk  or from 
+ *
+ * You must use this module for accesss to files. This
+ * routine allows you to read  files from disk  or from
  * the resource file, you even will not recognise where
  * the given file is.
  */
 
-// #include <windows.h>
+#include "newcode/os.h"
 
  //#include "Arc\GSCSet.h"
 //typedef LPGSCfile ResFile;
@@ -17,7 +17,7 @@ ResFile RReset(LPCSTR lpFileName);
 ResFile RRewrite(LPCSTR lpFileName);
 //Getting size of the resource file
 DWORD RFileSize(ResFile hFile);
-// Setting file position 
+// Setting file position
 DWORD RSeek(ResFile hFile,int pos);
 //Reading the file
 DWORD RBlockRead(ResFile hFile,LPVOID lpBuffer,DWORD BytesToRead);
