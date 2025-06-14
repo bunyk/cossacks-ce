@@ -114,11 +114,9 @@ LPGSCfile CGSCarch::GetFileHandle( LPCSTR lpcsFileName )
 
 	DWORD HASH = isiCalcHash( sUpFileName );
 
-	printf("Searching for file '%s' with hash %u in archive '%s'.\n", sUpFileName, HASH, m_ArchName );
 	for (i = 0; i <= m_Header->m_Entries - 1; i++)
 	{
 		pFAT = (TGSCarchFAT*) ( LPBYTE( m_FAT ) + i * sizeof( TGSCarchFAT ) );
-		printf("Checking entry %u: hash %u, file name '%-100s'.\n", i, pFAT->m_Hash, pFAT->m_FileName );
 		if (pFAT->m_Hash == HASH)
 			if (!strcmp( LPCSTR( pFAT->m_FileName ), sUpFileName ))
 			{
@@ -129,7 +127,6 @@ LPGSCfile CGSCarch::GetFileHandle( LPCSTR lpcsFileName )
 				return lpFileHandle;
 			}
 	}
-	printf("Hash for file '%s' not found in archive '%s'.\n", sUpFileName, m_ArchName);
 
 	return NULL;
 }
