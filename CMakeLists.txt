@@ -47,5 +47,5 @@ target_link_libraries(cossacks PRIVATE SDL3_image::SDL3_image SDL3::SDL3)
 
 
 # And Boost
-find_package(Boost REQUIRED COMPONENTS context)
-target_link_libraries(cossacks PRIVATE Boost::context)
+find_package(Boost REQUIRED COMPONENTS context filesystem iostreams)
+target_link_libraries(cossacks PRIVATE Boost::context Boost::filesystem Boost::iostreams)

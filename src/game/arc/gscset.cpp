@@ -299,6 +299,10 @@ void GSC_OpenError();
 //2) cossacks_revamp.gs1
 //3) patch02.gs1, patch01.gs1
 //4) A*.gsc
+
+// BUT why I see only override.gsc and resources.gsc being searched?
+
+#ifdef _WIN32
 BOOL CGSCset::gOpen()
 {
 	BOOL retval = TRUE;
@@ -366,6 +370,49 @@ BOOL CGSCset::gOpen()
 
 	return retval;
 }
+#else
+
+#include <filesystem>
+#include <iostream>
+
+namespace fs = std::filesystem;
+
+BOOL CGSCset::gOpen() {
+    BOOL retval = TRUE;
+    std::cout << "gOpen()\n";
+
+    m_ArchList = nullptr;
+    TGSCArchList** nextPtr = &m_ArchList;
+
+    auto loadGSCs = [&](const std::string& pattern) {
+        for (const auto& entry : fs::directory_iterator(".")) {
+            if (entry.is_regular_file() && entry.path().extension() == ".gsc" && entry.path().filename().string().find(pattern) != std::string::npos) {
+                *nextPtr = new TGSCArchList;
+                (*nextPtr)->m_Arch = new CGSCarch;
+                (*nextPtr)->m_Arch->Open(entry.path().string().c_str());
+                (*nextPtr)->m_NextArch = nullptr;
+                nextPtr = &((*nextPtr)->m_NextArch);
+            }
+        }
+    };
+
+    // Load override.gsc files first
+    loadGSCs("override");
+
+    // Then load resources.gsc files
+    size_t before = reinterpret_cast<size_t>(nextPtr);
+    loadGSCs("resources");
+
+    loadGSCs("all"); // Added this so the only GSC file coming with GOG version loads.
+
+    // Check if anything was loaded in "resources"
+    if (reinterpret_cast<size_t>(nextPtr) == before) {
+        retval = FALSE;
+    }
+
+    return retval;
+}
+#endif // _WIN32
 
 VOID CGSCset::gClose()
 {

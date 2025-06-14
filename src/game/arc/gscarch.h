@@ -18,6 +18,8 @@
 #define _CRYPT_KEY_ 0x4EBA
 #endif
 
+#include <boost/iostreams/device/mapped_file.hpp>
+
 class CGSCarch;
 
 typedef CGSCarch* LPGSCarch;
@@ -57,8 +59,12 @@ public:
 
 private:
 	LPBYTE m_pViewOfFile;
+#ifdef _WIN32
 	HANDLE m_hMapping;
 	HANDLE m_hMapFile;
+#else
+	boost::iostreams::mapped_file_source m_MappedFile;
+#endif // _WIN32
 	CHAR m_ArchName[128];
 	
 	

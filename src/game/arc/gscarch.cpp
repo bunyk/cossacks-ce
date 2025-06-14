@@ -19,16 +19,18 @@ GFILE_API CGSCarch::~CGSCarch()
 
 extern SDL_Window* sdlWindow;
 
-void GSC_OpenError()
+void GSC_OpenError(std::string msg = "")
 {
-	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Loading error...", "Unable to map files into memory.", sdlWindow);
+	std::string fullMsg = "Unable to map files into memory. " + msg;
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Loading error...", fullMsg.c_str(), sdlWindow);
 }
 
 BOOL CGSCarch::Open( LPCSTR lpcsArchFileName )
 {
-#ifdef _WIN32
+	printf("Opening archive file: %s\n", lpcsArchFileName );
 	strcpy( m_ArchName, lpcsArchFileName );
 
+#ifdef _WIN32
 	m_hMapFile = CreateFile( m_ArchName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, 0 );
 	if (INVALID_HANDLE_VALUE == m_hMapFile)
 	{
@@ -55,8 +57,29 @@ BOOL CGSCarch::Open( LPCSTR lpcsArchFileName )
 	m_FAT = (TGSCarchFAT*) ( LPBYTE( m_pViewOfFile ) + sizeof( TGSCarchHDR ) );
 	m_Data = LPBYTE( m_pViewOfFile ) + sizeof( TGSCarchHDR )
 		+ ( m_Header->m_Entries * sizeof( TGSCarchFAT ) );
+#else
+
+    m_MappedFile.open(lpcsArchFileName);
+    if (!m_MappedFile.is_open()) {
+        GSC_OpenError("mapped file could not be opened");
+        return false;
+    }
+
+    const char* data = m_MappedFile.data();
+    std::size_t size = m_MappedFile.size();
+
+    if (size < sizeof(TGSCarchHDR)) {
+        GSC_OpenError("file is too small to contain a valid header");
+        return false;
+    }
+
+    m_Header = reinterpret_cast<const TGSCarchHDR*>(data);
+    m_FAT = reinterpret_cast<const TGSCarchFAT*>(data + sizeof(TGSCarchHDR));
+    m_Data = reinterpret_cast<const uint8_t*>(
+        data + sizeof(TGSCarchHDR) + m_Header->m_Entries * sizeof(TGSCarchFAT)
+    );
 #endif
-	return TRUE;
+    return true;
 }
 
 BOOL CGSCarch::Close()

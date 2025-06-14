@@ -1,6 +1,9 @@
 vendored/
 build/
 
+# GSC
+*.gsc
+
 ### C++ ###
 # Prerequisites
 *.d
