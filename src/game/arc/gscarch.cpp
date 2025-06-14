@@ -74,11 +74,12 @@ BOOL CGSCarch::Open( LPCSTR lpcsArchFileName )
     }
 
     m_Header = reinterpret_cast<const TGSCarchHDR*>(data);
-	printf("Opened archive '%s' with %u entries.", lpcsArchFileName, m_Header->m_Entries);
+	printf("Archive '%s' has %u entries.\n", lpcsArchFileName, m_Header->m_Entries);
     m_FAT = reinterpret_cast<const TGSCarchFAT*>(data + sizeof(TGSCarchHDR));
     m_Data = reinterpret_cast<const uint8_t*>(
         data + sizeof(TGSCarchHDR) + m_Header->m_Entries * sizeof(TGSCarchFAT)
     );
+
 #endif
     return true;
 }
@@ -113,10 +114,11 @@ LPGSCfile CGSCarch::GetFileHandle( LPCSTR lpcsFileName )
 
 	DWORD HASH = isiCalcHash( sUpFileName );
 
-	printf("archive has %u entries\n", m_Header->m_Entries);
+	printf("Searching for file '%s' with hash %u in archive '%s'.\n", sUpFileName, HASH, m_ArchName );
 	for (i = 0; i <= m_Header->m_Entries - 1; i++)
 	{
 		pFAT = (TGSCarchFAT*) ( LPBYTE( m_FAT ) + i * sizeof( TGSCarchFAT ) );
+		printf("Checking entry %u: hash %u, file name '%-100s'.\n", i, pFAT->m_Hash, pFAT->m_FileName );
 		if (pFAT->m_Hash == HASH)
 			if (!strcmp( LPCSTR( pFAT->m_FileName ), sUpFileName ))
 			{

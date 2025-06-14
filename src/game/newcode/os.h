@@ -28,7 +28,7 @@ typedef unsigned short word;
 typedef unsigned char BYTE;
 typedef BYTE *LPBYTE;
 typedef unsigned char byte;
-typedef unsigned long DWORD;
+typedef unsigned int DWORD; // DWORD was 4 bytes on 32-bit Windows
 typedef long LONG;
 typedef unsigned int BOOL;
 #define TRUE 1
