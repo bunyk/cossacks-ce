@@ -3,10 +3,10 @@
 #include "../newcode/os.h"
 #include <cstdint>
 
-#ifdef _WIN32
 
 void isiDecryptMem(LPBYTE lpbBuffer, DWORD dwSize, BYTE dbKey)
 {
+#ifdef _WIN32
 _asm
 	{
 		mov	ecx,dwSize
@@ -23,10 +23,23 @@ next_byte:
 
 		loop next_byte
 	}
+#else
+    BYTE* ptr = lpbBuffer;
+    BYTE* end = lpbBuffer + dwSize;
+
+    while (ptr < end) {
+        BYTE al = *ptr;        // mov al, [ebx]
+        al = ~al;              // not al
+        al ^= dbKey;           // xor al, ah  (ah was loaded with dbKey)
+        *ptr = al;             // mov [ebx], al
+        ++ptr;                 // inc ebx
+    }
+#endif // _WIN32
 }
 
 void isiEncryptMem(LPBYTE lpbBuffer, DWORD dwSize, BYTE dbKey)
 {
+#ifdef _WIN32
 _asm
 	{
 		mov	ecx,dwSize
@@ -44,8 +57,8 @@ next_byte:
 
 		loop next_byte
 	}
-}
 #endif // _WIN32
+}
 
 DWORD isiCalcHash(LPSTR lpszFileName)
 {

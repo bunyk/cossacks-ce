@@ -80,7 +80,7 @@ bool ReadBMP8TOBPX(char* Name, byte** data) {
 	ResFile f1 = RReset(Name);
 	if (f1 != INVALID_HANDLE_VALUE) {
 		RBlockRead(f1, &BM, sizeof(BMPformat));
-		if (IOresult() || BM.bfType != 'MB')return false;
+		if (IOresult() || BM.bfType != 'MB') return false;
 		if (BM.biBitCount != 8)return false;
 		*data = new byte[BM.biWidth*BM.biHeight + 4];
 		int wid = BM.biWidth;

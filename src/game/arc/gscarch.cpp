@@ -139,11 +139,9 @@ VOID CGSCarch::CloseFileHandle( LPGSCfile lpFileHandle )
 
 VOID CGSCarch::MemDecrypt( LPBYTE lpbDestination, DWORD dwSize )
 {
-#ifdef _WIN32
 	BYTE Key = (BYTE) ~( HIBYTE( _CRYPT_KEY_ ) );
 
 	isiDecryptMem( lpbDestination, dwSize, Key );
-#endif
 }
 
 DWORD CGSCarch::GetFileSize( LPGSCfile lpFileHandle )

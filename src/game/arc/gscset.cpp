@@ -106,7 +106,6 @@ VOID CGSCset::gCloseFile( LPGSCfile gFile )
 
 VOID CGSCset::gReadFile( LPGSCfile gFile, LPBYTE lpbBuffer, DWORD dwSize )
 {
-#ifdef _WIN32
 	DWORD	dwBytesRead = 0;
 
 	if (gFile->m_Flags)
@@ -115,9 +114,13 @@ VOID CGSCset::gReadFile( LPGSCfile gFile, LPBYTE lpbBuffer, DWORD dwSize )
 	}
 	else
 	{
+
+#ifdef _WIN32
 		ReadFile( HANDLE( gFile->m_FileHandle ), lpbBuffer, dwSize, &dwBytesRead, NULL );
-	};
+#else
+		printf("Need to implement ReadFile for non-Windows platforms\n");
 #endif
+	};
 }
 
 VOID CGSCset::gSeekFile( LPGSCfile gFile, DWORD dwPosition )
