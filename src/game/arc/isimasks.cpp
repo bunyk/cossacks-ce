@@ -1,6 +1,9 @@
 #pragma warning (disable : 4035)
 
-// #include <windows.h>
+#include "../newcode/os.h"
+#include <cstdint>
+
+#ifdef _WIN32
 
 void isiDecryptMem(LPBYTE lpbBuffer, DWORD dwSize, BYTE dbKey)
 {
@@ -42,6 +45,7 @@ next_byte:
 		loop next_byte
 	}
 }
+#endif // _WIN32
 
 DWORD isiCalcHash(LPSTR lpszFileName)
 {
@@ -50,6 +54,7 @@ DWORD isiCalcHash(LPSTR lpszFileName)
 	ZeroMemory(szFileName,64);
 	strcpy(szFileName,_strupr(lpszFileName));
 
+#ifdef _WIN32
 _asm
 	{
 		mov	edx,0
@@ -71,9 +76,34 @@ new_dword:
 
 		mov	eax,edx
 	}
+#else
+    uint32_t hash = 0;
+
+    for (int i = 0; i < 16; ++i) {
+        // Read 4 bytes as uint32_t
+        uint32_t val = *(uint32_t*)(szFileName + i * 4);
+
+        // xchg ah, al
+        uint8_t al = val & 0xFF;
+        uint8_t ah = (val >> 8) & 0xFF;
+        val = (val & 0xFFFF0000) | (al << 8) | ah;
+
+        // rol eax, 16
+        val = (val << 16) | (val >> 16);
+
+        // xchg ah, al again
+        al = val & 0xFF;
+        ah = (val >> 8) & 0xFF;
+        val = (val & 0xFFFF0000) | (al << 8) | ah;
+
+        hash += val;
+    }
+
+    return hash;
+#endif
 }
 
-
+#ifdef _WIN32
 BOOL isiMatchesMask(LPSTR lpszFile, LPSTR lpszMask)
 {
 	char	szFile[255];
@@ -152,3 +182,4 @@ BOOL isiFileExists(LPSTR lpszFileName)
 }
 
 #pragma warning (default : 4035)
+#endif // _WIN32

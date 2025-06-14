@@ -54,4 +54,10 @@ void SetLastError(DWORD dwErrCode);
 
 #define HIBYTE(w) ((BYTE)(((w) >> 8) & 0xFF))
 
+#include <cstring>
+
+#define ZeroMemory(Destination, Length) memset((Destination), 0, (Length))
+
+char* _strupr(char *str);
+
 #endif

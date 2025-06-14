@@ -33,7 +33,7 @@ struct TGSCFindInfo
 
 struct TGSCarchHDR
 {
- BYTE		m_Descriptor[6];
+ BYTE		m_Descriptor[6]; // contains GSCfmt, just ignored
  WORD		m_Version;
  WORD		m_Key;
  DWORD		m_Entries;
