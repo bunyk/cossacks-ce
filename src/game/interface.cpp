@@ -6558,9 +6558,9 @@ int processMainMenu()
 	MMenu.HintX = menu_hint_x;
 	MMenu.HintY = menu_hint_y;
 
-#ifdef _WIN32
 	Picture* PIC = MMenu.addPicture( nullptr, 0, 0, &MnPanel, &MnPanel, &MnPanel );
 
+#ifdef _WIN32
 	GP_Button* Single = MMenu.addGP_Button( nullptr, 76, 140, BTNS.GPID, 0, 1 );
 	Single->UserParam = mcmSingle;
 	Single->OnUserClick = &MMItemChoose;

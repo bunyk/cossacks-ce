@@ -106,6 +106,7 @@ void DialogsSystem::SetFonts( RLCFont* fActive,
 	Disabled = fDisabled;
 	Message = fMessage;
 };
+#endif // _WIN32
 //-----------------class Picture
 bool Picture_OnMouseOver( SimpleDialog* SD )
 {
@@ -173,6 +174,8 @@ Picture* DialogsSystem::addPicture(
 	};
 	return nullptr;
 };
+
+#ifdef _WIN32
 //-----------------class Canvas----------//
 bool CanvasDestroy( SimpleDialog* SD )
 {
@@ -4822,6 +4825,7 @@ CustomBorder* DialogsSystem::addCustomBorder( int x, int y, int x1, int y1,
 	}
 	else return nullptr;
 }
+#endif // _WIN32
 
 //-------------------------------------------//
 SimpleDialog::SimpleDialog()
@@ -4861,6 +4865,7 @@ SimpleDialog::SimpleDialog()
 	AllocPtr = nullptr;
 }
 
+#ifdef _WIN32
 void SimpleDialog::AssignSound( int ID, int Usage )
 {
 	switch (Usage)
@@ -5152,6 +5157,7 @@ void CopyToRealScreenMMX( int zx, int zy,
 			emms
 	};
 };
+#endif // _WIN32
 
 //--------Pictures methods--------//
 void SQPicture::Draw( int x, int y )
@@ -5167,6 +5173,7 @@ void SQPicture::Draw( int x, int y )
 	int lx4 = lx >> 2;
 	int lx1 = lx & 3;
 	int scradd = ScrWidth - lx;//SizeX-lx;
+	#ifdef _WIN32
 	__asm {
 		push	esi
 		push	edi
@@ -5188,8 +5195,14 @@ void SQPicture::Draw( int x, int y )
 						   uu3 : pop		edi
 								 pop		esi
 	};
+	#else
+	for (int row = 0; row < ly; ++row) {
+		std::memcpy(ScreenPtr + (x + (y + row) * ScrWidth), 
+					PicPtr + 2 + row * lx, 
+					lx);
+	}
+	#endif
 };
-#endif // _WIN32
 void SQPicture::DrawTransparent( int x, int y )
 {
 #ifdef _WIN32
