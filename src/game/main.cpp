@@ -1,7 +1,7 @@
 ﻿#include <stdio.h>
 #include <boost/coroutine2/all.hpp>
 
-#define TEST
+// #define TEST
 
 #ifndef TEST
 // There is no main function, instead we have
@@ -17,6 +17,7 @@
 #include "gsound.h"
 #include "resfile.h"
 #include "mapdiscr.h"
+#include "mouse.h"
 
 extern bool RUNMAPEDITOR;
 extern bool RUNUSERMISSION;
@@ -175,6 +176,7 @@ DLLEXPORT SDL_Keycode LastKey;
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 {
+	printf("SDL_AppInit\n");
 	for (int i = 0; i < argc; i++)
 	{
 		if (strcmp(argv[i], "/MAPEDITOR") == 0)
@@ -452,9 +454,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	// Fine on desktop, but not on mobile
 	SDL_StartTextInput(sdlWindow);
 
+	printf(">>> SDL_AppInit done. Starting AllGameCoroutine\n");
 	AllGameCoroutine = new boost::coroutines2::coroutine<void>::pull_type(AllGame);
-
-	printf("SDL_AppInit: All game coroutine created, starting game loop.\n");
 
 	return SDL_APP_CONTINUE;
 }
@@ -469,6 +470,8 @@ void ClipCursorToWindowArea()
 
 	SDL_SetWindowMouseGrab(sdlWindow, InGame || InEditor);
 }
+
+extern bool ScanPressed[SDL_SCANCODE_KP_0 + 1];
 
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 {
@@ -741,6 +744,7 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 		printf("AllGameCoroutine is empty, quitting...\n");
 		return SDL_APP_SUCCESS;
 	}
+	printf("SDL_AppIterate\n");
 	(*AllGameCoroutine)();
 	return SDL_APP_CONTINUE;
 }
@@ -2010,6 +2014,23 @@ void GameKeyCheck()
 		}
 	}
 }
+
+int NInStack = 0;
+#define MaxQu 32
+MouseStack MSTC[MaxQu];
+extern bool unpress;
+
+void UnPress()
+{
+	for (int i = 0; i < NInStack; i++)
+	{
+		MSTC[i].Lpressed = 0;
+		MSTC[i].Rpressed = 0;
+	}
+	unpress = 1;
+	memset( ScanPressed, false, sizeof(ScanPressed));
+}
+
 
 #ifdef TEST
 

@@ -1,4 +1,5 @@
 #include "newcode/os.h"
+#include "fastdraw.h"
 
 #ifndef DIALOGS_USER
 #define DIALOGS_API DLLEXPORT
@@ -38,11 +39,10 @@ public:
 	};
 };
 
-#ifdef _WIN32
 class DIALOGS_API SimpleDialog;
 typedef bool VCall(SimpleDialog* SD);
 typedef bool VCallXY(SimpleDialog* SD, int x, int y, int ActiveID);
-class DialogsSystem;
+class DIALOGS_API DialogsSystem;
 class DIALOGS_API SimpleDialog;
 class DIALOGS_API VScrollBar;
 
@@ -308,7 +308,6 @@ public:
 	bool Centering;
 	bool Anonim;
 };
-class DIALOGS_API DialogsSystem;
 class DIALOGS_API CheckBox :public SimpleDialog {
 public:
 	DialogsSystem* DS;
@@ -375,6 +374,7 @@ public:
 	void AssignScroll(VScrollBar* SB);
 	void LoadFile(char* Name);
 };
+
 class DIALOGS_API BPXView :public SimpleDialog {
 public:
 	byte* Ptr;
@@ -461,6 +461,7 @@ public:
 	int ActiveFrame;
 	int PassiveFrame;
 };
+
 struct OnePage {
 	int x, y, x1, y1;
 	int Index;
@@ -655,8 +656,6 @@ public:
 
 //extern char* SoundID[MaxSnd];
 int SearchStr(char** Res, char* s, int count);
-
-#endif // _WIN32
 
 //Current dialog IDs?
 #define mcmExit		0xFF

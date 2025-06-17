@@ -41,6 +41,7 @@ add_executable(cossacks
 	src/game/dialogs.cpp
 	src/game/newmon.cpp
 	src/game/arc/isimasks.cpp
+	src/game/mouszone.cpp
 )
 
 # Link to the actual SDL3 libraries.

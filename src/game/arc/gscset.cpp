@@ -438,16 +438,16 @@ VOID CGSCset::gClose()
 
 DWORD CGSCset::gFileSize( LPGSCfile gFile )
 {
-#ifdef _WIN32	
 	if (gFile->m_Flags)//m_Flags = 1 means it's in an archive
 	{
 		return gFile->m_Arch->GetFileSize( gFile );
 	}
 	else
 	{
+#ifdef _WIN32	
 		return GetFileSize( HANDLE( gFile->m_FileHandle ), NULL );
-	};
 #endif
+	};
 }
 
 LPBYTE CGSCset::gMapFile( LPGSCfile gFile )

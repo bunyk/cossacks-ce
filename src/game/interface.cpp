@@ -837,12 +837,13 @@ bool SetGameDisplayMode( int SizeX, int SizeY )
 	return true;
 }
 
-#ifdef _WIN32
 extern int ScrollSpeed;
 
 //-----------------SINGLE PLAYER---------------//
 void UnLoading();
 static byte Ntn[8];
+#ifdef _WIN32
+// TODO: is this used? Orcs? Is this dead code from Warcraft 2000?
 bool NatChoose( SimpleDialog* SD )
 {
 	BpxTextButton* TB = (BpxTextButton*) SD;
@@ -6552,12 +6553,12 @@ int processMainMenu()
 
 	SQPicture MnPanel( "Interface\\Background_Main_Menu.bmp" );
 
-#ifdef _WIN32
 	DialogsSystem MMenu( menu_x_off, menu_y_off );
 	MMenu.HintFont = &hfnt;
 	MMenu.HintX = menu_hint_x;
 	MMenu.HintY = menu_hint_y;
 
+#ifdef _WIN32
 	Picture* PIC = MMenu.addPicture( nullptr, 0, 0, &MnPanel, &MnPanel, &MnPanel );
 
 	GP_Button* Single = MMenu.addGP_Button( nullptr, 76, 140, BTNS.GPID, 0, 1 );
@@ -9304,7 +9305,7 @@ void AllGame(boost::coroutines2::coroutine<void>::push_type& yield)
 				PlayGame();
 			}
 			//Zero variables and pointers
-			// UnLoading(); // TODO
+			UnLoading(); // TODO
 		}
 	} while ( mcmExit != menuChoice );
 

@@ -30,8 +30,10 @@ extern bool realLpressed;
 extern bool KeyPressed;
 extern SDL_Keycode LastKey;
 extern bool MUSTDRAW;
+#endif // _WIN32
 extern int RealLx;
 extern int RealLy;
+#ifdef _WIN32
 extern char* SoundID[MaxSnd];
 extern byte LastAsciiKey;
 void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr );
@@ -49,7 +51,6 @@ void ErrD( LPCSTR s )
 	assert( false );
 }
 
-#ifdef _WIN32
 void ShowString( int x, int y, LPCSTR lps, lpRLCFont lpf );
 
 extern int mousePointerType;
@@ -61,6 +62,7 @@ DLLEXPORT void SetCurPtr( int v )
 
 DLLEXPORT int GetSound( char* Name )
 {
+#ifdef _WIN32
 	if (!NSounds)return -1;
 	int ID = SearchStr( SoundID, Name, NSounds );
 	if (ID == -1)
@@ -72,6 +74,7 @@ DLLEXPORT int GetSound( char* Name )
 		return -1;
 	};
 	return ID;
+#endif // _WIN32
 }
 
 DialogsSystem::DialogsSystem( int x, int y )
@@ -92,6 +95,7 @@ DialogsSystem::DialogsSystem()
 	CancelSound = GetSound( "STANDART" );
 	UserClickSound = GetSound( "STANDART" );
 };
+#ifdef _WIN32
 void DialogsSystem::SetFonts( RLCFont* fActive,
 	RLCFont* fPassive,
 	RLCFont* fDisabled,
@@ -5754,6 +5758,7 @@ void DialogsSystem::RefreshView()
 		PostRedrawMouse();
 	}
 }
+#endif // _WIN32
 
 void DialogsSystem::CloseDialogs()
 {
@@ -5781,6 +5786,7 @@ void DialogsSystem::CloseDialogs()
 	}
 }
 
+#ifdef _WIN32
 void DialogsSystem::MarkToDraw()
 {
 	for (int i = 0; i < MAXDLG; i++)
@@ -5791,6 +5797,7 @@ void DialogsSystem::MarkToDraw()
 		}
 	}
 }
+#endif // _WIN32
 
 void UnPress();
 //----------end of handler of the dialogsystem--------//
@@ -5799,8 +5806,9 @@ DialogsSystem::~DialogsSystem()
 	CloseDialogs();
 	UnPress();
 };
-//transparency effect
 
+#ifdef _WIN32
+//transparency effect
 byte* TransPtr = nullptr;
 int TransLx = 0;
 int TransLy = 0;

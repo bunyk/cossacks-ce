@@ -439,9 +439,12 @@ extern bool HaveExComm;
 void EraseRND();
 extern int ExitNI;
 
+#endif // _WIN32
+
 //Zero a LOT of variables and pointers
 void UnLoading()
 {
+#ifdef _WIN32
 	ExitNI = -1;
 
 	if (!RivDir)
@@ -641,8 +644,10 @@ void UnLoading()
 
 	Sprites = nullptr;
 	MaxSprt = 0;
+#endif // _WIN32
 }
 
+#ifdef _WIN32
 //SAVING...
 void SaveRLE1( SaveBuf* SB, void* data, int Size )
 {

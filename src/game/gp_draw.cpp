@@ -37,7 +37,6 @@ typedef short* lpShort;
 typedef DWORD* lpDWORD;
 GP_System::GP_System()
 {
-#ifdef _WIN32
 	CashSize = 4200000;
 	PackCash = new byte[CashSize + 4];
 	PackCash[CashSize] = 0x37;
@@ -74,12 +73,10 @@ GP_System::GP_System()
 	memset( Mapping, 0, NGPReady );
 	//PreLoadGPImage("gets2");
 	memset( GP_L_IDXS, 0, sizeof(GP_L_IDXS) );
-#endif
 };
 
 GP_System::~GP_System()
 {
-#ifdef _WIN32
 	free( PackCash );
 	for (int i = 0; i < NGP; i++)
 	{
@@ -98,7 +95,6 @@ GP_System::~GP_System()
 	free( CASHREF );
 	free( Mapping );
 	free( UNITBL );
-#endif
 };
 #ifdef _WIN32
 int  GP_System::GetGPWidth( int i, int n )
@@ -270,7 +266,6 @@ int GP_System::PreLoadGPImage( char* Name, bool Shadow )
 	*/
 };
 
-#ifdef _WIN32
 void GP_System::SetWhiteFont( int n )
 {
 	if (n >= NGP)return;
@@ -291,7 +286,6 @@ void GP_System::SetOptionalColor( int n, int c )
 	if (n >= NGP)return;
 	ImageType[n] = ( ImageType[n] & 7 ) | ( c << 4 );
 };
-#endif //_WIN32
 void GP_System::UnLoadGP( int i )
 {
 	if (i >= NGP)return;

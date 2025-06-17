@@ -1,5 +1,8 @@
 // #include <windows.h>
 
+#ifndef __GP_DRAW_H__
+#define __GP_DRAW_H__
+
 #ifndef GP_USER
 #define GP_API DLLEXPORT
 #else
@@ -151,3 +154,4 @@ public:
 };
 
 extern word GP_L_IDXS[MaxGPIdx];
+#endif // __GP_DRAW_H__

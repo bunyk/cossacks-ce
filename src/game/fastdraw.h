@@ -11,6 +11,9 @@
 
 // #include <windows.h>
 
+#ifndef __FASTDRAW_H__
+#define __FASTDRAW_H__
+
 #ifndef FASTDRAW_USER
 #define FASTDRAW_API DLLEXPORT
 #else
@@ -144,3 +147,5 @@ FASTDRAW_API int GetRLCWidthUNICODE(RLCTable lpr, byte* strptr, int* L);
  *
  *  byte[...]       Colors table
  */
+
+#endif // __FASTDRAW_H__

@@ -2783,7 +2783,9 @@ void ControlZones();
 void UnPress();
 int OldLpressed = -1;
 bool OverInform = 0;
+#endif // _WIN32
 bool unpress = 0;
+#ifdef _WIN32
 void GlobalHandleMouse(bool process_scrolling);
 void DrawZones();
 void GameKeyCheck();

@@ -11,7 +11,6 @@
 
 #include "gfile.h"
 #include "mgraph.h"
-#include "mouse.h"
 #include "menu.h"
 #include "multipl.h"
 #include "fog.h"
@@ -168,7 +167,6 @@ extern int sfVersion;
 
 extern char SaveFileName[128];
 
-extern bool ScanPressed[SDL_SCANCODE_KP_0 + 1];
 extern byte SpecCmd;
 extern word rpos;
 extern BlockBars LockBars;
@@ -555,10 +553,7 @@ void RenderAllMap()
 	NoText = false;
 }
 
-#define MaxQu 32
-MouseStack MSTC[MaxQu];
 MouseStack CURMS;
-int NInStack = 0;
 void AddMouseEvent( int x, int y, bool L, bool R )
 {
 	if (NInStack < MaxQu)
@@ -597,19 +592,6 @@ MouseStack* ReadMEvent()
 void ClearMStack()
 {
 	NInStack = 0;
-}
-
-extern bool unpress;
-
-void UnPress()
-{
-	for (int i = 0; i < NInStack; i++)
-	{
-		MSTC[i].Lpressed = 0;
-		MSTC[i].Rpressed = 0;
-	}
-	unpress = 1;
-	memset( ScanPressed, false, sizeof(ScanPressed));
 }
 
 extern int CurPalette;
