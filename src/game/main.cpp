@@ -12,17 +12,22 @@
 #endif // TEST
 
 #include "ddini.h"
-#include "interface.h"
 #include "fastdraw.h"
 #include "gsound.h"
 #include "resfile.h"
 #include "mapdiscr.h"
 #include "mouse.h"
+#include "gp_draw.h"
+#include "fonts.h"
+#include "dialogs/initfonts.h"
+#include "interface.h"
+#include "fog.h"
 
-// Test code. TODO: remove
-#include "dialogs.h"
-SQPicture TestSQPicture( "Interface\\Background_Wizard.bmp" );
-// end of test code
+//Game version. Must match with other clients
+DLLEXPORT word dwVersion = 100;
+DLLEXPORT char LobbyVersion[32] = "1.00";
+DLLEXPORT char BuildVersion[32] = "V 1.00";
+
 
 extern bool RUNMAPEDITOR;
 extern bool RUNUSERMISSION;
@@ -423,9 +428,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	}
 
 	//Load specific palette and fog resources (alphas etc)
-	#ifdef _WIN32
 	LoadFog(2);
-	#endif // _WIN32
 	LoadPalette("2\\agew_1.pal");
 
 	#ifdef _WIN32
@@ -622,9 +625,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 			CreateDDObjects(sdlWindow);
 			LockSurface();
 			UnlockSurface();
-			#ifdef _WIN32
 			LoadFog(CurPalette);
-			#endif
 			char cc[64];
 			sprintf(cc, "%d\\agew_1.pal", CurPalette);
 			PalDone = 0;
@@ -741,9 +742,6 @@ bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true)
 
 SDL_AppResult SDL_AppIterate(void* appstate)
 {
-	// Test code: TODO: remove
-	TestSQPicture.Draw(0, 0);
-
 	// Using coroutines would be perfect for this code,
 	// since each menu is a separate function with render loop.
 

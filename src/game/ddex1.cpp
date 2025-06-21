@@ -44,8 +44,6 @@
 #include "einfoclass.h"
 #include "3dmaped.h"
 #include "activescenary.h"
-#include "fonts.h"
-#include "dialogs/initfonts.h"
 #include "interface.h"
 #include "menu.h"
 
@@ -76,11 +74,6 @@ bool fixed;
 
 
 
-
-//Game version. Must match with other clients
-DLLEXPORT word dwVersion = 100;
-DLLEXPORT char LobbyVersion[32] = "1.00";
-DLLEXPORT char BuildVersion[32] = "V 1.00";
 
 int CostThickness;
 int ReliefBrush;

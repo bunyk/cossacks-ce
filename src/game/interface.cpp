@@ -10,6 +10,8 @@
 #include "resfile.h"
 #include "gp_draw.h"
 #include "mouse.h"
+#include "fonts.h"
+#include "fog.h"
 
 #ifdef _WIN32
 
@@ -21,14 +23,12 @@
 #include "mgraph.h"
 #include "menu.h"
 #include "multipl.h"
-#include "fog.h"
 #include "walls.h"
 #include "nature.h"
 #include <time.h>
 #include "nucl.h"
 
 #include "megapolis.h"
-#include "fonts.h"
 #include "gsound.h"
 #include "3dgraph.h"
 #include "3dmaped.h"
@@ -77,6 +77,10 @@ extern int RealLx;
 extern int RealLy;
 
 bool IgnoreSlow = false;
+
+
+int CurrentCampagin = -1;
+int CurrentMission = -1;
 
 #ifdef _WIN32
 
@@ -146,9 +150,9 @@ bool CHKV( char* Name );
 bool WaitingHostGame( int );
 void NewMap( int szX, int szY );
 bool WaitingJoinGame( int );
+#endif // _WIN32
 void SlowLoadPalette( const char* lpFileName );
 void SlowUnLoadPalette( const char* lpFileName );
-#endif // _WIN32
 void SetDarkPalette();
 #ifdef _WIN32
 void CopyToScreen( int x, int y, int Lx, int Ly );
@@ -596,9 +600,9 @@ char PlName[64];
 
 void ProcessHelp();
 
-#ifdef _WIN32
-void ProcessCampagins( int Options );
+void ProcessCampaigns( int Options );
 
+#ifdef _WIN32
 void SFLB_ReadFirstPlayerName( char* ccc );
 
 void SFLB_LoadMEDButtons();
@@ -1026,8 +1030,10 @@ bool ProcessNewInternetLogin();
 extern char** NatsIDS;
 
 char IPADDR[128] = "";
+#endif // _WIN32
 bool TOTALEXIT = 0;
 
+#ifdef _WIN32
 bool EnterName();
 
 extern char ACCESS[16];
@@ -1625,7 +1631,7 @@ int MM_ProcessSinglePlayer()
 	if ( ItemChoose == 1 )
 	{
 		SlowUnLoadPalette( "2\\agew_1.pal" );
-		ProcessCampagins( -1 );
+		ProcessCampaigns( -1 );
 	}
 
 	if ( ItemChoose == 2 )
@@ -6485,6 +6491,7 @@ bool ProcessGameOptions()
 
 	return false;
 }
+#endif // _WIN32
 
 bool CreateMultiplaterInterface();
 
@@ -6497,7 +6504,6 @@ int GetRndVid( int N );
 void processMLoadGame();
 bool InMainMenuLoop = 0;
 extern bool RejectThisPlayer;
-#endif // _WIN32
 
 void ResizeAndCenterWindow();
 
@@ -6566,7 +6572,6 @@ int processMainMenu()
 	Single->Hint = GetTextByID( "MMSINGLE" );
 	Single->AssignSound( GETS( "@MOUSESOUND" ), MOUSE_SOUND );
 
-#ifdef _WIN32
 	GP_Button* Multi = MMenu.addGP_Button( nullptr, 76, 140 + 82, BTNS.GPID, 2, 3 );
 	Multi->UserParam = mcmMulti;
 	Multi->OnUserClick = &MMItemChoose;
@@ -6605,7 +6610,7 @@ int processMainMenu()
 	{
 		if ( CurrentCampagin != -1 && CurrentMission != -1 )
 		{
-			ProcessCampagins( CurrentCampagin );
+			ProcessCampaigns( CurrentCampagin );
 			nn = 1;
 			if ( ItemChoose == mcmSingle )
 			{
@@ -6626,11 +6631,14 @@ int processMainMenu()
 
 		LastKey = SDLK_UNKNOWN;
 		KeyPressed = 0;
+		#ifdef _WIN32
 		RejectThisPlayer = 0;
+		#endif //_WIN32
 
 		// Main menu loop
 		do
 		{
+			#ifdef _WIN32 // TODO: uncomment later
 			//Check conditions and roll credits
 			if ( ADDSH == 1 && bActive
 				&& ( GetSDLTickCount() - StTime > kCreditsDemoDelay || RetryVideo )
@@ -6664,6 +6672,7 @@ int processMainMenu()
 					StTime = GetSDLTickCount();
 				}
 			}
+			#endif // _WIN32
 
 			InMainMenuLoop = 1;
 
@@ -6701,6 +6710,7 @@ int processMainMenu()
 			}
 		} while ( ItemChoose == -1 );
 
+#ifdef _WIN32
 		if ( ItemChoose == mcmSingle )
 		{
 			SlowUnLoadPalette( "2\\agew_1.pal" );
@@ -6776,13 +6786,12 @@ int processMainMenu()
 			ItemChoose = mcmSingle;
 			RUNUSERMISSION = 0;
 		}
+	#endif // _WIN32
 		break;
 	}
 
 	GameMode = 0;
 	return ItemChoose;
-#endif // _WIN32
-	return mcmSingle; // Let's just start single game for now
 }
 //--------------=< G A M E   S C R E E N >=------------//
 
@@ -11882,10 +11891,6 @@ void EnterRandomParams()
 
 	UnPress();
 }
-
-int CurrentCampagin = -1;
-int CurrentMission = -1;
-
 bool ProcessSingleMission( int n, int Diff )
 {
 	MaxPingTime = 0;
@@ -12534,8 +12539,11 @@ HHH1:
 	SlowUnLoadPalette( "2\\agew_1.pal" );
 	return false;
 };
-void ProcessCampagins( int Options )
+#endif // _WIN32
+
+void ProcessCampaigns( int Options )
 {
+#ifdef _WIN32
 	if ( !CAMPAGINS.NCamp )
 	{
 		return;
@@ -12657,8 +12665,10 @@ HHH1:
 	{
 		SlowUnLoadPalette( "2\\agew_1.pal" );
 	}
+#endif // _WIN32
 }
 
+#ifdef _WIN32
 bool ProcessOneBattle( int BtlID )
 {
 	KeyPressed = 0;

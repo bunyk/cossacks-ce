@@ -586,7 +586,6 @@ void SetDarkPalette()
 		SDL_SetSurfacePalette(primarySurface, sdlPal);
 	}
 }
-#ifdef _WIN32
 
 extern uint64_t GetSDLTickCount();
 
@@ -718,6 +717,7 @@ DLLEXPORT void SlowLoadPalette( const char* lpFileName )
 	}
 }
 
+#ifdef _WIN32
 DLLEXPORT void SlowUnLoadPalette( const char* lpFileName )
 {
 	if (SDLError)

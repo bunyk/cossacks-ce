@@ -40,6 +40,7 @@ byte WaterCost[65536];
 byte GraySet[256];
 byte Bright[8192];
 
+#ifdef _WIN32
 void ClearFog()
 {
 	memset( fmap, 0, LX_fmap*LX_fmap * 2 );
@@ -253,9 +254,11 @@ void LoadBlobs();
 DLLEXPORT int CurPalette = 0;
 extern int CurrentCursorGP;
 byte graysc[256];
+#endif // _WIN32
 
 DLLEXPORT void LoadFog( int set )
 {
+#ifdef _WIN32
 	CurrentCursorGP = set + 5;
 	CurPalette = set;
 	char cc[128];
@@ -320,8 +323,10 @@ DLLEXPORT void LoadFog( int set )
 		FOGOFFS[i] = i*FMSX;
 	}
 	LoadBlobs();
+#endif // _WIN32
 }
 
+#ifdef _WIN32
 void SetupFog()
 {
 	for ( int i = 0; i < 1024; i++ )
@@ -1502,3 +1507,4 @@ void DrawMiniFog()
 			pop		esi
 	}
 }
+#endif // _WIN32

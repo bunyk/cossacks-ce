@@ -498,6 +498,7 @@ RLCPicture* DialogsSystem::addRLCPicture(
 	return nullptr;
 }
 //------------end of the class Picture
+#endif // _WIN32
 
 
 //------------class TextButton
@@ -513,6 +514,7 @@ int GetRLen( char* s, RLCFont* font )
 	};
 	return x;
 };
+
 void DrawString( int x, int y, char* str, RLCFont* fnt, byte Align )
 {
 	int xx;
@@ -622,6 +624,8 @@ TextButton* DialogsSystem::addTextButton(
 	return nullptr;
 }
 //------------end of the class TextButton
+
+#ifdef _WIN32
 bool GP_TextButton_OnDraw( SimpleDialog* SD )
 {
 	if (!SD)return false;
@@ -5361,6 +5365,7 @@ typedef void vfn();
 int mrand();
 
 extern int menu_x_off;
+#endif // _WIN32
 
 void DialogsSystem::ProcessDialogs()
 {
@@ -5369,6 +5374,7 @@ void DialogsSystem::ProcessDialogs()
 		return;
 	}
 
+#ifdef _WIN32
 	if (MUSTDRAW)
 	{
 		MUSTDRAW = false;
@@ -5731,6 +5737,7 @@ void DialogsSystem::ProcessDialogs()
 	PopWindow( &TW );
 
 	MFix();
+#endif // _WIN32
 }
 
 void RedrawOffScreenMouse();
@@ -5749,6 +5756,8 @@ extern int ItemChoose;
 
 void DialogsSystem::RefreshView()
 {
+	printf("TODO: DialogsSystem::RefreshView\n");
+#ifdef _WIN32
 	if (!InMainMenuLoop)
 	{
 		if (RUNUSERMISSION || RUNMAPEDITOR)
@@ -5776,8 +5785,8 @@ void DialogsSystem::RefreshView()
 		CopyToScreen( 0, 0, RealLx, RSCRSizeY );
 		PostRedrawMouse();
 	}
-}
 #endif // _WIN32
+}
 
 void DialogsSystem::CloseDialogs()
 {

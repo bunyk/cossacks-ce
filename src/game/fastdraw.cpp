@@ -2527,7 +2527,6 @@ int GetRLCWidth( RLCTable lpr, byte n )
 	else return 0;
 }
 
-#ifdef _WIN32
 int GetCHEX( byte c )
 {
 	if (c >= '0'&&c <= '9')return c - '0';
@@ -2596,6 +2595,7 @@ DLLEXPORT int GetRLCHeight( RLCTable lpr, byte n )
 	}
 }
 
+#ifdef _WIN32
 void RegisterRLCFont( lpRLCFont lrf, RLCTable lpr, int fir )
 {
 	lrf->FirstSymbol = fir;
@@ -2673,6 +2673,7 @@ DLLEXPORT void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr )
 		ShowChar( x, y, strptr[0], lpr );
 	}
 }
+#endif // _WIN32
 
 void ShowString( int x, int y, LPCSTR lps, lpRLCFont lpf )
 {
@@ -2681,6 +2682,7 @@ void ShowString( int x, int y, LPCSTR lps, lpRLCFont lpf )
 		return;
 	}
 
+#ifdef _WIN32
 	int GPID = int( lpf->RLC );
 
 	if (GPID < 4096)
@@ -2716,6 +2718,7 @@ void ShowString( int x, int y, LPCSTR lps, lpRLCFont lpf )
 		}
 		i++;
 	} while (ch);
+#endif // _WIN32
 }
 
 int GetRLCStrWidth( char* str, lpRLCFont lpf )
@@ -2731,6 +2734,7 @@ int GetRLCStrWidth( char* str, lpRLCFont lpf )
 	};
 	return L;
 };
+#ifdef _WIN32
 void ShowShadString( int x, int y, LPCSTR lps, lpRLCFont lpf )
 {
 	if (lps == nullptr) return;
