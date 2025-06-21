@@ -19,6 +19,11 @@
 #include "mapdiscr.h"
 #include "mouse.h"
 
+// Test code. TODO: remove
+#include "dialogs.h"
+SQPicture TestSQPicture( "Interface\\Background_Wizard.bmp" );
+// end of test code
+
 extern bool RUNMAPEDITOR;
 extern bool RUNUSERMISSION;
 extern char USERMISSPATH[128];
@@ -736,6 +741,9 @@ bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true)
 
 SDL_AppResult SDL_AppIterate(void* appstate)
 {
+	// Test code: TODO: remove
+	TestSQPicture.Draw(0, 0);
+
 	// Using coroutines would be perfect for this code,
 	// since each menu is a separate function with render loop.
 
@@ -875,6 +883,7 @@ void ResizeAndCenterWindow()
 void PostDrawGameProcess()
 {
 	#ifdef _WIN32
+	// Some networking logic
 	RGAME.TryToFlushNetworkStream( 0 );
 	if (PlayGameMode == 0 && NPlayers < 2)
 	{

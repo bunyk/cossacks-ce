@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "resfile.h"
 #include <assert.h>
+#include <cstdarg>
 #include "gfile.h"
 
 class GFSYSTEM

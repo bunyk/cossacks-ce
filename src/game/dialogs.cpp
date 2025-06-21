@@ -6,13 +6,13 @@
 #include "mapdiscr.h"
 #include "dialogs.h"
 #include "bmptool.h"
+#include "gp_draw.h"
 
 #ifdef _WIN32
 #include "cdirsnd.h"
 #include "mouse.h"
 #include "gsound.h"
 #include "fonts.h"
-#include "gp_draw.h"
 #include "drawform.h"
 #include "lines.h"
 
@@ -188,7 +188,9 @@ bool CanvasDestroy( SimpleDialog* SD )
 };
 #define CV_INT(x) (*(int*)(CAN->DrawData+pos+x))
 #define CV_BYTE(x) CAN->DrawData[pos+x]
+#endif //_WIN32
 DLLEXPORT void CBar( int x, int y, int Lx, int Ly, unsigned char c );
+#ifdef _WIN32
 void xLine( int x, int y, int x1, int y1, byte c );
 bool CanvasDraw( SimpleDialog* SD )
 {
@@ -1164,6 +1166,7 @@ VideoButton* DialogsSystem::addVideoButton( SimpleDialog* Parent, int x, int y, 
 	};
 	return nullptr;
 }
+#endif // _WIN32
 
 //---------------GP_Button-----------------//
 bool GP_Button_OnDraw( SimpleDialog* SD )
@@ -1258,6 +1261,7 @@ GP_Button* DialogsSystem::addGP_Button(
 	return nullptr;
 }
 
+#ifdef _WIN32
 //------class : Vertical scroll bar--------//
 bool MouseIns( int x, int y, int x1, int y1 )
 {
@@ -4865,7 +4869,6 @@ SimpleDialog::SimpleDialog()
 	AllocPtr = nullptr;
 }
 
-#ifdef _WIN32
 void SimpleDialog::AssignSound( int ID, int Usage )
 {
 	switch (Usage)
@@ -4881,6 +4884,7 @@ void SimpleDialog::AssignSound( int ID, int Usage )
 
 void SimpleDialog::AssignSound( char* Name, int Usage )
 {
+#ifdef _WIN32
 	int ID = SearchStr( SoundID, Name, NSounds );
 	if (ID == -1)
 	{
@@ -4890,10 +4894,12 @@ void SimpleDialog::AssignSound( char* Name, int Usage )
 		return;
 	};
 	AssignSound( ID, Usage );
+#endif // _WIN32
 };
 
 extern void yield();
 
+#ifdef _WIN32
 //----copy rectangle to screen----//
 void CopyToScreen( int zx, int zy, int zLx, int zLy )
 {

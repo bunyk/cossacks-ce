@@ -7,6 +7,7 @@
 #include "resfile.h"
 #include "fastdraw.h"
 #include "gp_draw.h"
+#include "gsinc.h"
 
 #ifdef _WIN32
 
@@ -16,7 +17,6 @@
 #include "mapdiscr.h"
 #include "realwater.h"
 #include "activescenary.h"
-#include "gsinc.h"
 #endif
 
 bool NewGPImage;
@@ -96,7 +96,7 @@ GP_System::~GP_System()
 	free( Mapping );
 	free( UNITBL );
 };
-#ifdef _WIN32
+
 int  GP_System::GetGPWidth( int i, int n )
 {
 	if (LoadGP( i ))
@@ -110,6 +110,7 @@ int  GP_System::GetGPWidth( int i, int n )
 	}
 	else return 0;
 };
+
 int  GP_System::GetGPShift( int i, int n )
 {
 	if (LoadGP( i ))
@@ -137,6 +138,7 @@ int  GP_System::GetGPHeight( int i, int n )
 	}
 }
 
+#ifdef _WIN32
 bool GP_System::GetGPSize( int i, int n, int* Lx, int* Ly )
 {
 	*Lx = 0;
@@ -327,7 +329,6 @@ void GP_System::UnLoadGP( int i )
 		NGP--;
 	};
 };
-#ifdef _WIN32
 int GP_Header::GetLx()
 {
 	GP_Header* GPH = this;
@@ -371,6 +372,7 @@ int GP_Header::GetLy()
 	} while (DIFF != -1);
 	return LyMax;
 };
+#ifdef _WIN32
 int GP_Header::GetDx()
 {
 	GP_Header* GPH = this;
@@ -519,7 +521,6 @@ int GP_System::PreLoadGPImage( char* Name )
 	return fidx;
 }
 
-#ifdef _WIN32
 #define GPX(x, y) ((GP_Header*)((int)(x) + (x)->y))
 
 bool GP_System::LoadGP( int i )
@@ -568,7 +569,7 @@ bool GP_System::LoadGP( int i )
 			for (int n = 0; n < np; n++)
 			{
 				//lpint[n]+=int(lpGPH);         //----------!new!----------//
-				ImLx[i][n] = GPX( lpGPH, LGPH[n] )->GetLx();
+				ImLx[i][n] = GPX( lpGPH, LGPH[n] )->GetLx(); // TODO: segmentation fault here
 				ImLy[i][n] = GPX( lpGPH, LGPH[n] )->GetLy();
 			};
 			RClose( f );
@@ -669,6 +670,7 @@ bool GP_System::LoadGP( int i )
 		return false;
 	};
 }
+#ifdef _WIN32
 
 //cache format:
 //DWORD Pack reference offset(PRefOfs)[=NULL if not assigned]
@@ -8288,12 +8290,14 @@ extern byte Optional2[8192];
 extern byte Optional3[8192];
 
 int startTrans = 0;
+#endif // _WIN32
 
 void GP_System::ShowGP(//IMPORTANT: show sprite with color masking
 	int x, int y, int FileIndex, int SprIndex,
 	byte Nation
 )
 {
+#ifdef _WIN32
 	if (!( FileIndex < NGP && ( SprIndex & 4095 ) < GPNFrames[FileIndex] ))
 	{
 		return;
@@ -8606,8 +8610,10 @@ void GP_System::ShowGP(//IMPORTANT: show sprite with color masking
 		PACKOFS = (byte*) ( *PAK );//lpGPCUR->Pack;
 
 	} while (DIFF != -1);
+#endif // _WIN32
 }
 
+#ifdef _WIN32
 void GP_System::ShowGPLayers(//IMPORTANT: color masking for units and buildings
 	int x, int y, int FileIndex, int SprIndex,
 	byte Nation, int mask )

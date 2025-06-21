@@ -27,7 +27,7 @@ inline void* CDECL operator new(size_t size)
 	return malloc(size);
 }
 
-inline void CDECL operator delete(void *ptr)
+inline void CDECL operator delete(void *ptr) noexcept
 {
 	free(ptr);
 }

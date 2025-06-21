@@ -2507,6 +2507,8 @@ void ShowRLCItemFired( int x, int y, lpRLCTable lprt, int n )
 		ShowRLCiFire( x, y, (void*) ( ( *lprt )->OfsTable[n - 4096] ) );
 	};
 };
+#endif // _WIN32
+	   //
 int GetRLCWidth( RLCTable lpr, byte n )
 {
 	int GPID = int( lpr );
@@ -2524,6 +2526,8 @@ int GetRLCWidth( RLCTable lpr, byte n )
 	}
 	else return 0;
 }
+
+#ifdef _WIN32
 int GetCHEX( byte c )
 {
 	if (c >= '0'&&c <= '9')return c - '0';

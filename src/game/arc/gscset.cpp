@@ -382,7 +382,6 @@ namespace fs = std::filesystem;
 
 BOOL CGSCset::gOpen() {
     BOOL retval = TRUE;
-    std::cout << "gOpen()\n";
 
     m_ArchList = nullptr;
     TGSCArchList** nextPtr = &m_ArchList;

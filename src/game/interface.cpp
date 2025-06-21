@@ -9,6 +9,7 @@
 #include "mapdiscr.h"
 #include "resfile.h"
 #include "gp_draw.h"
+#include "mouse.h"
 
 #ifdef _WIN32
 
@@ -18,7 +19,6 @@
 
 
 #include "mgraph.h"
-#include "mouse.h"
 #include "menu.h"
 #include "multipl.h"
 #include "fog.h"
@@ -622,7 +622,6 @@ void SFLB_InitDialogs()
 
 DLLEXPORT int ItemChoose;
 
-#ifdef _WIN32
 DLLEXPORT bool MMItemChoose( SimpleDialog* SD )
 {
 	ItemChoose = SD->UserParam;
@@ -630,6 +629,7 @@ DLLEXPORT bool MMItemChoose( SimpleDialog* SD )
 	return true;
 }
 
+#ifdef _WIN32
 bool CHANGESORT( SimpleDialog* SD )
 {
 	Lpressed = 0;
@@ -6560,13 +6560,13 @@ int processMainMenu()
 
 	Picture* PIC = MMenu.addPicture( nullptr, 0, 0, &MnPanel, &MnPanel, &MnPanel );
 
-#ifdef _WIN32
 	GP_Button* Single = MMenu.addGP_Button( nullptr, 76, 140, BTNS.GPID, 0, 1 );
 	Single->UserParam = mcmSingle;
 	Single->OnUserClick = &MMItemChoose;
 	Single->Hint = GetTextByID( "MMSINGLE" );
 	Single->AssignSound( GETS( "@MOUSESOUND" ), MOUSE_SOUND );
 
+#ifdef _WIN32
 	GP_Button* Multi = MMenu.addGP_Button( nullptr, 76, 140 + 82, BTNS.GPID, 2, 3 );
 	Multi->UserParam = mcmMulti;
 	Multi->OnUserClick = &MMItemChoose;
