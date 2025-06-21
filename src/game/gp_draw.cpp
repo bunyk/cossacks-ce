@@ -346,7 +346,7 @@ int GP_Header::GetLx()
 			mov	GPH, eax
 		};
 		*/
-		GPH = (GP_Header*)((int)GPS + DIFF);
+		GPH = (GP_Header*)((uintptr_t)GPS + DIFF);
 	} while (DIFF != -1);
 	return LxMax;
 };
@@ -368,7 +368,7 @@ int GP_Header::GetLy()
 			mov	GPH, eax
 		};
 		*/
-		GPH = (GP_Header*)((int)GPS + DIFF);
+		GPH = (GP_Header*)((uintptr_t)GPS + DIFF);
 	} while (DIFF != -1);
 	return LyMax;
 };
@@ -521,7 +521,7 @@ int GP_System::PreLoadGPImage( char* Name )
 	return fidx;
 }
 
-#define GPX(x, y) ((GP_Header*)((int)(x) + (x)->y))
+#define GPX(x, y) ((GP_Header*)((uintptr_t)(x) + (x)->y))
 
 bool GP_System::LoadGP( int i )
 {
@@ -569,7 +569,7 @@ bool GP_System::LoadGP( int i )
 			for (int n = 0; n < np; n++)
 			{
 				//lpint[n]+=int(lpGPH);         //----------!new!----------//
-				ImLx[i][n] = GPX( lpGPH, LGPH[n] )->GetLx(); // TODO: segmentation fault here
+				ImLx[i][n] = GPX( lpGPH, LGPH[n] )->GetLx();
 				ImLy[i][n] = GPX( lpGPH, LGPH[n] )->GetLy();
 			};
 			RClose( f );
@@ -602,7 +602,7 @@ bool GP_System::LoadGP( int i )
 						mov	LGP, eax
 					};
 					*/
-					LGP = (GP_Header*)((int)LGP0 + DIFF);
+					LGP = (GP_Header*)((uintptr_t)LGP0 + DIFF);
 				} while (DIFF != -1);
 			};
 			CASHREF[i] = new DWORD[csz + 1];
@@ -627,7 +627,7 @@ bool GP_System::LoadGP( int i )
 							mov	LGP, eax
 					};
 					*/
-					LGP = (GP_Header*)((int)LGP0 + DIFF);
+					LGP = (GP_Header*)((uintptr_t)LGP0 + DIFF);
 				} while (DIFF != -1);
 			};
 			return true;
@@ -9197,6 +9197,7 @@ void GP_System::ShowGPTransparentLayers( int x, int y, int FileIndex, int SprInd
 #endif // _WIN32
 void GP_System::FreeRefs( int FileIndex )
 {
+	printf("TODO: Implement FreeRefs for GP_System\n");
 #ifdef _WIN32
 	//	assert(FileIndex<NGP);
 	if (( ImageType[FileIndex] & 7 ) > 1 || !GPH[FileIndex])

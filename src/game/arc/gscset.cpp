@@ -23,7 +23,7 @@ CGSCset::~CGSCset()
 
 LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool onlyInArchive )
 {
-	printf("gOpenFile: %s %b\n", lpcsFileName, onlyInArchive );
+	printf("gOpenFile: %s\n", lpcsFileName);
 	LPGSCfile		gFile = NULL;
 	bool			inArchive = true;
 

@@ -5790,10 +5790,13 @@ void DialogsSystem::CloseDialogs()
 			{
 				free( Hint );
 			}
+#ifdef _WIN32
+			// Where this is used?
 			if (SD->AllocPtr)
 			{
 				free( SD->AllocPtr );
 			}
+#endif // _WIN32
 			SD->AllocPtr = nullptr;
 			if (SD->Destroy)
 			{
