@@ -250,17 +250,17 @@ void ProcessFog1()
 
 int FOGOFFS[1024];
 void LoadBlobs();
+#endif // _WIN32
 
 DLLEXPORT int CurPalette = 0;
 extern int CurrentCursorGP;
 byte graysc[256];
-#endif // _WIN32
 
 DLLEXPORT void LoadFog( int set )
 {
-#ifdef _WIN32
 	CurrentCursorGP = set + 5;
 	CurPalette = set;
+#ifdef _WIN32
 	char cc[128];
 	sprintf( cc, "%d\\agew_1d.grd", set );
 	ResFile fx = RReset( cc );

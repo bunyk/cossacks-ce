@@ -4903,7 +4903,6 @@ void SimpleDialog::AssignSound( char* Name, int Usage )
 
 extern void yield();
 
-#ifdef _WIN32
 //----copy rectangle to screen----//
 void CopyToScreen( int zx, int zy, int zLx, int zLy )
 {
@@ -4946,6 +4945,7 @@ void CopyToScreen( int zx, int zy, int zLx, int zLy )
 	int radd = RSCRSizeX - Lx;
 	int Lx4 = Lx >> 2;
 	int Lx1 = Lx & 3;
+#ifdef _WIN32
 	__asm
 	{
 		push	esi
@@ -4971,6 +4971,24 @@ void CopyToScreen( int zx, int zy, int zLx, int zLy )
 			lpp4 : pop		edi
 			pop		esi
 	}
+#else
+	// TODO: check if this matches assmebly 100%
+	int* src = (int*)scof;
+	int* dest = (int*)reof;
+	for (int i = 0; i < Ly; ++i)
+	{
+		for (int j = 0; j < Lx4; ++j)
+		{
+			*dest++ = *src++;
+		}
+		for (int j = 0; j < Lx1; ++j)
+		{
+			*(unsigned char*)dest++ = *(unsigned char*)src++;
+		}
+		src += sadd;
+		dest += radd;
+	}
+#endif // _WIN32
 
 	SDL_Surface* srcSurface;
 	SDL_Surface* targetSurface;
@@ -4992,6 +5010,7 @@ void CopyToScreen( int zx, int zy, int zLx, int zLy )
 	yield();
 }
 
+#ifdef _WIN32
 void CopyToOffScreen( int zx, int zy,
 	int srLx, int srLy,
 	byte* data )
@@ -5756,8 +5775,6 @@ extern int ItemChoose;
 
 void DialogsSystem::RefreshView()
 {
-	printf("TODO: DialogsSystem::RefreshView\n");
-#ifdef _WIN32
 	if (!InMainMenuLoop)
 	{
 		if (RUNUSERMISSION || RUNMAPEDITOR)
@@ -5785,7 +5802,6 @@ void DialogsSystem::RefreshView()
 		CopyToScreen( 0, 0, RealLx, RSCRSizeY );
 		PostRedrawMouse();
 	}
-#endif // _WIN32
 }
 
 void DialogsSystem::CloseDialogs()

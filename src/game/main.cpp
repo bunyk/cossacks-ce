@@ -75,7 +75,7 @@ int MaxSizeY;
 bool PalDone;
 
 SDL_Window* sdlWindow;
-int CurPalette;
+extern int CurPalette; // Defined in fog.cpp
 
 bool RetryVideo = 0;
 

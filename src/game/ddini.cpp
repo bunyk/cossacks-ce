@@ -107,6 +107,7 @@ void ClearRGB()
 }
 
 extern bool InGame;
+#endif // _WIN32
 
 extern void yield();
 
@@ -172,7 +173,6 @@ DLLEXPORT void FlipPages( void )
 	}
 	*/
 
-	/*
 	// AI-Generated, need to test:
     uint8_t* src = ScreenPtr + ofs;
     uint8_t* dst = RealScreenPtr + ofs;
@@ -201,8 +201,6 @@ DLLEXPORT void FlipPages( void )
 
 	yield();
 }
-
-#endif // _WIN32
 
 /*
  * Getting Screen Pointer

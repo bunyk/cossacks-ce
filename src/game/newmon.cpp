@@ -366,7 +366,6 @@ NewAnimation WNewAnm[256];
 char* WAnmNames[256];
 word NNewAnm;
 //-------------------------------------------------------------
-int CurrentCursorGP = 0;
 int AnmCursorGP = 0;
 extern int CBB_GPFILE;
 

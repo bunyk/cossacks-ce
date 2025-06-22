@@ -1,17 +1,18 @@
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
-
 #ifdef _WIN32
 #include "mgraph.h"
 #include "mode.h"
+#endif // _WIN32
 #include "gp_draw.h"
-#endif
+#include <algorithm>
+
 
 #define MaxMX 32
 #define MsizeX 32
 
-extern int CurrentCursorGP;
+int CurrentCursorGP = 0;
 extern int SCRSizeX;
 extern int SCRSizeY;
 extern int RSCRSizeX;
@@ -63,13 +64,11 @@ extern int mapy;
 extern int smapx;
 extern int smapy;
 
-#ifdef _WIN32
 //retreives data from the screen buffer to field 32x32
 void GetMData( void* dest, void* src, int x, int y, int SSizeX, int SSizeY )
 {
 	if (!bActive)
 		return;
-
 	int Lx = 32;
 	int Ly = 32;
 	int x1 = x;
@@ -91,6 +90,7 @@ void GetMData( void* dest, void* src, int x, int y, int SSizeX, int SSizeY )
 	if (x1 + 32 > SSizeX)Lx = SSizeX - x1;
 	if (y1 + 32 > SSizeY)Ly = SSizeY - y1;
 	if (Lx <= 0 || Ly <= 0)return;
+#ifdef _WIN32
 	int sofs = int( src ) + x1 + y1*SSizeX;
 	int dofs = int( dest ) + bx + ( by << 5 );
 	int Lx4 = Lx >> 2;
@@ -119,11 +119,21 @@ void GetMData( void* dest, void* src, int x, int y, int SSizeX, int SSizeY )
 							 pop		edi
 							 pop		esi
 	}
+#else
+	uint8_t* source = static_cast<uint8_t*>(src);
+	uint8_t* target = static_cast<uint8_t*>(dest);
 
+	for (int row = 0; row < Ly; ++row) {
+		uint8_t* src_row = source + (x1 + (y1 + row) * SSizeX);
+		uint8_t* dst_row = target + (bx + (by + row) * 32);
+		std::copy(src_row, src_row + Lx, dst_row); // segfault
+	}
+#endif // _WIN32
 }
 
 bool CmpMData( void* dest, void* src, int x, int y, int SSizeX, int SSizeY )
 {
+#ifdef _WIN32
 	int Lx = 32;
 	int Ly = 32;
 	int x1 = x;
@@ -178,18 +188,35 @@ bool CmpMData( void* dest, void* src, int x, int y, int SSizeX, int SSizeY )
 											pop		esi
 	}
 	return notequal;
+#else 
+	uint8_t* s = static_cast<uint8_t*>(src);
+	uint8_t* d = static_cast<uint8_t*>(dest);
+
+	int Lx = 32, Ly = 32;
+	int x1 = x, y1 = y;
+	int bx = 0, by = 0;
+
+	if (x1 < 0) { bx = -x1; Lx += x1; x1 = 0; }
+	if (y1 < 0) { by = -y1; Ly += y1; y1 = 0; }
+	if (x1 + 32 > SSizeX) Lx = SSizeX - x1;
+	if (y1 + 32 > SSizeY) Ly = SSizeY - y1;
+	if (Lx <= 0 || Ly <= 0) return false;
+
+	for (int row = 0; row < Ly; ++row) {
+		uint8_t* srow = s + (x1 + (y1 + row) * SSizeX);
+		uint8_t* drow = d + (bx + (by + row) * 32);
+		if (std::memcmp(srow, drow, Lx) != 0) return true;
+	}
+	return false;
+#endif // _WIN32
 }
 
 void RestoreMData( void* scrn, void* buf, void* comp, int x, int y, int SSizeX, int SSizeY )
 {
-	if (!bActive)
-	{
-		return;
-	}
-
-	int Lx = 32;
+	if (!bActive) return;
+	int Lx = 32; // size of area to copy
 	int Ly = 32;
-	int x1 = x;
+	int x1 = x; // coordinates of the area to copy
 	int y1 = y;
 	int bx = 0;//x-coord. on bitbap 32x32
 	int by = 0;
@@ -221,11 +248,13 @@ void RestoreMData( void* scrn, void* buf, void* comp, int x, int y, int SSizeX, 
 		return;
 	}
 
-	int src1 = int( buf ) + bx + ( by << 5 );
-	int srcom = int( comp ) + bx + ( by << 5 );
-	int scrof = int( scrn ) + x1 + y1*SSizeX;
-	int addscr = SSizeX - Lx;
-	int add32 = 32 - Lx;
+#ifdef _WIN32
+	// x << 5 is equivalent to multiplying by 32.
+	int src1 = int( buf ) + bx + ( by << 5 ); // source buffer address
+	int srcom = int( comp ) + bx + ( by << 5 ); // comparison buffer
+	int scrof = int( scrn ) + x1 + y1*SSizeX; // screen buffer address
+	int addscr = SSizeX - Lx; // additional bytes to skip in the screen buffer, when moving to the next row
+	int add32 = 32 - Lx; // additional bytes to skip in the 32x32 buffer
 
 	__asm
 	{
@@ -254,8 +283,34 @@ void RestoreMData( void* scrn, void* buf, void* comp, int x, int y, int SSizeX, 
 							 pop		edi
 							 pop		esi
 	}
+#else
+	uint8_t* src1 = reinterpret_cast<uint8_t*>(buf) + bx + by * 32; // source buffer address
+	uint8_t* srcom = reinterpret_cast<uint8_t*>(comp) + bx + by * 32; // comparison buffer
+	uint8_t* scrof = reinterpret_cast<uint8_t*>(scrn) + x1 + y1 * SSizeX; // screen buffer address
+	int addscr = SSizeX - Lx; // additional bytes to skip in the screen buffer, when moving to the next row
+	int add32 = 32 - Lx; // additional bytes to skip in the 32x32 buffer
+	
+	for (int row = 0; row < Ly; ++row) {
+		uint8_t* src_row = src1 + row * 32;
+		uint8_t* comp_row = srcom + row * 32;
+		uint8_t* dst_row = scrof + (x1 + (y1 + row) * SSizeX);
+
+		for (int col = 0; col < Lx; ++col) {
+			if (src_row[col] != comp_row[col]) {
+				dst_row[col] = src_row[col];
+			}
+		}
+
+		scrof += addscr;
+		src1 += add32;
+		srcom += add32;
+	}
+
+
+#endif // _WIN32
 }
 
+#ifdef _WIN32
 //Sets mouse[X|Y] & real[L|R]pressed variables according to mouse state
 void SetMPtr( int x, int y, SDL_MouseButtonFlags mouseFlags )
 {
@@ -272,6 +327,7 @@ void SetMPtr( int x, int y, SDL_MouseButtonFlags mouseFlags )
 		realRpressed = ( ( mouseFlags & SDL_BUTTON_RMASK ) != 0 );
 	}
 }
+#endif // _WIN32
 
 //Redraws mouse in the offscreen buffer
 //and prepares data for onscreen transferring 
@@ -306,6 +362,7 @@ void RedrawOffScreenMouse()
 	GetMData( (void*) buf2, ScreenPtr, MX, MY, SCRSizeX, SCRSizeY );
 }
 
+#ifdef _WIN32
 void RedrawScreenMouse()
 {
 	if (!bActive || window_mode)//BUGFIX: Cursor shadow trail while showing ingame menues
@@ -342,6 +399,8 @@ void OnMouseMoveRedraw()
 	OldMY = MY;
 }
 
+#endif // _WIN32
+
 void PostRedrawMouse()
 {
 	bool need = true;
@@ -372,4 +431,3 @@ void PostRedrawMouse()
 
 	LockMouse = false;
 }
-#endif // _WIN32
