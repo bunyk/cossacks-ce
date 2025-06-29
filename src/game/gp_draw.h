@@ -1,4 +1,5 @@
 // #include <windows.h>
+#include "fastdraw.h"
 
 #ifndef __GP_DRAW_H__
 #define __GP_DRAW_H__

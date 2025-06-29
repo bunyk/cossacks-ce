@@ -4,10 +4,13 @@
 #include <math.h>
 
 #include "ddini.h"
-#ifdef _WIN32
+#include "activescenary.h"
+#include "gp_draw.h"
 #include "resfile.h"
 #include "fastdraw.h"
 #include "mapdiscr.h"
+
+#ifdef _WIN32
 #include "mouse.h"
 #include "mode.h"
 #include "fog.h"
@@ -23,7 +26,6 @@
 #include "gsound.h"
 #include "3dmaped.h"
 #include "mapsprites.h"
-#include "gp_draw.h"
 #include "realwater.h"
 #include "zbuffer.h"
 #include "newai.h"
@@ -33,7 +35,6 @@
 #include "newmon.h"
 #include "sort.h"
 #include "activezone.h"
-#include "activescenary.h"
 #include "drawform.h"
 #include "recorder.h"
 #include "safety.h "
@@ -5558,6 +5559,7 @@ extern "C" DLLEXPORT void SetDefenseState( byte State )
 		CCIT->DefenceStage = 0 != State;
 	}
 }
+#endif // _WIN32
 //-----------------------------------------------------------------------//
 void DosToWin( char* Str );
 bool ReadWinString( GFILE* F, char* STR, int Max )
@@ -5580,7 +5582,6 @@ bool ReadWinString( GFILE* F, char* STR, int Max )
 	return ( cc != EOF ) || STR[0];
 	//DosToWin(STR);
 }
-#endif // _WIN32
 
 extern int CurPalette;
 void ErrM( char* s, char* s1 )
@@ -5593,7 +5594,6 @@ void ErrM( char* s, char* s1 )
 	assert( false );
 }
 
-#ifdef _WIN32
 extern bool ProtectionMode;
 void MissPack::LoadMissions()
 {
@@ -5801,6 +5801,7 @@ CampaginPack::~CampaginPack()
 	}
 }
 
+#ifdef _WIN32
 void LoadAIFromDLL( byte Nat, char* Name )
 {
 	Nat = AssignTBL[Nat];
@@ -5847,6 +5848,8 @@ void LoadAIFromDLL( byte Nat, char* Name )
 #endif
 	}
 }
+#endif // _WIN32
+
 extern char PlName[64];
 void SavePlayerData( char* Name )
 {
@@ -5873,6 +5876,7 @@ void SavePlayerData()
 	SavePlayerData( PlName );
 }
 
+#ifdef _WIN32
 bool PLOAD = 0;
 
 void SFLB_LoadPDATA( char* Name )
@@ -5910,16 +5914,22 @@ void SFLB_LoadPDATA( char* Name )
 		PLOAD = 1;
 	}
 }
+#endif // _WIN32
 
 void SFLB_LoadPlayerData()
 {
+#ifdef _WIN32
 	SFLB_LoadPDATA( PlName );
 	if ( !PLOAD )
 	{
 		SFLB_LoadPDATA( "standart player info" );
 	}
+#else
+	printf("TODO: implement SFLB_LoadPlayerData for non-Windows platforms\n");
+#endif // _WIN32
 }
 
+#ifdef _WIN32
 WarPack WARS;
 
 void InvBatt()

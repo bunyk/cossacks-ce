@@ -12,6 +12,7 @@
 #include "mouse.h"
 #include "fonts.h"
 #include "fog.h"
+#include "activescenary.h"
 
 #ifdef _WIN32
 
@@ -38,7 +39,6 @@
 #include "newmon.h"
 #include "icontool.h"
 #include "3drandmap.h"
-#include "activescenary.h"
 #include "drawform.h"
 #include "conststr.h"
 #include "mplayer.h"
@@ -82,12 +82,12 @@ bool IgnoreSlow = false;
 int CurrentCampagin = -1;
 int CurrentMission = -1;
 
-#ifdef _WIN32
 
 //Was used to distinguish between GameSpy and GSC-Game.Net
 //Probably obsolete, but could also be some sort of "game active" indicator
 bool use_gsc_network_protocol = false;
 
+#ifdef _WIN32
 RoomInfo GlobalRIF;
 
 int GetGSC_Profile()
@@ -593,10 +593,10 @@ bool ProcessMessagesEx()
 	}
 	return MSR;
 }
+#endif // _WIN32
 
 void normstr( char* str );
 char PlName[64];
-#endif // _WIN32
 
 void ProcessHelp();
 
@@ -633,7 +633,6 @@ DLLEXPORT bool MMItemChoose( SimpleDialog* SD )
 	return true;
 }
 
-#ifdef _WIN32
 bool CHANGESORT( SimpleDialog* SD )
 {
 	Lpressed = 0;
@@ -660,6 +659,7 @@ void StdKeys()
 	}
 }
 
+#ifdef _WIN32
 extern bool LB_SORT_ITEM;
 void InstallMap( ListBox* LB, char* Name )
 {
@@ -1033,9 +1033,9 @@ char IPADDR[128] = "";
 #endif // _WIN32
 bool TOTALEXIT = 0;
 
-#ifdef _WIN32
 bool EnterName();
 
+#ifdef _WIN32
 extern char ACCESS[16];
 
 #ifdef NETWORK
@@ -1542,12 +1542,12 @@ int TM_Height1 = 1024;
 bool TexMapMod = false;
 
 void ProcessFranceMission();
+#endif // _WIN32
 
 bool SingleOptions();
 
 bool SelectSingleMission();
 
-#endif // _WIN32
 
 boost::coroutines2::coroutine<void>::push_type* yieldObject;
 
@@ -1557,7 +1557,6 @@ void yield()
 	(*yieldObject)();
 }
 
-#ifdef _WIN32
 
 int MM_ProcessSinglePlayer()
 {
@@ -1656,6 +1655,7 @@ bool MMChooseName( SimpleDialog* SD )
 	return false;
 }
 
+#ifdef _WIN32
 void __stdcall CDGINIT_INIT2();
 void __stdcall CDGINIT_INIT1();
 
@@ -1684,6 +1684,7 @@ void SFLB_ReadFirstPlayerName( char* ccc )
 		Gclose( F );
 	}
 }
+#endif // _WIN32
 
 bool ENRETVAL = 0;
 bool EnterName()
@@ -1847,6 +1848,7 @@ bool EnterName()
 	return ENRETVAL;
 }
 
+#ifdef _WIN32
 //Show network protocol menu
 int MPL_ChooseConnection()
 {
@@ -5983,9 +5985,11 @@ int DetermineNationAI( byte Nat )
 bool GetPreview( char* Name, byte* Data );
 
 extern int RunMethod;
+#endif // _WIN32
 
 bool SingleOptions()
 {
+#ifdef _WIN32
 	if ( MPL_WaitingGame( 1, 1 ) )
 	{
 		StartIGame( 1 );
@@ -5995,8 +5999,13 @@ bool SingleOptions()
 	{
 		return false;
 	}
+#else
+	printf("TODO: uncomment SingleOptions()\n");
+	return false;
+#endif // _WIN32
 }
 
+#ifdef _WIN32
 int ProcessWars();
 void processBattleMultiplayer();
 
@@ -6710,7 +6719,6 @@ int processMainMenu()
 			}
 		} while ( ItemChoose == -1 );
 
-#ifdef _WIN32
 		if ( ItemChoose == mcmSingle )
 		{
 			SlowUnLoadPalette( "2\\agew_1.pal" );
@@ -6726,14 +6734,18 @@ int processMainMenu()
 
 		if ( ItemChoose == mcmMulti )
 		{
+			continue; // No multiplayer so far
+#ifdef _WIN32
 			SlowUnLoadPalette( "2\\agew_1.pal" );
 			int res = MM_ProcessMultiPlayer();
 			if ( res == 5 )
 			{
 				continue;
 			}
+#endif
 		}
 
+#ifdef _WIN32
 		if ( ItemChoose == mcmVideo )
 		{
 			ShowLoading();
@@ -12310,8 +12322,10 @@ AddMissionsPack::~AddMissionsPack()
 	if ( Pack )free( Pack );
 	memset( this, 0, sizeof AddMissionsPack );
 };
+#endif // _WIN32
 bool SelectSingleMission()
 {
+#ifdef _WIN32
 	if ( !MISSLIST.MSMiss )return false;
 	KeyPressed = 0;
 	LastKey = SDLK_UNKNOWN;
@@ -12537,9 +12551,11 @@ HHH1:
 		CurrentMission = -1;
 	};
 	SlowUnLoadPalette( "2\\agew_1.pal" );
+#else
+	printf("TODO: ProcessSingleMission not implemented for this platform\n");
+#endif // _WIN32
 	return false;
 };
-#endif // _WIN32
 
 void ProcessCampaigns( int Options )
 {

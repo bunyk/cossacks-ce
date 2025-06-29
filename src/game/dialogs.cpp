@@ -7,13 +7,13 @@
 #include "dialogs.h"
 #include "bmptool.h"
 #include "gp_draw.h"
+#include "drawform.h"
+#include "mouse.h"
 
 #ifdef _WIN32
 #include "cdirsnd.h"
-#include "mouse.h"
 #include "gsound.h"
 #include "fonts.h"
-#include "drawform.h"
 #include "lines.h"
 
 int ROLLU2 = 1;
@@ -27,19 +27,21 @@ extern int UNI_HINTDY2;
 extern int UNI_HINTDLY2;
 
 extern bool realLpressed;
+#endif // _WIN32
 extern bool KeyPressed;
 extern SDL_Keycode LastKey;
 extern bool MUSTDRAW;
-#endif // _WIN32
 extern int RealLx;
 extern int RealLy;
 #ifdef _WIN32
 extern char* SoundID[MaxSnd];
+#endif // _WIN32
 extern byte LastAsciiKey;
+#ifdef _WIN32
 void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr );
 void ShowChar( int x, int y, char c, lpRLCFont lpf );
-void ClearKeyStack();
 #endif // _WIN32
+void ClearKeyStack();
 extern int CurPalette;
 
 void ErrD( LPCSTR s )
@@ -50,6 +52,8 @@ void ErrD( LPCSTR s )
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Loading failed...", s, sdlWindow);
 	assert( false );
 }
+
+extern uint64_t GetSDLTickCount();
 
 void ShowString( int x, int y, LPCSTR lps, lpRLCFont lpf );
 
@@ -376,6 +380,7 @@ Canvas* DialogsSystem::AddCanvas( int x, int y, int Lx, int Ly )
 	};
 	return 0;
 };
+#endif // _WIN32
 //-----------------class GPPicture
 bool GPPicture_OnMouseOver( SimpleDialog* SD )
 {
@@ -429,6 +434,7 @@ GPPicture* DialogsSystem::addGPPicture(
 	return nullptr;
 }
 
+#ifdef _WIN32
 //-----------------class RLCPicture
 bool RLCPicture_OnDraw( SimpleDialog* SD )
 {
@@ -625,7 +631,6 @@ TextButton* DialogsSystem::addTextButton(
 }
 //------------end of the class TextButton
 
-#ifdef _WIN32
 bool GP_TextButton_OnDraw( SimpleDialog* SD )
 {
 	if (!SD)return false;
@@ -711,6 +716,7 @@ GP_TextButton* DialogsSystem::addGP_TextButton(
 	};
 	return nullptr;
 };
+#ifdef _WIN32
 GP_TextButton* DialogsSystem::addGP_TextButtonLimited(
 	SimpleDialog* Parent, int x, int y, char* str,
 	int GP_File, int SpriteActive, int SpritePassive, int Lx,
@@ -1083,7 +1089,6 @@ BpxTextButton* DialogsSystem::addBpxTextButton( SimpleDialog* Parent,
 	return nullptr;
 };
 
-extern uint64_t GetSDLTickCount();
 
 //--------end of button with text----------//
 bool Video_OnDraw( SimpleDialog* SD )
@@ -2380,6 +2385,8 @@ void CutStringToLength( char* str, RLCFont* Fnt, int Lx )
 	} while (L > Lx);
 
 };
+#endif // _WIN32
+
 bool InputBox_OnDraw( SimpleDialog* SD )
 {
 	InputBox* IB = (InputBox*) SD;
@@ -2438,6 +2445,7 @@ bool InputBox_OnDraw( SimpleDialog* SD )
 	};
 	return true;
 };
+
 bool InputBox_OnClick( SimpleDialog* SD )
 {
 	if (!SD->Active)SD->NeedToDraw = true;
@@ -2653,6 +2661,8 @@ InputBox* DialogsSystem::addInputBox( SimpleDialog* Parent,
 	return nullptr;
 };
 //------end of class InputBox----------------//
+
+#ifdef _WIN32
 //----------class : CheckBox-----------------//
 bool CheckBox_OnDraw( SimpleDialog* SD )
 {

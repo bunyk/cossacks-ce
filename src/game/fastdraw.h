@@ -79,13 +79,7 @@ public:
 
 	void SetStdShadow()
 	{
-		// Originally it was ShadowGP = int(RLC);
-		// but compiler complains, because it's not safe on 64-bit,
-		// so I'll try this:
-		intptr_t ptr_val = reinterpret_cast<intptr_t>(RLC);
-		ShadowGP = static_cast<int>(ptr_val & 0xFFFFFFFF);
-		// Through I'm not undertanding what those casts are, and what I'm doing
-
+		ShadowGP = int(RLC);
 
 		ShadowDx = 1;
 		ShadowDy = 1;

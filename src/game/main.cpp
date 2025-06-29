@@ -2099,6 +2099,11 @@ void AddKey( SDL_Keycode Key, byte Ascii )
 	NKeys++;
 }
 
+void ClearKeyStack()
+{
+	NKeys = 0;
+}
+
 
 
 #ifdef TEST

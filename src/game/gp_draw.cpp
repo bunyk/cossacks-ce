@@ -8613,11 +8613,12 @@ void GP_System::ShowGP(//IMPORTANT: show sprite with color masking
 #endif // _WIN32
 }
 
-#ifdef _WIN32
 void GP_System::ShowGPLayers(//IMPORTANT: color masking for units and buildings
 	int x, int y, int FileIndex, int SprIndex,
 	byte Nation, int mask )
 {
+	printf("TODO: implement ShowGPLayers\n");
+#ifdef _WIN32
 	if (!( FileIndex < NGP && ( SprIndex & 4095 ) < GPNFrames[FileIndex] ))
 	{
 		return;
@@ -8911,8 +8912,10 @@ void GP_System::ShowGPLayers(//IMPORTANT: color masking for units and buildings
 		PAK++;
 		PACKOFS = (byte*) ( *PAK );//lpGPCUR->Pack;
 	} while (DIFF != -1);
+#endif // _WIN32
 };
 
+#ifdef _WIN32
 void GP_System::ShowGPTransparent( int x, int y, int FileIndex, int SprIndex, byte Nation )
 {
 	if (!( FileIndex < NGP && ( SprIndex & 4095 ) < GPNFrames[FileIndex] ))

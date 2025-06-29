@@ -715,7 +715,6 @@ DLLEXPORT void SlowLoadPalette( const char* lpFileName )
 	}
 }
 
-#ifdef _WIN32
 DLLEXPORT void SlowUnLoadPalette( const char* lpFileName )
 {
 	if (SDLError)
@@ -762,7 +761,6 @@ DLLEXPORT void SlowUnLoadPalette( const char* lpFileName )
 		} while (mul != 255);
 	}
 }
-#endif // _WIN32
 
 /*     Closing all Direct Draw objects
  *

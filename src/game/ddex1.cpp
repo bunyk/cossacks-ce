@@ -585,11 +585,6 @@ SDL_Keycode ReadKey()
 	}
 }
 
-void ClearKeyStack()
-{
-	NKeys = 0;
-}
-
 extern bool GUARDMODE;
 extern bool PATROLMODE;
 extern byte NeedToPopUp;

@@ -165,8 +165,10 @@ extern MissPack MISSLIST;
 extern CampaginPack CAMPAGINS;
 
 extern byte CurAINation;
+#ifdef _WIN32
 extern City* CCIT;
 extern Nation* CNAT;
+#endif // _WIN32
 extern bool AiIsRunNow;
 extern int CurrentCampagin;
 extern int CurrentMission;
