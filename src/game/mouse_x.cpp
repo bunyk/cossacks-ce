@@ -120,13 +120,15 @@ void GetMData( void* dest, void* src, int x, int y, int SSizeX, int SSizeY )
 							 pop		esi
 	}
 #else
-	uint8_t* source = static_cast<uint8_t*>(src);
-	uint8_t* target = static_cast<uint8_t*>(dest);
+	uint8_t* source = static_cast<uint8_t*>(src) + x1 + y1 * SSizeX;
+	uint8_t* target = static_cast<uint8_t*>(dest) + bx + by * 32;
+	int adds = SSizeX - Lx;
+	int addd = 32 - Lx;
 
 	for (int row = 0; row < Ly; ++row) {
-		uint8_t* src_row = source + (x1 + (y1 + row) * SSizeX);
-		uint8_t* dst_row = target + (bx + (by + row) * 32);
-		std::copy(src_row, src_row + Lx, dst_row); // segfault
+		std::copy(source, source + Lx, target);
+		source += SSizeX;
+		target += 32;
 	}
 #endif // _WIN32
 }
@@ -305,8 +307,6 @@ void RestoreMData( void* scrn, void* buf, void* comp, int x, int y, int SSizeX, 
 		src1 += add32;
 		srcom += add32;
 	}
-
-
 #endif // _WIN32
 }
 

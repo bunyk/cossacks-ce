@@ -216,7 +216,7 @@ void LockSurface( void )
 {
 	if (window_mode)
 	{
-		ScreenPtr = (void*) ( int( offScreenPtr ) + MaxSizeX * 32 );
+		ScreenPtr = (void*) ( offScreenPtr + MaxSizeX * 32 );
 		// ddsd has no alternative in SDL, so we just create lpSurface variable
 		RealScreenPtr = ScreenPtr;
 		return;
