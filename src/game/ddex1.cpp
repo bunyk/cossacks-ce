@@ -44,7 +44,6 @@
 #include "einfoclass.h"
 #include "3dmaped.h"
 #include "activescenary.h"
-#include "interface.h"
 #include "menu.h"
 
 #include "playerinfo.h"
@@ -70,7 +69,6 @@ bool MiniMode;
 bool PeaceMode;
 bool TransMode;
 bool VHMode = 0;
-bool fixed;
 
 
 
@@ -141,8 +139,6 @@ extern bool MiniActive;
 extern bool MultiTvar;
 extern bool Recreate;
 extern bool SetDestMode;
-extern bool realLpressed;
-extern bool realRpressed;
 
 extern int FogMode;
 extern int Inform;
@@ -160,7 +156,6 @@ extern int sfVersion;
 
 extern char SaveFileName[128];
 
-extern byte SpecCmd;
 extern word rpos;
 extern BlockBars LockBars;
 extern BlockBars UnLockBars;
@@ -185,7 +180,6 @@ void LoadMessages();
 void LoadNewAimations();
 void Loadtextures();
 void MFix();
-void OnMouseMoveRedraw();
 void ProcessFishing();
 void ProcessSprites();
 void ProcessUFO();
@@ -547,25 +541,6 @@ void RenderAllMap()
 }
 
 MouseStack CURMS;
-void AddMouseEvent( int x, int y, bool L, bool R )
-{
-	if (NInStack < MaxQu)
-	{
-		MSTC[NInStack].x = x;
-		MSTC[NInStack].y = y;
-		MSTC[NInStack].Lpressed = L;
-		MSTC[NInStack].Rpressed = R;
-		MSTC[NInStack].rLpressed = L;
-		MSTC[NInStack].rRpressed = R;
-		MSTC[NInStack].Control = ( GetSDLKeyState( SDL_SCANCODE_LCTRL ) ) != 0;
-		MSTC[NInStack].Shift = ( GetSDLKeyState( SDL_SCANCODE_LSHIFT ) ) != 0;
-		NInStack++;
-	}
-}
-
-int LastUMX = 0;
-int LastUMY = 0;
-int LastUTime = 0;
 
 MouseStack* ReadMEvent()
 {
@@ -585,29 +560,6 @@ MouseStack* ReadMEvent()
 void ClearMStack()
 {
 	NInStack = 0;
-}
-
-extern int CurPalette;
-int SHIFT_VAL = 0;
-void HandleMouse( int x, int y );
-extern bool PalDone;
-SDL_Keycode KeyStack[32];
-byte AsciiStack[32];
-int NKeys = 0;
-// This is used only in InputBox_OnKeyDown()
-byte LastAsciiKey = 0;
-
-void AddKey( SDL_Keycode Key, byte Ascii )
-{
-	if (32 <= NKeys)
-	{//Push the stack back by one element
-		memcpy( &KeyStack[0], &KeyStack[1], sizeof(KeyStack) - sizeof(SDL_Keycode));
-		memcpy( AsciiStack, AsciiStack + 1, 31 );
-		NKeys--;
-	}
-	KeyStack[NKeys] = Key;
-	AsciiStack[NKeys] = Ascii;
-	NKeys++;
 }
 
 // This is used only in ProcessChatKeys()
@@ -641,7 +593,6 @@ void ClearKeyStack()
 extern bool GUARDMODE;
 extern bool PATROLMODE;
 extern byte NeedToPopUp;
-short WheelDelta = 0;
 void IAmLeft();
 void LOOSEANDEXITFAST();
 extern bool DoNewInet;

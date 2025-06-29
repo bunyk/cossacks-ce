@@ -22,6 +22,7 @@
 #include "dialogs/initfonts.h"
 #include "interface.h"
 #include "fog.h"
+#include "interface.h"
 
 //Game version. Must match with other clients
 DLLEXPORT word dwVersion = 100;
@@ -92,6 +93,8 @@ const int kCtrlStickyTime = 50;
 
 int xxx;
 
+extern byte SpecCmd; // owned by mapa.cpp
+
 byte EditMedia;
 byte LockGrid;
 byte LockMode;
@@ -115,6 +118,10 @@ extern int PeaceTimeLeft;
 extern int PeaceTimeStage;
 void CmdChangePeaceTimeStage( int Stage );
 
+void OnMouseMoveRedraw();
+
+short WheelDelta = 0;
+
 
 //Timer Callback
 int cadr;
@@ -130,10 +137,12 @@ int AutoTime;
 
 bool ProcessMessages();
 
-
 extern int mousePointerType; // owned by mouse_x.cpp
 extern int curdx;
 extern int curdy;
+extern bool realLpressed;
+extern bool realRpressed;
+bool fixed;
 
 extern uint64_t GetSDLTickCount();
 
@@ -144,6 +153,30 @@ RLCTable RCross;
 RLCTable mRCross;
 
 void GameKeyCheck();
+
+int NInStack = 0;
+int LastUMX = 0;
+int LastUMY = 0;
+int LastUTime = 0;
+
+#define MaxQu 32
+MouseStack MSTC[MaxQu];
+extern bool unpress;
+
+
+extern int CurPalette;
+int SHIFT_VAL = 0;
+void HandleMouse( int x, int y );
+extern bool PalDone;
+SDL_Keycode KeyStack[32];
+byte AsciiStack[32];
+int NKeys = 0;
+// This is used only in InputBox_OnKeyDown()
+byte LastAsciiKey = 0;
+
+// Defined here below
+void AddMouseEvent( int x, int y, bool L, bool R );
+void AddKey( SDL_Keycode Key, byte Ascii );
 
 //For parallel processable tasks
 #define maxTask 32
@@ -508,14 +541,15 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 		//}
 		//break;
 
-	#ifdef _WIN32
 	case SDL_EVENT_MOUSE_WHEEL:
+		printf("SDL_EVENT_MOUSE_WHEEL: x=%d, y=%d\n", event->wheel.x, event->wheel.y);
 		// TODO: value might need some tweaking
 		WheelDelta = static_cast<short>(round(event->wheel.y));
 		break;
 
 	case SDL_EVENT_MOUSE_BUTTON_DOWN:
 	{
+		printf("SDL_EVENT_MOUSE_BUTTON_DOWN: button=%d, x=%d, y=%d\n", event->button.button, event->button.x, event->button.y);
 		SDL_MouseButtonFlags mouseFlags = SDL_GetMouseState(nullptr, nullptr);
 		if (event->button.button == SDL_BUTTON_LEFT)
 		{
@@ -543,6 +577,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
 	case SDL_EVENT_MOUSE_BUTTON_UP:
 	{
+		printf("SDL_EVENT_MOUSE_BUTTON_UP: button=%d, x=%d, y=%d\n", event->button.button, event->button.x, event->button.y);
 		SDL_MouseButtonFlags mouseFlags = SDL_GetMouseState(nullptr, nullptr);
 		if (event->button.button == SDL_BUTTON_LEFT)
 		{
@@ -590,6 +625,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
 	case SDL_EVENT_MOUSE_MOTION:
 	{
+		printf("SDL_EVENT_MOUSE_MOTION: x=%d, y=%d\n", event->motion.x, event->motion.y);
 		if (ScreenPtr)
 		{
 			if (event->motion.x != mouseX || event->motion.y != mouseY)
@@ -601,7 +637,6 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 		}
 		break;
 	}
-	#endif
 
 	case SDL_EVENT_WINDOW_MOVED:
 	case SDL_EVENT_WINDOW_RESIZED:
@@ -638,9 +673,9 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 	//	SetCursor(NULL);
 	//	return TRUE;
 
-#ifdef _WIN32
 	case SDL_EVENT_KEY_DOWN:
 	{
+		printf("SDL_EVENT_KEY_DOWN: key=%d, scancode=%d\n", event->key.key, event->key.scancode);
 		SDL_Keycode keycode = event->key.key;
 		SDL_Scancode scancode = event->key.scancode;
 
@@ -655,7 +690,9 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
 		if (LastKey == SDLK_F11)
 		{
+			#ifdef _WIN32
 			SaveScreen();
+			#endif
 		}
 
 		/*
@@ -702,6 +739,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 		break;
 	}
 
+#ifdef _WIN32
 	case SDL_EVENT_QUIT:
 		//Leave game and assign defeat
 		IAmLeft();
@@ -750,7 +788,6 @@ SDL_AppResult SDL_AppIterate(void* appstate)
 		printf("AllGameCoroutine is empty, quitting...\n");
 		return SDL_APP_SUCCESS;
 	}
-	printf("SDL_AppIterate\n");
 	(*AllGameCoroutine)();
 	return SDL_APP_CONTINUE;
 }
@@ -1646,13 +1683,13 @@ void GameKeyCheck()
 			AttGrMode = 0;
 			#endif
 			break;
-#ifdef _WIN32
 		case SDLK_SPACE:
 			SpecCmd = 111;
 			break;
 		case SDLK_BACKSPACE:
 			SpecCmd = 112;
 			break;
+#ifdef _WIN32
 		case SDLK_U:
 			if (Inform != 2)
 			{
@@ -2022,11 +2059,6 @@ void GameKeyCheck()
 	}
 }
 
-int NInStack = 0;
-#define MaxQu 32
-MouseStack MSTC[MaxQu];
-extern bool unpress;
-
 void UnPress()
 {
 	for (int i = 0; i < NInStack; i++)
@@ -2037,6 +2069,36 @@ void UnPress()
 	unpress = 1;
 	memset( ScanPressed, false, sizeof(ScanPressed));
 }
+
+void AddMouseEvent( int x, int y, bool L, bool R )
+{
+	if (NInStack < MaxQu)
+	{
+		MSTC[NInStack].x = x;
+		MSTC[NInStack].y = y;
+		MSTC[NInStack].Lpressed = L;
+		MSTC[NInStack].Rpressed = R;
+		MSTC[NInStack].rLpressed = L;
+		MSTC[NInStack].rRpressed = R;
+		MSTC[NInStack].Control = ( GetSDLKeyState( SDL_SCANCODE_LCTRL ) ) != 0;
+		MSTC[NInStack].Shift = ( GetSDLKeyState( SDL_SCANCODE_LSHIFT ) ) != 0;
+		NInStack++;
+	}
+}
+
+void AddKey( SDL_Keycode Key, byte Ascii )
+{
+	if (32 <= NKeys)
+	{//Push the stack back by one element
+		memcpy( &KeyStack[0], &KeyStack[1], sizeof(KeyStack) - sizeof(SDL_Keycode));
+		memcpy( AsciiStack, AsciiStack + 1, 31 );
+		NKeys--;
+	}
+	KeyStack[NKeys] = Key;
+	AsciiStack[NKeys] = Ascii;
+	NKeys++;
+}
+
 
 
 #ifdef TEST

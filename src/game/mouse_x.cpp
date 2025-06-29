@@ -1,10 +1,6 @@
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
-#ifdef _WIN32
-#include "mgraph.h"
-#include "mode.h"
-#endif // _WIN32
 #include "gp_draw.h"
 #include <algorithm>
 
@@ -310,7 +306,6 @@ void RestoreMData( void* scrn, void* buf, void* comp, int x, int y, int SSizeX, 
 #endif // _WIN32
 }
 
-#ifdef _WIN32
 //Sets mouse[X|Y] & real[L|R]pressed variables according to mouse state
 void SetMPtr( int x, int y, SDL_MouseButtonFlags mouseFlags )
 {
@@ -327,7 +322,6 @@ void SetMPtr( int x, int y, SDL_MouseButtonFlags mouseFlags )
 		realRpressed = ( ( mouseFlags & SDL_BUTTON_RMASK ) != 0 );
 	}
 }
-#endif // _WIN32
 
 //Redraws mouse in the offscreen buffer
 //and prepares data for onscreen transferring 
@@ -362,7 +356,6 @@ void RedrawOffScreenMouse()
 	GetMData( (void*) buf2, ScreenPtr, MX, MY, SCRSizeX, SCRSizeY );
 }
 
-#ifdef _WIN32
 void RedrawScreenMouse()
 {
 	if (!bActive || window_mode)//BUGFIX: Cursor shadow trail while showing ingame menues
@@ -399,7 +392,6 @@ void OnMouseMoveRedraw()
 	OldMY = MY;
 }
 
-#endif // _WIN32
 
 void PostRedrawMouse()
 {

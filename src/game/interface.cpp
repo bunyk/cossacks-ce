@@ -154,13 +154,13 @@ bool WaitingJoinGame( int );
 void SlowLoadPalette( const char* lpFileName );
 void SlowUnLoadPalette( const char* lpFileName );
 void SetDarkPalette();
-#ifdef _WIN32
 void CopyToScreen( int x, int y, int Lx, int Ly );
 void ChooseInterior( int Type );
 void Save3DMap( char* Map );
 void Load3DMap( char* Map );
 void EditMiniMap();
 extern short WheelDelta;
+#ifdef _WIN32
 void LoadMEDButtons();
 void processMLoadGame();
 extern char GameName[128];

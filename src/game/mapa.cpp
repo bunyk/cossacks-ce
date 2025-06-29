@@ -155,8 +155,8 @@ int TerrHi;
 #endif // _WIN32
 bool BuildMode;
 
-#ifdef _WIN32
 byte SpecCmd;
+#ifdef _WIN32
 OneSlide* OSB;
 byte blx;
 byte bly;
