@@ -2,6 +2,9 @@
 //it's winsock includes will mess up the project >_<
 
 #include <boost/coroutine2/all.hpp>
+#include <assert.h>
+#include <math.h>
+#include <time.h>
 
 #include "dialogs.h"
 #include "ddini.h"
@@ -13,6 +16,14 @@
 #include "fonts.h"
 #include "fog.h"
 #include "activescenary.h"
+#include "gsinc.h"
+#include "nature.h"
+#include "3drandmap.h"
+#include "conststr.h"
+#include "mplayer.h"
+
+#include "playerinfo.h"
+extern PlayerInfo PINFO[8];
 
 #ifdef _WIN32
 
@@ -20,30 +31,20 @@
 #include "newcode/udpholepuncher.h"
 #endif
 
-
 #include "mgraph.h"
 #include "menu.h"
 #include "multipl.h"
 #include "walls.h"
-#include "nature.h"
-#include <time.h>
 #include "nucl.h"
-
 #include "megapolis.h"
 #include "gsound.h"
 #include "3dgraph.h"
 #include "3dmaped.h"
 #include "mapsprites.h"
-#include <assert.h>
-#include <math.h>
 #include "newmon.h"
 #include "icontool.h"
-#include "3drandmap.h"
 #include "drawform.h"
-#include "conststr.h"
-#include "mplayer.h"
 #include "recorder.h"
-#include "gsinc.h"
 #include "topograf.h"
 #include "strategyresearch.h"
 #include "safety.h"
@@ -52,8 +53,6 @@
 #include "ir.h"
 #include "bmptool.h"
 
-#include "playerinfo.h"
-extern PlayerInfo PINFO[8];
 
 #ifdef NETWORK
 UdpHolePuncher udp_hole_puncher;
@@ -99,10 +98,12 @@ byte RedColor2 = 0xBB;
 extern int CurrentAnswer;
 
 void UnPress();
+#endif // _WIN32
 
 int CurrentNation = -1;
 extern int PitchTicks;
 extern int MaxPingTime;
+#ifdef _WIN32
 void StartPing( DWORD DPID, int ID );
 void EndPing( int ID );
 bool CheckLogin();
@@ -136,8 +137,8 @@ bool ProcessSingleCampagin( int n );
 void CreateNationalMaskForMap( char* Name );
 extern bool realLpressed;
 void CreateMiniMap();
-void SFLB_CreateGamesList( ListBox* LB );
 #endif // _WIN32
+void SFLB_CreateGamesList( ListBox* LB );
 
 char* GetTextByID( char* ID );
 
@@ -213,20 +214,10 @@ int PanelLx;
 int PanelLy;
 bool MultiplayerStart;
 extern bool ChoosePosition;
-
-extern word NPlayers; // comes from mplayer.cpp
 #endif // _WIN32
-
-#ifdef _WIN32
+extern word NPlayers; // comes from mplayer.cpp
 void CloseMPL(); // comes from mplayer.cpp
-#else
-void CloseMPL()
-{
-	// No multiplayer in non-Windows builds yet
-}
-#endif
 
-#ifdef _WIN32
 void LBEnumerateSessions( ListBox* LB, int );
 void AnalyseMessages();
 bool CreateNamedSession( char* Name, DWORD User2, int Max );
@@ -241,6 +232,7 @@ byte MyRace;
 extern LPDIRECTPLAY3A		lpDirectPlay3A;
 #endif // NODPLAY
 extern word PlayerMenuMode;
+#ifdef _WIN32
 extern LPVOID lplpConnectionBuffer[16];
 extern bool SHOWSLIDE;
 
@@ -305,7 +297,9 @@ bool NeedToPerformGSC_Report = 0;
 bool NeedToReportInGameStats = 0;
 int PrevReportTime = 0;
 int LastTimeReport_tmtmt = 0;
+#endif // _WIN32
 extern int tmtmt;
+#ifdef _WIN32
 extern City CITY[8];
 void EndGSC_Reporting()
 {
@@ -319,7 +313,9 @@ bool PDIF_Inside = 0;
 extern int TIME1;
 int PrevProcTime = 0;
 extern City CITY[8];
-extern DWORD MyDPID;
+#endif // _WIN32
+DWORD MyDPID; // was extern DWORD MyDPID;, but I have no clue from where it comes from
+#ifdef _WIN32
 //--------------------inserted from DIPLOMACY.H---------------//
 typedef void tpStartDownloadInternetFile( char* Name, char* Server, char* DestName );
 typedef void tpProcessDownloadInternetFiles();
@@ -659,7 +655,6 @@ void StdKeys()
 	}
 }
 
-#ifdef _WIN32
 extern bool LB_SORT_ITEM;
 void InstallMap( ListBox* LB, char* Name )
 {
@@ -676,6 +671,7 @@ void CreateMapsList( ListBox* LB )
 		while ( GSFILES.gFindNext( FD ) )InstallMap( LB, FD->m_FileName );
 	};
 };
+#ifdef _WIN32
 void InstallNewMap( ListBox* LB, WIN32_FIND_DATA* FD )
 {
 	LB->AddItem( FD->cFileName, 0 );
@@ -1988,8 +1984,10 @@ int MPL_ChooseConnection()
 }
 
 extern CDPID MyDPID;
+#endif // _WIN32
 bool PIEnumeratePlayers( PlayerInfo* PIN, bool DoMsg );
 
+#ifdef _WIN32
 DLLEXPORT bool EnumPlr()
 {
 	return PIEnumeratePlayers( PINFO, false );
@@ -2010,6 +2008,7 @@ char* GetPName( int i )
 	for ( int j = 0; j < 8; j++ )if ( PINFO[j].ColorID == i )return PINFO[j].name;
 	return Unknm;
 };
+#endif // _WIN32
 bool ColorMouseOver( SimpleDialog* SD )
 {
 	if ( !SD->Enabled )return false;
@@ -2047,7 +2046,7 @@ bool ChangeAlias( SimpleDialog* SD )
 	};
 	return true;
 };
-extern int tmtmt;
+#ifdef _WIN32
 bool GetPreview( char* Name, byte* Data );
 void Decode( byte* data, byte* xlt, int Size )
 {
@@ -2087,9 +2086,11 @@ void ControlLingvo( char* str )
 }
 
 void StopConnectionToSession();
+#endif // _WIN32
 
 extern int GLOBALTIME;
 extern int PGLOBALTIME;
+#ifdef _WIN32
 extern int CurrentStartTime[8];
 extern int NextStartTime[8];
 
@@ -2259,6 +2260,7 @@ void WaitWithMessage( char* Message )
 }
 
 char ROOMNAMETOCONNECT[128];
+#endif // _WIN32
 
 int NCHATS = 0;
 int MAXCHATS = 0;
@@ -2268,6 +2270,7 @@ int NPERSCHATS = 0;
 int MAXPERSCHATS = 0;
 char** PersChatMess = nullptr;
 char** PersChatSender = nullptr;
+#ifdef _WIN32
 void AddPrimitiveChat( char* Nick, char* str,
 	char** &ChatMess, char** &ChatSender,
 	int &NCHATS, int &MAXCHATS )
@@ -2665,6 +2668,7 @@ bool CheckExistConn();
 void PrintBadConn( char* str );
 
 char* _engNOCONN = "No direct connection established with:";
+#endif // _WIN32
 
 byte MPL_NatRefTBL[8] = { 0,1,2,3,4,5,6,7 };
 void SetStdTBL()
@@ -2700,6 +2704,7 @@ bool MPL_WaitingGame( bool Host, bool SINGLE )
 		use_gsc_network_protocol = false;
 	}
 
+#ifdef _WIN32
 	ClearLPACK();
 
 	ServerDPID = 0;
@@ -2713,14 +2718,18 @@ bool MPL_WaitingGame( bool Host, bool SINGLE )
 	ReceiveAll();
 
 	CurStatus = 0;
+#endif
 	PitchTicks = 8;
 	MaxPingTime = 0;
+
+#ifdef _WIN32
 	ClearCTime();
 	int NCHATS = 0;
 	CHATSTRING[0] = 0;
 	int MAXCHATS = 0;
 	char** ChatMess = nullptr;
 	char** ChatSender = nullptr;
+#endif
 	PlayerInfo MYPINF;
 	memset( &MYPINF, 0, sizeof MYPINF );
 
@@ -3287,7 +3296,7 @@ ffe2:
 		}
 		else
 		{
-			memset( PINFO + i, 0, sizeof PlayerInfo );
+			memset( PINFO + i, 0, sizeof(PlayerInfo) );
 		}
 	}
 
@@ -3330,9 +3339,11 @@ ffe2:
 	}
 
 	KeyPressed = 0;
+#ifdef _WIN32
 	PSUMM.ClearPingInfo();
 	PBACK.Clear();
 	ReceiveAll();
+#endif // _WIN32
 
 	bool P1E;
 	bool P2E;
@@ -3351,11 +3362,13 @@ ffe2:
 	int NOMREADY = -1;
 	char* OLDV = GetTextByID( "OLDVER" );
 
+#ifdef _WIN32
 	char* NOCONN = GetTextByID( "$NOCONN" );
 	if ( NOCONN[0] == '$' )
 	{
 		NOCONN = _engNOCONN;
 	}
+#endif // _WIN32
 
 	int FInTime = GetSDLTickCount();
 	char* COMPTXT = "Computer";
@@ -3409,11 +3422,14 @@ ffe2:
 	int PREVCNAME = GetSDLTickCount();
 
 
+#ifdef _WIN32
+	// Seems to be networking related, generate a unique game GUID?
 	LARGE_INTEGER V1;
 	QueryPerformanceCounter( &V1 );
 	LARGE_INTEGER V2;
 	QueryPerformanceFrequency( &V2 );
 	DWORD GMGUID = V1.LowPart + V2.LowPart;
+#endif // _WIN32
 
 	if ( SINGLE )
 	{
@@ -3446,6 +3462,7 @@ ffe2:
 
 	do
 	{
+#ifdef _WIN32
 		if ( use_gsc_network_protocol )
 		{
 			ChatProcess();
@@ -5072,12 +5089,13 @@ ffe2:
 			ItemChoose = mcmCancel;
 		}
 
+#endif // _WIN32
 	} while ( ItemChoose == -1 && PlayerMenuMode == 1 );
 
 	if ( Host )
 	{
 		GFILE* F = Gopen( "MuliExOpt.dat", "wt" );
-		int r = GetLastError();
+		// int r = GetLastError();
 		if ( F )
 		{
 			Gprintf( F, "%d %d %d %d %d %d %d %d %d %d",
@@ -5110,6 +5128,7 @@ ffe2:
 		}
 	}
 
+#ifdef _WIN32
 	if ( Host && PlayerMenuMode != -1 )
 	{
 		for ( int i = 0; i < 8; i++ )
@@ -5169,6 +5188,7 @@ ffe2:
 			memcpy( NatRefTBL, MPL_NatRefTBL, 8 );
 		}
 	}
+#endif // _WIN32
 
 	if ( NCHATS )
 	{
@@ -5224,6 +5244,7 @@ ffe2:
 	return ( ItemChoose == mcmOk ) || PlayerMenuMode != 1;
 }
 
+#ifdef _WIN32
 int SetCurrentBattle( int BattleID,
 	SQPicture* Prev,
 	ComboBox** MNATION,
@@ -5989,20 +6010,19 @@ extern int RunMethod;
 
 bool SingleOptions()
 {
-#ifdef _WIN32
 	if ( MPL_WaitingGame( 1, 1 ) )
 	{
+#ifdef _WIN32
 		StartIGame( 1 );
 		return true;
+#else
+		return false; // No multiplayer on Linux yet
+#endif // _WIN32
 	}
 	else
 	{
 		return false;
 	}
-#else
-	printf("TODO: uncomment SingleOptions()\n");
-	return false;
-#endif // _WIN32
 }
 
 #ifdef _WIN32
@@ -6912,9 +6932,11 @@ void InstallName( ListBox* LB, WIN32_FIND_DATA* FD, char* StartDir )
 		else RClose( ff1 );
 	}
 }
+#endif // _WIN32
 
 void SFLB_CreateGamesList( ListBox* LB )
 {
+#ifdef _WIN32
 	WIN32_FIND_DATA FD;
 	ClearNames();
 	HANDLE HF = FindFirstFile( "*.sav", &FD );
@@ -6923,8 +6945,12 @@ void SFLB_CreateGamesList( ListBox* LB )
 		InstallName( LB, &FD, "" );
 		while ( FindNextFile( HF, &FD ) )InstallName( LB, &FD, "" );
 	};
+#else
+	printf("TODO: implement SFLB_CreateGamesList\n");
+#endif // _WIN32
 }
 
+#ifdef _WIN32
 void CreateRecList( ListBox* LB )
 {
 	WIN32_FIND_DATA FD;

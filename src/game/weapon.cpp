@@ -1,5 +1,5 @@
-/*				  Оружие дальнего действия
- *			Организация перемещающихся анимаций.*/
+/*				 Ranged weapons and moving animations  */
+#ifdef _WIN32
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
@@ -68,7 +68,9 @@ int GetWeaponType( char* Name )
 int mul3( int );
 int nEused;
 word LastReq;
+#endif // _WIN32
 short randoma[8192];
+#ifdef _WIN32
 word rpos;
 
 //Precalculates Sin/Cos, loads random.lst
@@ -997,3 +999,4 @@ bool TraceObjectsInLine( int xs, int ys, int zs,
 	}
 	return false;
 }
+#endif // _WIN32

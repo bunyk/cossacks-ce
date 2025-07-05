@@ -47,6 +47,8 @@ add_executable(cossacks
 	src/game/strecog.cpp
 	src/game/fog.cpp
 	src/game/drawforms.cpp
+	src/game/weapon.cpp
+	src/game/3dbars.cpp
 )
 
 # Link to the actual SDL3 libraries.

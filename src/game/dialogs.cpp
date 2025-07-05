@@ -9,12 +9,12 @@
 #include "gp_draw.h"
 #include "drawform.h"
 #include "mouse.h"
+#include "fonts.h"
+#include "lines.h"
 
 #ifdef _WIN32
 #include "cdirsnd.h"
 #include "gsound.h"
-#include "fonts.h"
-#include "lines.h"
 
 int ROLLU2 = 1;
 extern int UNI_LINEDLY1;
@@ -25,9 +25,9 @@ extern int UNI_HINTDY1;
 extern int UNI_HINTDLY1;
 extern int UNI_HINTDY2;
 extern int UNI_HINTDLY2;
+#endif // _WIN32
 
 extern bool realLpressed;
-#endif // _WIN32
 extern bool KeyPressed;
 extern SDL_Keycode LastKey;
 extern bool MUSTDRAW;
@@ -99,7 +99,6 @@ DialogsSystem::DialogsSystem()
 	CancelSound = GetSound( "STANDART" );
 	UserClickSound = GetSound( "STANDART" );
 };
-#ifdef _WIN32
 void DialogsSystem::SetFonts( RLCFont* fActive,
 	RLCFont* fPassive,
 	RLCFont* fDisabled,
@@ -110,7 +109,6 @@ void DialogsSystem::SetFonts( RLCFont* fActive,
 	Disabled = fDisabled;
 	Message = fMessage;
 };
-#endif // _WIN32
 //-----------------class Picture
 bool Picture_OnMouseOver( SimpleDialog* SD )
 {
@@ -194,8 +192,8 @@ bool CanvasDestroy( SimpleDialog* SD )
 #define CV_BYTE(x) CAN->DrawData[pos+x]
 #endif //_WIN32
 DLLEXPORT void CBar( int x, int y, int Lx, int Ly, unsigned char c );
-#ifdef _WIN32
 void xLine( int x, int y, int x1, int y1, byte c );
+#ifdef _WIN32
 bool CanvasDraw( SimpleDialog* SD )
 {
 	if (!SD->Visible)return false;
@@ -1088,7 +1086,7 @@ BpxTextButton* DialogsSystem::addBpxTextButton( SimpleDialog* Parent,
 	};
 	return nullptr;
 };
-
+#endif // _WIN32
 
 //--------end of button with text----------//
 bool Video_OnDraw( SimpleDialog* SD )
@@ -1175,7 +1173,6 @@ VideoButton* DialogsSystem::addVideoButton( SimpleDialog* Parent, int x, int y, 
 	};
 	return nullptr;
 }
-#endif // _WIN32
 
 //---------------GP_Button-----------------//
 bool GP_Button_OnDraw( SimpleDialog* SD )
@@ -1671,6 +1668,7 @@ VScrollBar* DialogsSystem::addGP_ScrollBar( SimpleDialog* Parent, int x, int y, 
 	};
 	return nullptr;
 };
+#endif // _WIN32
 bool NewGP_VScrollBar_OnDraw( SimpleDialog* SD )
 {
 	VScrollBar* SB = (VScrollBar*) SD;
@@ -1789,6 +1787,7 @@ VScrollBar* DialogsSystem::addNewGP_VScrollBar( SimpleDialog* Parent, int x, int
 	};
 	return nullptr;
 };
+#ifdef _WIN32
 VScrollBar* DialogsSystem::addGP_ScrollBarL( SimpleDialog* Parent, int x, int y,
 	int MaxPos, int Pos, int GP_File,
 	int ScrIndex, int LineLx, int LineLy, int ScrDx, int ScrDy )
@@ -1976,7 +1975,10 @@ ListBoxItem* ListBox::GetItem( int i )
 	};
 	return LB;
 };
+#endif // _WIN32
 bool LB_SORT_ITEM = 0;
+
+#ifdef _WIN32
 void ListBox::AddItem( char* str, int n )
 {
 	NeedToDraw = true;
@@ -3470,6 +3472,7 @@ ChatViewer* DialogsSystem::addChatViewer( SimpleDialog* Parent, int x, int y, in
 	};
 	return nullptr;
 };
+#endif // _WIN32
 
 extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
 
@@ -3674,6 +3677,7 @@ BPXView* DialogsSystem::addBPXView(
 	return nullptr;
 };
 //---------------end of BPXView--------------//
+#ifdef _WIN32
 //-----------------RLCListBox----------------//
 bool RLCListBox_OnDraw( SimpleDialog* SD )
 {
@@ -3793,6 +3797,8 @@ RLCListBox* DialogsSystem::addRLCListBox( SimpleDialog* Parent,
 	return nullptr;
 };
 //--------------end of RLCListBox------------//
+#endif // _WIN32
+
 //-------------------ComboBox----------------//
 bool ComboBox_OnDraw( SimpleDialog* SD )
 {
@@ -3844,6 +3850,7 @@ bool ComboBox_OnDraw( SimpleDialog* SD )
 	};
 	return true;
 };
+
 extern short randoma[8192];
 #define PTPERDEAL 2
 #define STARTOTS 12
@@ -4145,6 +4152,7 @@ bool ComboBox_OnDrawActive( SimpleDialog* SD )
 	};
 	return true;
 };
+
 bool ComboBox_OnMouseOver( SimpleDialog* SD )
 {
 	if (!( SD->Enabled&&SD->Visible ))return false;
@@ -4243,6 +4251,8 @@ bool ComboBox_OnDestroy( SimpleDialog* SD )
 	CB->Clear();
 	return true;
 };
+
+#ifdef _WIN32
 void ComboBox::AssignScroll( DialogsSystem* DSS, VScrollBar** SCR, int GPFile, int Sprite, int MaxLy )
 {
 	*SCR = DSS->addNewGP_VScrollBar( nullptr, x1 - DSS->BaseX - GPS.GetGPWidth( GPFile, Sprite ) + 1, y1 + 5 - DSS->BaseY, OneLy*MaxLy + 9, 1, 0, GPFile, Sprite );
@@ -4313,6 +4323,7 @@ ComboBox* DialogsSystem::addComboBox( SimpleDialog* Parent, int x, int y, int Lx
 
 	return nullptr;
 }
+#endif // _WIN32
 
 ComboBox* DialogsSystem::addGP_ComboBox( SimpleDialog* Parent, int x, int y, int GP_File,
 	int UpPart, int Center, int DownPart,
@@ -4466,6 +4477,7 @@ void ComboBox::AddLine( char* Text )
 	}
 }
 
+#ifdef _WIN32
 void ComboBox::AddComplexLine( char* Text )
 {
 	char* Tmp = new char[strlen( Text ) + 1];
@@ -4722,6 +4734,7 @@ GP_PageControl* DialogsSystem::addPageControl( SimpleDialog* Parent, int x, int 
 
 	return nullptr;
 }
+#endif // _WIN32
 
 void GP_PageControl::AddPage( int x0, int y0, int px1, int py1, int Index )
 {
@@ -4734,6 +4747,8 @@ void GP_PageControl::AddPage( int x0, int y0, int px1, int py1, int Index )
 	NPages++;
 }
 //-------------end of PageControl------------//
+
+#ifdef _WIN32
 extern int BordGP2;
 void DrawHdrTable( int x0, int y0, int x1, int y1 );
 void DrawScrollDoubleTableF( int x0, int y0, int x1, int y1, int ym );

@@ -208,7 +208,9 @@ typedef struct
 } * CLPDPMSG_DESTROYPLAYERORGROUP;
 #endif
 
+#ifdef _WIN32
 extern CDPID MyDPID;
+#endif
 extern PingSumm PSUMM;
 extern EXBUFFER EBufs[MaxPL];
 extern EXBUFFER EBufs1[MaxPL];

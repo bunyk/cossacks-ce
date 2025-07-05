@@ -40,7 +40,6 @@ byte WaterCost[65536];
 byte GraySet[256];
 byte Bright[8192];
 
-#ifdef _WIN32
 void ClearFog()
 {
 	memset( fmap, 0, LX_fmap*LX_fmap * 2 );
@@ -65,6 +64,7 @@ void LoadOptionalTable( int n, char* Name )
 	RClose( F );
 }
 
+#ifdef _WIN32
 int mul3( int );
 
 int FogMode;
