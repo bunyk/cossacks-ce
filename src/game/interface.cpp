@@ -215,8 +215,13 @@ int PanelLy;
 bool MultiplayerStart;
 extern bool ChoosePosition;
 #endif // _WIN32
+#ifdef _WIN32
 extern word NPlayers; // comes from mplayer.cpp
 void CloseMPL(); // comes from mplayer.cpp
+#else 
+word NPlayers;
+void CloseMPL() {} // dummy function until MPL is implemented
+#endif // _WIN32
 
 void LBEnumerateSessions( ListBox* LB, int );
 void AnalyseMessages();
@@ -225,13 +230,21 @@ bool CreateNamedSession( char* Name, DWORD User2, int Max );
 bool JoinNameToSession( int ns, char* Name );
 #endif // NODPLAY
 bool StartIGame( bool );
+#ifdef _WIN32
 extern bool GameInProgress;
+#else
+bool GameInProgress = false;
+#endif // _WIN32
 byte MyRace;
 #ifndef NODPLAY
 // TODO: remove all refs to this from Interface
 extern LPDIRECTPLAY3A		lpDirectPlay3A;
 #endif // NODPLAY
+#ifdef _WIN32
 extern word PlayerMenuMode;
+#else 
+word PlayerMenuMode = 0;
+#endif // _WIN32
 #ifdef _WIN32
 extern LPVOID lplpConnectionBuffer[16];
 extern bool SHOWSLIDE;
@@ -1985,9 +1998,16 @@ int MPL_ChooseConnection()
 
 extern CDPID MyDPID;
 #endif // _WIN32
-bool PIEnumeratePlayers( PlayerInfo* PIN, bool DoMsg );
 
 #ifdef _WIN32
+bool PIEnumeratePlayers( PlayerInfo* PIN, bool DoMsg ); // comes from mplayer.cpp
+#else
+bool PIEnumeratePlayers( PlayerInfo* PIN, bool DoMsg )
+{
+	return true;
+}
+#endif // _WIN32
+
 DLLEXPORT bool EnumPlr()
 {
 	return PIEnumeratePlayers( PINFO, false );
@@ -1996,6 +2016,7 @@ DLLEXPORT bool EnumPlr()
 PlayerInfo PINFO[8];
 PlayerInfo prev_host_info;
 
+#ifdef _WIN32
 char Names[32][8];
 int tmm1, tmm2, tmm3;
 extern int COUN;
@@ -2679,7 +2700,13 @@ void SetStdTBL()
 	}
 }
 
+#ifdef _WIN32
 int GetLogRank();
+#else
+int GetLogRank() {
+	return 0;
+}
+#endif // _WIN32
 
 void SETPLAYERDATA( DWORD ID, void* Data, int size, bool );
 
@@ -2691,7 +2718,13 @@ bool GetPreviewName( char* Name, char* ccc );
 
 void DeepDeletePeer( DWORD ID );
 
+#ifdef _WIN32
 int GetMyProfile();
+#else
+int GetMyProfile() {
+	return 0;
+}
+#endif // _WIN32
 
 // IChat library exports this
 DLLIMPORT void ChatProcess();

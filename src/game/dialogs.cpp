@@ -1965,6 +1965,7 @@ CustomBox* DialogsSystem::addCustomBox( int x, int y, int Lx, int Ly, procDrawBo
 	return nullptr;
 };
 //-------------end of ComplexBox-------------//
+#endif // _WIN32
 //-------------class : ListBox---------------//
 ListBoxItem* ListBox::GetItem( int i )
 {
@@ -1975,10 +1976,8 @@ ListBoxItem* ListBox::GetItem( int i )
 	};
 	return LB;
 };
-#endif // _WIN32
 bool LB_SORT_ITEM = 0;
 
-#ifdef _WIN32
 void ListBox::AddItem( char* str, int n )
 {
 	NeedToDraw = true;
@@ -2033,6 +2032,7 @@ void ListBox::AddItem( char* str, int n )
 	LB->Param1 = n;
 	LB->Flags = 0;
 };
+#ifdef _WIN32
 void ListBox::AddStaticItem( char* str, int n )
 {
 	NeedToDraw = true;
@@ -2086,6 +2086,7 @@ void ListBox::SetCurrentItem( int n )
 	if (!NItems)CurItem = -1;
 	if (CurItem < FLItem)FLItem = CurItem;
 };
+#endif // _WIN32
 bool ListBox_OnDraw( SimpleDialog* SD )
 {
 	if (!SD->Visible)return false;
@@ -2181,6 +2182,7 @@ bool ListBox_OnDraw( SimpleDialog* SD )
 	};
 	return true;
 };
+#ifdef _WIN32
 bool ListBox_OnMouseOver( SimpleDialog* SD )
 {
 	if (!Lpressed)return false;
@@ -2201,6 +2203,7 @@ bool ListBox_OnMouseOver( SimpleDialog* SD )
 	};
 	return true;
 };
+#endif // _WIN32
 bool GPListBox_OnMouseOver( SimpleDialog* SD )
 {
 	//if(!Lpressed)return false;
@@ -2243,6 +2246,7 @@ bool ListBox_Refresh( SimpleDialog* SD )
 	};
 	return true;
 };
+#ifdef _WIN32
 ListBox* DialogsSystem::addListBox( SimpleDialog* Parent,
 	int x, int y, int Ny,
 	SQPicture* ItemPic,
@@ -2331,6 +2335,7 @@ ListBox* DialogsSystem::addListBox( SimpleDialog* Parent,
 	};
 	return nullptr;
 };
+#endif // _WIN32
 ListBox* DialogsSystem::addGP_ListBox( SimpleDialog* Parent, int x, int y, int Ny,
 	int GP_File, int Sprite, int Ly,
 	RLCFont* AFont,
@@ -2376,6 +2381,7 @@ ListBox* DialogsSystem::addGP_ListBox( SimpleDialog* Parent, int x, int y, int N
 	return nullptr;
 };
 //-------------end of List Box---------------//
+#ifdef _WIN32
 //-----------class : InputBox----------------//
 void CutStringToLength( char* str, RLCFont* Fnt, int Lx )
 {
@@ -3377,6 +3383,7 @@ TextViewer* DialogsSystem::addTextViewer(
 	};
 	return nullptr;
 }
+#endif // _WIN32
 
 DLLEXPORT char LASTCLICKCHATNAME[128] = "";
 
@@ -3472,7 +3479,6 @@ ChatViewer* DialogsSystem::addChatViewer( SimpleDialog* Parent, int x, int y, in
 	};
 	return nullptr;
 };
-#endif // _WIN32
 
 extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
 
@@ -4477,7 +4483,6 @@ void ComboBox::AddLine( char* Text )
 	}
 }
 
-#ifdef _WIN32
 void ComboBox::AddComplexLine( char* Text )
 {
 	char* Tmp = new char[strlen( Text ) + 1];
@@ -4496,8 +4501,8 @@ void ComboBox::AddComplexLine( char* Text )
 	} while (!All);
 	free( Tmp );
 }
-
 //---------------end of ComboBox-------------//
+#ifdef _WIN32
 //-----------------WinComboBox---------------//
 bool WinComboBox_OnDraw( SimpleDialog* SD )
 {
@@ -4682,6 +4687,7 @@ void WinComboBox::Clear()
 	}
 }
 //--------------end of WinComboBox-----------//
+#endif // _WIN32
 
 //-----------------PageControl---------------//
 bool GP_PageControl_OnDraw( SimpleDialog* SD )
@@ -4734,7 +4740,6 @@ GP_PageControl* DialogsSystem::addPageControl( SimpleDialog* Parent, int x, int 
 
 	return nullptr;
 }
-#endif // _WIN32
 
 void GP_PageControl::AddPage( int x0, int y0, int px1, int py1, int Index )
 {

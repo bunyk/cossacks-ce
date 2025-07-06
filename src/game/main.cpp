@@ -85,11 +85,31 @@ bool RetryVideo = 0;
 //1: Fast mode
 int exFMode = 1;
 
+//Game speed mode dependent SpeedShift variable. Used for controlling animations etc
+int SpeedSh = 1;
+
 //Minimal delay between two PostDrawGameProcess() returns, in ms
 const unsigned int kPostDrawInterval = 16;//~60 Hz
 
 //Timespan in ms after last LastCTRLPressTime which allows setting unit control groups
 const int kCtrlStickyTime = 50;
+
+int CostThickness;
+int ReliefBrush;
+int TerrBrush;
+int BlobMode;
+int CoalID;
+int CurGroundTexture = 0;
+int Flips;
+int FoodID;
+int FrmDec = 2;
+int GoldID;
+int HiStyle;
+int IronID;
+int LASTRAND, LASTIND;
+int LastAttackDelay = 0;
+int Multip;
+int NMONS;
 
 int xxx;
 
@@ -106,6 +126,7 @@ static word MsPerFrame = 40;
 
 int GLOBALTIME = 0;
 int PGLOBALTIME = 0;
+int REALTIME;
 int PitchTicks = 0;
 int MaxPingTime = 0;
 int RealPause = 0;

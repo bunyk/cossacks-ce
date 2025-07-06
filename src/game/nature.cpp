@@ -1,25 +1,30 @@
+#include <assert.h>
+#include <stdio.h>
+
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
+#include "nature.h"
+#include "gp_draw.h"
+#include "gfile.h"
+
+#ifdef _WIN32
 #include "mapdiscr.h"
 #include "multipl.h"
 #include "fog.h"
 #include "walls.h"
 
-#include <assert.h>
-
 #include "3dsurf.h"
 #include "cdirsnd.h"
 #include "gsound.h"
 #include "newmon.h"
-#include "nature.h"
 #include "conststr.h"
-#include "gp_draw.h"
 #include "drawform.h"
 #include "fonts.h"
+
 //void FindEmptyPoint(byte* x,byte* y);
 byte rtmap[256][256];//resource type map
 byte ramap[256][256];//resource amount map
@@ -124,7 +129,10 @@ int ResPerUnit;
 int EatenRes;
 int GetResByName( char* gy );
 FormGroupDescription FormGrp;
+#endif // _WIN32
 void ErrM( char* s );
+
+#ifdef _WIN32
 extern char* SoundID[MaxSnd];
 extern word NSounds;
 OrderClassDescription OrderDesc[16];
@@ -134,7 +142,9 @@ int NEOrders = 0;
 int SearchStr( char** Res, char* s, int count );
 int GetIconByName( char* Name );
 void LoadOrders();
+#endif // _WIN32
 char* GetTextByID( char* ID );
+#ifdef _WIN32
 extern bool ProtectionMode;
 void LoadRDS()
 {
@@ -1230,9 +1240,11 @@ void LoadOrders()
 		ErrM( "Could not open ord_groups.lst" );
 	}
 }
+#endif // _WIN32
 
 int DiffP[4];
 AI_Description GlobalAI;
+
 void InvAI()
 {
 	ErrM( "Invalid file AI\\Ai.dat" );

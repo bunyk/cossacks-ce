@@ -1,6 +1,9 @@
 #include "newcode/os.h"
 
-#ifdef _WIN32
+#include <time.h>
+#include <assert.h>
+#include <math.h>
+
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
@@ -8,17 +11,17 @@
 #include "mouse.h"
 #include "menu.h"
 #include "mapdiscr.h"
+#include "3drandmap.h"
+
+#ifdef _WIN32
 #include "multipl.h"
 #include "fog.h"
 #include "walls.h"
 #include "nature.h"
-#include <time.h>
 #include "nucl.h"
 
 #include "megapolis.h"
 #include "dialogs.h"
-#include <assert.h>
-#include <math.h>
 #include "masks.h"
 #include "fonts.h"
 #include "3dgraph.h"
@@ -34,7 +37,6 @@
 #include "sort.h"
 #include "curve.h"
 #include "process.h"
-#include "3drandmap.h"
 #include "bmptool.h"
 #include "gp_draw.h"
 #include "drawform.h"
@@ -357,6 +359,7 @@ void GenMap::CreateNet()
 
 	CheckNet( this );
 }
+#endif // _WIN32
 
 void ErrM( char* s );
 
@@ -367,6 +370,7 @@ void InvHill( char* Name )
 	ErrM( ccc );
 }
 
+#ifdef _WIN32
 bool LoadTerrain( char* Name )
 {
 	GFILE* F = Gopen( Name, "r" );
@@ -4590,6 +4594,7 @@ void PictureCordons()
 		};
 	};
 }
+#endif // _WIN32
 
 RandomMapDesc::RandomMapDesc()
 {
@@ -4790,6 +4795,7 @@ void RandomMapDesc::Load( char* name )
 	}
 }
 
+#ifdef _WIN32
 //-------------------------Generating map by the bitmap for missions-------------------//
 void GenerateMapForMission( char* Relief, char* Ground, char* Mount, char* Soft );
 

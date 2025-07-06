@@ -6,6 +6,7 @@
 #include "mouse.h"
 #include "menu.h"
 #include "mapdiscr.h"
+
 void Hline(int x,int y,int xend,byte c){
 	if(y<WindY||y>WindY1)return;
 	int xr;
@@ -19,8 +20,9 @@ void Hline(int x,int y,int xend,byte c){
 		if(xend<WindX)xr=WindX; else xr=xend;
 		if(x>WindX1)Lxr=WindX1-xr+1;else Lxr=x-xr+1;
 	};
-	int scr=int(ScreenPtr)+xr+y*ScrWidth;
 	if(Lxr<=0)return;
+#ifdef _WIN32
+	int scr=int(ScreenPtr)+xr+y*ScrWidth;
 	__asm{
 		mov		edi,scr
 		mov		al,c
@@ -28,6 +30,10 @@ void Hline(int x,int y,int xend,byte c){
 		cld
 		rep		stosb
 	};
+#else
+	uint8_t* scr = (uint8_t*)ScreenPtr + xr + y * ScrWidth;
+	memset(scr, c, Lxr);
+#endif // _WIN32
 };
 void Vline(int x,int y,int yend,byte c){
 	if(x<WindX||x>WindX1)return;
@@ -43,8 +49,9 @@ void Vline(int x,int y,int yend,byte c){
 		if(yend<WindY)yr=WindY; else yr=yend;
 		if(y>WindY1)Lyr=WindY1-yr+1;else Lyr=y-yr+1;
 	};
-	int scr=int(ScreenPtr)+x+yr*ScrWidth;
 	if(Lyr<=0)return;
+#ifdef _WIN32
+	int scr=int(ScreenPtr)+x+yr*ScrWidth;
 	__asm{
 		mov		edi,scr
 		mov		al,c
@@ -56,23 +63,34 @@ uuuuu:	stosb
 		add		edi,edx
 		loop	uuuuu
 	};
+#else
+	uint8_t* scr = (uint8_t*)ScreenPtr + x + yr * ScrWidth;
+	for (int i = 0; i < Lyr; ++i) {
+		*scr = c;
+		scr += ScrWidth;
+	}
+#endif // _WIN32
 };
+
 void Xbar(int x,int y,int lx,int ly,byte c){
 	Hline(x,y,x+lx-1,c);
 	Hline(x,y+ly-1,x+lx-1,c);
 	Vline(x,y,y+ly-1,c);
 	Vline(x+lx-1,y,y+ly-1,c);
 };
+
 int GetXKind(int x){
 	if(x<WindX)return 8;
 	else if(x>WindX1)return 4;
 	else return 0;
 };
+
 int GetYKind(int y){
 	if(y<WindY)return 2;
 	else if(y>WindY1)return 1;
 	else return 0;
 };
+
 void DrawLine(int x,int y,int x1,int y1,byte c){
 	if(x==x1&&y==y1){
 		Hline(x,y,x,c);
@@ -117,6 +135,7 @@ void DrawLine(int x,int y,int x1,int y1,byte c){
 	if(GetXKind(x)|GetXKind(x1)|GetYKind(y)|GetYKind(y1))return;
 	int Lx=x1-x;
 	int Ly;
+#ifdef _WIN32
 	int ofst=int(ScreenPtr)+x+y*ScrWidth;
 	if(y<y1){
 		Ly=y1-y;
@@ -205,4 +224,5 @@ lpp2_3:			dec		ecx
 			};
 		};
 	};
+#endif // _WIN32 TODO: rewrite this (Bresenhams's algorithm?) into C
 };

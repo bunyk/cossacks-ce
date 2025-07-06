@@ -2,7 +2,6 @@
 
 #include "newcode/os.h"
 
-#ifdef _WIN32
 
 #include "ddini.h"
 #include "resfile.h"
@@ -15,6 +14,7 @@
 #include "nature.h"
 #include "fonts.h"
 
+#ifdef _WIN32
 #include "walls.h"
 #include "megapolis.h"
 #include "gsound.h"
@@ -1908,6 +1908,7 @@ void ShowAbility()
 
 //-------------------MESSAGES-------------------//
 void LoadConstStr();
+#endif //_WIN32
 
 lpCHAR* GMessIDS = nullptr;
 lpCHAR* GMessage = nullptr;
@@ -1980,6 +1981,7 @@ void LoadMessagesFromFile( char* Name )
 void LoadMessages()
 {
 	LoadMessagesFromFile( "Comment.txt" );
+#ifdef _WIN32
 	TGSCFindInfo* FD = GSFILES.gFindFirst( "Missions\\miss_*.txt" );
 	if (FD)
 	{
@@ -2014,10 +2016,12 @@ void LoadMessages()
 			};
 		} while (good);
 	};
+#else
+	printf("TODO: Load mission messages too\n");
+#endif
 	LoadMessagesFromFile( "moretx.dat" );
 	LoadConstStr();
 }
-#endif //_WIN32
 
 DLLEXPORT char* GetTextByID( char* ID )
 {

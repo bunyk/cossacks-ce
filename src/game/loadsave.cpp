@@ -3215,9 +3215,11 @@ void SFLB_LoadGame( char* fnm, bool LoadNation )
 
 //-----------------------------------
 #define ARR_RETVAL(x,y,ARR,sz) if(x<0)x=0;if(y<0)y=0;if(x>=sz)x=sz-1;if(y>=sz)y=sz-1;return ARR[x+y*sz];
+#endif // _WIN32
 //1)fmap
 int LX_fmap;
 
+#ifdef _WIN32
 word GetV_fmap( int x, int y )
 {
 	ARR_RETVAL( x, y, fmap, LX_fmap );

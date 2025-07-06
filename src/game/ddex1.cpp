@@ -73,30 +73,10 @@ bool VHMode = 0;
 
 
 
-int CostThickness;
-int ReliefBrush;
-int TerrBrush;
-int BlobMode;
-int CoalID;
-int CurGroundTexture = 0;
-int Flips;
-int FoodID;
-int FrmDec = 2;
-int GoldID;
-int HiStyle;
-int IronID;
-int LASTRAND, LASTIND;
-int LastAttackDelay = 0;
-int Multip;
-int NMONS;
-int REALTIME;
 
 //Multiplier, depends on MiniMode
 //MiniMode ? 4 : 5
 int Shifter;
-
-//Game speed mode dependent SpeedShift variable. Used for controlling animations etc
-int SpeedSh = 1;
 
 int StoneID;
 int TreeID;
