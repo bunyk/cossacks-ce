@@ -1907,8 +1907,9 @@ void ShowAbility()
 }
 
 //-------------------MESSAGES-------------------//
-void LoadConstStr();
 #endif //_WIN32
+
+void LoadConstStr();
 
 lpCHAR* GMessIDS = nullptr;
 lpCHAR* GMessage = nullptr;
