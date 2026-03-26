@@ -766,7 +766,12 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 		IAmLeft();
 		LOOSEANDEXITFAST();
 		break;
-	#endif // _WIN32
+#else
+	case SDL_EVENT_QUIT:
+		//Leave game and assign defeat (Linux)
+		GameExit = true;
+		return SDL_APP_SUCCESS;
+#endif
 	}
 
 	return SDL_APP_CONTINUE;
