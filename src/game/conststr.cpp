@@ -22,7 +22,7 @@ void LOADSC(char* ID,char** str){
 	if(!strcmp(*str,ID)){
 		char cc[128];
 		sprintf(cc,"Unknown string: %s (see COMMENT.TXT)",ID);
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "String not found...", cc, sdlWindow);
+		// SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "String not found...", cc, sdlWindow);
 	};
 };
 

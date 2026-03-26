@@ -52,7 +52,7 @@ add_executable(cossacks
 	src/game/lines.cpp
 	src/game/nature.cpp
 
-	src/game/newcode/conststr.cpp
+	src/game/conststr.cpp
 )
 
 # Link to the actual SDL3 libraries.
