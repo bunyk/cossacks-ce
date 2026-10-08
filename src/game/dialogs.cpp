@@ -5256,10 +5256,10 @@ void SQPicture::Draw( int x, int y )
 								 pop		esi
 	};
 	#else
+	uint8_t* dst = static_cast<uint8_t*>(ScreenPtr) + x + y * ScrWidth;
+	uint8_t* src = reinterpret_cast<uint8_t*>(PicPtr + 2);
 	for (int row = 0; row < ly; ++row) {
-		std::memcpy(ScreenPtr + (x + (y + row) * ScrWidth), 
-					PicPtr + 2 + row * lx, 
-					lx);
+		std::memcpy(dst + row * ScrWidth, src + row * lx, lx);
 	}
 	#endif
 };

@@ -131,7 +131,6 @@ DLLEXPORT void FlipPages( void )
 
 		SDL_LockTextureToSurface(primaryTexture, nullptr, &targetSurface);
 		SDL_BlitSurfaceScaled(srcSurface, nullptr, targetSurface, nullptr, SDL_SCALEMODE_LINEAR);
-		// IMG_SavePNG(targetSurface, "test.png");
 		SDL_UnlockTexture(primaryTexture);
 
 		// SDL_RenderClear(renderer);

@@ -313,6 +313,18 @@ void SetMPtr( int x, int y, SDL_MouseButtonFlags mouseFlags )
 	{
 		x = RSCRSizeX - 1;
 	}
+	if (x < 0)
+	{
+		x = 0;
+	}
+	if (y > RSCRSizeY - 1)
+	{
+		y = RSCRSizeY - 1;
+	}
+	if (y < 0)
+	{
+		y = 0;
+	}
 
 	if (( x != mouseX ) | ( y != mouseY ))
 	{
