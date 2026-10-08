@@ -13,7 +13,7 @@
 div_t CDECL SecureDivision( int const numerator, int const denominator );
 #define div(x,y) SecureDivision(x,y)
 
-#pragma pack(1)
+#pragma pack(push, 1)
 
 typedef unsigned short word;
 
@@ -2162,3 +2162,5 @@ inline void SafeSetTopRef( int x, int y, word Val )
 		TopRef[x + ( y << TopSH )] = Val;
 	}
 };
+
+#pragma pack(pop)

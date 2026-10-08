@@ -49,15 +49,15 @@ class DIALOGS_API VScrollBar;
 class DIALOGS_API SimpleDialog 
 {
 public:
-	bool Enabled : 1;
-	bool Active : 1;
-	bool PrevMouseOver : 1;
-	bool MouseOver : 1;
-	bool NeedToDraw : 1;
-	bool MouseOverActive : 1;
-	bool IsActive : 1;//drop-down panel is active
-	bool Visible : 1;
-	bool AllocHint : 1;
+	bool Enabled;
+	bool Active;
+	bool PrevMouseOver;
+	bool MouseOver;
+	bool NeedToDraw;
+	bool MouseOverActive;
+	bool IsActive;//drop-down panel is active
+	bool Visible;
+	bool AllocHint;
 	bool NeedRedrawAll;
 	short MouseSound;
 	short ClickSound;
@@ -85,6 +85,7 @@ public:
 	void AssignSound(int ID, int USAGE);
 	void AssignSound(char* Name, int USAGE);
 };
+static_assert(__builtin_offsetof(SimpleDialog, OnUserClick) == 136, "SimpleDialog OnUserClick not at 136");
 
 #define CLICK_SOUND  0x1234
 #define MOUSE_SOUND  0x4321
@@ -96,7 +97,7 @@ public:
 	SQPicture* PassivePicture;
 	SQPicture* ActivePicture;
 	SQPicture* DisabledPicture;
-	bool Transparent : 1;
+	bool Transparent;
 	Picture() : SimpleDialog() { }
 };
 class DIALOGS_API RLCPicture :public SimpleDialog {
@@ -314,9 +315,9 @@ public:
 	SQPicture* OnPic;
 	SQPicture* OffPic;
 	char* Message;
-	unsigned int State : 2;
-	bool Transparent : 1;
-	bool Central : 1;
+	unsigned int State;
+	bool Transparent;
+	bool Central;
 	int GroupIndex;
 	RLCFont* Font;
 	RLCFont* AFont;

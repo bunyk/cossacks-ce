@@ -1261,7 +1261,6 @@ GP_Button* DialogsSystem::addGP_Button(
 		tb->Destroy = nullptr;
 		tb->Enabled = true;
 		tb->Active = false;
-
 		return tb;
 	}
 
@@ -5520,7 +5519,7 @@ void DialogsSystem::ProcessDialogs()
 						{
 							PlayEffect( UserClickSound, 0, 0 );
 						}
-						SD->OnUserClick( SD );
+							SD->OnUserClick( SD );
 						Lpressed = false;
 						try
 						{

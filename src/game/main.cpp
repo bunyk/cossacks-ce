@@ -1,5 +1,6 @@
 ﻿#include <stdio.h>
 #include <boost/coroutine2/all.hpp>
+#include <boost/context/fixedsize_stack.hpp>
 
 // #define TEST
 
@@ -517,7 +518,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	SDL_StartTextInput(sdlWindow);
 
 	printf(">>> SDL_AppInit done. Starting AllGameCoroutine\n");
-	AllGameCoroutine = new boost::coroutines2::coroutine<void>::pull_type(AllGame);
+	AllGameCoroutine = new boost::coroutines2::coroutine<void>::pull_type(
+		boost::context::fixedsize_stack(8 * 1024 * 1024), AllGame);
 
 	return SDL_APP_CONTINUE;
 }
@@ -537,7 +539,6 @@ extern bool ScanPressed[SDL_SCANCODE_KP_0 + 1];
 
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 {
-	printf("SDL_AppEvent: %d\n", event->type);
 	static BYTE phase = 0;
 
 	switch (event->type)
@@ -571,7 +572,6 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 	case SDL_EVENT_MOUSE_BUTTON_DOWN:
 	{
 		int bx = (int)event->button.x, by = (int)event->button.y;
-		printf("SDL_EVENT_MOUSE_BUTTON_DOWN: button=%d, x=%d, y=%d\n", event->button.button, bx, by);
 		SDL_MouseButtonFlags mouseFlags = SDL_GetMouseState(nullptr, nullptr);
 		if (event->button.button == SDL_BUTTON_LEFT)
 		{
@@ -600,18 +600,11 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 	case SDL_EVENT_MOUSE_BUTTON_UP:
 	{
 		int bx = (int)event->button.x, by = (int)event->button.y;
-		printf("SDL_EVENT_MOUSE_BUTTON_UP: button=%d, x=%d, y=%d\n", event->button.button, bx, by);
 		SDL_MouseButtonFlags mouseFlags = SDL_GetMouseState(nullptr, nullptr);
 		if (event->button.button == SDL_BUTTON_LEFT)
 		{
-			// !MK_LBUTTON always yields 0, probably ~MK_LBUTTON was meant
-			// But keep the original code for compatibility
-			//mouseFlags &= ~SDL_BUTTON_LMASK;
-			mouseFlags &= !SDL_BUTTON_LMASK;
-			if (fixed)
-			{
-				Lpressed = false;
-			}
+			mouseFlags &= ~SDL_BUTTON_LMASK;
+			Lpressed = false;
 			realLpressed = false;
 
 			SetMPtr(bx, by, mouseFlags);
@@ -649,7 +642,6 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 	case SDL_EVENT_MOUSE_MOTION:
 	{
 		int mx = (int)event->motion.x, my = (int)event->motion.y;
-		printf("SDL_EVENT_MOUSE_MOTION: x=%d, y=%d\n", mx, my);
 		if (ScreenPtr)
 		{
 			if (mx != mouseX || my != mouseY)
@@ -1535,7 +1527,9 @@ static BOOL doInit()
 #ifndef NODPLAY
 	hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(sdlWindow), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
 #endif
+#ifdef _WIN32
 	SDL_HideCursor();
+#endif
 	if (window_mode)
 	{
 		ResizeAndCenterWindow();
