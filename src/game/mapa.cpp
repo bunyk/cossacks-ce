@@ -2677,26 +2677,6 @@ void DoSelSound( int type )
 		SelSoundType = type;
 	};
 };
-extern bool fixed;
-extern bool realLpressed;
-extern bool realRpressed;
-
-//Fixes some mouse related bug?
-void MFix()
-{
-	fixed = true;
-
-	if (Lpressed)
-	{
-		Lpressed = realLpressed;
-	}
-
-	if (Rpressed)
-	{
-		Rpressed = realRpressed;
-	}
-}
-
 void CmdCreateNewTerr( byte NI, int x, int y, word ID );
 word GetNewEnemy( int xr, int yr, byte NI );
 void ShowPen( int x, int y, int r, byte c );
@@ -2784,6 +2764,28 @@ void UnPress();
 int OldLpressed = -1;
 bool OverInform = 0;
 #endif // _WIN32
+
+extern bool fixed;
+extern bool realLpressed;
+extern bool realRpressed;
+extern bool Lpressed;
+extern bool Rpressed;
+
+void MFix()
+{
+	fixed = true;
+
+	if (Lpressed)
+	{
+		Lpressed = realLpressed;
+	}
+
+	if (Rpressed)
+	{
+		Rpressed = realRpressed;
+	}
+}
+
 bool unpress = 0;
 #ifdef _WIN32
 void GlobalHandleMouse(bool process_scrolling);

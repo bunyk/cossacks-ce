@@ -15,6 +15,7 @@
 #ifdef _WIN32
 #include "cdirsnd.h"
 #include "gsound.h"
+#endif // _WIN32
 
 int ROLLU2 = 1;
 extern int UNI_LINEDLY1;
@@ -25,7 +26,6 @@ extern int UNI_HINTDY1;
 extern int UNI_HINTDLY1;
 extern int UNI_HINTDY2;
 extern int UNI_HINTDLY2;
-#endif // _WIN32
 
 extern bool realLpressed;
 extern bool KeyPressed;
@@ -37,10 +37,11 @@ extern int RealLy;
 extern char* SoundID[MaxSnd];
 #endif // _WIN32
 extern byte LastAsciiKey;
-#ifdef _WIN32
 void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr );
+#ifdef _WIN32
 void ShowChar( int x, int y, char c, lpRLCFont lpf );
 #endif // _WIN32
+void PlayEffect( int n, int pan, int vol );
 void ClearKeyStack();
 extern int CurPalette;
 
@@ -5393,11 +5394,12 @@ SQPicture::SQPicture( char* Name )
 	PicPtr = nullptr;
 	LoadPicture( Name );
 };
-#ifdef _WIN32
 //-----end of pictures
 //--------------Handling dialog system----------------//
 void MFix();
+#ifdef _WIN32
 void RedrawGameBackground();
+#endif // _WIN32
 void DrawSD( SimpleDialog* SD )
 {
 	int DY = 0;
@@ -5414,7 +5416,6 @@ typedef void vfn();
 int mrand();
 
 extern int menu_x_off;
-#endif // _WIN32
 
 void DialogsSystem::ProcessDialogs()
 {
@@ -5432,8 +5433,10 @@ void DialogsSystem::ProcessDialogs()
 
 		MarkToDraw();
 	}
+#endif // _WIN32
 
 	bool UseMouse = true;
+#ifdef _WIN32
 	if (ActiveParent&&mouseX >= ActiveX&&mouseX <= ActiveX1&&mouseY >= ActiveY&&mouseY <= ActiveY1)
 	{
 		ActiveParent->MouseOverActiveZone( ActiveParent, mouseX - ActiveX, mouseY - ActiveY, ActiveID );
@@ -5460,6 +5463,7 @@ void DialogsSystem::ProcessDialogs()
 	{
 		ActiveParent->NeedToDraw = true;
 	}
+#endif // _WIN32
 
 	SimpleDialog* SD_Hinted = nullptr;
 
@@ -5639,6 +5643,7 @@ void DialogsSystem::ProcessDialogs()
 		Hint = DefaultHint;
 	}
 
+#ifdef _WIN32
 	if (Hint && HintFont)
 	{
 		if (HintX == -1)
@@ -5782,11 +5787,11 @@ void DialogsSystem::ProcessDialogs()
 			} while (c);
 		};
 	};
+#endif // _WIN32
 
 	PopWindow( &TW );
 
 	MFix();
-#endif // _WIN32
 }
 
 void RedrawOffScreenMouse();

@@ -87,8 +87,7 @@ LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool onlyInArchive )
 
 VOID CGSCset::gCloseFile( LPGSCfile gFile )
 {
-#ifdef _WIN32
-	if (nullptr == gFile)//BUGFIX: Exception when closing game via Alt+F4
+	if (nullptr == gFile)
 	{
 		return;
 	}
@@ -97,6 +96,7 @@ VOID CGSCset::gCloseFile( LPGSCfile gFile )
 	{
 		gFile->m_Arch->CloseFileHandle( gFile );
 	}
+#ifdef _WIN32
 	else
 	{
 		CloseHandle( HANDLE( gFile->m_FileHandle ) );
@@ -125,11 +125,11 @@ VOID CGSCset::gReadFile( LPGSCfile gFile, LPBYTE lpbBuffer, DWORD dwSize )
 
 VOID CGSCset::gSeekFile( LPGSCfile gFile, DWORD dwPosition )
 {
-#ifdef _WIN32
 	if (gFile->m_Flags)
 	{
 		gFile->m_Position = dwPosition;
 	}
+#ifdef _WIN32
 	else
 	{
 		SetFilePointer( HANDLE( gFile->m_FileHandle ), dwPosition, NULL, FILE_BEGIN );
@@ -139,16 +139,17 @@ VOID CGSCset::gSeekFile( LPGSCfile gFile, DWORD dwPosition )
 
 DWORD CGSCset::gFilePos( LPGSCfile gFile )
 {
-#ifdef _WIN32
 	if (gFile->m_Flags)
 	{
 		return gFile->m_Position;
 	}
+#ifdef _WIN32
 	else
 	{
 		return SetFilePointer( HANDLE( gFile->m_FileHandle ), 0, NULL, FILE_BEGIN );
 	};
 #endif
+	return 0;
 }
 
 VOID AddItem( LPGSCFileList pFileList, LPCSTR lpcsFileName )

@@ -570,7 +570,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
 	case SDL_EVENT_MOUSE_BUTTON_DOWN:
 	{
-		printf("SDL_EVENT_MOUSE_BUTTON_DOWN: button=%d, x=%d, y=%d\n", event->button.button, event->button.x, event->button.y);
+		int bx = (int)event->button.x, by = (int)event->button.y;
+		printf("SDL_EVENT_MOUSE_BUTTON_DOWN: button=%d, x=%d, y=%d\n", event->button.button, bx, by);
 		SDL_MouseButtonFlags mouseFlags = SDL_GetMouseState(nullptr, nullptr);
 		if (event->button.button == SDL_BUTTON_LEFT)
 		{
@@ -578,7 +579,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 			Lpressed = true;
 			realLpressed = true;
 			fixed = false;
-			SetMPtr(event->button.x, event->button.y, mouseFlags);
+			SetMPtr(bx, by, mouseFlags);
 			AddMouseEvent(mouseX, mouseY, Lpressed, Rpressed);
 		}
 		else if (event->button.button == SDL_BUTTON_RIGHT)
@@ -589,7 +590,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 			fixed = false;
 			if (ScreenPtr)
 			{
-				SetMPtr(event->button.x, event->button.y, mouseFlags);
+				SetMPtr(bx, by, mouseFlags);
 			}
 			AddMouseEvent(mouseX, mouseY, Lpressed, Rpressed);
 		}
@@ -598,7 +599,8 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
 	case SDL_EVENT_MOUSE_BUTTON_UP:
 	{
-		printf("SDL_EVENT_MOUSE_BUTTON_UP: button=%d, x=%d, y=%d\n", event->button.button, event->button.x, event->button.y);
+		int bx = (int)event->button.x, by = (int)event->button.y;
+		printf("SDL_EVENT_MOUSE_BUTTON_UP: button=%d, x=%d, y=%d\n", event->button.button, bx, by);
 		SDL_MouseButtonFlags mouseFlags = SDL_GetMouseState(nullptr, nullptr);
 		if (event->button.button == SDL_BUTTON_LEFT)
 		{
@@ -612,7 +614,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 			}
 			realLpressed = false;
 
-			SetMPtr(event->button.x, event->button.y, mouseFlags);
+			SetMPtr(bx, by, mouseFlags);
 
 			AddMouseEvent(mouseX, mouseY, Lpressed, Rpressed);
 
@@ -637,7 +639,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 			realRpressed = false;
 			if (ScreenPtr)
 			{
-				SetMPtr(event->button.x, event->button.y, mouseFlags);
+				SetMPtr(bx, by, mouseFlags);
 			}
 			AddMouseEvent(mouseX, mouseY, Lpressed, Rpressed);
 		}
@@ -646,13 +648,14 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
 	case SDL_EVENT_MOUSE_MOTION:
 	{
-		printf("SDL_EVENT_MOUSE_MOTION: x=%d, y=%d\n", event->motion.x, event->motion.y);
+		int mx = (int)event->motion.x, my = (int)event->motion.y;
+		printf("SDL_EVENT_MOUSE_MOTION: x=%d, y=%d\n", mx, my);
 		if (ScreenPtr)
 		{
-			if (event->motion.x != mouseX || event->motion.y != mouseY)
+			if (mx != mouseX || my != mouseY)
 			{
 				SDL_MouseButtonFlags mouseFlags = SDL_GetMouseState(nullptr, nullptr);
-				SetMPtr(event->motion.x, event->motion.y, mouseFlags);
+				SetMPtr(mx, my, mouseFlags);
 				OnMouseMoveRedraw();
 			}
 		}
