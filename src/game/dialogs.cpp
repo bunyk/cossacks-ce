@@ -4997,17 +4997,19 @@ void CopyToScreen( int zx, int zy, int zLx, int zLy )
 	}
 #else
 	// TODO: check if this matches assmebly 100%
-	int* src = (int*)scof;
-	int* dest = (int*)reof;
+	uint8_t* src = static_cast<uint8_t*>(ScreenPtr) + x + y * SCRSizeX;
+	uint8_t* dest = static_cast<uint8_t*>(RealScreenPtr) + x + y * RSCRSizeX;
 	for (int i = 0; i < Ly; ++i)
 	{
 		for (int j = 0; j < Lx4; ++j)
 		{
-			*dest++ = *src++;
+			*(int*)dest = *(int*)src;
+			src += 4;
+			dest += 4;
 		}
 		for (int j = 0; j < Lx1; ++j)
 		{
-			*(unsigned char*)dest++ = *(unsigned char*)src++;
+			*dest++ = *src++;
 		}
 		src += sadd;
 		dest += radd;

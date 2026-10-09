@@ -237,7 +237,7 @@ void LockSurface( void )
 
 	RSCRSizeX = primarySurface->pitch;
 
-	ScreenPtr = (void*) ( int( offScreenPtr ) + MaxSizeX * 32 );
+	ScreenPtr = (void*) ( (uint8_t*) offScreenPtr + MaxSizeX * 32 );
 	RealScreenPtr = malloc(primarySurface->w * primarySurface->h);
 	//RealScreenPtr = lpSurface;
 	SCRSZY = primarySurface->h;

@@ -282,26 +282,20 @@ void RestoreMData( void* scrn, void* buf, void* comp, int x, int y, int SSizeX, 
 							 pop		esi
 	}
 #else
-	uint8_t* src1 = reinterpret_cast<uint8_t*>(buf) + bx + by * 32; // source buffer address
-	uint8_t* srcom = reinterpret_cast<uint8_t*>(comp) + bx + by * 32; // comparison buffer
-	uint8_t* scrof = reinterpret_cast<uint8_t*>(scrn) + x1 + y1 * SSizeX; // screen buffer address
-	int addscr = SSizeX - Lx; // additional bytes to skip in the screen buffer, when moving to the next row
-	int add32 = 32 - Lx; // additional bytes to skip in the 32x32 buffer
-	
+	uint8_t* src1 = reinterpret_cast<uint8_t*>(buf);
+	uint8_t* srcom = reinterpret_cast<uint8_t*>(comp);
+	uint8_t* scrof = reinterpret_cast<uint8_t*>(scrn);
+
 	for (int row = 0; row < Ly; ++row) {
-		uint8_t* src_row = src1 + row * 32;
-		uint8_t* comp_row = srcom + row * 32;
-		uint8_t* dst_row = scrof + (x1 + (y1 + row) * SSizeX);
+		uint8_t* src_row = src1 + bx + (by + row) * 32;
+		uint8_t* comp_row = srcom + bx + (by + row) * 32;
+		uint8_t* dst_row = scrof + x1 + (y1 + row) * SSizeX;
 
 		for (int col = 0; col < Lx; ++col) {
 			if (src_row[col] != comp_row[col]) {
 				dst_row[col] = src_row[col];
 			}
 		}
-
-		scrof += addscr;
-		src1 += add32;
-		srcom += add32;
 	}
 #endif // _WIN32
 }
