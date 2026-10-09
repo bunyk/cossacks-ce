@@ -120,18 +120,41 @@ public:
 	int GetGPShift(int i,int n);
 	int  GetGPHeight(int i,int n);
 	bool GetGPSize(int i,int n,int* Lx,int* Ly);
-	void ShowGP(int x,int y,int FileIndex,int SprIndex,byte Nation);
-	void ShowGPLayers(int x,int y,int FileIndex,int SprIndex,byte Nation,int mask);
-	void ShowGPTransparent(int x,int y,int FileIndex,int SprIndex,byte Nation);
-	void ShowGPTransparentLayers(int x,int y,int FileIndex,int SprIndex,byte Nation,int mask);
-	void ShowGPPal(int x,int y,int FileIndex,int SprIndex,byte Nation,byte* Table);
-	void ShowGPPalLayers(int x,int y,int FileIndex,int SprIndex,byte Nation,byte* Table,int mask);
-	void ShowGPRedN(int x,int y,int FileIndex,int SprIndex,byte Nation,int N);
-	void ShowGPDarkN(int x,int y,int FileIndex,int SprIndex,byte Nation,int N);
-	void ShowGPDark(int x,int y,int FileIndex,int SprIndex,byte Nation);
-	void ShowGPFired(int x,int y,int FileIndex,int SprIndex,byte Nation);
-	void ShowGPMutno(int x,int y,int FileIndex,int SprIndex,byte Nation);
-	void ShowGPGrad(int x,int y,int FileIndex,int SprIndex,byte Antion,byte* Table);
+	// ------------------------------------------------------------------
+	// Sprite drawing variants.
+	// All of them render the same GP sprite, differing only in the
+	// per-pixel transformation applied to each drawn byte (the asm
+	// "variation zone"; Linux implementation: GP_ShowMaskedGeneric):
+	//
+	//   plain copy     dst = src                     (ShowGP)
+	//   multipal blend dst = Enc[(src<<8)|dst]       (transparent passes,
+	//                 64K-entry tables trans4/trans8 keyed by (src,dst))
+	//   TPict blend    dst = Enc[(dst<<8)|src]       (same tables, indices
+	//                 transposed - the "T" variants of packed sprites)
+	//   palette remap  dst = Enc[src]                (ShowGPPal: Table maps
+	//                 every index -> tinted index; NatPal does the same
+	//                 for 2-bit national-mask sprites)
+	//   shadow         dst = Enc[dst]                (darkens/retints what
+	//                 is already on screen; fog-based shadow tables)
+	//   overpoint      black on (y+x) odd cells      (checkerboard dither,
+	//                 reads neither sprite nor table)
+	//
+	// The *Layers variants render only the sub-passes selected by the
+	// `mask` bitmask (one bit per compression type / effect layer).
+	// SprIndex >= 4096 selects the horizontally mirrored (*Inv) blit.
+	// ------------------------------------------------------------------
+	void ShowGP(int x,int y,int FileIndex,int SprIndex,byte Nation);//normal draw; case-38 sprites pick the interface color theme (white/red/orange) via ImageType
+	void ShowGPLayers(int x,int y,int FileIndex,int SprIndex,byte Nation,int mask);//normal draw of selected effect layers only
+	void ShowGPTransparent(int x,int y,int FileIndex,int SprIndex,byte Nation);//semi-transparent draw: blends sprite with screen through trans4/trans8 tables (1/4, 1/2, 3/4 opacity sprite variants), shadow copies of packed sprites fall back to a screen-dimming pass
+	void ShowGPTransparentLayers(int x,int y,int FileIndex,int SprIndex,byte Nation,int mask);//semi-transparent draw of the layers selected by `mask`
+	void ShowGPPal(int x,int y,int FileIndex,int SprIndex,byte Nation,byte* Table);//tinted draw: every pixel index is remapped through Table (buildings in placement mode: green = can place, red = blocked); Table is usually a 256-byte slice of a .grd fog table
+	void ShowGPPalLayers(int x,int y,int FileIndex,int SprIndex,byte Nation,byte* Table,int mask);//tinted draw of selected layers (buildings while selected: tint + shadow/dither effects)
+	void ShowGPRedN(int x,int y,int FileIndex,int SprIndex,byte Nation,int N);//red tint of N-strength: ShowGPPal with yfog + N*256 (yfog = the red-tint .grd table)
+	void ShowGPDarkN(int x,int y,int FileIndex,int SprIndex,byte Nation,int N);//dark tint of N-strength: ShowGPPal with wfog + (N<<8)
+	void ShowGPDark(int x,int y,int FileIndex,int SprIndex,byte Nation);//darkening overlay via ShowGPGrad(fog+1024); for GP files the table is unused and the sprite draws plain (table only applies to RLC files)
+	void ShowGPFired(int x,int y,int FileIndex,int SprIndex,byte Nation);//fired/burnt tint via ShowGPGrad(yfog+1024)
+	void ShowGPMutno(int x,int y,int FileIndex,int SprIndex,byte Nation);//"mutno" (dusty/faded) tint via ShowGPGrad(wfog+1024)
+	void ShowGPGrad(int x,int y,int FileIndex,int SprIndex,byte Antion,byte* Table);//gradient-table draw: RLC files render through ShowRLCItemGrad(Table); regular GP sprites currently draw plain ShowGP (Table unused)
 	void SetWhiteFont(int Gp_File);
 	void SetRedFont(int Gp_File);
 	void SetBlackFont(int Gp_File);
