@@ -4,7 +4,7 @@
 typedef DWORD DPID1, *LPDPID;
 typedef unsigned short word;
 
-#pragma pack(1)
+#pragma pack(push, 1)
 
 //Beware: Sensitive to pragma pack(1) and exact structure size
 //Can cause bugs. Fixed one in StartIGame()
@@ -46,3 +46,5 @@ struct PlayerInfo
 	
 	int speed_mode;
 };
+
+#pragma pack(pop)

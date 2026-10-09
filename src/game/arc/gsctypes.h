@@ -9,7 +9,7 @@
 #define GFILE_API DLLIMPORT
 #endif
 
-#pragma pack(1)
+#pragma pack(push, 1)
 
 struct TGSCFindData
 {
@@ -56,5 +56,7 @@ typedef TGSCarchFAT* LPGSCarchFAT;
 typedef TGSCFileList* LPGSCFileList;
 
 typedef TGSCFindInfo* LPGSCFindInfo;
+
+#pragma pack(pop)
 
 #endif // _INC_GSC_TYPES

@@ -3019,9 +3019,18 @@ bool MPL_WaitingGame( bool Host, bool SINGLE )
 		//Total amount of available nations
 		int NG = GlobalAI.NAi;
 
+		// TEMPORARY DEBUG: diagnose heap corruption of GlobalAI.Ai
+		printf("MPL_WaitingGame DEBUG: i=%d NG=%d Ai=%p\n", i, NG, (void*)GlobalAI.Ai);
+		for (int dj = 0; dj < NG; dj++) {
+			printf("  Ai[%d]: NationID=%p Message=%p Peasant_ID=%p NPeas=%d NLandAI=%d\n",
+				dj, (void*)GlobalAI.Ai[dj].NationID, (void*)GlobalAI.Ai[dj].Message,
+				(void*)GlobalAI.Ai[dj].Peasant_ID, GlobalAI.Ai[dj].NPeas, GlobalAI.Ai[dj].NLandAI);
+		}
+
 		//Populate the dropdown list with nations
 		for ( int j = 0; j < NG; j++ )
 		{
+			printf("  AddLine j=%d i=%d Text=%p\n", j, i, (void*)GlobalAI.Ai[j].Message);
 			MNATION[i]->AddLine( GlobalAI.Ai[j].Message );
 		}
 

@@ -47,3 +47,4 @@ public:
 	~AI_Description();
 };
 extern AI_Description GlobalAI;
+static_assert(sizeof(SingleAI_Desc) == 56, "SingleAI_Desc layout mismatch - pragma pack(1) leak from another header?");

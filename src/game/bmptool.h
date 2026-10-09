@@ -1,6 +1,6 @@
 #include "newcode/os.h"
 
-#pragma pack(1)
+#pragma pack(push, 1)
 struct BMPformat{ // bmfh 
         WORD    bfType; 
         DWORD   bfSize; 
@@ -23,3 +23,4 @@ void SaveToBMP24(char* Name,int Lx,int Ly,byte* data);
 bool ReadBMP24(char* Name,BMPformat* BM,byte** data);
 bool ReadBMP8(char* Name,BMPformat* BM,byte** data);
 bool ReadBMP8TOBPX(char* Name,byte** data);
+#pragma pack(pop)

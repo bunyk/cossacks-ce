@@ -1,4 +1,4 @@
-#pragma pack(1)
+#pragma pack(push, 1)
 struct Radio{
 	char* xi;
 	char* yi;
@@ -89,3 +89,4 @@ void AddSurroundingAreas(word TopID);
 void DynamicalLockTopCell(int x,int y);
 void DynamicalUnLockTopCell(int x,int y);
 void ProcessDynamicalTopology();
+#pragma pack(pop)

@@ -9,7 +9,7 @@
 #else
 #define GP_API DLLIMPORT
 #endif
-#pragma pack(1)
+#pragma pack(push, 1)
 typedef unsigned short word;
 typedef char* LPCHAR; 
 #define MaxGPIdx 3000
@@ -156,3 +156,4 @@ public:
 
 extern word GP_L_IDXS[MaxGPIdx];
 #endif // __GP_DRAW_H__
+#pragma pack(pop)
