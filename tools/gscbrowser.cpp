@@ -262,6 +262,34 @@ static BmpImage TryDecodeBmp( const std::vector<uint8_t>& d )
 	return img;
 }
 
+// Preview pane: 8px font, pane starts at listW+12 and ends 12px from the right edge.
+static const int kWrapWidth = ( W - 540 - 12 - 12 ) / 8;
+
+// Append one logical line, word-wrapped to kWrapWidth columns.
+// Breaks at the last space before the limit; words longer than the limit
+// are broken hard.
+static void PushWrapped( std::vector<std::string>& out, const std::string& line )
+{
+	size_t start = 0;
+	while ( start < line.size() )
+	{
+		if ( line.size() - start <= (size_t) kWrapWidth )
+		{
+			out.push_back( line.substr( start ) );
+			return;
+		}
+		size_t brk = line.find_last_of( ' ', start + kWrapWidth );
+		if ( brk == std::string::npos || brk <= start )
+			brk = start + kWrapWidth;      // hard break inside a long word
+		// strip trailing spaces of the wrapped chunk
+		size_t end = brk;
+		while ( end > start && line[end - 1] == ' ' ) end--;
+		out.push_back( line.substr( start, end - start ) );
+		start = brk + 1;
+		while ( start < line.size() && line[start] == ' ' ) start++;  // skip spaces after the break
+	}
+}
+
 static void BuildTextPreview( const std::vector<uint8_t>& d )
 {
 	previewLines.clear();
@@ -272,7 +300,7 @@ static void BuildTextPreview( const std::vector<uint8_t>& d )
 		uint8_t c = d[i];
 		if ( c == '\n' )
 		{
-			previewLines.push_back( line );
+			PushWrapped( previewLines, line );
 			line.clear();
 			if ( previewLines.size() > 20000 ) break;
 		}
@@ -280,7 +308,7 @@ static void BuildTextPreview( const std::vector<uint8_t>& d )
 		else if ( c >= 0x20 && c <= 0x7E ) line += (char) c;
 		else line += '.';
 	}
-	if ( !line.empty() ) previewLines.push_back( line );
+	if ( !line.empty() ) PushWrapped( previewLines, line );
 }
 
 static void BuildHexPreview( const std::vector<uint8_t>& d, uint32_t showBytes )
