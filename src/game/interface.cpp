@@ -21,6 +21,7 @@
 #include "3drandmap.h"
 #include "conststr.h"
 #include "mplayer.h"
+#include "drawform.h"
 
 #include "playerinfo.h"
 extern PlayerInfo PINFO[8];
@@ -758,7 +759,6 @@ void ClearScreen()
 	}
 }
 
-#ifdef _WIN32
 extern byte fog[8192 + 1024];
 
 DLLEXPORT void DarkScreen()
@@ -815,7 +815,6 @@ void ShowLoading()
 
 	CopyToScreen( 0, 0, RealLx, RSCRSizeY );
 }
-#endif // _WIN32
 
 void ResizeAndCenterWindow();
 
@@ -2075,7 +2074,6 @@ bool ChangeAlias( SimpleDialog* SD )
 	};
 	return true;
 };
-#ifdef _WIN32
 bool GetPreview( char* Name, byte* Data );
 void Decode( byte* data, byte* xlt, int Size )
 {
@@ -2115,11 +2113,9 @@ void ControlLingvo( char* str )
 }
 
 void StopConnectionToSession();
-#endif // _WIN32
 
 extern int GLOBALTIME;
 extern int PGLOBALTIME;
-#ifdef _WIN32
 extern int CurrentStartTime[8];
 extern int NextStartTime[8];
 
@@ -2289,7 +2285,6 @@ void WaitWithMessage( char* Message )
 }
 
 char ROOMNAMETOCONNECT[128];
-#endif // _WIN32
 
 int NCHATS = 0;
 int MAXCHATS = 0;
@@ -2299,7 +2294,6 @@ int NPERSCHATS = 0;
 int MAXPERSCHATS = 0;
 char** PersChatMess = nullptr;
 char** PersChatSender = nullptr;
-#ifdef _WIN32
 void AddPrimitiveChat( char* Nick, char* str,
 	char** &ChatMess, char** &ChatSender,
 	int &NCHATS, int &MAXCHATS )
@@ -2314,8 +2308,8 @@ void AddPrimitiveChat( char* Nick, char* str,
 	{
 		free( ChatMess[0] );
 		free( ChatSender[0] );
-		memcpy( ChatMess, ChatMess + 1, NCHATS * 4 );
-		memcpy( ChatSender, ChatSender + 1, NCHATS * 4 );
+		memcpy( ChatMess, ChatMess + 1, NCHATS * sizeof(char*) );
+		memcpy( ChatSender, ChatSender + 1, NCHATS * sizeof(char*) );
 		NCHATS--;
 	};
 	ChatMess[NCHATS] = new char[strlen( str ) + 1];
@@ -2375,6 +2369,7 @@ void AddChatString( char* Nick, char* str, int MaxLx, lpRLCFont FONT,
 	};
 }
 
+#ifdef _WIN32
 bool SENDPRIVMESS( SimpleDialog* SD )
 {
 	KeyPressed = 0;
@@ -2589,7 +2584,10 @@ bool INSIDE1 = 0;
 
 // IChat library exports this
 DLLIMPORT void SendPrivateMessage( char* Nick, char* MESSAGE );
-
+#endif // _WIN32 (SendPrivateMessage comes from IChat DLL on Windows)
+#ifndef _WIN32
+void SendPrivateMessage( char* Nick, char* MESSAGE ) { (void)Nick; (void)MESSAGE; }
+#endif
 bool CheckForPersonalChat( char* STR )
 {
 	if ( STR[0] == '-'&&STR[1] == '-'&&STR[2] == '>' )
@@ -2610,6 +2608,7 @@ bool CheckForPersonalChat( char* STR )
 	return false;
 }
 
+#ifdef _WIN32
 extern char LASTCLICKCHATNAME[128];
 bool CheckPersonality( char* MESSAGE )
 {
@@ -2738,6 +2737,34 @@ int GetMyProfile() {
 DLLIMPORT void ChatProcess();
 
 //Shows lobby interface for multiplayer deathmatch and single player random map
+// Multiplayer/network helpers that still live in unported files
+// (mplayer.cpp, ir_main.cpp). Declarations needed by MPL_WaitingGame's
+// shared event loop; stub definitions are in linux_stubs.cpp.
+#ifndef _WIN32
+void SendChat( char* str, bool toall );
+int  GetMaxRealPing();
+bool SendToAllPlayers( DWORD Size, LPVOID lpData );
+int  GetMapSUMM( char* Name );
+void CreateDiffStr( char* str );
+int  ProcessInternetConnection( bool Active );
+int  EncodeOptionsInNumber( int* selected_opt_values );
+bool GetPreview( char* Name, byte* Data );
+void DeepDeletePeer( DWORD ID );
+void ReceiveAll();
+bool CheckPlayerToExit();
+extern bool RejectThisPlayer;
+extern bool realLpressed;
+extern char CurrentMap[64];
+extern char CHATSTRING[256];
+extern DWORD CHATDPID;
+extern int CurrentMaxPing[8];
+extern int MinPing0;
+extern DWORD GMGUID;
+extern bool DoNewInet;
+extern int PPTIME;
+extern bool RecordMode;
+#endif
+
 bool MPL_WaitingGame( bool Host, bool SINGLE )
 {
 	if ( SINGLE )
@@ -2745,12 +2772,10 @@ bool MPL_WaitingGame( bool Host, bool SINGLE )
 		use_gsc_network_protocol = false;
 	}
 
+	ServerDPID = 0;
+	int r0 = GetSDLTickCount();
 #ifdef _WIN32
 	ClearLPACK();
-
-	ServerDPID = 0;
-
-	int r0 = GetSDLTickCount();
 
 	PPTIME = r0;
 
@@ -2765,12 +2790,12 @@ bool MPL_WaitingGame( bool Host, bool SINGLE )
 
 #ifdef _WIN32
 	ClearCTime();
+#endif
 	int NCHATS = 0;
 	CHATSTRING[0] = 0;
 	int MAXCHATS = 0;
 	char** ChatMess = nullptr;
 	char** ChatSender = nullptr;
-#endif
 	PlayerInfo MYPINF;
 	memset( &MYPINF, 0, sizeof MYPINF );
 
@@ -3019,18 +3044,9 @@ bool MPL_WaitingGame( bool Host, bool SINGLE )
 		//Total amount of available nations
 		int NG = GlobalAI.NAi;
 
-		// TEMPORARY DEBUG: diagnose heap corruption of GlobalAI.Ai
-		printf("MPL_WaitingGame DEBUG: i=%d NG=%d Ai=%p\n", i, NG, (void*)GlobalAI.Ai);
-		for (int dj = 0; dj < NG; dj++) {
-			printf("  Ai[%d]: NationID=%p Message=%p Peasant_ID=%p NPeas=%d NLandAI=%d\n",
-				dj, (void*)GlobalAI.Ai[dj].NationID, (void*)GlobalAI.Ai[dj].Message,
-				(void*)GlobalAI.Ai[dj].Peasant_ID, GlobalAI.Ai[dj].NPeas, GlobalAI.Ai[dj].NLandAI);
-		}
-
 		//Populate the dropdown list with nations
 		for ( int j = 0; j < NG; j++ )
 		{
-			printf("  AddLine j=%d i=%d Text=%p\n", j, i, (void*)GlobalAI.Ai[j].Message);
 			MNATION[i]->AddLine( GlobalAI.Ai[j].Message );
 		}
 
@@ -3512,7 +3528,12 @@ ffe2:
 
 	do
 	{
+		//Hoisted to the top of the loop body: several "goto FinCLC" jumps
+		//below must not cross its initialization (C++ forbids that, MSVC allowed it)
+		bool settings_were_changed = false;
+
 #ifdef _WIN32
+		// GameSpy/GSC chat is Windows-only for now
 		if ( use_gsc_network_protocol )
 		{
 			ChatProcess();
@@ -3525,6 +3546,7 @@ ffe2:
 				CHATBOX->CursPos = strlen( CHATMESSAGE );
 			}
 		}
+#endif
 
 		if ( Host )
 		{
@@ -4575,9 +4597,6 @@ ffe2:
 			NPlayers = 7;
 		}
 
-		//If true, ready flag will be zeroed
-		bool settings_were_changed = false;
-
 		//Get settings from host
 		if ( !Host )
 		{
@@ -5139,7 +5158,6 @@ ffe2:
 			ItemChoose = mcmCancel;
 		}
 
-#endif // _WIN32
 	} while ( ItemChoose == -1 && PlayerMenuMode == 1 );
 
 	if ( Host )

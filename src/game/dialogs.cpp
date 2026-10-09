@@ -1267,7 +1267,6 @@ GP_Button* DialogsSystem::addGP_Button(
 	return nullptr;
 }
 
-#ifdef _WIN32
 //------class : Vertical scroll bar--------//
 bool MouseIns( int x, int y, int x1, int y1 )
 {
@@ -1668,7 +1667,6 @@ VScrollBar* DialogsSystem::addGP_ScrollBar( SimpleDialog* Parent, int x, int y, 
 	};
 	return nullptr;
 };
-#endif // _WIN32
 bool NewGP_VScrollBar_OnDraw( SimpleDialog* SD )
 {
 	VScrollBar* SB = (VScrollBar*) SD;
@@ -1787,7 +1785,6 @@ VScrollBar* DialogsSystem::addNewGP_VScrollBar( SimpleDialog* Parent, int x, int
 	};
 	return nullptr;
 };
-#ifdef _WIN32
 VScrollBar* DialogsSystem::addGP_ScrollBarL( SimpleDialog* Parent, int x, int y,
 	int MaxPos, int Pos, int GP_File,
 	int ScrIndex, int LineLx, int LineLy, int ScrDx, int ScrDy )
@@ -1965,7 +1962,6 @@ CustomBox* DialogsSystem::addCustomBox( int x, int y, int Lx, int Ly, procDrawBo
 	return nullptr;
 };
 //-------------end of ComplexBox-------------//
-#endif // _WIN32
 //-------------class : ListBox---------------//
 ListBoxItem* ListBox::GetItem( int i )
 {
@@ -2032,7 +2028,6 @@ void ListBox::AddItem( char* str, int n )
 	LB->Param1 = n;
 	LB->Flags = 0;
 };
-#ifdef _WIN32
 void ListBox::AddStaticItem( char* str, int n )
 {
 	NeedToDraw = true;
@@ -2086,7 +2081,6 @@ void ListBox::SetCurrentItem( int n )
 	if (!NItems)CurItem = -1;
 	if (CurItem < FLItem)FLItem = CurItem;
 };
-#endif // _WIN32
 bool ListBox_OnDraw( SimpleDialog* SD )
 {
 	if (!SD->Visible)return false;
@@ -5867,7 +5861,6 @@ void DialogsSystem::CloseDialogs()
 	}
 }
 
-#ifdef _WIN32
 void DialogsSystem::MarkToDraw()
 {
 	for (int i = 0; i < MAXDLG; i++)
@@ -5878,7 +5871,6 @@ void DialogsSystem::MarkToDraw()
 		}
 	}
 }
-#endif // _WIN32
 
 void UnPress();
 //----------end of handler of the dialogsystem--------//
