@@ -199,6 +199,29 @@ static std::vector<std::string> previewLines;
 static int previewScroll = 0;
 static BmpImage previewBmp;
 
+// Game palette (RGB, loaded from "<set>\agew_1.pal" inside the archive)
+static uint32_t gamePal[256];
+static bool gamePalLoaded = false;
+static std::string gamePalName;
+
+static void LoadGamePalette( CGSCarch& arch )
+{
+	const char* candidates[] = { "0\\agew_1.pal", "2\\agew_1.pal" };
+	for ( const char* name : candidates )
+	{
+		LPGSCfile f = arch.GetFileHandle( const_cast<char*>( name ) );
+		if ( !f ) continue;
+		uint8_t buf[768];
+		arch.ReadFile( f, buf, sizeof buf );
+		arch.CloseFileHandle( f );
+		for ( int i = 0; i < 256; i++ )
+			gamePal[i] = 0xFF000000 | ( buf[i * 3] << 16 ) | ( buf[i * 3 + 1] << 8 ) | buf[i * 3 + 2];
+		gamePalLoaded = true;
+		gamePalName = name;
+		return;
+	}
+}
+
 static bool HasExt( const std::string& name, const char* ext )
 {
 	size_t n = strlen( ext );
@@ -292,7 +315,6 @@ static void PushWrapped( std::vector<std::string>& out, const std::string& line 
 
 static void BuildTextPreview( const std::vector<uint8_t>& d )
 {
-	previewLines.clear();
 	std::string line;
 	uint32_t limit = std::min<uint32_t>( d.size(), 512 * 1024 );
 	for ( uint32_t i = 0; i < limit; i++ )
@@ -311,9 +333,12 @@ static void BuildTextPreview( const std::vector<uint8_t>& d )
 	if ( !line.empty() ) PushWrapped( previewLines, line );
 }
 
+static void BuildHexPreview( const std::vector<uint8_t>& d, uint32_t showBytes );
+
+// GP decode (defined further below)
+static BmpImage TryDecodeGp( const std::vector<uint8_t>& d, int& spriteCount, int& errors );
 static void BuildHexPreview( const std::vector<uint8_t>& d, uint32_t showBytes )
 {
-	previewLines.clear();
 	uint32_t limit = std::min<uint32_t>( d.size(), showBytes );
 	char buf[160];
 	for ( uint32_t off = 0; off < limit; off += 16 )
@@ -376,6 +401,67 @@ static void BuildPreview( CGSCarch& arch, const Entry& e )
 			BuildHexPreview( data, 512 );
 		}
 	}
+	else if ( HasExt( e.name, ".gp" ) )
+	{
+		int spriteCount = 0, errors = 0;
+		previewBmp = TryDecodeGp( data, spriteCount, errors );
+		char info[160];
+		if ( previewBmp.ok )
+		{
+			snprintf( info, sizeof info, "GP sprite page: %d picture(s)%s%s",
+				spriteCount, errors ? ", decode errors on some" : "",
+				gamePalLoaded ? "" : " (no palette found)" );
+		}
+		else
+		{
+			snprintf( info, sizeof info, "GP: could not decode (%d pictures)", spriteCount );
+		}
+		previewLines.push_back( info );
+		previewLines.push_back( "" );
+		BuildHexPreview( data, 64 );
+	}
+	else if ( HasExt( e.name, ".grd" ) || HasExt( e.name, ".set" ) )
+	{
+		// GRD files are byte-mapping tables (fog/gradient/transform LUTs).
+		// Sizes used by the game are all multiples of 256, so render them
+		// as 256-wide palettized images with the game palette.
+		if ( gamePalLoaded && e.size && ( e.size % 256 ) == 0 && e.size <= 1024 * 1024 )
+		{
+			previewBmp.ok = true;
+			previewBmp.w = 256;
+			previewBmp.h = (int) ( e.size / 256 );
+			previewBmp.rgba.resize( e.size );
+			for ( uint32_t i = 0; i < e.size; i++ )
+				previewBmp.rgba[i] = gamePal[data[i]];
+			char info[160];
+			snprintf( info, sizeof info, "GRD table 256 x %d rows, rendered with palette %s",
+				previewBmp.h, gamePalName.c_str() );
+			previewLines.push_back( info );
+			previewLines.push_back( "" );
+			BuildHexPreview( data, 64 );
+		}
+		else
+		{
+			if ( !gamePalLoaded ) previewLines.push_back( "No palette found in archive, showing hex" );
+			if ( e.size % 256 ) previewLines.push_back( "Table size is not a multiple of 256, showing hex" );
+			BuildHexPreview( data, 512 );
+		}
+	}
+	else if ( HasExt( e.name, ".pal" ) && e.size >= 768 )
+	{
+		// Raw RGB palette: show as a 16x16 grid
+		previewBmp.ok = true;
+		previewBmp.w = 16;
+		previewBmp.h = 16;
+		previewBmp.rgba.resize( 256 );
+		for ( int i = 0; i < 256; i++ )
+		{
+			uint8_t r = data[i * 3], g = data[i * 3 + 1], b = data[i * 3 + 2];
+			previewBmp.rgba[i] = 0xFF000000 | ( r << 16 ) | ( g << 8 ) | b;
+		}
+		previewLines.push_back( "Palette (16x16 grid)" );
+		previewLines.push_back( "" );
+	}
 	else if ( HasExt( e.name, ".wav" ) && e.size >= 44 && !memcmp( data.data(), "RIFF", 4 ) )
 	{
 		uint16_t chans = RdU16( &data[22] );
@@ -396,10 +482,271 @@ static void BuildPreview( CGSCarch& arch, const Entry& e )
 	}
 }
 
+// ---------------------------------------------------------------- GP sprites
+#pragma pack(push, 1)
+struct GpGlobalHdr                        // fixed part of GP_GlobalHeader (gp_draw.h, pack 1);
+{                                          // the LGPH picture-offset table that follows is
+	int32_t Sign;                          // NPictures DWORDs long, NOT a fixed 256 entries
+	int16_t NPictures;
+	int16_t Reserved;
+	int32_t VocOffset;
+	int16_t VocLength;
+};
+struct GpHdr                              // matches GP_Header (gp_draw.h, pack 1)
+{
+	int32_t NextPict;
+	int16_t dx, dy, Lx, Ly;
+	uint32_t Pack;
+	uint8_t Options;
+	uint32_t CData;
+	int16_t NLines;
+};
+#pragma pack(pop)
+static_assert( sizeof( GpGlobalHdr ) == 14, "GpGlobalHdr layout mismatch" );
+static_assert( sizeof( GpHdr ) == 23, "GpHdr layout mismatch" );
+
+// C ports of the game unpackers (gp_draw.cpp). Bounded variants for safe browsing.
+static void StdUnpackT( uint8_t* dst, int dstCap, const uint8_t* src, int srcCap,
+	const uint8_t* voc, int vocSize )
+{
+	int written = 0;
+	while ( written < dstCap && srcCap > 0 )
+	{
+		uint8_t bits = *src++; srcCap--;
+		for ( int b = 0; b < 8 && written < dstCap && srcCap > 0; b++, bits <<= 1 )
+		{
+			if ( bits & 0x80 )
+			{
+				if ( srcCap < 2 ) return;
+				unsigned word = src[0] | ( (unsigned) src[1] << 8 );
+				src += 2; srcCap -= 2;
+				int count = ( word >> 12 ) + 3;
+				int ofs = word & 0xFFF;
+				if ( ofs >= vocSize ) return;
+				while ( count-- > 0 && written < dstCap && ofs < vocSize )
+					dst[written++] = voc[ofs++];
+			}
+			else
+			{
+				dst[written++] = *src++; srcCap--;
+			}
+		}
+	}
+}
+
+// 2-bit national mask: each source byte -> 4 indices (0..3)
+static void NatUnpackT( uint8_t* dst, int dstCap, const uint8_t* src, int srcCap )
+{
+	int written = 0;
+	while ( written + 4 <= dstCap && srcCap > 0 )
+	{
+		uint8_t b = *src++; srcCap--;
+		dst[written++] = b & 3;
+		dst[written++] = ( b >> 2 ) & 3;
+		dst[written++] = ( b >> 4 ) & 3;
+		dst[written++] = ( b >> 6 ) & 3;
+	}
+}
+
+struct GpSprite
+{
+	bool ok = false;
+	bool natMask = false;
+	int w = 0, h = 0;
+	std::vector<uint8_t> pix;              // palette indices
+};
+
+// Decode one GP picture (header at hdrOfs, file base = d).
+// Pixel stream: type 0 = StdUnpack (dictionary), type 1 = NatUnpack,
+// other types = raw bytes at header+CDOffs. The per-line mask right
+// behind the header places runs of pixels into the image (see
+// GP_ShowMaskedPict in gp_draw.cpp).
+static GpSprite DecodeGpSprite( const std::vector<uint8_t>& d, size_t hdrOfs )
+{
+	GpSprite bad;
+	if ( hdrOfs + sizeof( GpHdr ) > d.size() ) return bad;
+	const GpHdr* p = (const GpHdr*) ( d.data() + hdrOfs );
+	int Lx = p->Lx, Ly = p->NLines;
+	if ( Lx <= 0 || Lx > 4096 || Ly <= 0 || Ly > 4096 ) return bad;
+
+	uint8_t opt = p->Options;
+	int unpackLen = (int) ( p->CData >> 14 );
+	int cdOffs = ( p->CData & 16383 ) + ( ( opt & 64 ) ? 16384 : 0 ) + ( ( opt & 128 ) ? 32768 : 0 );
+	int type = opt & 63;
+	if ( type == 43 ) unpackLen += 262144;
+	if ( type == 44 ) unpackLen += 262144 * 2;
+	if ( unpackLen < 0 || unpackLen > 4 * 1024 * 1024 ) return bad;
+
+	const uint8_t* pix = nullptr;
+	size_t pixCap = 0;
+	std::vector<uint8_t> unpacked;
+	size_t dataOfs = hdrOfs + (size_t) cdOffs;
+
+	if ( type == 0 )
+	{
+		int vocSize = 0;
+		const uint8_t* voc = nullptr;
+		if ( d.size() >= 12 )
+		{
+			uint32_t vocOfs = RdU32( d.data() + 8 );
+			if ( vocOfs > 0 && (size_t) vocOfs < d.size() )
+			{
+				voc = d.data() + vocOfs;
+				vocSize = std::min<int>( 4096, (int) ( d.size() - vocOfs ) );
+			}
+		}
+		unpacked.resize( unpackLen );
+		if ( dataOfs < d.size() )
+			StdUnpackT( unpacked.data(), unpackLen, d.data() + dataOfs,
+				(int) ( d.size() - dataOfs ), voc ? voc : d.data(), vocSize );
+		pix = unpacked.data();
+		pixCap = unpacked.size();
+	}
+	else if ( type == 1 )
+	{
+		unpacked.resize( unpackLen );
+		if ( dataOfs < d.size() )
+			NatUnpackT( unpacked.data(), unpackLen, d.data() + dataOfs,
+				(int) ( d.size() - dataOfs ) );
+		pix = unpacked.data();
+		pixCap = unpacked.size();
+	}
+	else
+	{
+		if ( dataOfs >= d.size() ) return bad;
+		pix = d.data() + dataOfs;
+		pixCap = d.size() - dataOfs;
+	}
+
+	GpSprite s;
+	s.ok = true;
+	s.natMask = ( type == 1 );
+	s.w = Lx;
+	s.h = Ly;
+	s.pix.assign( (size_t) Lx * Ly, 255 );        // 255 = transparent
+
+	size_t maskOfs = hdrOfs + sizeof( GpHdr );
+	size_t pixPos = 0;
+	for ( int row = 0; row < Ly; row++ )
+	{
+		if ( maskOfs >= d.size() ) break;
+		uint8_t m = d[maskOfs++];
+		if ( !m ) continue;
+		int col = 0;
+		if ( !( m & 0x80 ) )
+		{
+			int nSeg = m & 0x7F;
+			for ( int sgi = 0; sgi < nSeg && maskOfs + 1 < d.size(); sgi++ )
+			{
+				int skip = d[maskOfs++];
+				int count = d[maskOfs++];
+				col += skip;
+				for ( int i = 0; i < count && pixPos < pixCap; i++, pixPos++ )
+				{
+					if ( col >= 0 && col < Lx && row < Ly )
+						s.pix[(size_t) row * Lx + col] = pix[pixPos];
+					col++;
+				}
+			}
+		}
+		else
+		{
+			int spaceMask = ( m & 0x40 ) ? 16 : 0;
+			int pixMask = ( m & 0x20 ) ? 16 : 0;
+			int nSeg = m & 0x1F;
+			for ( int sgi = 0; sgi < nSeg && maskOfs < d.size(); sgi++ )
+			{
+				uint8_t packed = d[maskOfs++];
+				int skip = ( packed & 0x0F ) | spaceMask;
+				int count = ( packed >> 4 ) | pixMask;
+				col += skip;
+				for ( int i = 0; i < count && pixPos < pixCap; i++, pixPos++ )
+				{
+					if ( col >= 0 && col < Lx && row < Ly )
+						s.pix[(size_t) row * Lx + col] = pix[pixPos];
+					col++;
+				}
+			}
+		}
+	}
+	return s;
+}
+
+// Build a contact sheet of all pictures in a .gp file.
+// Layout: Sign(4) NPictures(2) Reserved(2) VocOffset(4) VocLength(2),
+// then NPictures picture-offset DWORDs (variable-length table).
+static BmpImage TryDecodeGp( const std::vector<uint8_t>& d, int& spriteCount, int& errors )
+{
+	BmpImage bad;
+	if ( d.size() < 14 ) return bad;
+	int np = RdU16( d.data() + 4 );
+	if ( np <= 0 || np > 4096 ) return bad;
+	if ( 14 + (size_t) np * 4 > d.size() ) return bad;
+
+	spriteCount = 0;
+	errors = 0;
+	std::vector<GpSprite> sprites;
+	for ( int n = 0; n < np; n++ )
+	{
+		size_t ofs = RdU32( d.data() + 14 + 4 * n );
+		GpSprite s = ( ofs < d.size() ) ? DecodeGpSprite( d, ofs ) : GpSprite();
+		if ( s.ok ) sprites.push_back( s ), spriteCount++;
+		else errors++;
+	}
+	if ( sprites.empty() ) return bad;
+
+	const int cell = 68;                     // sprite thumbnail 64px + 4px gap
+	const int maxShown = 512;                // cap the sheet for very large pages
+	if ( (int) sprites.size() > maxShown ) sprites.resize( maxShown );
+	int cols = 16;
+	int rows = (int) ( ( sprites.size() + cols - 1 ) / cols );
+
+	BmpImage img;
+	img.ok = true;
+	img.w = cols * cell;
+	img.h = rows * cell;
+	img.rgba.assign( (size_t) img.w * img.h, 0xFF242430 );   // sheet background
+
+	for ( size_t i = 0; i < sprites.size(); i++ )
+	{
+		const GpSprite& s = sprites[i];
+		int cx = (int) ( ( i % cols ) * cell + 2 );
+		int cy = (int) ( ( i / cols ) * cell + 2 );
+		// fit the sprite into a 64x64 cell (fractional nearest-neighbor;
+		// tiny sprites are upscaled at most 4x)
+		float sc = std::min( 64.0f / s.w, 64.0f / s.h );
+		if ( sc > 4.0f ) sc = 4.0f;
+		int dw = std::max( 1, (int) ( s.w * sc ) );
+		int dh = std::max( 1, (int) ( s.h * sc ) );
+		int ox = cx + ( 64 - dw ) / 2;
+		int oy = cy + ( 64 - dh ) / 2;
+		for ( int y = 0; y < dh; y++ )
+		{
+			int sy = std::min( s.h - 1, (int) ( y / sc ) );
+			for ( int x = 0; x < dw; x++ )
+			{
+				int sx = std::min( s.w - 1, (int) ( x / sc ) );
+				uint8_t idx = s.pix[(size_t) sy * s.w + sx];
+				uint32_t c;
+				if ( idx == 255 ) c = 0xFF181820;      // transparent
+				else if ( s.natMask ) c = idx == 0 ? 0xFF101010 :
+					( idx == 1 ? 0xFFD8D8D8 : ( idx == 2 ? 0xFF909090 : 0xFF404040 ) );
+				else if ( !gamePalLoaded ) c = 0xFF808080;
+				else c = gamePal[idx];
+				img.rgba[(size_t) ( oy + y ) * img.w + ox + x] = c;
+			}
+		}
+	}
+	return img;
+}
+
 // ---------------------------------------------------------------- main
 int main( int argc, char** argv )
 {
 	const char* archPath = argc > 1 ? argv[1] : "all.gsc";
+	bool dumpMode = argc > 3 && !strcmp( argv[1], "--dump" );
+	bool listMode = argc > 2 && !strcmp( argv[1], "--list" );
+	if ( dumpMode || listMode ) archPath = argv[2];
 
 	CGSCarch arch;
 	if ( !arch.Open( const_cast<char*>( archPath ) ) )
@@ -421,6 +768,33 @@ int main( int argc, char** argv )
 	}
 	std::sort( entries.begin(), entries.end(),
 		[]( const Entry& a, const Entry& b ) { return a.name < b.name; } );
+
+	// Palette for rendering GRD tables (falls back to hex if absent)
+	LoadGamePalette( arch );
+
+	// Headless mode: gscbrowser --dump <archive> <file> -> print preview info, no UI
+	if ( dumpMode )
+	{
+		const char* want = argv[3];
+		for ( const Entry& e : entries )
+		{
+			if ( strcasecmp( e.name.c_str(), want ) != 0 ) continue;
+			BuildPreview( arch, e );
+			for ( const std::string& l : previewLines ) printf( "%s\n", l.c_str() );
+			printf( "image: %s (%dx%d)\n", previewBmp.ok ? "yes" : "no",
+				previewBmp.w, previewBmp.h );
+			return 0;
+		}
+		fprintf( stderr, "%s not found in %s\n", want, archPath );
+		return 1;
+	}
+
+	// Headless mode: gscbrowser --list <archive> -> print all entry names
+	if ( argc > 2 && !strcmp( argv[1], "--list" ) )
+	{
+		for ( const Entry& e : entries ) printf( "%s\n", e.name.c_str() );
+		return 0;
+	}
 
 	if ( !SDL_Init( SDL_INIT_VIDEO ) )
 	{
@@ -535,18 +909,25 @@ int main( int argc, char** argv )
 		{
 			int areaX = px, areaY = py + 4 * rowH;
 			int areaW = W - px - 12, areaH = H - areaY - 12;
-			int scale = 1;
-			while ( previewBmp.w * ( scale + 1 ) <= areaW && previewBmp.h * ( scale + 1 ) <= areaH ) scale++;
-			int ox = areaX + ( areaW - previewBmp.w * scale ) / 2;
-			int oy = areaY + ( areaH - previewBmp.h * scale ) / 2;
-			for ( int y = 0; y < previewBmp.h; y++ )
-				for ( int x = 0; x < previewBmp.w; x++ )
+			// fractional nearest-neighbor scale: fit the pane, upscale at most 6x
+			float scale = std::min( (float) areaW / previewBmp.w, (float) areaH / previewBmp.h );
+			scale = std::min( scale, 6.0f );
+			int dw = std::max( 1, (int) ( previewBmp.w * scale ) );
+			int dh = std::max( 1, (int) ( previewBmp.h * scale ) );
+			int ox = areaX + ( areaW - dw ) / 2;
+			int oy = areaY + ( areaH - dh ) / 2;
+			for ( int y = 0; y < dh; y++ )
+			{
+				int sy = (int) ( y / scale );
+				if ( sy >= previewBmp.h ) sy = previewBmp.h - 1;
+				const uint32_t* srcRow = &previewBmp.rgba[(size_t) sy * previewBmp.w];
+				for ( int x = 0; x < dw; x++ )
 				{
-					uint32_t c = previewBmp.rgba[(size_t) y * previewBmp.w + x];
-					for ( int j = 0; j < scale; j++ )
-						for ( int i = 0; i < scale; i++ )
-							PutPixel( ox + x * scale + i, oy + y * scale + j, c );
+					int sx = (int) ( x / scale );
+					if ( sx >= previewBmp.w ) sx = previewBmp.w - 1;
+					PutPixel( ox + x, oy + y, srcRow[sx] );
 				}
+			}
 		}
 
 		SDL_UpdateTexture( tex, nullptr, pixels.data(), W * 4 );
