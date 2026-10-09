@@ -11,6 +11,7 @@
 
 #include "walls.h"
 #include "megapolis.h"
+#include "lines.h"
 #include "gsound.h"
 #include "icontool.h"
 #include "gp_draw.h"

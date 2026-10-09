@@ -65,6 +65,7 @@ static int OffsetX;
 static int OffsetY;
 bool PrepareToRender(int NLines, int startX, int startY) {
 	word curx;
+#ifdef _WIN32
 	__asm {
 		mov		ax, VertBuf[0]
 		mov		bx, VertBuf[2]
@@ -81,6 +82,11 @@ bool PrepareToRender(int NLines, int startX, int startY) {
 			  uu1 : mov		curx, 0xFFFF
 					uu5 :
 	};
+#else
+	if (VertBuf[0] == 0xFFFF) curx = 0xFFFF;
+	else if (VertBuf[2] == 0xFFFF) curx = VertBuf[0];
+	else curx = VertBuf[0] < VertBuf[2] ? VertBuf[0] : VertBuf[2];
+#endif
 	OffsetX = -curx + startX;
 	OffsetY = -startY;
 	if (curx == 0xFFFF)return false;
@@ -92,6 +98,7 @@ bool PrepareToRender(int NLines, int startX, int startY) {
 	int bmy0 = ((BMxy >> 16) + bmdyx*(curx - startX) - bmdyy*startY) & 16382;
 	int bmstart = bmx0 + (bmy0 << 16);//BMxy-BMdx*(curx-startX)-BMdy*startY;
 	int	fogstart = CurFog + FogDx*(curx - startX) - FogDy*startY;
+#ifdef _WIN32
 	__asm {
 		push	edi
 		push	esi
@@ -155,6 +162,34 @@ bool PrepareToRender(int NLines, int startX, int startY) {
 			pop		esi
 			pop		edi
 	};
+#else
+	{
+		byte* vb = (byte*)VertBuf;
+		int bm = bmstart;
+		int fogst = fogstart;
+		word lcx = curx;
+		for (int i = 0; i < NLines; i++, vb += 16) {
+			word x1 = *(word*)vb;
+			word x2 = *(word*)(vb + 2);
+			if (x2 == 0xFFFF) x2 = x1;
+			if (x1 > x2) { word t = x1; x1 = x2; x2 = t; }
+			*(word*)(vb + 2) = x2 - x1;
+			if (x1 != lcx) {
+				if (x1 > lcx) {
+					for (word k = lcx; k < x1; k++) { bm += BMdx; fogst += FogDx; }
+				} else {
+					for (word k = x1; k < lcx; k++) { bm -= BMdx; fogst -= FogDx; }
+				}
+			}
+			*(int*)(vb + 12) = fogst;
+			fogst += FogDy;
+			*(word*)vb = x1 - lcx;
+			*(int*)(vb + 8) = bm;
+			bm += BMdy;
+			lcx = x1;
+		}
+	}
+#endif
 	//Now we are ready to render trrriangle !!!!!!!!!!!!
 	return true;
 };
@@ -164,6 +199,7 @@ void addLine(int x, int y) {
 	int dy = abs(y - curYT) + 1;
 	if (y < curYT)sdy = -16;
 	if (y != curYT) sdx = div((x - curXT) << 16, abs(y - curYT)).quot;
+#ifdef _WIN32
 	__asm {
 		push	edi
 		push	esi
@@ -207,6 +243,21 @@ void addLine(int x, int y) {
 										   pop		esi
 										   pop		edi
 	};
+#else
+	{
+		unsigned sx = ((unsigned)curXT << 16) + 32768;
+		byte* ln = (byte*)VertBuf + ((unsigned)curYT << 4);
+		for (int i = 0; i < dy; i++) {
+			word xx = (word)(sx >> 16);
+			word* w = (word*)ln;
+			if (w[0] == 0xFFFF) w[0] = xx;
+			else if (w[1] == 0xFFFF) w[1] = xx;
+			else if (xx != w[0] && xx != w[1]) w[1] = xx;
+			sx += (unsigned)sdx;
+			ln += sdy;
+		}
+	}
+#endif
 	curXT = x;
 	curYT = y;
 };
@@ -229,6 +280,7 @@ void RenderTriangle64(int NLines, byte* Dest, byte* Bitmap) {
 	((int*)Dest)[1] = OffsetX;
 	((int*)Dest)[2] = OffsetY;
 	int VBpos = int(VertBuf);
+#ifdef _WIN32
 	__asm {
 		push	esi
 		push	edi
@@ -289,6 +341,32 @@ void RenderTriangle64(int NLines, byte* Dest, byte* Bitmap) {
 			pop		esi
 			pop		edi
 	};
+#else
+	{
+		byte* dst = Dest + 12;
+		byte* vb = (byte*)VertBuf;
+		for (int n = 0; n < NLines; n++, vb += 16) {
+			int hdr = *(int*)vb;
+			*(int*)dst = hdr;
+			dst += 4;
+			int len = (word)(hdr >> 16);
+			byte* line = dst;
+			int bmv = *(int*)(vb + 8);
+			for (int i = 0; i < len; i++) {
+				*dst++ = Bitmap[((((unsigned)bmv >> 24) & 0xFF) << 8) | (((unsigned)bmv >> 8) & 0xFF)];
+				bmv += BMdx;
+			}
+			int fog = *(int*)(vb + 12);
+			byte* p = line;
+			for (int i = 0; i < len; i++) {
+				*p = darkfog[16384 + (fog >> 8)];
+				fog += FogDx;
+				p++;
+			}
+			dst = line + len;
+		}
+	}
+#endif
 };
 int GetMax(int z1, int z2, int z3) {
 	if (z1 > z2) {
@@ -330,6 +408,7 @@ void PreRenderTri64(int x1, int y1,
 	BMdy = bmdy;
 	int VBpos = int(VertBuf);
 	//Инициализация VertBuf
+#ifdef _WIN32
 	__asm {
 		push	edi
 		pushf
@@ -345,6 +424,10 @@ void PreRenderTri64(int x1, int y1,
 			popf
 			pop		edi
 	};
+#else
+	//VertBuf init: mark all lines as empty (x1 = x2 = 0xFFFF)
+	for (int i = 0; i <= z2 - z1; i++) *(int*)((byte*)VertBuf + i * 16) = -1;
+#endif
 	addLine(x2, y2 - z1);
 	addLine(x3, y3 - z1);
 	addLine(x1, y1 - z1);
@@ -356,6 +439,7 @@ void ShowTriangle(int x, int y, byte* data) {
 	int dy = ((int*)data)[2];
 	int ofst = int(ScreenPtr) + (y + dy)*ScrWidth + x - dx;
 	int dofs = int(data);
+#ifdef _WIN32
 	__asm {
 		push	esi
 		push	edi
@@ -392,6 +476,20 @@ void ShowTriangle(int x, int y, byte* data) {
 			pop		edi
 			pop		esi
 	};
+#else
+	{
+		byte* dst = (byte*)ScreenPtr + (y + dy)*ScrWidth + x - dx;
+		byte* src = data + 12;
+		word nl = *(word*)data;
+		for (int i = 0; i < nl; i++) {
+			dst += *(short*)src;
+			int lx = *(word*)(src + 2);
+			src += 4;
+			for (int k = 0; k < lx; k++) *dst++ = *src++;
+			dst += ScrWidth - lx;
+		}
+	}
+#endif
 };
 void ShowClippedTriangle(int x, int y, byte* data) {
 	int dx = ((int*)data)[1];
@@ -399,7 +497,7 @@ void ShowClippedTriangle(int x, int y, byte* data) {
 	int x1 = x + dx;
 	int y1 = y + dy;
 	int dofs = int(data);
-	int realof = dofs + 12;
+	byte* realof = data + 12;
 	int NY = (((int*)data)[0]) & 65535;
 	int DOfst = 0;
 	if (y1 < WindY) {
@@ -407,6 +505,7 @@ void ShowClippedTriangle(int x, int y, byte* data) {
 		if (NY <= rdy)return;
 		NY -= rdy;
 		y1 = WindY;
+#ifdef _WIN32
 		__asm {
 			mov		ecx, rdy
 			mov		ebx, realof
@@ -426,6 +525,16 @@ void ShowClippedTriangle(int x, int y, byte* data) {
 					mov		DOfst, edx
 					mov		realof, ebx
 		};
+#else
+		{
+			int dofst = 0;
+			for (int i = 0; i < rdy; i++) {
+				dofst += *(short*)realof;
+				realof += *(word*)(realof + 2) + 4;
+			}
+			DOfst = dofst;
+		}
+#endif
 	};
 	if (y1 + NY > WindY1)NY = WindY1 - y1 + 1;
 	if (NY <= 0)return;
@@ -434,6 +543,7 @@ void ShowClippedTriangle(int x, int y, byte* data) {
 	int MinOfst = int(ScreenPtr) + y1*ScrWidth + WindX;
 	int MaxOfst = MinOfst + WindLx;
 	int  FinalESI;
+#ifdef _WIN32
 	__asm {
 		push	esi
 		push	edi
@@ -497,6 +607,29 @@ void ShowClippedTriangle(int x, int y, byte* data) {
 			pop		edi
 			pop		esi
 	};
+#else
+	{
+		byte* dst = (byte*)ScreenPtr + y1*ScrWidth + x - dx + DOfst;
+		byte* src = realof;
+		byte* minOf = (byte*)ScreenPtr + y1*ScrWidth + WindX;
+		byte* maxOf = minOf + WindLx;
+		for (int i = 0; i < NY; i++) {
+			dst += *(short*)src;
+			int lx = *(word*)(src + 2);
+			src += 4;
+			byte* srcEnd = src + lx;
+			byte* dstEnd = dst + lx;
+			byte* dstStart = dst;
+			if (dst < minOf) { src += minOf - dst; dst = minOf; }
+			if (dstEnd > maxOf) dstEnd = maxOf;
+			for (byte* p = dst; p < dstEnd; p++) *p = *src++;
+			src = srcEnd;
+			dst = dstStart + ScrWidth;
+			minOf += ScrWidth;
+			maxOf += ScrWidth;
+		}
+	}
+#endif
 };
 void ShowClippedTriangleMMX(int x, int y, byte* data) {
 	int dx = ((int*)data)[1];
@@ -504,7 +637,7 @@ void ShowClippedTriangleMMX(int x, int y, byte* data) {
 	int x1 = x + dx;
 	int y1 = y + dy;
 	int dofs = int(data);
-	int realof = dofs + 12;
+	byte* realof = data + 12;
 	int NY = (((int*)data)[0]) & 65535;
 	int DOfst = 0;
 	if (y1 < WindY) {
@@ -512,6 +645,7 @@ void ShowClippedTriangleMMX(int x, int y, byte* data) {
 		if (NY <= rdy)return;
 		NY -= rdy;
 		y1 = WindY;
+#ifdef _WIN32
 		__asm {
 			mov		ecx, rdy
 			mov		ebx, realof
@@ -531,6 +665,16 @@ void ShowClippedTriangleMMX(int x, int y, byte* data) {
 					mov		DOfst, edx
 					mov		realof, ebx
 		};
+#else
+		{
+			int dofst = 0;
+			for (int i = 0; i < rdy; i++) {
+				dofst += *(short*)realof;
+				realof += *(word*)(realof + 2) + 4;
+			}
+			DOfst = dofst;
+		}
+#endif
 	};
 	if (y1 + NY >= WindY1)NY = WindY1 - y1 + 1;
 	if (NY <= 0)return;
@@ -539,6 +683,7 @@ void ShowClippedTriangleMMX(int x, int y, byte* data) {
 	int MinOfst = int(ScreenPtr) + y1*ScrWidth + WindX;
 	int MaxOfst = MinOfst + WindLx;
 	int  FinalESI;
+#ifdef _WIN32
 	__asm {
 		push	esi
 		push	edi
@@ -612,6 +757,29 @@ void ShowClippedTriangleMMX(int x, int y, byte* data) {
 			pop		esi
 			EMMS
 	};
+#else
+	{
+		byte* dst = (byte*)ScreenPtr + y1*ScrWidth + x - dx + DOfst;
+		byte* src = realof;
+		byte* minOf = (byte*)ScreenPtr + y1*ScrWidth + WindX;
+		byte* maxOf = minOf + WindLx;
+		for (int i = 0; i < NY; i++) {
+			dst += *(short*)src;
+			int lx = *(word*)(src + 2);
+			src += 4;
+			byte* srcEnd = src + lx;
+			byte* dstEnd = dst + lx;
+			byte* dstStart = dst;
+			if (dst < minOf) { src += minOf - dst; dst = minOf; }
+			if (dstEnd > maxOf) dstEnd = maxOf;
+			for (byte* p = dst; p < dstEnd; p++) *p = *src++;
+			src = srcEnd;
+			dst = dstStart + ScrWidth;
+			minOf += ScrWidth;
+			maxOf += ScrWidth;
+		}
+	}
+#endif
 };
 //--------------------------------------------------------------
 void RenderSmartTriangle64(int xs1, int ys1,
@@ -674,6 +842,7 @@ static int	fogstart;
 static word curx;
 static int FOG1;
 bool PrecPrepareToRender(int NLines, int startX, int startY) {
+#ifdef _WIN32
 	__asm {
 		mov		ax, VertBuf[0]
 		mov		bx, VertBuf[2]
@@ -690,12 +859,18 @@ bool PrecPrepareToRender(int NLines, int startX, int startY) {
 			  uu1 : mov		curx, 0xFFFF
 					uu5 :
 	};
+#else
+	if (VertBuf[0] == 0xFFFF) curx = 0xFFFF;
+	else if (VertBuf[2] == 0xFFFF) curx = VertBuf[0];
+	else curx = VertBuf[0] < VertBuf[2] ? VertBuf[0] : VertBuf[2];
+#endif
 	OffsetX = -curx + startX;
 	OffsetY = -startY;
 	if (curx == 0xFFFF)return false;
 	BMXStart = BMX + BMDXX*(curx - startX) - BMDXY*startY;
 	BMYStart = BMY + BMDYX*(curx - startX) - BMDYY*startY;
 	fogstart = FOG1 + FogDx*(curx - startX) - FogDy*startY;
+#ifdef _WIN32
 	__asm {
 		push	edi
 		push	esi
@@ -766,11 +941,43 @@ bool PrecPrepareToRender(int NLines, int startX, int startY) {
 			pop		esi
 			pop		edi
 	};
+#else
+	{
+		byte* vb = (byte*)VertBuf;
+		int bmxs = BMXStart;
+		int bmys = BMYStart;
+		int fogst = fogstart;
+		word lcx = curx;
+		for (int i = 0; i < NLines; i++, vb += 16) {
+			word x1 = *(word*)vb;
+			word x2 = *(word*)(vb + 2);
+			if (x2 == 0xFFFF) x2 = x1;
+			if (x1 > x2) { word t = x1; x1 = x2; x2 = t; }
+			*(word*)(vb + 2) = x2 - x1;
+			if (x1 != lcx) {
+				if (x1 > lcx) {
+					for (word k = lcx; k < x1; k++) { bmxs += BMDXX; bmys += BMDYX; fogst += FogDx; }
+				} else {
+					for (word k = x1; k < lcx; k++) { bmxs -= BMDXX; bmys -= BMDYX; fogst -= FogDx; }
+				}
+			}
+			*(int*)(vb + 12) = fogst;
+			fogst += FogDy;
+			*(word*)vb = x1 - lcx;
+			*(int*)(vb + 4) = bmxs;
+			*(int*)(vb + 8) = bmys;
+			bmxs += BMDXY;
+			bmys += BMDYY;
+			lcx = x1;
+		}
+	}
+#endif
 	//Now we are ready to render trrriangle !!!!!!!!!!!!
 	return true;
 };
 static word STRTX;
 bool AbsolutePrecPrepareToRender(int NLines, int startX, int startY) {
+#ifdef _WIN32
 	__asm {
 		mov		ax, VertBuf[0]
 		mov		bx, VertBuf[2]
@@ -787,6 +994,11 @@ bool AbsolutePrecPrepareToRender(int NLines, int startX, int startY) {
 			  uu1 : mov		curx, 0xFFFF
 					uu5 :
 	};
+#else
+	if (VertBuf[0] == 0xFFFF) curx = 0xFFFF;
+	else if (VertBuf[2] == 0xFFFF) curx = VertBuf[0];
+	else curx = VertBuf[0] < VertBuf[2] ? VertBuf[0] : VertBuf[2];
+#endif
 	STRTX = startX;
 	OffsetX = -curx + startX;
 	OffsetY = -startY;
@@ -794,6 +1006,7 @@ bool AbsolutePrecPrepareToRender(int NLines, int startX, int startY) {
 	BMXStart = BMX + BMDXX*(curx - startX) - BMDXY*startY;
 	BMYStart = BMY + BMDYX*(curx - startX) - BMDYY*startY;
 	fogstart = FOG1 + FogDx*(curx - startX) - FogDy*startY;
+#ifdef _WIN32
 	__asm {
 		push	edi
 		push	esi
@@ -864,6 +1077,37 @@ bool AbsolutePrecPrepareToRender(int NLines, int startX, int startY) {
 			pop		esi
 			pop		edi
 	};
+#else
+	{
+		byte* vb = (byte*)VertBuf;
+		int bmxs = BMXStart;
+		int bmys = BMYStart;
+		int fogst = fogstart;
+		word lcx = curx;
+		for (int i = 0; i < NLines; i++, vb += 16) {
+			word x1 = *(word*)vb;
+			word x2 = *(word*)(vb + 2);
+			if (x2 == 0xFFFF) x2 = x1;
+			if (x1 > x2) { word t = x1; x1 = x2; x2 = t; }
+			*(word*)(vb + 2) = x2 - x1;
+			if (x1 != lcx) {
+				if (x1 > lcx) {
+					for (word k = lcx; k < x1; k++) { bmxs += BMDXX; bmys += BMDYX; fogst += FogDx; }
+				} else {
+					for (word k = x1; k < lcx; k++) { bmxs -= BMDXX; bmys -= BMDYX; fogst -= FogDx; }
+				}
+			}
+			*(int*)(vb + 12) = fogst;
+			fogst += FogDy;
+			*(word*)vb = x1 - STRTX;
+			*(int*)(vb + 4) = bmxs;
+			*(int*)(vb + 8) = bmys;
+			bmxs += BMDXY;
+			bmys += BMDYY;
+			lcx = x1;
+		}
+	}
+#endif
 	//Now we are ready to render trrriangle !!!!!!!!!!!!
 	return true;
 };
@@ -885,6 +1129,7 @@ int PrecRenderTriangle64(int NLines, byte* Dest, byte* Bitmap) {
 	((int*)Dest)[1] = OffsetX;
 	((int*)Dest)[2] = OffsetY;
 	int VBpos = int(VertBuf);
+#ifdef _WIN32
 	__asm {
 		push	esi
 		push	edi
@@ -951,6 +1196,35 @@ int PrecRenderTriangle64(int NLines, byte* Dest, byte* Bitmap) {
 			pop		esi
 			pop		edi
 	};
+#else
+	{
+		byte* dst = Dest + 12;
+		byte* vb = (byte*)VertBuf;
+		for (int n = 0; n < NLines; n++, vb += 16) {
+			int hdr = *(int*)vb;
+			*(int*)dst = hdr;
+			dst += 4;
+			int len = (word)(hdr >> 16);
+			byte* line = dst;
+			int bmx = *(int*)(vb + 4);
+			int bmy = *(int*)(vb + 8);
+			for (int i = 0; i < len; i++) {
+				int idx = ((((bmy >> 16) & 0xFF) << 8) | ((bmx >> 16) & 0xFF)) & 0x3F3F;
+				*dst++ = Bitmap[idx];
+				bmx += BMDXX;
+				bmy += BMDYX;
+			}
+			int fog = *(int*)(vb + 12);
+			byte* p = line;
+			for (int i = 0; i < len; i++) {
+				*p = darkfog[16384 + (fog >> 8)];
+				fog += FogDx;
+				p++;
+			}
+			dst = line + len;
+		}
+	}
+#endif
 	return 0;
 };
 int PrecRenderTriangle128(int NLines, byte* Dest, byte* Bitmap) {
@@ -961,6 +1235,7 @@ int PrecRenderTriangle128(int NLines, byte* Dest, byte* Bitmap) {
 	((int*)Dest)[1] = OffsetX;
 	((int*)Dest)[2] = OffsetY;
 	int VBpos = int(VertBuf);
+#ifdef _WIN32
 	__asm {
 		push	esi
 		push	edi
@@ -1027,6 +1302,35 @@ int PrecRenderTriangle128(int NLines, byte* Dest, byte* Bitmap) {
 			pop		esi
 			pop		edi
 	};
+#else
+	{
+		byte* dst = Dest + 12;
+		byte* vb = (byte*)VertBuf;
+		for (int n = 0; n < NLines; n++, vb += 16) {
+			int hdr = *(int*)vb;
+			*(int*)dst = hdr;
+			dst += 4;
+			int len = (word)(hdr >> 16);
+			byte* line = dst;
+			int bmx = *(int*)(vb + 4);
+			int bmy = *(int*)(vb + 8);
+			for (int i = 0; i < len; i++) {
+				int idx = ((((bmy >> 16) & 0xFF) << 8) | ((bmx >> 16) & 0xFF)) & 0x7F7F;
+				*dst++ = Bitmap[idx];
+				bmx += BMDXX;
+				bmy += BMDYX;
+			}
+			int fog = *(int*)(vb + 12);
+			byte* p = line;
+			for (int i = 0; i < len; i++) {
+				*p = darkfog[16384 + (fog >> 8)];
+				fog += FogDx;
+				p++;
+			}
+			dst = line + len;
+		}
+	}
+#endif
 	return 0;
 };
 int PrecRenderTriangle64Dithering(int NLines, byte* Dest, byte* Bitmap) {
@@ -1037,6 +1341,7 @@ int PrecRenderTriangle64Dithering(int NLines, byte* Dest, byte* Bitmap) {
 	((int*)Dest)[1] = OffsetX;
 	((int*)Dest)[2] = OffsetY;
 	int VBpos = int(VertBuf);
+#ifdef _WIN32
 	__asm {
 		push	esi
 		push	edi
@@ -1119,6 +1424,37 @@ int PrecRenderTriangle64Dithering(int NLines, byte* Dest, byte* Bitmap) {
 			pop		esi
 			pop		edi
 	};
+#else
+	{
+		byte* dst = Dest + 12;
+		byte* vb = (byte*)VertBuf;
+		for (int n = 0; n < NLines; n++, vb += 16) {
+			int hdr = *(int*)vb;
+			*(int*)dst = hdr;
+			dst += 4;
+			int len = (word)(hdr >> 16);
+			byte* line = dst;
+			int bmx = *(int*)(vb + 4);
+			int bmy = *(int*)(vb + 8);
+			for (int i = 0; i < len; i++) {
+				int idx = ((((bmy >> 16) & 0xFF) << 8) | ((bmx >> 16) & 0xFF)) & 0x3F3F;
+				*dst++ = Bitmap[idx];
+				bmx += BMDXX;
+				bmy += BMDYX;
+			}
+			int fog = *(int*)(vb + 12);
+			if (NLines & 1) fog += 16384;
+			byte* p = line;
+			for (int i = 0; i < len; i++) {
+				*p = darkfog[16384 + (fog >> 8)];
+				fog += FogDx;
+				fog += (i & 1) ? -32768 : 32768;
+				p++;
+			}
+			dst = line + len;
+		}
+	}
+#endif
 	return 0;
 };
 int PrecPreRenderTri64(int x1, int y1,
@@ -1146,6 +1482,7 @@ int PrecPreRenderTri64(int x1, int y1,
 	FOG1 = fog;
 	int VBpos = int(VertBuf);
 	//Инициализация VertBuf
+#ifdef _WIN32
 	__asm {
 		push	edi
 		pushf
@@ -1161,6 +1498,10 @@ int PrecPreRenderTri64(int x1, int y1,
 			popf
 			pop		edi
 	};
+#else
+	//VertBuf init: mark all lines as empty (x1 = x2 = 0xFFFF)
+	for (int i = 0; i <= z2 - z1; i++) *(int*)((byte*)VertBuf + i * 16) = -1;
+#endif
 	addLine(x2, y2 - z1);
 	addLine(x3, y3 - z1);
 	addLine(x1, y1 - z1);
@@ -1192,6 +1533,7 @@ int PrecPreRenderTri128(int x1, int y1,
 	FOG1 = fog;
 	int VBpos = int(VertBuf);
 	//Инициализация VertBuf
+#ifdef _WIN32
 	__asm {
 		push	edi
 		pushf
@@ -1207,6 +1549,10 @@ int PrecPreRenderTri128(int x1, int y1,
 			popf
 			pop		edi
 	};
+#else
+	//VertBuf init: mark all lines as empty (x1 = x2 = 0xFFFF)
+	for (int i = 0; i <= z2 - z1; i++) *(int*)((byte*)VertBuf + i * 16) = -1;
+#endif
 	addLine(x2, y2 - z1);
 	addLine(x3, y3 - z1);
 	addLine(x1, y1 - z1);
@@ -1323,6 +1669,7 @@ int DirectRenderTriangle64Dithering(int NLines, int StartLine, int EndLine, int 
 	//((int*)Dest)[2]=OffsetY;
 	int VBpos = int(VertBuf) + (RealStartLine << 4);
 	int StartEDI = int(Dest) + RealStartLine*DestSizeX;
+#ifdef _WIN32
 	__asm {
 		push	esi
 		push	edi
@@ -1411,6 +1758,35 @@ int DirectRenderTriangle64Dithering(int NLines, int StartLine, int EndLine, int 
 			pop		esi
 			pop		edi
 	};
+#else
+	{
+		byte* vb = (byte*)VertBuf + (RealStartLine << 4);
+		byte* line0 = Dest + RealStartLine*DestSizeX;
+		for (int n = 0; n < RealEndLine; n++, vb += 16, line0 += DestSizeX) {
+			int hdr = *(int*)vb;
+			int len = (word)(hdr >> 16);
+			byte* dst = line0 + (short)hdr;
+			byte* line = dst;
+			int bmx = *(int*)(vb + 4);
+			int bmy = *(int*)(vb + 8);
+			for (int i = 0; i < len; i++) {
+				int idx = ((((bmy >> 16) & 0xFF) << 8) | ((bmx >> 16) & 0xFF)) & 0x3F3F;
+				*dst++ = Bitmap[idx];
+				bmx += BMDXX;
+				bmy += BMDYX;
+			}
+			int fog = *(int*)(vb + 12);
+			if (NLines & 1) fog += 16384;
+			byte* p = line;
+			for (int i = 0; i < len; i++) {
+				*p = darkfog[16384 + (fog >> 8)];
+				fog += FogDx;
+				fog += (i & 1) ? -32768 : 32768;
+				p++;
+			}
+		}
+	}
+#endif
 	return 0;
 };
 int DirectPreRenderTri64(int x1, int y1,
@@ -1441,6 +1817,7 @@ int DirectPreRenderTri64(int x1, int y1,
 	FOG1 = fog;
 	int VBpos = int(VertBuf);
 	//Инициализация VertBuf
+#ifdef _WIN32
 	__asm {
 		push	edi
 		pushf
@@ -1456,6 +1833,10 @@ int DirectPreRenderTri64(int x1, int y1,
 			popf
 			pop		edi
 	};
+#else
+	//VertBuf init: mark all lines as empty (x1 = x2 = 0xFFFF)
+	for (int i = 0; i <= z2 - z1; i++) *(int*)((byte*)VertBuf + i * 16) = -1;
+#endif
 	addLine(x2, y2 - z1);
 	addLine(x3, y3 - z1);
 	addLine(x1, y1 - z1);
@@ -2093,7 +2474,7 @@ void OverTriangle::AddTriangle(int i)
 		if (px >= VertLx)px = VertLx - 1;
 		if (py >= VertLx)py = VertLx - 1;
 		int v = px + py*VertLx;
-		TRIANG[v] = (VertOver*)realloc(TRIANG[v], int(NTRIANG[v] + 1) * sizeof VertOver);
+		TRIANG[v] = (VertOver*)realloc(TRIANG[v], int(NTRIANG[v] + 1) * sizeof(VertOver));
 		VertOver* VO = TRIANG[v] + NTRIANG[v];
 		NTRIANG[v]++;
 		VO->Data = NULL;

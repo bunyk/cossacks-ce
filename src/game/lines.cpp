@@ -135,94 +135,48 @@ void DrawLine(int x,int y,int x1,int y1,byte c){
 	if(GetXKind(x)|GetXKind(x1)|GetYKind(y)|GetYKind(y1))return;
 	int Lx=x1-x;
 	int Ly;
-#ifdef _WIN32
-	int ofst=int(ScreenPtr)+x+y*ScrWidth;
-	if(y<y1){
-		Ly=y1-y;
-		if(Lx<Ly){
-			__asm{
-				push	edi
-				mov		edi,ofst
-				mov		edx,Lx
-				mov		ebx,Ly
-				sar		ebx,1
-				mov		ecx,Ly
-				inc     ecx
-				mov		al,c
-lpp1:			mov		[edi],al
-				add		edi,ScrWidth
-				sub		ebx,edx
-				jg		lpp2
-				add		ebx,Ly
-				inc     edi
-lpp2:			dec		ecx
-				jnz		lpp1
-				pop		edi
-			};
-		}else{
-			__asm{
-				push	edi
-				mov		edi,ofst
-				mov		edx,Ly
-				mov		ebx,Lx
-				sar		ebx,1
-				mov		ecx,Lx
-				inc     ecx
-				mov		al,c
-lpp1_1:			mov		[edi],al
-				inc		edi
-				sub		ebx,edx
-				jg		lpp2_1
-				add		ebx,Lx
-				add		edi,ScrWidth
-lpp2_1:			dec		ecx
-				jnz		lpp1_1
-				pop		edi
-			};
-		};
-	}else{
-		Ly=y-y1;
-		if(Lx<Ly){
-			__asm{
-				push	edi
-				mov		edi,ofst
-				mov		edx,Lx
-				mov		ebx,Ly
-				sar		ebx,1
-				mov		ecx,Ly
-				inc     ecx
-				mov		al,c
-lpp1_2:			mov		[edi],al
-				sub		edi,ScrWidth
-				sub		ebx,edx
-				jg		lpp2_2
-				add		ebx,Ly
-				inc     edi
-lpp2_2:			dec		ecx
-				jnz		lpp1_2
-				pop		edi
-			};
-		}else{
-			__asm{
-				push	edi
-				mov		edi,ofst
-				mov		edx,Ly
-				mov		ebx,Lx
-				sar		ebx,1
-				mov		ecx,Lx
-				inc     ecx
-				mov		al,c
-lpp1_3:			mov		[edi],al
-				inc		edi
-				sub		ebx,edx
-				jg		lpp2_3
-				add		ebx,Lx
-				sub		edi,ScrWidth
-lpp2_3:			dec		ecx
-				jnz		lpp1_3
-				pop		edi
-			};
-		};
-	};
-#endif // _WIN32 TODO: rewrite this (Bresenhams's algorithm?) into C
+	byte* ofst = (byte*)ScreenPtr + x + y*ScrWidth;
+	if (y < y1) {
+		Ly = y1 - y;
+		if (Lx < Ly) {
+			int e = Ly >> 1;
+			byte* p = ofst;
+			for (int i = 0; i <= Ly; i++) {
+				*p = c;
+				p += ScrWidth;
+				e -= Lx;
+				if (e <= 0) { e += Ly; p++; }
+			}
+		} else {
+			int e = Lx >> 1;
+			byte* p = ofst;
+			for (int i = 0; i <= Lx; i++) {
+				*p = c;
+				p++;
+				e -= Ly;
+				if (e <= 0) { e += Lx; p += ScrWidth; }
+			}
+		}
+	} else {
+		Ly = y - y1;
+		if (Lx < Ly) {
+			int e = Ly >> 1;
+			byte* p = ofst;
+			for (int i = 0; i <= Ly; i++) {
+				*p = c;
+				p -= ScrWidth;
+				e -= Lx;
+				if (e <= 0) { e += Ly; p++; }
+			}
+		} else {
+			int e = Lx >> 1;
+			byte* p = ofst;
+			for (int i = 0; i <= Lx; i++) {
+				*p = c;
+				p++;
+				e -= Ly;
+				if (e <= 0) { e += Lx; p -= ScrWidth; }
+			}
+		}
+	}
 };

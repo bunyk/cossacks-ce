@@ -13,6 +13,7 @@
 #include "nucl.h"
 
 #include "megapolis.h"
+#include "lines.h"
 #include "fonts.h"
 #include "recorder.h"
 

@@ -11,7 +11,6 @@
 #include "gp_draw.h"
 #include "gfile.h"
 
-#ifdef _WIN32
 #include "mapdiscr.h"
 #include "multipl.h"
 #include "fog.h"
@@ -129,10 +128,8 @@ int ResPerUnit;
 int EatenRes;
 int GetResByName( char* gy );
 FormGroupDescription FormGrp;
-#endif // _WIN32
 void ErrM( char* s );
 
-#ifdef _WIN32
 extern char* SoundID[MaxSnd];
 extern word NSounds;
 OrderClassDescription OrderDesc[16];
@@ -142,9 +139,7 @@ int NEOrders = 0;
 int SearchStr( char** Res, char* s, int count );
 int GetIconByName( char* Name );
 void LoadOrders();
-#endif // _WIN32
 char* GetTextByID( char* ID );
-#ifdef _WIN32
 extern bool ProtectionMode;
 void LoadRDS()
 {
@@ -1240,7 +1235,6 @@ void LoadOrders()
 		ErrM( "Could not open ord_groups.lst" );
 	}
 }
-#endif // _WIN32
 
 int DiffP[4];
 AI_Description GlobalAI;

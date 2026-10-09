@@ -9,8 +9,13 @@
 #define NAME "CEW_KERNEL"
 #define NODPLAY
 
+#include "ddini.h"
 #include "gfile.h"
+#include "fastdraw.h"
 #include "mgraph.h"
+#include "mapdiscr.h"
+#include "mouse.h"
+#include "common.h"
 #include "menu.h"
 #include "multipl.h"
 #include "fog.h"
@@ -188,6 +193,57 @@ extern bool TexMapMod;
 extern bool RiverEditMode;
 void ClearCurve();
 extern int DrawPixMode;
+
+#ifndef _WIN32
+extern word PlayerMenuMode;
+#define maxTask 32
+typedef void EventHandPro( void* );
+struct EventsTag
+{
+	EventHandPro* Pro;
+	int Type;
+	int Handle;
+	bool Blocking;
+	void* Param;
+};
+extern EventsTag Events[maxTask];
+void InitFonts();
+extern bool KeyPressed;
+extern SDL_Keycode LastKey;
+bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
+extern int NInStack;
+extern MouseStack MSTC[256];
+extern int NKeys;
+extern SDL_Keycode KeyStack[256];
+extern char AsciiStack[256];
+extern int ReliefBrush;
+void ClearModes();
+void ClearKeyStack();
+extern int RealLx;
+extern int RealLy;
+extern byte SpecCmd;
+extern bool BuildMode;
+extern bool GetCoord;
+extern int mousePointerType;
+extern int curdx;
+extern int curdy;
+extern byte PauseMode;
+extern byte LockMode;
+extern bool MEditMode;
+extern int HeightEditMode;
+extern byte LockGrid;
+extern int HiStyle;
+extern int SHIFT_VAL;
+extern int TerrBrush;
+extern byte EditMedia;
+extern bool EditMapMode;
+extern int AutoTime;
+extern int CurrentStepTime;
+extern int LastCTRLPressTime;
+extern const int kCtrlStickyTime;
+extern uint64_t GetSDLTickCount();
+extern bool ProcessMessages();
+#endif
 
 void TimerProc( void )
 {
@@ -1344,7 +1400,7 @@ void PrepareToGame()
 	}
 
 	MI_Mode = 1;
-	memset( TIMECHANGE, 0, sizeof TIMECHANGE );
+	memset( TIMECHANGE, 0, sizeof(TIMECHANGE) );
 	AddTime = 0;
 	NeedAddTime = 0;
 

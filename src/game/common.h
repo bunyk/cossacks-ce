@@ -74,5 +74,5 @@ DLLIMPORT void LoadPlayerData();
 DLLIMPORT uint64_t GetSDLTickCount();
 #endif // _WIN32
 
-DLLIMPORT int CurPalette;
+extern DLLIMPORT int CurPalette;
 

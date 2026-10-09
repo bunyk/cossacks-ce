@@ -3,7 +3,6 @@
 #include "resfile.h"
 #include "fastdraw.h"
 
-#ifdef _WIN32
 #include "mapdiscr.h"
 #include "mouse.h"
 #include "mode.h"
@@ -22,6 +21,7 @@
 #include <assert.h>
 #include "3dmaped.h"
 #include "mapsprites.h"
+#include "dialogs.h"
 #include "gp_draw.h"
 #include "realwater.h"
 #include "zbuffer.h"
@@ -34,7 +34,6 @@
 #include "conststr.h"
 #include "drawform.h"
 #include "icontool.h"
-#include "dialogs.h"
 #include "path.h"
 #include "sort.h"
 #include "mplayer.h"
@@ -152,11 +151,9 @@ void CreateMiniMap();
 word Nsel;
 int TerrHi;
 
-#endif // _WIN32
 bool BuildMode;
 
 byte SpecCmd;
-#ifdef _WIN32
 OneSlide* OSB;
 byte blx;
 byte bly;
@@ -409,62 +406,36 @@ int ConvY( int y )
 
 void RedSquare( int x, int y )
 {
-#ifdef _WIN32
 	if (x < mapx || x >= mapx + smaplx || y < mapy || y >= mapy + smaply)
 	{
 		return;
 	}
 
-	int sco = int( ScreenPtr ) + smapx + ( ( x - mapx ) << 5 ) +
+	byte* sco = (byte*)ScreenPtr + smapx + ( ( x - mapx ) << 5 ) +
 		( ( ( y - mapy ) << 5 ) + smapy )*SCRSizeX;
 
 	int ddx = SCRSizeX + SCRSizeX - 32;
-	__asm
-	{
-		push	edi
-		mov		edi, sco
-		mov		eax, 16
-		uyu:	mov		ecx, 16
-				uuu : mov		byte ptr[edi], clrRed
-					  add		edi, 2
-					  loop	uuu
-					  add		edi, ddx
-					  dec		al
-					  jnz		uyu
-
-					  pop		edi
+	for (int r = 0; r < 16; r++) {
+		for (int c = 0; c < 16; c++) { *sco = clrRed; sco += 2; }
+		sco += ddx;
 	}
-#endif
 }
 
 void RedMiniSquare( int x, int y )
 {
-	#ifdef _WIN32
 	if (x < mapx || x >= mapx + smaplx || y < mapy || y >= mapy + smaply)
 	{
 		return;
 	}
 
-	int sco = int( ScreenPtr ) + smapx + ( ( x - mapx ) << 4 ) +
+	byte* sco = (byte*)ScreenPtr + smapx + ( ( x - mapx ) << 4 ) +
 		( ( ( y - mapy ) << 4 ) + smapy )*SCRSizeX;
 
 	int ddx = SCRSizeX + SCRSizeX - 16;
-	__asm
-	{
-		push	edi
-		mov		edi, sco
-		mov		eax, 8
-		uyu:	mov		ecx, 8
-				uuu : mov		byte ptr[edi], clrRed
-					  add		edi, 2
-					  loop	uuu
-					  add		edi, ddx
-					  dec		al
-					  jnz		uyu
-
-					  pop		edi
+	for (int r = 0; r < 8; r++) {
+		for (int c = 0; c < 8; c++) { *sco = clrRed; sco += 2; }
+		sco += ddx;
 	}
-#endif
 }
 
 void RedBar( int x, int y, int lx, int ly )
@@ -481,61 +452,29 @@ void RedMiniBar( int x, int y, int lx, int ly )
 			RedMiniSquare( x + i, y + j );
 }
 
-#ifdef _WIN32
 void WhiteSquare( int x, int y )
 {
 	if (x < mapx || x >= mapx + smaplx || y < mapy || y >= mapy + smaply)return;
-	int sco = int( ScreenPtr ) + smapx + ( ( x - mapx ) << 5 ) +
+	byte* sco = (byte*)ScreenPtr + smapx + ( ( x - mapx ) << 5 ) +
 		( ( ( y - mapy ) << 5 ) + smapy )*SCRSizeX;
 	int ddx = SCRSizeX + SCRSizeX - 32;
-	__asm {
-		push	edi
-		mov		edi, sco
-		mov		eax, 16
-		uyu:	mov		ecx, 16
-				uuu : mov		byte ptr[edi], 255
-					  add		edi, 2
-					  loop	uuu
-					  add		edi, ddx
-					  dec		al
-					  jnz		uyu
-
-					  pop		edi
+	for (int r = 0; r < 16; r++) {
+		for (int c = 0; c < 16; c++) { *sco = 255; sco += 2; }
+		sco += ddx;
 	}
 }
-#else
-void WhiteSquare( int x, int y )
-{
-}
-#endif
 
-#ifdef _WIN32
 void WhiteMiniSquare( int x, int y )
 {
 	if (x < mapx || x >= mapx + smaplx || y < mapy || y >= mapy + smaply)return;
-	int sco = int( ScreenPtr ) + smapx + ( ( x - mapx ) << 4 ) +
+	byte* sco = (byte*)ScreenPtr + smapx + ( ( x - mapx ) << 4 ) +
 		( ( ( y - mapy ) << 4 ) + smapy )*SCRSizeX;
 	int ddx = SCRSizeX + SCRSizeX - 16;
-	__asm {
-		push	edi
-		mov		edi, sco
-		mov		eax, 8
-		uyu:	mov		ecx, 8
-				uuu : mov		byte ptr[edi], 255
-					  add		edi, 2
-					  loop	uuu
-					  add		edi, ddx
-					  dec		al
-					  jnz		uyu
-
-					  pop		edi
-	};
+	for (int r = 0; r < 8; r++) {
+		for (int c = 0; c < 8; c++) { *sco = 255; sco += 2; }
+		sco += ddx;
+	}
 };
-#else
-void WhiteMiniSquare( int x, int y )
-{
-}
-#endif
 
 void WhiteBar( int x, int y, int lx, int ly )
 {
@@ -2763,7 +2702,6 @@ void ControlZones();
 void UnPress();
 int OldLpressed = -1;
 bool OverInform = 0;
-#endif // _WIN32
 
 extern bool fixed;
 extern bool realLpressed;
@@ -2787,7 +2725,6 @@ void MFix()
 }
 
 bool unpress = 0;
-#ifdef _WIN32
 void GlobalHandleMouse(bool process_scrolling);
 void DrawZones();
 void GameKeyCheck();
@@ -7020,4 +6957,3 @@ void ProcessRESSEND()
 		UnPress();
 	}
 }
-#endif // _WIN32

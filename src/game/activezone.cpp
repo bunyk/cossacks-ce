@@ -11,6 +11,7 @@
 #include <math.h>
 
 #include "megapolis.h"
+#include "lines.h"
 
 #include "fonts.h"
 #include "weaponid.h"

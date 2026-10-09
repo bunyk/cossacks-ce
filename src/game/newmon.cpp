@@ -11,7 +11,6 @@
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
-#ifdef _WIN32
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
@@ -19,6 +18,7 @@
 #include "activescenary.h"
 #include "fog.h"
 #include "megapolis.h"
+#include "lines.h"
 
 #include <assert.h>
 #include "walls.h"
@@ -292,7 +292,6 @@ void DosToWin( char* Str )
 		Str[i] = c;
 	}
 }
-#endif // _WIN32
 
 extern int CurPalette;
 extern bool PalDone;
@@ -313,7 +312,6 @@ void ErrM( char* s )
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "LOADING FAILED...", s, sdlWindow);
 }
 
-#ifdef _WIN32
 void NEPar( char* name, int line, char* Sect, int Need )
 {
 	char gx[128];
@@ -352,11 +350,9 @@ void UpConv( char* str )
 		i++;
 	} while ( c != 0 );
 }
-#endif // _WIN32
 
 //------------------------------------------New RLC information
 word RLCNSpr[1024 + 512];
-#ifdef _WIN32
 word NNewMon;
 NewMonster NewMon[512];
 char* MonNames[512];
@@ -400,7 +396,7 @@ NewAnimation::NewAnimation()
 
 NewMonster::NewMonster()
 {
-	memset( &MotionL, 0, sizeof NewMonster );
+	memset( &MotionL, 0, sizeof(NewMonster) );
 }
 
 //--------------------Icons------------------
@@ -3248,7 +3244,7 @@ bool NewMonster::CreateFromFile( char* name )
 																																																																																																									if ( !CompxCraft )
 																																																																																																									{
 																																																																																																										CompxCraft = new ComplexBuilding;
-																																																																																																										memset( CompxCraft, 0, sizeof ComplexBuilding );
+																																																																																																										memset( CompxCraft, 0, sizeof(ComplexBuilding) );
 																																																																																																									};
 																																																																																																									if ( Idx >= MaxAStages )
 																																																																																																									{
@@ -3578,7 +3574,7 @@ bool CreateGOByName( GeneralObject* GO, char* name, char* newName )
 {
 	Visuals* VS = (Visuals*) GO;
 
-	memset( GO, 0, sizeof Visuals );
+	memset( GO, 0, sizeof(Visuals) );
 
 	for ( int i = 0; i < NNewMon; i++ )
 	{
@@ -3680,7 +3676,7 @@ void SprGroup::LoadSprites( char* fname )
 		Dy = new short[nl];
 		Radius = new short[nl];
 		ObjChar = new ObjCharacter[nl];
-		memset( ObjChar, 0, nl * sizeof ObjCharacter );
+		memset( ObjChar, 0, nl * sizeof(ObjCharacter) );
 		NLine( f1 );
 		Line++;
 		UpConv( gy );
@@ -3973,20 +3969,7 @@ byte* TmpMC; //amount of monsters in 4x4 cell,
 word* BLDList;
 void ZMem( byte* pntr, int siz )
 {
-	__asm {
-		push	edi
-		cld
-		xor		eax, eax
-		mov		edi, pntr
-		mov		ecx, siz
-		shr		ecx, 2
-		or ecx, ecx
-		jz		www
-		//		cli
-		rep		stosd
-		//sti
-		www : pop		edi
-	};
+	memset( pntr, 0, siz & ~3 );
 };
 
 
@@ -7832,7 +7815,9 @@ char* its1( int i )
 };
 void CreateTimedHint( char* s, int time );
 
+#ifdef _WIN32
 extern HGLOBAL PTR_MISS;
+#endif
 int rppx = 0;
 
 void LongProcesses()
@@ -9112,7 +9097,7 @@ int Nation::CreateNewMonsterAt( int rx, int ry, int n, bool Anyway )
 	}
 
 	Group[i] = OBJECTS + i;
-	memset( Group[i], 0, sizeof OneObject );
+	memset( Group[i], 0, sizeof(OneObject) );
 	LastObject = i;
 	//Cell8x8* CELL=&TCInf[NNUM][y>>11][x>>11];
 	OneObject* G = Group[i];
@@ -11212,7 +11197,7 @@ void AttackObjLink( OneObject* OBJ )
 	OneObject* OB;
 	if ( AttGroundMod )
 	{
-		memset( &TMPOBJ, 0, sizeof OneObject );
+		memset( &TMPOBJ, 0, sizeof(OneObject) );
 		OB = &TMPOBJ;
 		TMPOBJ.RealX = OBJ->DstX;
 		TMPOBJ.RealY = OBJ->DstY;
@@ -12461,7 +12446,7 @@ void MakeOneShot( OneObject* OB, int xd, int yd, int zd )
 };
 void NewMonsterSmartSendToLink( OneObject* OBJ );
 int SmartLink = 0x153829;
-void __stdcall CDGINIT_INIT1()
+void CDGINIT_INIT1()
 {
 	SmartLink = int( &NewMonsterSmartSendToLink ) + 0x7654391;
 };
@@ -16629,4 +16614,3 @@ void ProcessGuard()
 		}
 	}
 }
-#endif // _WIN32

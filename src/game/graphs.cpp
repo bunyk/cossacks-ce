@@ -28,7 +28,10 @@
 #include "activescenary.h"
 #include "drawform.h"
 #include "conststr.h"
+#include "lines.h"
+#ifdef _WIN32
 #include <Process.h>
+#endif
 #include "recorder.h"
 #include "gsinc.h"
 #define NOGRAF

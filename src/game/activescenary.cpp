@@ -10,7 +10,6 @@
 #include "fastdraw.h"
 #include "mapdiscr.h"
 
-#ifdef _WIN32
 #include "mouse.h"
 #include "mode.h"
 #include "fog.h"
@@ -37,7 +36,7 @@
 #include "activezone.h"
 #include "drawform.h"
 #include "recorder.h"
-#include "safety.h "
+#include "safety.h"
 #include "einfoclass.h"
 
 #include "playerinfo.h"
@@ -3458,6 +3457,7 @@ extern "C" DLLEXPORT void RefreshScreen()
 	GSYSDRAW();
 }
 
+#ifdef _WIN32
 extern "C" DLLEXPORT bool SelCenter( GAMEOBJ* DstZone, byte Nat, int R )
 {
 	Nat = AssignTBL[Nat];
@@ -3502,6 +3502,7 @@ extern "C" DLLEXPORT bool SelCenter( GAMEOBJ* DstZone, byte Nat, int R )
 	}
 	return true;
 }
+#endif // _WIN32
 extern "C" DLLEXPORT bool CreateZoneNearUnit( GAMEOBJ* DstZone, GAMEOBJ* Zone, GAMEOBJ* UnitType, byte Nat, int R )
 {
 	Nat = AssignTBL[Nat];
@@ -4728,7 +4729,7 @@ const int AI_PROB[4] = { 32768 / 100, 32768 / 50, 32768 / 10, 32768 };
 byte CurAINation = 1;
 City* CCIT = NULL;
 Nation* CNAT;
-#define PRC(x) ((32768*##x##)/100)
+#define PRC(x) ((32768*x)/100)
 
 int PERCONV[101] = { PRC( 0 ),PRC( 1 ),PRC( 2 ),PRC( 3 ),PRC( 4 ),PRC( 5 ),PRC( 6 ),PRC( 7 ),PRC( 8 ),PRC( 9 ),
 				  PRC( 10 ),PRC( 11 ),PRC( 12 ),PRC( 13 ),PRC( 14 ),PRC( 15 ),PRC( 16 ),PRC( 17 ),PRC( 18 ),PRC( 19 ),
@@ -5140,7 +5141,7 @@ extern "C" DLLEXPORT int GetUnits( GAMEOBJ* UnitType )
 	}
 }
 
-extern "C" DLLEXPORTint GetUnitsByUsage( byte Nat, byte Usage )
+extern "C" DLLEXPORT int GetUnitsByUsage( byte Nat, byte Usage )
 {
 	Nat = AssignTBL[Nat];
 	if ( AiIsRunNow )
@@ -5189,7 +5190,7 @@ extern "C" DLLEXPORT int GetTorgResult( byte SellRes, byte BuyRes, int SellAmoun
 	return GetTorgResultEx( INVECO[SellRes], INVECO[BuyRes], SellAmount );
 }
 
-extern "C" DLLEXPORTint GetReadyUnits( GAMEOBJ* UnitType )
+extern "C" DLLEXPORT int GetReadyUnits( GAMEOBJ* UnitType )
 {
 	if ( AiIsRunNow )
 	{
@@ -5208,7 +5209,7 @@ extern "C" DLLEXPORTint GetReadyUnits( GAMEOBJ* UnitType )
 	}
 }
 
-extern "C" DLLEXPORTvoid SetUpgradeLock( byte Res, byte Val )
+extern "C" DLLEXPORT void SetUpgradeLock( byte Res, byte Val )
 {
 	if ( Res < 8 )
 	{
@@ -5216,7 +5217,7 @@ extern "C" DLLEXPORTvoid SetUpgradeLock( byte Res, byte Val )
 	}
 }
 
-extern "C" DLLEXPORTvoid SetDefSettings( int p1, int p2 )
+extern "C" DLLEXPORT void SetDefSettings( int p1, int p2 )
 {
 	if ( AiIsRunNow )
 	{
@@ -5229,7 +5230,7 @@ extern "C" DLLEXPORTvoid SetDefSettings( int p1, int p2 )
 	}
 }
 
-extern "C" DLLEXPORTint GetMaxPeasantsInMines()
+extern "C" DLLEXPORT int GetMaxPeasantsInMines()
 {
 	int N = NtNUnits[CNAT->NNUM];
 	word* Uni = NatList[CNAT->NNUM];
@@ -5249,7 +5250,7 @@ extern "C" DLLEXPORTint GetMaxPeasantsInMines()
 	return Max;
 }
 
-extern "C" DLLEXPORTbool UpgIsDone( GAMEOBJ* Upgrade )
+extern "C" DLLEXPORT bool UpgIsDone( GAMEOBJ* Upgrade )
 {
 	if ( AiIsRunNow )
 	{
@@ -5268,7 +5269,7 @@ extern "C" DLLEXPORTbool UpgIsDone( GAMEOBJ* Upgrade )
 	}
 }
 
-extern "C" DLLEXPORTbool UpgIsRun( GAMEOBJ* Upgrade )
+extern "C" DLLEXPORT bool UpgIsRun( GAMEOBJ* Upgrade )
 {
 	if ( AiIsRunNow )
 	{
@@ -5291,13 +5292,13 @@ extern "C" DLLEXPORTbool UpgIsRun( GAMEOBJ* Upgrade )
 extern int* ResTBL;
 extern int  NInResTBL;
 
-extern "C" DLLEXPORTvoid SetMinesBuildingRules( int* Table, int NElm )
+extern "C" DLLEXPORT void SetMinesBuildingRules( int* Table, int NElm )
 {
 	ResTBL = Table;
 	NInResTBL = NElm;
 }
 
-extern "C" DLLEXPORTvoid SetMinesUpgradeRules( int* Table )
+extern "C" DLLEXPORT void SetMinesUpgradeRules( int* Table )
 {
 	if ( !AiIsRunNow )
 	{
@@ -5344,42 +5345,42 @@ extern "C" DLLEXPORTvoid SetMinesUpgradeRules( int* Table )
 	Nat->MU3C_PERCENT[2] = Table[26];
 }
 
-extern "C" DLLEXPORTbool FieldExist()
+extern "C" DLLEXPORT bool FieldExist()
 {
 	return CCIT->FieldReady;
 }
 
-extern "C" DLLEXPORTint GetDifficulty()
+extern "C" DLLEXPORT int GetDifficulty()
 {
 	return CCIT->Difficulty;
 }
 
-extern "C" DLLEXPORTint GetStartRes()
+extern "C" DLLEXPORT int GetStartRes()
 {
 	return CCIT->StartRes;
 }
 
-extern "C" DLLEXPORTint GetDiff( byte NI )
+extern "C" DLLEXPORT int GetDiff( byte NI )
 {
 	return CITY[NI].Difficulty;
 }
 
-extern "C" DLLEXPORTint GetResOnMap()
+extern "C" DLLEXPORT int GetResOnMap()
 {
 	return CCIT->ResOnMap;
 }
 
-extern "C" DLLEXPORTint GetLandType()
+extern "C" DLLEXPORT int GetLandType()
 {
 	return CCIT->LandType;
 }
 
-extern "C" DLLEXPORTvoid SetStandartVictory()
+extern "C" DLLEXPORT void SetStandartVictory()
 {
 	SCENINF.StandartVictory = 1;
 }
 
-extern "C" DLLEXPORTbool NationIsErased( byte Nat )
+extern "C" DLLEXPORT bool NationIsErased( byte Nat )
 {
 	if ( Nat < 8 )
 	{
@@ -5559,7 +5560,6 @@ extern "C" DLLEXPORT void SetDefenseState( byte State )
 		CCIT->DefenceStage = 0 != State;
 	}
 }
-#endif // _WIN32
 //-----------------------------------------------------------------------//
 void DosToWin( char* Str );
 bool ReadWinString( GFILE* F, char* STR, int Max )
@@ -5927,7 +5927,6 @@ void SFLB_LoadPlayerData()
 	}
 }
 
-#ifdef _WIN32
 WarPack WARS;
 
 void InvBatt()
@@ -6116,7 +6115,6 @@ extern "C" DLLEXPORT void MissErrorMessage( char* Header, char* Message )
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, Header, Message, sdlWindow);
 }
 
-#endif // _WIN32
 
 //Is the map editor running?
 bool RUNMAPEDITOR = 0;
@@ -6126,7 +6124,6 @@ bool RUNUSERMISSION = 0;
 
 char USERMISSPATH[128];
 
-#ifdef _WIN32
 
 extern "C" DLLEXPORT void RunMapeditor( char* path )
 {
@@ -6390,4 +6387,3 @@ extern "C" DLLEXPORT void SelectBuildingsInZone( byte NI, GAMEOBJ* Zone, GAMEOBJ
 		}
 	}
 }
-#endif // _WIN32

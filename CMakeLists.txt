@@ -51,8 +51,57 @@ add_executable(cossacks
 	src/game/3dbars.cpp
 	src/game/lines.cpp
 	src/game/nature.cpp
+	src/game/cdirsnd.cpp
+	src/game/cwave.cpp
+	src/game/gamesound.cpp
+	src/game/multi.cpp
+	src/game/unsyncro.cpp
+	src/game/recorder.cpp
+	src/game/river.cpp
+	src/game/savenewmap.cpp
+	src/game/gvclass.cpp
+	src/game/report.cpp
+	src/game/linux_stubs.cpp
 
 	src/game/conststr.cpp
+
+	src/game/antibug.cpp
+	src/game/stringshash.cpp
+	src/game/graphs.cpp
+	src/game/fractal.cpp
+	src/game/archtool.cpp
+	src/game/nation.cpp
+	src/game/mapsprites.cpp
+	src/game/menu.cpp
+	src/game/walls.cpp
+	src/game/waves.cpp
+	src/game/hint.cpp
+	src/game/economy.cpp
+	src/game/groups.cpp
+	src/game/motion.cpp
+	# src/game/path.cpp  # TODO: heavy asm, needs porting
+	src/game/navorots.cpp
+	src/game/newai.cpp
+	src/game/zbuffer.cpp
+	src/game/brigade.cpp
+	src/game/build.cpp
+	src/game/danger.cpp
+	src/game/activezone.cpp
+	src/game/upgrade.cpp
+	src/game/newupgrade.cpp
+	src/game/nuclear.cpp
+	src/game/onwater.cpp
+	src/game/transport.cpp
+	src/game/mine.cpp
+	src/game/ddex1.cpp
+	src/game/3dmaped.cpp
+	src/game/3dsurf.cpp
+	src/game/megapolis.cpp
+	src/game/icontool.cpp
+	src/game/topograf.cpp
+	src/game/strategyresearch.cpp
+	src/game/einfoclass.cpp
+	src/game/3dgraph.cpp
 )
 
 # Link to the actual SDL3 libraries.

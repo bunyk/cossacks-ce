@@ -1446,7 +1446,7 @@ void LoadFormations( ResFile f1 )
 		tmp[i] = bid;
 		tmp1[i] = nat;
 		Brigade* BR = CITY[nat].Brigs + bid;
-		memset( BR, 0, sizeof Brigade );
+		memset( BR, 0, sizeof(Brigade) );
 		BR->Enabled = true;
 		BR->ArmyID = 0xFFFF;
 		RBlockRead( f1, &BR->AddDamage, sizeof BR->AddDamage );
@@ -1626,7 +1626,7 @@ void LoadFormationsNew( ResFile f1 )
 		RBlockRead( f1, &nat, 4 );
 		RBlockRead( f1, &bid, 4 );
 		Brigade* BR = CITY[nat].Brigs + bid;
-		memset( BR, 0, sizeof Brigade );
+		memset( BR, 0, sizeof(Brigade) );
 		BR->Enabled = true;
 		BR->ArmyID = 0xFFFF;
 		RBlockRead( f1, &BR->AddDamage, sizeof BR->AddDamage );

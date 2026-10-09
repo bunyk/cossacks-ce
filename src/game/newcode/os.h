@@ -47,12 +47,25 @@ typedef unsigned int UINT;
 
 
 // Handle to a DDL or something
-typedef void* HINSTANCE;  
+typedef void* HINSTANCE;
+
+// Windows DLL loading has no Linux equivalent in this port;
+// LoadLibrary fails (returns NULL) so callers take their error paths.
+#define LoadLibrary(Name) ((HINSTANCE)0)
+#define FreeLibrary(Lib)
+#define GetProcAddress(Lib, Name) ((void*)0)
+
+// Global memory allocator shims (only fixed blocks were used)
+#define GMEM_FIXED 0
+#define GlobalAlloc(Flags, Size) malloc(Size)
+#define GlobalFree(Ptr) free(Ptr)
 
 BOOL DeleteFile(LPCTSTR lpFileName);
 void SetLastError(DWORD dwErrCode);
 
 #define HIBYTE(w) ((BYTE)(((w) >> 8) & 0xFF))
+
+typedef int HRESULT;
 
 #include <cstring>
 

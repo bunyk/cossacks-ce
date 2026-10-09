@@ -5,6 +5,11 @@
 
 #include "cdirsnd.h"
 
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include <time.h>
+
 static void StreamAudioBuffer(SoundBuffer* pSoundBuffer, Sint16* destSamples, int additionalAmount)
 {
 	if (!pSoundBuffer->playing)
@@ -12,7 +17,7 @@ static void StreamAudioBuffer(SoundBuffer* pSoundBuffer, Sint16* destSamples, in
 		return;
 	}
 
-	int bufferSize = min(additionalAmount, pSoundBuffer->size - pSoundBuffer->pos);
+	int bufferSize = (additionalAmount < (int)(pSoundBuffer->size - pSoundBuffer->pos) ? additionalAmount : (int)(pSoundBuffer->size - pSoundBuffer->pos));
 
 	// FIXME: the size in bytes should be just additionalAmount since it's the size in bytes, not words
 	Sint16* samples = (Sint16*)malloc(sizeof(Sint16) * bufferSize);
@@ -399,7 +404,7 @@ void CDirSound::SetPan(UINT bufferNum, int pan) {
 
 void CDirSound::ProcessSoundSystem()
 {
-	for (int i = 1; i < min(MAXSND1, m_currentBufferNum+1); i++)
+	for (int i = 1; i < (MAXSND1 < m_currentBufferNum+1 ? MAXSND1 : m_currentBufferNum+1); i++)
 	{
 		if (m_bufferPointers[i]->playing)
 		{

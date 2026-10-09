@@ -4,7 +4,7 @@
 #include "fastdraw.h"
 #include "mapdiscr.h"
 
-#ifdef _WIN32
+#include <dirent.h>
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
@@ -53,9 +53,7 @@ void CorrectBrigadesSelection( byte NT );
 void ImCorrectBrigadesSelection( byte NT );
 byte* NPresence;
 Nation NATIONS[8];
-#endif
 byte MYNATION;
-#ifdef _WIN32
 word* Selm[8];
 word* SerN[8];
 word* ImSelm[8];
@@ -69,7 +67,6 @@ void CreateUnit( Nation* NT, byte x, byte y, word ID );
 
 //Execute buffer 
 DWORD Signatur[2049];
-#endif // _WIN32
 
 byte ExBuf[8192];
 int EBPos;
@@ -81,7 +78,6 @@ void InitEBuf()
 
 extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
 
-#ifdef _WIN32
 extern bool NOPAUSE;
 //[1][ni][x][y][x1][y1]
 void CmdCreateSelection( byte NI, byte x, byte y, byte x1, byte y1 )
@@ -191,7 +187,6 @@ void CmdProduceObj( byte NI, word Type )
 	EBPos += 5;
 
 };
-#endif // _WIN32
 //[7][ni][index]
 void CmdMemSelection( byte NI, byte Index )
 {
@@ -222,7 +217,6 @@ void CmdRememSelection( byte NI, byte Index )
 
 }
 
-#ifdef _WIN32
 //[9][ni][ObjID:16][OT]
 void CmdBuildObj( byte NI, word ObjID )
 {
@@ -1122,7 +1116,6 @@ void CmdChangeNatRefTBL( byte* TBL )
 	memcpy( ExBuf + EBPos + 2, TBL, 8 );
 	EBPos += 10;
 }
-#endif // _WIN32
 
 void CmdChangePeaceTimeStage( int Stage )
 {
@@ -1131,7 +1124,6 @@ void CmdChangePeaceTimeStage( int Stage )
 	EBPos += 3;
 }
 
-#ifdef _WIN32
 void CmdAddMoney( byte NI, DWORD Value )
 {
 	ExBuf[EBPos] = 96;
@@ -1676,15 +1668,7 @@ void InitSelection()
 {
 	int sz = ( MAXOBJECT >> 2 ) + 128;
 	if ( sz > 16384 )sz = 16384;
-	__asm {
-		push	edi
-		mov		ecx, sz
-		cld
-		xor		eax, eax
-		mov		edi, offset CmdDone
-		rep		stosd
-		pop		edi
-	};
+	memset( CmdDone, 0, sz * 4 );
 };
 
 
@@ -2869,9 +2853,9 @@ void ClearSFNames()
 	};
 	NSFNames = 0;
 };
-void InstallSFName( WIN32_FIND_DATA* FD )
+void InstallSFName( char* fileName )
 {
-	ResFile ff1 = RReset( FD->cFileName );
+	ResFile ff1 = RReset( fileName );
 	char nam[128];
 	if ( ff1 != INVALID_HANDLE_VALUE )
 	{
@@ -2890,10 +2874,10 @@ void InstallSFName( WIN32_FIND_DATA* FD )
 				RBlockRead( ff1, nam, nlen );
 				RClose( ff1 );
 				PLNames[NSFNames] = new char[strlen( nam ) + 1];
-				SFNames[NSFNames] = new char[strlen( FD->cFileName ) + 1];
+				SFNames[NSFNames] = new char[strlen( fileName ) + 1];
 				PLID[NSFNames] = lap;
 				strcpy( PLNames[NSFNames], nam );
-				strcpy( SFNames[NSFNames], FD->cFileName );
+				strcpy( SFNames[NSFNames], fileName );
 				NSFNames++;
 			}
 			else RClose( ff1 );
@@ -2904,12 +2888,16 @@ void InstallSFName( WIN32_FIND_DATA* FD )
 void CreateSFList()
 {
 	NSFNames = 0;
-	WIN32_FIND_DATA FD;
-	HANDLE HF = FindFirstFile( "*.sav", &FD );
-	if ( HF != INVALID_HANDLE_VALUE )
-	{
-		InstallSFName( &FD );
-		while ( FindNextFile( HF, &FD ) )InstallSFName( &FD );
+	DIR* dir = opendir( "." );
+	if ( dir ) {
+		struct dirent* de;
+		while ( ( de = readdir( dir ) ) ) {
+			int len = strlen( de->d_name );
+			if ( len > 4 && !strcasecmp( de->d_name + len - 4, ".sav" ) ) {
+				InstallSFName( de->d_name );
+			}
+		}
+		closedir( dir );
 	};
 };
 //2. Search for name of the game,returns -1 if name not found
@@ -5989,4 +5977,3 @@ int _implSelUnitsSet_OLD( byte* Ptr )
 };
 int PrevCallTime = 0;
 
-#endif // _WIN32

@@ -80,6 +80,7 @@ void CheckAsks(){
 static int dd=0;
 int CheckSum;
 void AddCS(void* Src,int sz){
+#ifdef _WIN32
     int cc=int(Src);
     __asm{
         push    esi
@@ -95,6 +96,7 @@ kpp0:   add     eax,[esi]
 kpp:    add     CheckSum,eax
         pop     esi
     };
+#endif
 };
 /*
 void CreateProtection(){

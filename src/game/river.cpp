@@ -1,5 +1,6 @@
 #include "ddini.h"
 #include "resfile.h"
+#include "lines.h"
 #include "fastdraw.h"
 #include "mgraph.h"
 #include "mouse.h"

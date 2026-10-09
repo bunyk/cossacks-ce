@@ -12,8 +12,8 @@
 #include "menu.h"
 #include "mapdiscr.h"
 #include "3drandmap.h"
+#include "lines.h"
 
-#ifdef _WIN32
 #include "multipl.h"
 #include "fog.h"
 #include "walls.h"
@@ -147,7 +147,7 @@ bool GenMap::AddGArea( int x, int y )
 	if ( NGAreas >= MaxGArea )
 	{
 		MaxGArea += 256;
-		GTopMap = (GenArea*) realloc( GTopMap, MaxGArea * sizeof GenArea );
+		GTopMap = (GenArea*) realloc( GTopMap, MaxGArea * sizeof(GenArea) );
 	};
 	GenArea* GAR = GTopMap + NGAreas;
 	GAR->x = x;
@@ -359,7 +359,6 @@ void GenMap::CreateNet()
 
 	CheckNet( this );
 }
-#endif // _WIN32
 
 void ErrM( char* s );
 
@@ -370,7 +369,6 @@ void InvHill( char* Name )
 	ErrM( ccc );
 }
 
-#ifdef _WIN32
 bool LoadTerrain( char* Name )
 {
 	GFILE* F = Gopen( Name, "r" );
@@ -2118,8 +2116,8 @@ void RM_LoadVertices( ResFile F, int Vsx, int Vsy )
 		RBlockRead( F, &s2, 1 );
 		RBlockRead( F, &s3, 1 );
 		RBlockRead( F, &Height, 2 );
-		if ( Height > 0 )NPOS++;
-		if ( Height < 0 )NNEG++;
+		if ( Height > 0 )NPOS = true;
+		if ( Height < 0 )NNEG = true;
 		if ( vx > 0 && vy > 0 && vx < VertInLine - 1 && vy < MaxTH - 1 )
 		{
 			int StartSect = ( vx >> 1 ) * 6 + vy*SectInLine;
@@ -2770,11 +2768,9 @@ void DelExt()
 	}
 }
 
-#endif // _WIN32
 bool EnterStr( char * str, char* Message );
 bool TexPieceMode = false;
 
-#ifdef _WIN32
 void ProcessRM_Load()
 {
 	ImmVis = true;
@@ -3312,7 +3308,6 @@ void GenerateRandomRoad( int idx );
 extern int LastAddSpr;
 
 void GenerateWithStyle( char* terr );
-#endif // _WIN32
 
 int PeaceTimeLeft = 300;
 int MaxPeaceTime = 0;
@@ -3329,7 +3324,6 @@ byte DipCentreState = 0;
 byte ShipyardState = 0;
 byte MarketState = 0;
 
-#ifdef _WIN32
 int DecodeOptionsFromNumber( const int number, int *result );
 
 bool CreateRandomTerrain( char* Name, int NPlay, int MountStyle,
@@ -4458,6 +4452,7 @@ void ClearAllRounds()
 void ShowNatDeal()
 {
 	return;
+#ifdef _WIN32
 	int adx = ScrWidth - NATLX;
 	int sptr = int( ScreenPtr ) + ScrWidth * 100;
 
@@ -4485,6 +4480,7 @@ void ShowNatDeal()
 					  pop		edi
 					  pop		esi
 	}
+#endif
 }
 
 void SetBrightSpot( int x, int y, int Brightness, bool dir );
@@ -4594,7 +4590,6 @@ void PictureCordons()
 		};
 	};
 }
-#endif // _WIN32
 
 RandomMapDesc::RandomMapDesc()
 {
@@ -4795,7 +4790,6 @@ void RandomMapDesc::Load( char* name )
 	}
 }
 
-#ifdef _WIN32
 //-------------------------Generating map by the bitmap for missions-------------------//
 void GenerateMapForMission( char* Relief, char* Ground, char* Mount, char* Soft );
 
@@ -5371,7 +5365,7 @@ void SamplesSet::DelSquare( int x, int y )
 			{
 				if ( j < n - 1 )
 				{
-					memcpy( SSET[i].ROOT + j, SSET[i].ROOT + j + 1, ( n - j - 1 ) * sizeof SampleRoot );
+					memcpy( SSET[i].ROOT + j, SSET[i].ROOT + j + 1, ( n - j - 1 ) * sizeof(SampleRoot) );
 				};
 				SSET[i].NRoots--;
 
@@ -5474,7 +5468,7 @@ void SamplesSet::EditRootParam( int x, int y )
 				return;
 			};
 			//root not found!
-			SSET[i].ROOT = (SampleRoot*) realloc( SSET[i].ROOT, ( SSET[i].NRoots + 1 ) * sizeof SampleRoot );
+			SSET[i].ROOT = (SampleRoot*) realloc( SSET[i].ROOT, ( SSET[i].NRoots + 1 ) * sizeof(SampleRoot) );
 			int cur = SSET[i].NRoots;
 			SSET[i].NRoots++;
 			SSET[i].ROOT[cur].AttachMask = MASK;
@@ -5534,7 +5528,7 @@ void SamplesSet::Draw()
 void SamplesSet::NewSet( char* name )
 {
 	for ( int i = 0; i < NSmp; i++ )if ( !_stricmp( SSET[i].Name, name ) )return;
-	SSET = (SampleSrc*) realloc( SSET, ( NSmp + 1 ) * sizeof SampleSrc );
+	SSET = (SampleSrc*) realloc( SSET, ( NSmp + 1 ) * sizeof(SampleSrc) );
 	SampleSrc* SS = SSET + NSmp;
 	strcpy( SS->Name, name );
 	strcpy( CurrentSet, name );
@@ -5768,7 +5762,7 @@ void SaveSMSInMap( ResFile F )
 		};
 		for ( int j = 0; j < SAMSET.SSET[i].NRoots; j++ )
 		{
-			RBlockWrite( F, SAMSET.SSET[i].ROOT + j, sizeof SampleRoot );
+			RBlockWrite( F, SAMSET.SSET[i].ROOT + j, sizeof(SampleRoot) );
 		};
 	};
 };
@@ -5784,7 +5778,7 @@ void LoadSMSInMap( ResFile F )
 	if ( SAMSET.NSmp )
 	{
 		SAMSET.SSET = new SampleSrc[SAMSET.NSmp];
-		memset( SAMSET.SSET, 0, SAMSET.NSmp * sizeof SampleSrc );
+		memset( SAMSET.SSET, 0, SAMSET.NSmp * sizeof(SampleSrc) );
 	};
 	for ( int i = 0; i < SAMSET.NSmp; i++ )
 	{
@@ -5807,7 +5801,7 @@ void LoadSMSInMap( ResFile F )
 		};
 		for ( int j = 0; j < SAMSET.SSET[i].NRoots; j++ )
 		{
-			RBlockRead( F, SAMSET.SSET[i].ROOT + j, sizeof SampleRoot );
+			RBlockRead( F, SAMSET.SSET[i].ROOT + j, sizeof(SampleRoot) );
 		};
 	};
 };
@@ -5865,7 +5859,7 @@ void LinkSys::AddLinkStart( int x, int y, DWORD Mask, byte Type )
 	if ( NLis >= MaxLis )
 	{
 		MaxLis += 32;
-		LIS = (OneLinkStart*) realloc( LIS, MaxLis * sizeof OneLinkStart );
+		LIS = (OneLinkStart*) realloc( LIS, MaxLis * sizeof(OneLinkStart) );
 	};
 	LIS[NLis].x = x;
 	LIS[NLis].y = y;
@@ -5933,7 +5927,7 @@ void  LinkSys::LoadOneLink( char* Name )
 
 		for ( int j = 0; j < Nrt; j++ )
 		{
-			RBlockRead( F, SS->ROOT + j, sizeof SampleRoot );
+			RBlockRead( F, SS->ROOT + j, sizeof(SampleRoot) );
 			int rt = SS->ROOT[j].RootType;
 			int k = SS->ROOT[j].Direction;
 			int nn = NSMP[rt][k];
@@ -6312,7 +6306,7 @@ void LinkSys::AddStamp( char* Name, int x, int y )
 		STM[i].Coor[p + p + 1] = y;
 		return;
 	};
-	STM = (SampleStamp*) realloc( STM, ( NStm + 1 ) * sizeof SampleStamp );
+	STM = (SampleStamp*) realloc( STM, ( NStm + 1 ) * sizeof(SampleStamp) );
 	strcpy( STM[NStm].Name, Name );
 	STM[NStm].Coor = new int[8 * 32];
 	STM[NStm].NS = 1;
@@ -6469,12 +6463,12 @@ int FAST_RM_LoadVertices( SaveBuf* SB, int Vsx, int Vsy, int* VIDX, int MaxVIDX 
 
 		if ( Height > 0 )
 		{
-			NPOS++;
+			NPOS = true;
 		}
 
 		if ( Height < 0 )
 		{
-			NNEG++;
+			NNEG = true;
 		}
 
 		if ( vx > 0 && vy > 0 && vx < VertInLine - 1 && vy < MaxTH - 1 )
@@ -6718,9 +6712,11 @@ byte carr[39] = { 47,241,85,85,45,45,47,87,45,87,47,85,241,85,85,45,47,241,85,85
 void Draw1( int x, int y )
 {
 	if ( x<0 || x>RealLx || y<4 || y>RealLy )return;
-	int ofs = int( ScreenPtr ) + x + y*ScrWidth;
+	byte* p = (byte*)ScreenPtr + x + y*ScrWidth;
+	byte c = carr[randoma[(int)(((long)p) & 8191)] % 10];
+#ifdef _WIN32
 	int xx1 = int( trans8 );
-	byte c = carr[randoma[ofs & 8191] % 10];
+	int ofs = int( ScreenPtr ) + x + y*ScrWidth;
 	__asm {
 		mov eax, ofs
 		xor ebx, ebx
@@ -6751,6 +6747,16 @@ void Draw1( int x, int y )
 		mov dl, byte ptr[trans4 + ebx]
 		mov[eax], dl
 	};
+#else
+	for (int i = 0; i < 4; i++) {
+		byte* q = p + i * ScrWidth;
+		*q = trans8[((*q) << 8) | c];
+	}
+	byte* q3 = p + 3 * ScrWidth + 1;
+	*q3 = trans4[*q3];
+	byte* q2 = p + 2 * ScrWidth + 1;
+	*q2 = trans4[*q2];
+#endif
 };
 void Draw_GRASS()
 {
@@ -6789,6 +6795,8 @@ byte GrassMask[256] = {
 void ProlongGrass( int x, int y )
 {
 	if ( x<0 || x>RealLx || y<4 || y>RealLy )return;
+	byte* p = (byte*)ScreenPtr + x + y*ScrWidth;
+#ifdef _WIN32
 	int ofs = int( ScreenPtr ) + x + y*ScrWidth;
 	__asm {
 		push edx
@@ -6800,46 +6808,60 @@ void ProlongGrass( int x, int y )
 		cmp byte ptr[GrassMask + eax], 0
 		je xsd
 
+		sub ebx, edx
+		mov ah, [ebx];
+		mov cl, [trans8 + eax]
+		mov[ebx], cl
+
+		sub ebx, edx
+		mov al, [ebx];
+		mov cl, [trans8 + eax]
+		mov[ebx], ah
 
 		sub ebx, edx
 		mov ah, [ebx];
 		mov cl, [trans8 + eax]
-			mov[ebx], cl
-			//mov [ebx],ah
+		mov[ebx], cl
 
-
-			sub ebx, edx
-			mov al, [ebx];
+		sub ebx, edx
+		mov ah, [ebx];
 		mov cl, [trans8 + eax]
-			//mov [ebx],cl
-			mov[ebx], ah
+		mov[ebx], cl
 
-			sub ebx, edx
-			mov ah, [ebx];
+		sub ebx, edx
+		mov ah, [ebx];
 		mov cl, [trans8 + eax]
-			mov[ebx], cl
-			//mov [ebx],ah
+		mov[ebx], cl
 
-			sub ebx, edx
-			mov ah, [ebx];
+		sub ebx, edx
+		mov ah, [ebx];
 		mov cl, [trans8 + eax]
-			mov[ebx], cl
-			//mov [ebx],ah
-
-			sub ebx, edx
-			mov ah, [ebx];
-		mov cl, [trans8 + eax]
-			mov[ebx], cl
-			//mov [ebx],ah
-
-			sub ebx, edx
-			mov ah, [ebx];
-		mov cl, [trans8 + eax]
-			mov[ebx], cl
-			//mov [ebx],ah
-			xsd :
+		mov[ebx], cl
+		xsd :
 		pop edx
 	};
+#else
+	if (GrassMask[p[0]] == 0) return;
+	byte p0 = p[0];
+	byte* q1 = p - ScrWidth;
+	byte p1 = *q1;
+	*q1 = trans8[(p1 << 8) | p0];
+	byte* q2 = q1 - ScrWidth;
+	byte p2 = *q2;
+	*q2 = p1;
+	byte* q3 = q2 - ScrWidth;
+	byte p3 = *q3;
+	*q3 = trans8[(p3 << 8) | p2];
+	byte* q4 = q3 - ScrWidth;
+	byte p4 = *q4;
+	*q4 = trans8[(p4 << 8) | p2];
+	byte* q5 = q4 - ScrWidth;
+	byte p5 = *q5;
+	*q5 = trans8[(p5 << 8) | p2];
+	byte* q6 = q5 - ScrWidth;
+	byte p6 = *q6;
+	*q6 = trans8[(p6 << 8) | p2];
+#endif
 };
 int dx_p[11] = { -5,-4,-3, 2,-1, 0, 1, 2, 3, 4, 5 };
 int dy_p[11] = { 1, 3, 2, 0, 2, 4, 2, 3, 1, 2, 3 };
@@ -6864,7 +6886,7 @@ void DrawWaysToSel()
 
 void GlobalProgress::Setup()
 {
-	memset( this, 0, sizeof GlobalProgress );
+	memset( this, 0, sizeof(GlobalProgress) );
 };
 void GlobalProgress::AddPosition( int ID, int Weight, int Max )
 {
@@ -6955,4 +6977,3 @@ void MakeDesert()
 		};
 	};
 };
-#endif // _WIN32

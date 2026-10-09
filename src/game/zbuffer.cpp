@@ -7,6 +7,7 @@
 #include "mapdiscr.h"
 #include "fog.h"
 #include "megapolis.h"
+#include "lines.h"
 
 #include <assert.h>
 #include "walls.h"
@@ -443,11 +444,8 @@ void AddLine( short X1, short Y1, short X2, short Y2, short x, short y, OneObjec
 
 void SortWords( int NWords, word* Data, short* Factor )
 {
-	if (NWords < 2)
-	{
-		return;
-	}
-
+	if (NWords < 2) return;
+#ifdef _WIN32
 	__asm
 	{
 		push	esi
@@ -477,6 +475,20 @@ void SortWords( int NWords, word* Data, short* Factor )
 			pop		edi
 			pop		esi
 	}
+#else
+	// Bubble sort Factor[] ascending, keeping Data[] in sync
+	bool swapped;
+	do {
+		swapped = false;
+		for (int i = 0; i < NWords - 1; i++) {
+			if (Factor[i] > Factor[i+1]) {
+				short tf = Factor[i]; Factor[i] = Factor[i+1]; Factor[i+1] = tf;
+				word  td = Data[i];   Data[i]   = Data[i+1];   Data[i+1]   = td;
+				swapped = true;
+			}
+		}
+	} while (swapped);
+#endif
 }
 
 void SortZBuffer()

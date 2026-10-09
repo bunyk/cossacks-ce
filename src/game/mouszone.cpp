@@ -1,5 +1,4 @@
 #include <SDL3/SDL_scancode.h>
-#ifdef _WIN32
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
@@ -230,13 +229,11 @@ SDL_Scancode LastPressedCodes[8] = {
 };
 extern bool EnterChatMode;
 extern bool EditMapMode;
-#endif // _WIN32
 
 // TODO: this better be a dictionary of <SDL_Scancode:bool>
 // For now we'll just use an array with size of the maximum value from ScanKeys: SDL_SCANCODE_KP_0 + 1
 bool ScanPressed[SDL_SCANCODE_KP_0 + 1];
 
-#ifdef _WIN32
 int CheckZonePressed(int i) {
 	if (EnterChatMode || EditMapMode)return false;
 	for (int j = 0; j < 8; j++)if (LastPressedCodes[j] != SDL_SCANCODE_UNKNOWN) {
@@ -383,4 +380,3 @@ void DeleteZone(int i)
 		Zones[i].Index = -1;
 	}
 }
-#endif // _WIN32

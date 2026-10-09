@@ -1,4 +1,3 @@
-#ifdef _WIN32
 
 #include "ddini.h"
 #include "resfile.h"
@@ -439,12 +438,10 @@ extern bool HaveExComm;
 void EraseRND();
 extern int ExitNI;
 
-#endif // _WIN32
 
 //Zero a LOT of variables and pointers
 void UnLoading()
 {
-#ifdef _WIN32
 	ExitNI = -1;
 
 	if (!RivDir)
@@ -494,7 +491,7 @@ void UnLoading()
 	LastAddSpr = 0;
 	CLRGR();
 	LASTSAVEFILE[0] = 0;
-	memset( &AI_Registers, 0, sizeof AI_Registers );
+	memset( &AI_Registers, 0, sizeof(AI_Registers) );
 	CloseExplosions();
 	NThemUnits = 1;
 	NMyUnits = 1;
@@ -623,11 +620,11 @@ void UnLoading()
 	}
 
 	UnitsField.ClearMaps();
-	memset( EUsage, 0, sizeof EUsage );
+	memset( EUsage, 0, sizeof(EUsage) );
 	NNuc = 0;
-	memset( NucList, 0, sizeof NucList );
-	memset( NucSN, 0, sizeof NucSN );
-	memset( NDone, 0, sizeof NDone );
+	memset( NucList, 0, sizeof(NucList) );
+	memset( NucSN, 0, sizeof(NucSN) );
+	memset( NDone, 0, sizeof(NDone) );
 	memset( WRefs, 0, VAL_MAXCIOFS * 4 * 4 );
 	ClearTopChange();
 	StopDynamicalTopology();
@@ -644,10 +641,8 @@ void UnLoading()
 
 	Sprites = nullptr;
 	MaxSprt = 0;
-#endif // _WIN32
 }
 
-#ifdef _WIN32
 //SAVING...
 void SaveRLE1( SaveBuf* SB, void* data, int Size )
 {
@@ -855,7 +850,7 @@ void SaveNations( SaveBuf* SB )
 				if (GO->CondEnabled)nn = nn | 2;
 				if (GO->ManualDisable)nn |= 4;
 				xBlockWrite( SB, &nn, 1 );
-				xBlockWrite( SB, GO->MoreCharacter, sizeof AdvCharacter );
+				xBlockWrite( SB, GO->MoreCharacter, sizeof(AdvCharacter) );
 			};
 		};
 
@@ -984,7 +979,7 @@ bool LoadNations( SaveBuf* SB )
 			GO->Enabled = ( nn & 1 ) != 0;
 			GO->CondEnabled = ( nn & 2 ) != 0;
 			GO->ManualDisable = ( nn & 4 ) != 0;
-			xBlockRead( SB, GO->MoreCharacter, sizeof AdvCharacter );
+			xBlockRead( SB, GO->MoreCharacter, sizeof(AdvCharacter) );
 		};
 
 		//Information about city
@@ -1201,7 +1196,7 @@ void SaveObjects( SaveBuf* SB )
 			};
 			//saving index of selection group
 			int pp;
-			if (OB->GroupIndex)pp = div( int( OB->GroupIndex ) - int( SelSet ), sizeof SelGroup ).quot;
+			if (OB->GroupIndex)pp = div( int( OB->GroupIndex ) - int( SelSet ), sizeof(SelGroup) ).quot;
 			else pp = 255;
 			xBlockWrite( SB, &pp, 1 );
 			SAVMES( SB, " ORDERINFO" );
@@ -1262,7 +1257,7 @@ void LoadObjects( SaveBuf* SB )
 		xBlockRead( SB, &IND, 2 );
 		OneObject* OB = OBJECTS + IND;
 		Group[IND] = OB;
-		memset( OB, 0, sizeof OneObject );
+		memset( OB, 0, sizeof(OneObject) );
 		OB->Index = IND;
 		xBlockRead( SB, &OB->NeedPath, int( &OB->Inside ) - int( &OB->NeedPath ) );
 		Nation* NT = &NATIONS[OB->NNUM];
@@ -1290,7 +1285,7 @@ void LoadObjects( SaveBuf* SB )
 		{
 			OR1 = GetOrdBlock();
 			if (!j)OB->LocalOrder = OR1;
-			xBlockRead( SB, OR1, sizeof Order1 );
+			xBlockRead( SB, OR1, sizeof(Order1) );
 			OR1->DoLink = GetOrderRef( int( OR1->DoLink ) );
 			if (PRE)PRE->NextOrder = OR1;
 			PRE = OR1;
@@ -1315,7 +1310,7 @@ void SaveSelection( SaveBuf* SB )
 	for (int i = 0; i < 80; i++)
 	{
 		SelGroup* SG = &SelSet[i];
-		xBlockWrite( SB, &SG->NMemb, ( sizeof SelGroup ) - 8 );
+		xBlockWrite( SB, &SG->NMemb, ( sizeof(SelGroup) ) - 8 );
 		if (SG->NMemb)
 		{
 			xBlockWrite( SB, SG->Member, SG->NMemb << 1 );
@@ -1341,7 +1336,7 @@ void LoadSelection( SaveBuf* SB )
 	for (int i = 0; i < 80; i++)
 	{
 		SelGroup* SG = &SelSet[i];
-		xBlockRead( SB, &SG->NMemb, ( sizeof SelGroup ) - 8 );
+		xBlockRead( SB, &SG->NMemb, ( sizeof(SelGroup) ) - 8 );
 		if (SG->NMemb)
 		{
 			SG->Member = new word[SG->NMemb];
@@ -1408,7 +1403,7 @@ void SaveWalls( SaveBuf* SB )
 	};
 	xBlockWrite( SB, &NGates, 4 );
 	xBlockWrite( SB, &MaxGates, 4 );
-	xBlockWrite( SB, Gates, NGates * sizeof Gate );
+	xBlockWrite( SB, Gates, NGates * sizeof(Gate) );
 	SAVMES( SB, " RESOURCES" );
 	int RRR[8][8];
 	for (int p = 0; p < 8; p++)
@@ -1419,7 +1414,7 @@ void SaveWalls( SaveBuf* SB )
 		};
 	};
 	xBlockWrite( SB, &RRR[0][0], sizeof RRR );
-	xBlockWrite( SB, &RESADD[0][0], sizeof RESADD );
+	xBlockWrite( SB, &RESADD[0][0], sizeof(RESADD) );
 };
 void SetTexturedRound( int x, int y, int rx, byte Tex );
 extern word TexList[128];
@@ -1469,7 +1464,7 @@ void LoadWalls( SaveBuf* SB )
 	xBlockRead( SB, &NGates, 4 );
 	xBlockRead( SB, &MaxGates, 4 );
 	Gates = new Gate[MaxGates];
-	xBlockRead( SB, Gates, NGates * sizeof Gate );
+	xBlockRead( SB, Gates, NGates * sizeof(Gate) );
 	LOADMES( SB );
 	int RRR[8][8];
 	xBlockRead( SB, &RRR[0][0], sizeof RRR );
@@ -1493,7 +1488,7 @@ void LoadWalls( SaveBuf* SB )
 			NT->GENERAL.RESRM[j] = 0;
 		};
 	};
-	xBlockRead( SB, &RESADD[0][0], sizeof RESADD );
+	xBlockRead( SB, &RESADD[0][0], sizeof(RESADD) );
 };
 //extern Nation WEP;
 #define MaxExpl 8192
@@ -1529,7 +1524,7 @@ void LoadAnmObj( SaveBuf* SB )
 	if (i != 'OMNA')LOutErr( "Save file is corrupted." );
 	int NExplosions;
 	xBlockRead( SB, &NExplosions, 4 );
-	memset( EUsage, 0, sizeof EUsage );
+	memset( EUsage, 0, sizeof(EUsage) );
 	for (int i = 0; i < NExplosions; i++)
 	{
 		word ai;
@@ -1593,7 +1588,7 @@ void LoadSprites( SaveBuf* SB )
 	xBlockRead( SB, &MAXSPR, 4 );
 	MaxSprt = ( ( MAXSPR >> 15 ) + 1 ) << 15;
 	Sprites = new OneSprite[MaxSprt];
-	memset( Sprites, 0, MaxSprt * sizeof OneSprite );
+	memset( Sprites, 0, MaxSprt * sizeof(OneSprite) );
 	int NSprt;
 	xBlockRead( SB, &NSprt, 4 );
 	for (int i = 0; i < NSprt; i++)
@@ -1725,7 +1720,7 @@ void LS_SaveTopology( SaveBuf* SB )
 	for (int j = 0; j < NAreas; j++)
 	{
 		Area Ar1 = TopMap[j];
-		xBlockWrite( SB, &Ar1, sizeof Area );
+		xBlockWrite( SB, &Ar1, sizeof(Area) );
 		Ar1.MaxLink = Ar1.NLinks;
 		if (Ar1.NMines)xBlockWrite( SB, Ar1.MinesIdx, Ar1.NMines << 1 );
 		if (Ar1.NLinks)xBlockWrite( SB, Ar1.Link, Ar1.NLinks << 2 );
@@ -1769,7 +1764,7 @@ void LS_LoadTopology( SaveBuf* SB )
 	for (int j = 0; j < NAreas; j++)
 	{
 		Area* Ar1 = TopMap + j;
-		xBlockRead( SB, Ar1, sizeof Area );
+		xBlockRead( SB, Ar1, sizeof(Area) );
 		if (Ar1->NMines)Ar1->MinesIdx = new word[Ar1->NMines];
 		else Ar1->MinesIdx = NULL;
 		if (Ar1->MaxLink)Ar1->Link = new word[Ar1->MaxLink << 1];
@@ -1884,7 +1879,7 @@ void SaveAI( SaveBuf* SB )
 	int chk = 654321;
 	//for(int i=0;i<8;i++)if(NATIONS[i].AI_Enabled)N++;
 	xBlockWrite( SB, &chk, 4 );
-	xBlockWrite( SB, &AI_Registers, sizeof AI_Registers );
+	xBlockWrite( SB, &AI_Registers, sizeof(AI_Registers) );
 	for (int i = 1; i < 8; i++)
 	{
 		PINFO[i].GameTime = PINFO[0].GameTime;
@@ -1913,7 +1908,7 @@ void SaveAI( SaveBuf* SB )
 		};
 		*/
 		xBlockWrite( SB, &CurAI, 4 );
-		if (pr)xBlockWrite( SB, CT, sizeof City );
+		if (pr)xBlockWrite( SB, CT, sizeof(City) );
 		//details:
 		//1.Brigades
 		word N = 0;
@@ -2156,14 +2151,14 @@ void SaveAI( SaveBuf* SB )
 				xBlockWrite( SB, &k, 1 );
 				//essential part
 				EnemyInfo* EINF = GNFO.EINF[i];
-				xBlockWrite( SB, EINF->TowsID, sizeof EINF->TowsID );
-				xBlockWrite( SB, EINF->TowsSN, sizeof EINF->TowsSN );
-				xBlockWrite( SB, EINF->TowsMaxR, sizeof EINF->TowsMaxR );
-				xBlockWrite( SB, EINF->TowDanger, sizeof EINF->TowDanger );
-				xBlockWrite( SB, &EINF->CurTow, sizeof EINF->CurTow );
-				xBlockWrite( SB, &EINF->CurR, sizeof EINF->CurR );
-				xBlockWrite( SB, &EINF->CurXip, sizeof EINF->CurXip );
-				xBlockWrite( SB, &EINF->MaxTowR, sizeof EINF->MaxTowR );
+				xBlockWrite( SB, EINF->TowsID, sizeof(EINF)->TowsID );
+				xBlockWrite( SB, EINF->TowsSN, sizeof(EINF)->TowsSN );
+				xBlockWrite( SB, EINF->TowsMaxR, sizeof(EINF)->TowsMaxR );
+				xBlockWrite( SB, EINF->TowDanger, sizeof(EINF)->TowDanger );
+				xBlockWrite( SB, &EINF->CurTow, sizeof(EINF)->CurTow );
+				xBlockWrite( SB, &EINF->CurR, sizeof(EINF)->CurR );
+				xBlockWrite( SB, &EINF->CurXip, sizeof(EINF)->CurXip );
+				xBlockWrite( SB, &EINF->MaxTowR, sizeof(EINF)->MaxTowR );
 				SaveRLE1( SB, EINF->InflMap, TopLx*TopLx * 4 );
 
 				//enemy walls
@@ -2179,7 +2174,7 @@ void SaveAI( SaveBuf* SB )
 
 				if (EINF->NDINF)
 				{
-					xBlockWrite( SB, EINF->DINF, EINF->NDINF * sizeof DangerInfo );
+					xBlockWrite( SB, EINF->DINF, EINF->NDINF * sizeof(DangerInfo) );
 				}
 
 				//safe places for grenaders
@@ -2199,7 +2194,7 @@ void SaveAI( SaveBuf* SB )
 					if (EINF->SCINF[ii])
 					{
 						xBlockWrite( SB, &ii, 4 );
-						xBlockWrite( SB, EINF->SCINF[ii], 64 * sizeof SafeCellInfo );
+						xBlockWrite( SB, EINF->SCINF[ii], 64 * sizeof(SafeCellInfo) );
 					}
 				}
 
@@ -2231,7 +2226,7 @@ void LoadAI( SaveBuf* SB )
 
 	if (chk == 654321)
 	{
-		xBlockRead( SB, &AI_Registers, sizeof AI_Registers );
+		xBlockRead( SB, &AI_Registers, sizeof(AI_Registers) );
 	}
 
 	if (NPlayers == 1)
@@ -2281,7 +2276,7 @@ void LoadAI( SaveBuf* SB )
 
 		if (pr)
 		{
-			xBlockRead( SB, CT, sizeof City );
+			xBlockRead( SB, CT, sizeof(City) );
 		}
 
 		if (CT->AIID[0])
@@ -2548,14 +2543,14 @@ void LoadAI( SaveBuf* SB )
 		}
 
 		EnemyInfo* EINF = GNFO.EINF[FirstID];
-		xBlockRead( SB, EINF->TowsID, sizeof EINF->TowsID );
-		xBlockRead( SB, EINF->TowsSN, sizeof EINF->TowsSN );
-		xBlockRead( SB, EINF->TowsMaxR, sizeof EINF->TowsMaxR );
-		xBlockRead( SB, EINF->TowDanger, sizeof EINF->TowDanger );
-		xBlockRead( SB, &EINF->CurTow, sizeof EINF->CurTow );
-		xBlockRead( SB, &EINF->CurR, sizeof EINF->CurR );
-		xBlockRead( SB, &EINF->CurXip, sizeof EINF->CurXip );
-		xBlockRead( SB, &EINF->MaxTowR, sizeof EINF->MaxTowR );
+		xBlockRead( SB, EINF->TowsID, sizeof(EINF)->TowsID );
+		xBlockRead( SB, EINF->TowsSN, sizeof(EINF)->TowsSN );
+		xBlockRead( SB, EINF->TowsMaxR, sizeof(EINF)->TowsMaxR );
+		xBlockRead( SB, EINF->TowDanger, sizeof(EINF)->TowDanger );
+		xBlockRead( SB, &EINF->CurTow, sizeof(EINF)->CurTow );
+		xBlockRead( SB, &EINF->CurR, sizeof(EINF)->CurR );
+		xBlockRead( SB, &EINF->CurXip, sizeof(EINF)->CurXip );
+		xBlockRead( SB, &EINF->MaxTowR, sizeof(EINF)->MaxTowR );
 
 		//xBlockRead(SB,EINF->InflMap,TopLx*TopLx*4);
 		LoadRLE1( SB, EINF->InflMap );
@@ -2574,20 +2569,20 @@ void LoadAI( SaveBuf* SB )
 
 		if (EINF->NDINF)
 		{
-			xBlockRead( SB, EINF->DINF, EINF->NDINF * sizeof DangerInfo );
+			xBlockRead( SB, EINF->DINF, EINF->NDINF * sizeof(DangerInfo) );
 		}
 
 		//safe places for grenaders
 		word N = 0;
 		xBlockRead( SB, &N, 2 );
-		memset( EINF->SCINF, 0, sizeof EINF->SCINF );
+		memset( EINF->SCINF, 0, sizeof(EINF)->SCINF );
 
 		for (int ii = 0; ii < N; ii++)
 		{
 			int j;
 			xBlockRead( SB, &j, 4 );
 			EINF->SCINF[j] = new SafeCellInfo[64];
-			xBlockRead( SB, EINF->SCINF[j], 64 * sizeof SafeCellInfo );
+			xBlockRead( SB, EINF->SCINF[j], 64 * sizeof(SafeCellInfo) );
 		}
 		chk = 132457;
 		xBlockRead( SB, &chk, 4 );
@@ -2630,7 +2625,7 @@ void SaveActiveObjects( SaveBuf* f1 )
 	for (int i = 0; i < NAZones; i++)
 	{
 		ActiveZone* AZ = AZones + i;
-		xBlockWrite( f1, AZ, sizeof ActiveZone );
+		xBlockWrite( f1, AZ, sizeof(ActiveZone) );
 		sz = strlen( AZ->Name ) + 1;
 		xBlockWrite( f1, &sz, 1 );
 		xBlockWrite( f1, AZ->Name, sz );
@@ -2639,7 +2634,7 @@ void SaveActiveObjects( SaveBuf* f1 )
 	for (int i = 0; i < NAGroups; i++)
 	{
 		ActiveGroup* AG = AGroups + i;
-		xBlockWrite( f1, AG, sizeof ActiveGroup );
+		xBlockWrite( f1, AG, sizeof(ActiveGroup) );
 		sz = strlen( AG->Name ) + 1;
 		xBlockWrite( f1, &sz, 1 );
 		xBlockWrite( f1, AG->Name, sz );
@@ -2661,7 +2656,7 @@ void LoadActiveObjects( SaveBuf* f1 )
 	{
 		int sz = 0;
 		ActiveZone* AZ = AZones + i;
-		xBlockRead( f1, AZ, sizeof ActiveZone );
+		xBlockRead( f1, AZ, sizeof(ActiveZone) );
 		xBlockRead( f1, &sz, 1 );
 		AZ->Name = new char[sz];
 		xBlockRead( f1, AZ->Name, sz );
@@ -2671,7 +2666,7 @@ void LoadActiveObjects( SaveBuf* f1 )
 	{
 		int sz = 0;
 		ActiveGroup* AG = AGroups + i;
-		xBlockRead( f1, AG, sizeof ActiveGroup );
+		xBlockRead( f1, AG, sizeof(ActiveGroup) );
 		xBlockRead( f1, &sz, 1 );
 		AG->Name = new char[sz];
 		xBlockRead( f1, AG->Name, sz );
@@ -2784,7 +2779,7 @@ void LoadMission( SaveBuf* SB )
 
 	xBlockRead( SB, &SCENINF.NUGRP, 4 );
 	xBlockRead( SB, &SCENINF.MaxUGRP, 4 );
-	SCENINF.UGRP = (UnitsGroup*) realloc( SCENINF.UGRP, SCENINF.MaxUGRP * sizeof UnitsGroup );
+	SCENINF.UGRP = (UnitsGroup*) realloc( SCENINF.UGRP, SCENINF.MaxUGRP * sizeof(UnitsGroup) );
 
 	for (int i = 0; i < SCENINF.NUGRP; i++)
 	{
@@ -2821,7 +2816,7 @@ void SaveCost( SaveBuf* SB )
 	xBlockWrite( SB, &NCost, 4 );
 	if (NCost)
 	{
-		xBlockWrite( SB, COSTPL, NCost * sizeof CostPlace );
+		xBlockWrite( SB, COSTPL, NCost * sizeof(CostPlace) );
 	}
 }
 
@@ -2839,9 +2834,9 @@ void LoadCost( SaveBuf* SB )
 	if (NC > MaxCost)
 	{
 		MaxCost = NC;
-		COSTPL = (CostPlace*) realloc( COSTPL, MaxCost * sizeof CostPlace );
+		COSTPL = (CostPlace*) realloc( COSTPL, MaxCost * sizeof(CostPlace) );
 	}
-	xBlockRead( SB, COSTPL, NC * sizeof CostPlace );
+	xBlockRead( SB, COSTPL, NC * sizeof(CostPlace) );
 }
 
 extern word rpos;
@@ -3215,11 +3210,9 @@ void SFLB_LoadGame( char* fnm, bool LoadNation )
 
 //-----------------------------------
 #define ARR_RETVAL(x,y,ARR,sz) if(x<0)x=0;if(y<0)y=0;if(x>=sz)x=sz-1;if(y>=sz)y=sz-1;return ARR[x+y*sz];
-#endif // _WIN32
 //1)fmap
 int LX_fmap;
 
-#ifdef _WIN32
 word GetV_fmap( int x, int y )
 {
 	ARR_RETVAL( x, y, fmap, LX_fmap );
@@ -3250,7 +3243,6 @@ extern short* THMap;// Map of heights in vertices
 extern byte* TexMap;//Map of textures in vertices
 extern byte* SectMap;//Map of sections on lines
 					 
-#endif // _WIN32
 
 //Bitshift for mapsize dependent calculations
 //1 = normal maps
@@ -3258,7 +3250,6 @@ extern byte* SectMap;//Map of sections on lines
 //3 = huge (4x) maps
 int ADDSH = 1;
 
-#ifdef _WIN32
 int VAL_SHFCX;
 int VAL_MAXCX;
 int VAL_MAXCIOFS;
@@ -3813,4 +3804,3 @@ void CleanNMSL()
 	CurMCash = 0;
 	memset( MRef, 0xFF, VAL_MAXCIOFS << 1 );
 }
-#endif // _WIN32

@@ -1,6 +1,8 @@
 #ifndef GFILE_H
 #define GFILE_H
 
+#include <stdio.h>
+#include <stdarg.h>
 #include "resfile.h"
 
 class GFILE{

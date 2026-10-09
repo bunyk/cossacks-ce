@@ -5,6 +5,7 @@
 #include "mouse.h"
 #include "menu.h"
 #include "mapdiscr.h"
+#include "lines.h"
 #include "multipl.h"
 #include "fog.h"
 #include "walls.h"

@@ -3,7 +3,6 @@
 #include "fastdraw.h"
 #include "gfile.h"
 
-#ifdef _WIN32
 #include "mgraph.h"
 #include "mouse.h"
 #include "menu.h"
@@ -34,7 +33,6 @@ extern Nation WEP;
 void DosToWin(char*);
 char* mbm[1024];
 int	nmbm = 0;
-#endif // _WIN32
 
 void NLine(GFILE* f) 
 {
@@ -45,7 +43,6 @@ void NLine(GFILE* f)
 	} while (tt[0] != 10 && zz == 1);
 }
 
-#ifdef _WIN32
 void Errx(LPCSTR s)
 {
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Nation loading failed...", s, sdlWindow);
@@ -689,7 +686,6 @@ void LoadWeapon()
 		Errx("[MEMBERS] not found in WEAPON.NDS");
 	}
 }
-#endif // _WIN32
 
 void normstr(char* str)
 {
@@ -702,7 +698,6 @@ void normstr(char* str)
 	}
 }
 
-#ifdef _WIN32
 void InitFlags(GeneralObject* GO)
 {
 	GO->delay = 8;
@@ -2189,4 +2184,3 @@ void LoadAI(char* fn, Nation* NT) {
 	} while (z&&mode != 255);
 	for (int p = 0; p < ngrp; p++)free(grp[p]);
 };
-#endif // _WIN32

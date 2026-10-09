@@ -2,7 +2,6 @@
 #include <math.h>
 #include "newcode/os.h"
 
-#ifdef _WIN32
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
@@ -276,7 +275,6 @@ int GetBar3DOwner( int x, int y )
 	};
 	return Owner;
 }
-#endif // _WIN32
 
 void CBar( int x, int y, int Lx, int Ly, unsigned char c );
 
@@ -294,7 +292,6 @@ DLLEXPORT void xLine( int x, int y, int x1, int y1, byte c )
 	}
 }
 
-#ifdef _WIN32
 extern int RealLx;
 extern int RealLy;
 
@@ -348,4 +345,3 @@ void ShowAllBars()
 		};
 	};
 };
-#endif // _WIN32

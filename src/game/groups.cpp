@@ -25,14 +25,12 @@ SortClass::~SortClass() {
 	};
 };
 void SortClass::Sort() {
-	if (NUids < 2)return;
+	if (NUids < 2) return;
+#ifdef _WIN32
 	int uids = int(Uids);
-	//int sns=int(Usn);
-	//int snsn;
 	int parms = int(Parms);
 	int nuids = NUids - 1;
 	byte fault;
-
 	__asm {
 		push    esi
 		push    edi
@@ -40,8 +38,6 @@ void SortClass::Sort() {
 		mov     edi, parms
 		mov     ecx, nuids
 		lpp1 :
-		//mov     eax,sns
-		//mov     snsn,eax
 		xor     eax, eax
 			mov     esi, uids
 			mov     edi, parms
@@ -55,18 +51,12 @@ void SortClass::Sort() {
 			jle     lpp2
 			mov[edi], edx
 			mov[edi + 4], ebx
-			//xchg    ebx,snsn
-			//mov     dx,[ebx]
-			//xchg    dx,[ebx+2]
-			//mov     [ebx],dx
-			//xchg    ebx,snsn
 			mov     bx, [esi]
 			xchg    bx, [esi + 2]
 			mov[esi], bx
 			mov     fault, 1
 			lpp2:   add     esi, 2
 			add     edi, 4
-			//add     snsn,2
 			dec     ecx
 			jnz     lpp3
 			cmp     fault, 0
@@ -74,6 +64,20 @@ void SortClass::Sort() {
 			pop     esi
 			pop     edi
 	};
+#else
+	// Bubble sort: sort Parms[] ascending, keeping Uids[] in sync
+	bool swapped;
+	do {
+		swapped = false;
+		for (int i = 0; i < NUids - 1; i++) {
+			if (Parms[i] > Parms[i + 1]) {
+				int  tp = Parms[i]; Parms[i] = Parms[i+1]; Parms[i+1] = tp;
+				word tu = Uids[i];  Uids[i]  = Uids[i+1];  Uids[i+1]  = tu;
+				swapped = true;
+			}
+		}
+	} while (swapped);
+#endif
 };
 void SortClass::CheckSize(int Size) {
 	if (!Size)return;

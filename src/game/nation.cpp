@@ -162,6 +162,7 @@ void AddAsk( word ReqID, byte x, byte y, char zdx, char zdy )
 	OneObject* OB = Group[ReqID];
 	OB->AskMade = true;
 	//ENDDEBUG
+#ifdef _WIN32
 	__asm {
 		//		inc		NAsk
 		mov		eax, NAsk
@@ -178,6 +179,13 @@ void AddAsk( word ReqID, byte x, byte y, char zdx, char zdy )
 		mov		word ptr[eax + 6], bx
 		inc		NAsk
 	};
+#else
+	AskMove& a = Ask[NAsk++];
+	a.ReqID = ReqID;
+	a.PreID = 0xFFFF;
+	a.x = x;  a.y = y;
+	a.dx = zdx; a.dy = zdy;
+#endif
 };
 
 //Обработка запросов, сначала освобождаем все старые клетки
@@ -313,9 +321,9 @@ void COrd( Order1* ordr )
 		return;
 	}
 
-	if (( int( ordr ) - int( OrdBuf ) ) / sizeof Order1 >= MaxOrdCount)
+	if (( int( ordr ) - int( OrdBuf ) ) / (int)sizeof(Order1) >= MaxOrdCount)
 	{
-		int RRRR = ( int( ordr ) - int( OrdBuf ) ) / sizeof Order1;
+		int RRRR = ( int( ordr ) - int( OrdBuf ) ) / (int)sizeof(Order1);
 	}
 }
 
@@ -1505,8 +1513,8 @@ word NNuc;
 //Zero NucList, NucSN, NNuc
 void InitNucList()
 {
-	memset( NucList, 255, sizeof NucList );
-	memset( NucSN, 255, sizeof NucSN );
+	memset( NucList, 255, sizeof(NucList) );
+	memset( NucSN, 255, sizeof(NucSN) );
 	NNuc = 0;
 }
 
@@ -1620,7 +1628,7 @@ int GetNationByID( char* Name )
 
 void AttackObjLink( OneObject* OBJ );
 ReportFn* AttackLink = (ReportFn*) 0x652419;
-void __stdcall CDGINIT_INIT2()
+void CDGINIT_INIT2()
 {
 	AttackLink = &AttackObjLink;
 };

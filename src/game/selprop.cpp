@@ -12,9 +12,9 @@
 #include "mapdiscr.h"
 #include "mode.h"
 #include "nature.h"
+#include "lines.h"
 #include "fonts.h"
 
-#ifdef _WIN32
 #include "walls.h"
 #include "megapolis.h"
 #include "gsound.h"
@@ -112,11 +112,9 @@ extern int mousePointerType;
 extern int curdx;
 extern int curdy;
 
-#endif // _WIN32
 //uniq properties
 bool GetCoord;
 
-#ifdef _WIN32
 UniqMethood* UNIM;
 
 void InitPrpBar()
@@ -1907,7 +1905,6 @@ void ShowAbility()
 }
 
 //-------------------MESSAGES-------------------//
-#endif //_WIN32
 
 void LoadConstStr();
 
@@ -2036,7 +2033,6 @@ DLLEXPORT char* GetTextByID( char* ID )
 	return ID; // No text found, return key
 }
 
-#ifdef _WIN32
 DLLEXPORT int GetTextIDByID( char* ID )
 {
 	for (int i = 0; i < NMess; i++)
@@ -2048,4 +2044,3 @@ DLLEXPORT int GetTextIDByID( char* ID )
 	}
 	return -1;
 }
-#endif

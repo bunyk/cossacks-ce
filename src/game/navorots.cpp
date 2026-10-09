@@ -12,6 +12,7 @@
 #include "nucl.h"
 
 #include "megapolis.h"
+#include "lines.h"
 #include "mode.h"
 #include "mapsprites.h"
 #include <assert.h>

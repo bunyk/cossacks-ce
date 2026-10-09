@@ -19,6 +19,7 @@
 #include "gsound.h"
 #include <assert.h>
 #include "3dmaped.h"
+#include "dialogs.h"
 #include "mapsprites.h"
 #include "gp_draw.h"
 #include "realwater.h"
@@ -32,7 +33,6 @@
 #include "conststr.h"
 #include "drawform.h"
 #include "icontool.h"
-#include "dialogs.h"
 #include "path.h"
 #include "sort.h"
 #include "recorder.h"

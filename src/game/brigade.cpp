@@ -14,6 +14,7 @@
 
 #include <assert.h>
 #include "megapolis.h"
+#include "lines.h"
 
 #include "mapsprites.h"
 #include "newai.h"
@@ -43,7 +44,7 @@ int GetBMIndex( OneObject* OB );
 
 void Brigade::Init( City* ct, word id )
 {
-	memset( this, 0, sizeof Brigade );
+	memset( this, 0, sizeof(Brigade) );
 	CT = ct;
 	ID = id;
 	ArmyID = 0xFFFF;
@@ -1282,7 +1283,7 @@ void B_CaptureMineLink( Brigade* BR )
 							BMS->M_SN = MIN->Serial;
 							//BMS->NWalls=0;
 							//BMS->Walls=NULL;
-							BMS->Size = sizeof MineBase;
+							BMS->Size = sizeof(MineBase);
 							BMS->topx = MIN->RealX >> 10;
 							BMS->topy = MIN->RealY >> 10;
 							BMS->ID = 0x4519;
@@ -1574,7 +1575,7 @@ void B_ProtectOrder( Brigade* BR )
 char* PFM_Mess = "[Protect mines]";
 void Brigade::ProtectFarMines()
 {
-	Brigade_PFM* BPF = (Brigade_PFM*) CreateOrder( 0, sizeof Brigade_PFM );
+	Brigade_PFM* BPF = (Brigade_PFM*) CreateOrder( 0, sizeof(Brigade_PFM) );
 	BPF->Delay = 0;
 	BPF->Time = 0;
 	BPF->TowID = 0xFFFF;
@@ -1587,7 +1588,7 @@ void Brigade::ProtectFarMines()
 	BPF->BLink = &B_ProtectOrder;
 	BPF->Message = PFM_Mess;
 	BPF->Prio = 0;
-	BPF->Size = sizeof Brigade_PFM;
+	BPF->Size = sizeof(Brigade_PFM);
 	BOrder = BPF;
 }
 
@@ -1848,7 +1849,7 @@ bool Brigade::CreateNearOfficer( OneObject* OB, word Type, int ODIndex )
 			OB->InArmy = false;
 			Memb[1] = 0xFFFF;
 			MembSN[1] = 0xFFFF;
-			memset( &BM, 0, sizeof BM );
+			memset( &BM, 0, sizeof(BM) );
 		}
 		else OB->StandGround = true;
 		if ( !Dem )OB->InArmy = true;
@@ -2370,12 +2371,12 @@ char* HLST_Message = "[HumanLocalSendTo]";
 void Brigade::HumanLocalSendTo( int x, int y, short Dir, byte Prio, byte OrdType )
 {
 	if ( NMemb < 4 )return;
-	B_HSend* BS = (B_HSend*) CreateOrder( OrdType, sizeof B_HSend );
+	B_HSend* BS = (B_HSend*) CreateOrder( OrdType, sizeof(B_HSend) );
 	BS->x = x;
 	BS->y = y;
 	BS->Prio = Prio;
 	BS->Dir = Dir;
-	BS->Size = sizeof B_HSend;
+	BS->Size = sizeof(B_HSend);
 	BS->OrdType = OrdType;
 	BS->BLink = &HumanLocalSendToLink;
 	BS->Message = HLST_Message;
@@ -2567,10 +2568,10 @@ void B_LeaveAttackLink( Brigade* BR )
 char* KP_Message = "[KeepPosition]";
 void Brigade::KeepPositions( byte OrdType, byte Prio )
 {
-	BrigadeOrder* OR = CreateOrder( OrdType, sizeof BrigadeOrder );
+	BrigadeOrder* OR = CreateOrder( OrdType, sizeof(BrigadeOrder) );
 	OR->Message = KP_Message;
 	OR->Prio = Prio;
-	OR->Size = sizeof BrigadeOrder;
+	OR->Size = sizeof(BrigadeOrder);
 	OR->BLink = &B_KeepPositionsLink;
 	int N = NMemb;
 	char DIRC = Direction;
@@ -3051,13 +3052,13 @@ void Brigade::HumanGlobalSendTo( int x, int y, short Dir, byte Prio, byte OrdTyp
 	LastOrderTime = tmtmt;
 	word Top = GetTopology( &x, &y );
 	if ( Top == 0xFFFF )return;
-	B_SmartSend* OR1 = (B_SmartSend*) CreateOrder( OrdType, sizeof B_SmartSend );
+	B_SmartSend* OR1 = (B_SmartSend*) CreateOrder( OrdType, sizeof(B_SmartSend) );
 	OR1->BLink = &B_HumanGlobalSendToLink;
 	OR1->Prio = Prio;
 	OR1->x = x;
 	OR1->y = y;
 	OR1->Dir = Dir;
-	OR1->Size = sizeof B_SmartSend;
+	OR1->Size = sizeof(B_SmartSend);
 	OR1->NextX = 0xFFFF;
 	OR1->NextY = 0xFFFF;
 	OR1->NextTop = 0xFFFF;
@@ -3141,7 +3142,7 @@ void EraseBrigade( Brigade* BR )
 	City* CT = BR->CT;
 	int id = BR->ID;
 	BR->DeleteAll();
-	memset( BR, 0, sizeof Brigade );
+	memset( BR, 0, sizeof(Brigade) );
 	BR->ID = id;
 	BR->CT = CT;
 };
@@ -3464,15 +3465,15 @@ void B_BitvaLink( Brigade* BR )
 void Brigade::Bitva()
 {
 	if ( BOrder&&BOrder->BLink == &B_BitvaLink )return;
-	Brigade_Bitva* OR1 = (Brigade_Bitva*) CreateOrder( 0, sizeof Brigade_Bitva );
+	Brigade_Bitva* OR1 = (Brigade_Bitva*) CreateOrder( 0, sizeof(Brigade_Bitva) );
 	SetStandState( this, 1 );
 	OR1->StartTop = 0xFFFF;
 	OR1->BLink = &B_BitvaLink;
-	OR1->Size = sizeof Brigade_Bitva;
+	OR1->Size = sizeof(Brigade_Bitva);
 	OR1->Prio = 0;
 	OR1->Message = BBIT_Message;
 	OR1->NEn = 0;
-	memset( OR1->BitMask, 0, sizeof OR1->BitMask );
+	memset( OR1->BitMask, 0, sizeof(OR1)->BitMask );
 	int MinX = 10000000;
 	int MinY = 10000000;
 	int MaxX = 0;
@@ -3543,7 +3544,7 @@ void CorrectBrigadesSelection( byte NT )
 
 	int BrigsID[512];
 	byte BFlags[128];
-	memset( BFlags, 0, sizeof BFlags );
+	memset( BFlags, 0, sizeof(BFlags) );
 	int NBR = 0;
 	int N = NSL[NT];
 	word* mon = Selm[NT];
@@ -3587,7 +3588,7 @@ void ImCorrectBrigadesSelection( byte NT )
 {
 	int BrigsID[512];
 	byte BFlags[128];
-	memset( BFlags, 0, sizeof BFlags );
+	memset( BFlags, 0, sizeof(BFlags) );
 	int NBR = 0;
 	int N = ImNSL[NT];
 	word* mon = ImSelm[NT];
@@ -3752,8 +3753,8 @@ void ResearchCurrentIsland( byte Nat )
 
 	int NInIsl[MaxIsl];
 
-	memset( NInIsl, 0, sizeof NInIsl );
-	memset( IslPrs, 0, sizeof IslPrs );
+	memset( NInIsl, 0, sizeof(NInIsl) );
+	memset( IslPrs, 0, sizeof(IslPrs) );
 
 	int N = NtNUnits[Nat];
 	word* Uni = NatList[Nat];
@@ -5124,10 +5125,10 @@ void MakeShipBattle( Brigade* BR )
 {
 	word Top = DetermineWaterTopology( BR );
 	if ( Top == 0xFFFF )return;
-	Ship_Battle* OR = (Ship_Battle*) BR->CreateOrder( 0, sizeof Ship_Battle );
+	Ship_Battle* OR = (Ship_Battle*) BR->CreateOrder( 0, sizeof(Ship_Battle) );
 	OR->BLink = &MakeShipBattleLink;
 	OR->Message = NULL;
-	OR->Size = sizeof Ship_Battle;
+	OR->Size = sizeof(Ship_Battle);
 	OR->ComType = 0;
 	OR->Params[0] = -1;
 	OR->Params[1] = -1;
@@ -5205,7 +5206,7 @@ void CreateCostPlaces()
 							if ( NCost == MaxCost )
 							{
 								MaxCost += 100;
-								COSTPL = (CostPlace*) realloc( COSTPL, MaxCost * sizeof CostPlace );
+								COSTPL = (CostPlace*) realloc( COSTPL, MaxCost * sizeof(CostPlace) );
 							};
 							COSTPL[NCost].xc = ix + ix - DX;
 							COSTPL[NCost].yc = iy + iy - DY;
@@ -5795,9 +5796,9 @@ void MakeDiversionLink( Brigade* BR )
 };
 void MakeDiversion( Brigade* BR )
 {
-	B_DiversionOrder* DOR = (B_DiversionOrder*) BR->CreateOrder( 0, sizeof B_DiversionOrder );
+	B_DiversionOrder* DOR = (B_DiversionOrder*) BR->CreateOrder( 0, sizeof(B_DiversionOrder) );
 	BR->BOrder = DOR;
-	DOR->Size = sizeof B_DiversionOrder;
+	DOR->Size = sizeof(B_DiversionOrder);
 	DOR->NU = 0;
 	DOR->MaxU = 80;
 	DOR->Phase = 0;
