@@ -111,3 +111,12 @@ target_link_libraries(cossacks PRIVATE SDL3_image::SDL3_image SDL3::SDL3)
 # And Boost
 find_package(Boost REQUIRED COMPONENTS context filesystem iostreams)
 target_link_libraries(cossacks PRIVATE Boost::context Boost::filesystem Boost::iostreams)
+
+# Small SDL3 utility to browse GSC resource archives
+add_executable(gscbrowser
+    tools/gscbrowser.cpp
+    src/game/arc/gscarch.cpp
+    src/game/arc/isimasks.cpp
+    src/game/newcode/os.cpp
+)
+target_link_libraries(gscbrowser PRIVATE SDL3::SDL3 Boost::iostreams)

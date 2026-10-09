@@ -56,6 +56,13 @@ public:
 	
 	LPGSCfile GetFileHandle(LPCSTR lpcsFileName);
 	VOID CloseFileHandle(LPGSCfile lpFileHandle);
+
+	// Direct FAT access (used by tools and by the Linux file browser)
+	int GetEntryCount() const { return m_Header ? (int) m_Header->m_Entries : 0; }
+	const TGSCarchFAT* GetEntryFAT( int i ) const
+	{
+		return (const TGSCarchFAT*) ( (const uint8_t*) m_FAT + i * sizeof( TGSCarchFAT ) );
+	}
 	
 	CGSCarch();
 	virtual ~CGSCarch();
