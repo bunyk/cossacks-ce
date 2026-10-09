@@ -138,20 +138,6 @@ int  GP_System::GetGPHeight( int i, int n )
 	}
 }
 
-#ifdef _WIN32
-bool GP_System::GetGPSize( int i, int n, int* Lx, int* Ly )
-{
-	*Lx = 0;
-	*Ly = 0;
-	if (LoadGP( i ))
-	{
-		if (n >= GPS.GPNFrames[i])return false;
-		*Lx = ImLx[i][n];
-		*Ly = ImLy[i][n];
-		return true;
-	}
-	else return false;
-};
 byte* GP_System::GetCash( int Size )
 {
 	int UsedSize = -8;
@@ -206,6 +192,21 @@ byte* GP_System::GetCash( int Size )
 	byte* cps = Cash + CashPos;
 	CashPos += UsedSize + 8;
 	return cps;
+};
+
+#ifdef _WIN32
+bool GP_System::GetGPSize( int i, int n, int* Lx, int* Ly )
+{
+	*Lx = 0;
+	*Ly = 0;
+	if (LoadGP( i ))
+	{
+		if (n >= GPS.GPNFrames[i])return false;
+		*Lx = ImLx[i][n];
+		*Ly = ImLy[i][n];
+		return true;
+	}
+	else return false;
 };
 #endif // _WIN32
 
@@ -670,6 +671,232 @@ bool GP_System::LoadGP( int i )
 		return false;
 	};
 }
+#ifndef _WIN32
+
+// C++ port of the GP sprite decompressors and blit routines.
+// The Windows versions are x86 asm further below.
+
+static void StdUnpack( byte* Dest, byte* Src, int Len, byte* Voc )
+{
+    byte* dst = Dest;
+    byte* src = Src;
+    int rem = Len;
+    while (rem > 0)
+    {
+        byte bits = *src++;
+        for (int b = 0; b < 8 && rem > 0; b++, bits <<= 1)
+        {
+            if (bits & 0x80)
+            {
+                unsigned cx = (unsigned char)src[0] | ((unsigned char)src[1] << 8);
+                src += 2;
+                int count = (cx >> 12) + 3;
+                byte* from = Voc + (cx & 0xFFF);
+                rem -= count;
+                while (count-- > 0) *dst++ = *from++;
+            }
+            else
+            {
+                *dst++ = *src++;
+                rem--;
+            }
+        }
+    }
+}
+
+static void LZUnpack( byte* Dest, byte* Src, int Len )
+{
+    byte* dst = Dest;
+    byte* src = Src;
+    int rem = Len;
+    while (rem > 0)
+    {
+        byte bits = *src++;
+        for (int b = 0; b < 8 && rem > 0; b++, bits >>= 1)
+        {
+            if (bits & 1)
+            {
+                unsigned cx = (unsigned char)src[0] | ((unsigned char)src[1] << 8);
+                src += 2;
+                int count = (cx >> 13) + 3;
+                int negofs = (cx & 0x1FFF);
+                byte* from = dst - negofs - 1;
+                rem -= count;
+                while (count-- > 0) *dst++ = *from++;
+            }
+            else
+            {
+                *dst++ = *src++;
+                rem--;
+            }
+        }
+    }
+}
+
+// Blit one scanline segment. `dst` advances by skip+count pixels.
+// Returns new dst position.
+static inline byte* blit_seg( byte* dst, byte* src, int skip, int count,
+                               int clip_left, int clip_right )
+{
+    dst += skip;
+    if (count <= 0) return dst;
+
+    int draw_start = 0;
+    int draw_end   = count;
+
+    if (clip_left > 0)
+    {
+        draw_start = clip_left;
+        clip_left  = 0;
+    }
+    if (clip_right >= 0 && draw_end > clip_right)
+    {
+        draw_end = clip_right;
+    }
+
+    int skip_src = draw_start;
+    int draw_n   = draw_end - draw_start;
+
+    dst      += draw_start;
+    src      += skip_src;
+
+    if (draw_n > 0)
+        memcpy(dst, src, draw_n);
+
+    dst += count - draw_start;
+    return dst;
+}
+
+// C++ equivalent of the Windows asm GP_ShowMaskedPict.
+// Handles simple lines (bit7=0) and complex lines (bit7=1).
+// Full left/right/top/bottom clipping.
+static void GP_ShowMaskedPict( int x, int y, GP_Header* Pic, byte* CData, byte* /*Encoder*/ )
+{
+    x += Pic->dx;
+    y += Pic->dy;
+    int Lx     = Pic->Lx;
+    int NLines = Pic->NLines;
+
+    if (y + NLines <= WindY || x + Lx <= WindX || x > WindX1 || y > WindY1)
+        return;
+
+    // mask table starts at Pic+23 bytes
+    byte* mask = (byte*)Pic + 23;
+    byte* pix  = CData;         // pixel data pointer
+
+    // skip top-clipped lines
+    int top_skip = (y < WindY) ? WindY - y : 0;
+    for (int i = 0; i < top_skip; i++)
+    {
+        byte m = *mask++;
+        if (!m) continue;
+        int n_segs;
+        bool complex_line = (m & 0x80) != 0;
+        if (!complex_line)
+        {
+            n_segs = m & 0x7F;
+            for (int s = 0; s < n_segs; s++)
+            {
+                /* skip */ mask++;
+                int cnt = *mask++;
+                pix += cnt;
+            }
+        }
+        else
+        {
+            n_segs = m & 0x1F;
+            byte pix_mask = (m & 0x20) ? 16 : 0;
+            for (int s = 0; s < n_segs; s++)
+            {
+                byte packed = *mask++;
+                int cnt = (packed >> 4) | pix_mask;
+                pix += cnt;
+            }
+        }
+    }
+
+    if (y < WindY) y = WindY;
+    if (y + NLines - top_skip > WindY1 + 1)
+        NLines = WindY1 - y + 1;
+    else
+        NLines -= top_skip;
+
+    int clip_left  = (x < WindX)   ? WindX - x       : 0;
+    int clip_right = (x + Lx - 1 > WindX1) ? WindX1 - x + 1 : Lx;
+
+    byte* screen_row = (byte*)ScreenPtr + y * ScrWidth + x;
+
+    for (int row = 0; row < NLines; row++, screen_row += ScrWidth)
+    {
+        byte m = *mask++;
+        if (!m) continue;
+
+        byte* dst = screen_row;
+        bool complex_line = (m & 0x80) != 0;
+
+        if (!complex_line)
+        {
+            int n_segs = m & 0x7F;
+            int cur_cl = clip_left;
+            for (int s = 0; s < n_segs; s++)
+            {
+                int skip  = *mask++;
+                int count = *mask++;
+                dst += skip;
+                cur_cl -= skip;
+
+                int draw_start = (cur_cl > 0) ? cur_cl : 0;
+                int draw_end   = count;
+                int col        = (int)(dst - screen_row);
+                if (col + count > clip_right)
+                    draw_end = clip_right - col;
+
+                int skip_src = draw_start;
+                int draw_n   = draw_end - draw_start;
+                if (draw_n > 0)
+                    memcpy(dst + draw_start, pix + skip_src, draw_n);
+
+                pix += count;
+                dst += count;
+                cur_cl -= count;
+            }
+        }
+        else
+        {
+            byte space_mask = (m & 0x40) ? 16 : 0;
+            byte pix_mask   = (m & 0x20) ? 16 : 0;
+            int  n_segs     = m & 0x1F;
+            int  cur_cl     = clip_left;
+
+            for (int s = 0; s < n_segs; s++)
+            {
+                byte packed = *mask++;
+                int skip    = (packed & 0x0F) | space_mask;
+                int count   = (packed >> 4)   | pix_mask;
+                dst += skip;
+                cur_cl -= skip;
+
+                int draw_start = (cur_cl > 0) ? cur_cl : 0;
+                int draw_end   = count;
+                int col        = (int)(dst - screen_row);
+                if (col + count > clip_right)
+                    draw_end = clip_right - col;
+
+                int skip_src = draw_start;
+                int draw_n   = draw_end - draw_start;
+                if (draw_n > 0)
+                    memcpy(dst + draw_start, pix + skip_src, draw_n);
+
+                pix += count;
+                dst += count;
+                cur_cl -= count;
+            }
+        }
+    }
+}
+
+#endif // !_WIN32
+
 #ifdef _WIN32
 
 //cache format:
@@ -8610,6 +8837,86 @@ void GP_System::ShowGP(//IMPORTANT: show sprite with color masking
 		PACKOFS = (byte*) ( *PAK );//lpGPCUR->Pack;
 
 	} while (DIFF != -1);
+#else // !_WIN32
+    if (!( FileIndex < NGP && ( SprIndex & 4095 ) < GPNFrames[FileIndex] ))
+        return;
+
+    if (( ImageType[FileIndex] & 7 ) > 1)
+    {
+        // RLC file — not needed for fonts
+        if (!RLCImage[FileIndex])
+            LoadGP( FileIndex );
+        if (RLCImage[FileIndex])
+            ShowRLCItem( x, y, RLCImage + FileIndex, SprIndex, Nation );
+        return;
+    }
+
+    if (!GPH[FileIndex])
+        LoadGP( FileIndex );
+
+    GP_GlobalHeader* lpGH = GPH[FileIndex];
+    if (!lpGH)
+        return;
+
+    int RSprIndex = SprIndex;
+    if (SprIndex >= lpGH->NPictures)
+        RSprIndex &= 4095;
+
+    GP_Header* lpGP    = GPX( lpGH, LGPH[RSprIndex] );
+    GP_Header* lpGPCUR = lpGP;
+
+    DWORD* PAK = CASHREF[FileIndex];
+    PAK += PAK[RSprIndex];
+
+    if (ItDX[FileIndex])
+        x -= ItDX[FileIndex][RSprIndex];
+
+    int DIFF = -1;
+    do
+    {
+        int UnpackLen = lpGPCUR->CData >> 14;
+        int CDOffs    = lpGPCUR->CData & 16383;
+        byte Optx     = lpGPCUR->Options;
+        if (( Optx & 63 ) == 43) UnpackLen += 262144;
+        if (( Optx & 63 ) == 44) UnpackLen += 262144 * 2;
+        if (Optx & 64) CDOffs += 16384;
+        if (Optx & 128) CDOffs += 32768;
+
+        byte Opt = Optx & 63;
+        switch (Opt)
+        {
+        case 0:
+        {
+            // CASHREF is 32-bit pointer storage, unusable on 64-bit Linux.
+            // Decompress into a temporary buffer on each draw call.
+            byte* tmp = new byte[UnpackLen];
+            StdUnpack( tmp, (byte*)lpGPCUR + CDOffs, UnpackLen,
+                       (byte*)lpGH + lpGH->VocOffset );
+            GP_ShowMaskedPict( x, y, lpGPCUR, tmp, nullptr );
+            delete[] tmp;
+            break;
+        }
+        case 41:
+            GP_ShowMaskedPict( x, y, lpGPCUR, (byte*)lpGPCUR + CDOffs, nullptr );
+            break;
+        case 42:
+        case 43:
+        case 44:
+        {
+            byte* tmp = new byte[UnpackLen];
+            LZUnpack( tmp, (byte*)lpGPCUR + CDOffs, UnpackLen );
+            GP_ShowMaskedPict( x, y, lpGPCUR, tmp, nullptr );
+            delete[] tmp;
+            break;
+        }
+        default:
+            break;
+        }
+
+        DIFF    = lpGPCUR->NextPict;
+        lpGPCUR = (GP_Header*)( (byte*)lpGP + DIFF );
+        PAK++;
+    } while (DIFF != -1);
 #endif // _WIN32
 }
 

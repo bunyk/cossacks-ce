@@ -2507,6 +2507,11 @@ void ShowRLCItemFired( int x, int y, lpRLCTable lprt, int n )
 		ShowRLCiFire( x, y, (void*) ( ( *lprt )->OfsTable[n - 4096] ) );
 	};
 };
+#else // !_WIN32
+void ShowRLCItem( int /*x*/, int /*y*/, lpRLCTable /*lprt*/, int /*n*/, byte /*nt*/ )
+{
+    // TODO: implement RLC sprite rendering for Linux
+}
 #endif // _WIN32
 	   //
 int GetRLCWidth( RLCTable lpr, byte n )
@@ -2595,7 +2600,6 @@ DLLEXPORT int GetRLCHeight( RLCTable lpr, byte n )
 	}
 }
 
-#ifdef _WIN32
 void RegisterRLCFont( lpRLCFont lrf, RLCTable lpr, int fir )
 {
 	lrf->FirstSymbol = fir;
@@ -2673,7 +2677,6 @@ DLLEXPORT void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr )
 		ShowChar( x, y, strptr[0], lpr );
 	}
 }
-#endif // _WIN32
 
 void ShowString( int x, int y, LPCSTR lps, lpRLCFont lpf )
 {
@@ -2682,7 +2685,6 @@ void ShowString( int x, int y, LPCSTR lps, lpRLCFont lpf )
 		return;
 	}
 
-#ifdef _WIN32
 	int GPID = int( lpf->RLC );
 
 	if (GPID < 4096)
@@ -2718,7 +2720,6 @@ void ShowString( int x, int y, LPCSTR lps, lpRLCFont lpf )
 		}
 		i++;
 	} while (ch);
-#endif // _WIN32
 }
 
 int GetRLCStrWidth( char* str, lpRLCFont lpf )

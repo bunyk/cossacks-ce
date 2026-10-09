@@ -22,7 +22,7 @@ public:
 	short dy;
 	short Lx;
 	short Ly;
-	byte* Pack;
+	DWORD Pack;    // on-disk 32-bit value, was byte* but pointer size differs on 64-bit
 	char  Options;
 	DWORD CData;
 	short NLines;
