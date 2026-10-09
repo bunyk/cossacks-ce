@@ -5876,14 +5876,17 @@ void SavePlayerData()
 	SavePlayerData( PlName );
 }
 
-#ifdef _WIN32
 bool PLOAD = 0;
 
 void SFLB_LoadPDATA( char* Name )
 {
 	PLOAD = 0;
 	char cc[200];
+#ifdef _WIN32
 	sprintf( cc, "Players\\%s.txt", Name );
+#else
+	sprintf( cc, "Players/%s.txt", Name );
+#endif
 	GFILE* F = Gopen( cc, "r" );
 	if ( F )
 	{
@@ -5914,19 +5917,14 @@ void SFLB_LoadPDATA( char* Name )
 		PLOAD = 1;
 	}
 }
-#endif // _WIN32
 
 void SFLB_LoadPlayerData()
 {
-#ifdef _WIN32
 	SFLB_LoadPDATA( PlName );
 	if ( !PLOAD )
 	{
 		SFLB_LoadPDATA( "standart player info" );
 	}
-#else
-	printf("TODO: implement SFLB_LoadPlayerData for non-Windows platforms\n");
-#endif // _WIN32
 }
 
 #ifdef _WIN32

@@ -7,6 +7,17 @@
 #include "gscarch.h"
 #include "gscset.h"
 
+#ifndef _WIN32
+#include <string>
+// Convert Windows backslash paths to forward slashes for Linux.
+static std::string toLinuxPath( LPCSTR path )
+{
+    std::string s( path );
+    for (char& c : s) if (c == '\\') c = '/';
+    return s;
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -80,6 +91,18 @@ LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool onlyInArchive )
 			return NULL;
 		}
 	}
+#else
+	// Linux: fall back to plain stdio if not found in archive
+	{
+		std::string path = toLinuxPath( lpcsFileName );
+		FILE* fp = fopen( path.c_str(), "rb" );
+		if (!fp) return nullptr;
+		gFile = new TGSCfile;
+		gFile->m_Flags = 0;
+		gFile->m_Position = 0;
+		gFile->m_Arch = nullptr;
+		gFile->m_fp = fp;
+	}
 #endif
 
 	return gFile;
@@ -101,6 +124,12 @@ VOID CGSCset::gCloseFile( LPGSCfile gFile )
 	{
 		CloseHandle( HANDLE( gFile->m_FileHandle ) );
 	}
+#else
+	else
+	{
+		fclose( gFile->m_fp );
+		delete gFile;
+	}
 #endif
 }
 
@@ -114,11 +143,10 @@ VOID CGSCset::gReadFile( LPGSCfile gFile, LPBYTE lpbBuffer, DWORD dwSize )
 	}
 	else
 	{
-
 #ifdef _WIN32
 		ReadFile( HANDLE( gFile->m_FileHandle ), lpbBuffer, dwSize, &dwBytesRead, NULL );
 #else
-		printf("Need to implement ReadFile for non-Windows platforms\n");
+		fread( lpbBuffer, 1, dwSize, gFile->m_fp );
 #endif
 	};
 }
@@ -134,6 +162,11 @@ VOID CGSCset::gSeekFile( LPGSCfile gFile, DWORD dwPosition )
 	{
 		SetFilePointer( HANDLE( gFile->m_FileHandle ), dwPosition, NULL, FILE_BEGIN );
 	}
+#else
+	else
+	{
+		fseek( gFile->m_fp, dwPosition, SEEK_SET );
+	}
 #endif
 }
 
@@ -148,6 +181,11 @@ DWORD CGSCset::gFilePos( LPGSCfile gFile )
 	{
 		return SetFilePointer( HANDLE( gFile->m_FileHandle ), 0, NULL, FILE_BEGIN );
 	};
+#else
+	else
+	{
+		return (DWORD)ftell( gFile->m_fp );
+	}
 #endif
 	return 0;
 }
@@ -444,8 +482,14 @@ DWORD CGSCset::gFileSize( LPGSCfile gFile )
 	}
 	else
 	{
-#ifdef _WIN32	
+#ifdef _WIN32
 		return GetFileSize( HANDLE( gFile->m_FileHandle ), NULL );
+#else
+		long cur = ftell( gFile->m_fp );
+		fseek( gFile->m_fp, 0, SEEK_END );
+		long size = ftell( gFile->m_fp );
+		fseek( gFile->m_fp, cur, SEEK_SET );
+		return (DWORD)size;
 #endif
 	};
 }

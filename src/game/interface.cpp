@@ -205,9 +205,11 @@ SQPicture LoPanel;
 RLCTable TPassive;
 RLCTable TActive;
 RLCTable TDisable;
+#endif // _WIN32
 RLCFont FPassive;
 RLCFont FActive;
 RLCFont FDisable;
+#ifdef _WIN32
 
 extern bool CheapMode;
 int PanelLx;
@@ -611,27 +613,33 @@ void ProcessHelp();
 
 void ProcessCampaigns( int Options );
 
-#ifdef _WIN32
 void SFLB_ReadFirstPlayerName( char* ccc );
 
+#ifdef _WIN32
 void SFLB_LoadMEDButtons();
+#endif
 
 //Read players.txt, load dialog resources
 void SFLB_InitDialogs()
 {
 	SFLB_ReadFirstPlayerName( PlName );
-	unsigned long dws = 20;
 	if ( !PlName[0] )
 	{
+#ifdef _WIN32
+		unsigned long dws = 20;
 		GetComputerName( PlName, &dws );
 		normstr( PlName );
+#else
+		strcpy( PlName, "Player" );
+#endif
 	}
 	FPassive = YellowFont;
 	FActive = WhiteFont;
 	FDisable = YellowFont;
+#ifdef _WIN32
 	SFLB_LoadMEDButtons();
+#endif
 }
-#endif // _WIN32
 
 DLLEXPORT int ItemChoose;
 
@@ -1667,17 +1675,18 @@ bool MMChooseName( SimpleDialog* SD )
 #ifdef _WIN32
 void __stdcall CDGINIT_INIT2();
 void __stdcall CDGINIT_INIT1();
+#endif
 
 void SFLB_ReadFirstPlayerName( char* ccc )
 {
+#ifdef _WIN32
 	CDGINIT_INIT1();
 	CDGINIT_INIT2();
+#endif
 	GFILE* F = Gopen( "players.txt", "r" );
-	int N = 0;
 	ccc[0] = 0;
 	if ( F )
 	{
-		ccc[0] = 0;
 		int cc = 0;
 		int nn = 0;
 		while ( !( cc == 0x0A || cc == EOF ) )
@@ -1693,7 +1702,6 @@ void SFLB_ReadFirstPlayerName( char* ccc )
 		Gclose( F );
 	}
 }
-#endif // _WIN32
 
 bool ENRETVAL = 0;
 bool EnterName()

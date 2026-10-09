@@ -260,7 +260,6 @@ DLLEXPORT void LoadFog( int set )
 {
 	CurrentCursorGP = set + 5;
 	CurPalette = set;
-#ifdef _WIN32
 	char cc[128];
 	sprintf( cc, "%d\\agew_1d.grd", set );
 	ResFile fx = RReset( cc );
@@ -318,12 +317,13 @@ DLLEXPORT void LoadFog( int set )
 	fx = RReset( "agew_1gc.pal" );
 	RBlockRead( fx, &GraySet, 256 );
 	RClose( fx );
+#ifdef _WIN32
 	for ( int i = 0; i < 1024; i++ )
 	{
 		FOGOFFS[i] = i*FMSX;
 	}
 	LoadBlobs();
-#endif // _WIN32
+#endif
 }
 
 #ifdef _WIN32

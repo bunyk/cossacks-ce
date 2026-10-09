@@ -30,6 +30,9 @@ struct TGSCfile
  BYTE	m_Flags;
  DWORD	m_Position;
  LPGSCarch	m_Arch;
+#ifndef _WIN32
+ FILE*	m_fp;  // stdio handle for plain-file access on Linux
+#endif
 };
 
 typedef TGSCfile* LPGSCfile;

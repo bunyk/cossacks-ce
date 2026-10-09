@@ -471,6 +471,12 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	InitWater();
 	#endif // _WIN32
 
+#ifndef _WIN32
+	void InitFonts();
+	InitFonts();
+	SFLB_InitDialogs();
+#endif
+
 	//Load fonts(?)
 	LoadRLC("xrcross.rlc", &RCross);
 
@@ -1566,8 +1572,9 @@ static BOOL doInit()
 		}
 	}
 
-	
+
 	#ifdef _WIN32
+	bool Loading();
 	if (!Loading())
 	{
 		FilesExit();

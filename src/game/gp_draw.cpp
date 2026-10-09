@@ -733,6 +733,142 @@ static void LZUnpack( byte* Dest, byte* Src, int Len )
     }
 }
 
+// C++ port of the Windows asm GreyUnpack.
+// Each source byte encodes two 4-bit grey values:
+//   lo nibble -> dest byte: (al & 0x0F) << 1
+//   hi nibble -> dest byte: (al & 0xF0) >> 3
+// Input: Len/2 bytes; output: Len bytes (Len must be even).
+static void GreyUnpack( byte* Dest, byte* Src, int Len )
+{
+    Len >>= 1;
+    while (Len-- > 0)
+    {
+        byte al = *Src++;
+        *Dest++ = (al & 0x0F) << 1;
+        *Dest++ = (al & 0xF0) >> 3;
+    }
+}
+
+extern byte fog[8192 + 1024];
+extern byte yfog[8192];
+extern byte Bright[8192];
+extern byte Optional1[8192];
+extern byte Optional2[8192];
+extern byte Optional3[8192];
+
+// Palette-mapped blit: like GP_ShowMaskedPict but applies Encoder[src<<8 | dst] per pixel.
+static void GP_ShowMaskedMultiPalPict( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
+{
+    x += Pic->dx;
+    y += Pic->dy;
+    int Lx     = Pic->Lx;
+    int NLines = Pic->NLines;
+
+    if (y + NLines <= WindY || x + Lx <= WindX || x > WindX1 || y > WindY1)
+        return;
+
+    byte* mask = (byte*)Pic + 23;
+    byte* pix  = CData;
+
+    int top_skip = (y < WindY) ? WindY - y : 0;
+    for (int i = 0; i < top_skip; i++)
+    {
+        byte m = *mask++;
+        if (!m) continue;
+        if (!(m & 0x80))
+        {
+            int n = m & 0x7F;
+            for (int s = 0; s < n; s++) { mask++; pix += *mask++; }
+        }
+        else
+        {
+            int n = m & 0x1F;
+            byte pm = (m & 0x20) ? 16 : 0;
+            for (int s = 0; s < n; s++) { byte pk = *mask++; pix += ((pk >> 4) | pm); }
+        }
+    }
+
+    if (y < WindY) y = WindY;
+    NLines = (y + NLines - top_skip > WindY1 + 1) ? WindY1 - y + 1 : NLines - top_skip;
+
+    int clip_left  = (x < WindX)               ? WindX - x       : 0;
+    int clip_right = (x + Lx - 1 > WindX1) ? WindX1 - x + 1 : Lx;
+
+    byte* screen_row = (byte*)ScreenPtr + y * ScrWidth + x;
+
+    for (int row = 0; row < NLines; row++, screen_row += ScrWidth)
+    {
+        byte m = *mask++;
+        if (!m) continue;
+
+        byte* dst = screen_row;
+
+        if (!(m & 0x80))
+        {
+            int n_segs = m & 0x7F;
+            int cur_cl = clip_left;
+            for (int s = 0; s < n_segs; s++)
+            {
+                int skip  = *mask++;
+                int count = *mask++;
+                dst   += skip;
+                cur_cl -= skip;
+
+                int draw_start = (cur_cl > 0) ? cur_cl : 0;
+                int col        = (int)(dst - screen_row);
+                int draw_end   = (col + count > clip_right) ? clip_right - col : count;
+                int draw_n     = draw_end - draw_start;
+
+                if (draw_n > 0)
+                {
+                    byte* d = dst + draw_start;
+                    byte* s2 = pix + draw_start;
+                    for (int p = 0; p < draw_n; p++)
+                        d[p] = Encoder[((unsigned)s2[p] << 8) | d[p]];
+                }
+
+                pix    += count;
+                dst    += count;
+                cur_cl -= count;
+            }
+        }
+        else
+        {
+            byte space_mask = (m & 0x40) ? 16 : 0;
+            byte pix_mask   = (m & 0x20) ? 16 : 0;
+            int  n_segs     = m & 0x1F;
+            int  cur_cl     = clip_left;
+
+            for (int s = 0; s < n_segs; s++)
+            {
+                byte packed = *mask++;
+                int skip    = (packed & 0x0F) | space_mask;
+                int count   = (packed >> 4)   | pix_mask;
+
+                dst   += skip;
+                cur_cl -= skip;
+
+                int draw_start = (cur_cl > 0) ? cur_cl : 0;
+                int col        = (int)(dst - screen_row);
+                int draw_end   = (col + count > clip_right) ? clip_right - col : count;
+                int draw_n     = draw_end - draw_start;
+
+                if (draw_n > 0)
+                {
+                    byte* d = dst + draw_start;
+                    byte* s2 = pix + draw_start;
+                    for (int p = 0; p < draw_n; p++)
+                        d[p] = Encoder[((unsigned)s2[p] << 8) | d[p]];
+                }
+
+                pix    += count;
+                dst    += count;
+                cur_cl -= count;
+            }
+        }
+    }
+}
+
 // Blit one scanline segment. `dst` advances by skip+count pixels.
 // Returns new dst position.
 static inline byte* blit_seg( byte* dst, byte* src, int skip, int count,
@@ -776,6 +912,7 @@ static void GP_ShowMaskedPict( int x, int y, GP_Header* Pic, byte* CData, byte* 
     y += Pic->dy;
     int Lx     = Pic->Lx;
     int NLines = Pic->NLines;
+
 
     if (y + NLines <= WindY || x + Lx <= WindX || x > WindX1 || y > WindY1)
         return;
@@ -8516,8 +8653,9 @@ extern byte Optional1[8192];
 extern byte Optional2[8192];
 extern byte Optional3[8192];
 
-int startTrans = 0;
 #endif // _WIN32
+
+int startTrans = 0;
 
 void GP_System::ShowGP(//IMPORTANT: show sprite with color masking
 	int x, int y, int FileIndex, int SprIndex,
@@ -8865,6 +9003,8 @@ void GP_System::ShowGP(//IMPORTANT: show sprite with color masking
     GP_Header* lpGP    = GPX( lpGH, LGPH[RSprIndex] );
     GP_Header* lpGPCUR = lpGP;
 
+    {static int n=0; if(FileIndex==0&&n<5){printf("Font glyph fi=%d si=%d Opt=%d CData=0x%x LGPH=%d\n",FileIndex,RSprIndex,lpGP->Options,lpGP->CData,lpGH->LGPH[RSprIndex]);n++;}}
+
     DWORD* PAK = CASHREF[FileIndex];
     PAK += PAK[RSprIndex];
 
@@ -8909,7 +9049,37 @@ void GP_System::ShowGP(//IMPORTANT: show sprite with color masking
             delete[] tmp;
             break;
         }
+        case 38:
+        {
+            int imt = ImageType[FileIndex] >> 4;
+            byte* tmp = new byte[UnpackLen];
+            GreyUnpack( tmp, (byte*)lpGPCUR + CDOffs, UnpackLen );
+            switch (imt)
+            {
+            case 1:
+                GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, tmp, Bright + startTrans );
+                break;
+            case 2:
+                GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, tmp, yfog + startTrans );
+                break;
+            case 3:
+                GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, tmp, Optional1 + startTrans );
+                break;
+            case 4:
+                GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, tmp, Optional2 + startTrans );
+                break;
+            case 5:
+                GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, tmp, Optional3 );
+                break;
+            default:
+                GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, tmp, fog + 1024 );
+                break;
+            }
+            delete[] tmp;
+            break;
+        }
         default:
+            {static int n=0; if(n<10){printf("ShowGP: unhandled Opt=%d FileIndex=%d SprIndex=%d UnpackLen=%d CDOffs=%d\n",Opt,FileIndex,SprIndex,UnpackLen,CDOffs);n++;}}
             break;
         }
 
