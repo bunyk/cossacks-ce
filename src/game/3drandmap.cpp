@@ -2996,7 +2996,7 @@ void GenerateByStyle( char* Style )
 							if ( NNames >= MaxNames )
 							{
 								MaxNames += 512;
-								Names = (char**) realloc( Names, MaxNames << 2 );
+								Names = (char**) realloc( Names, MaxNames * sizeof(char*) );
 							};
 							Names[NNames] = new char[strlen( cc1 ) + 1];
 							strcpy( Names[NNames], cc1 );
@@ -3052,7 +3052,7 @@ void GenerateInPoints( char* Piece, int* ObjX, int* ObjY, int NObj, int NATT )
 				if ( NNamesXX >= MaxNames )
 				{
 					MaxNames += 512;
-					Names = (char**) realloc( Names, MaxNames << 2 );
+					Names = (char**) realloc( Names, MaxNames * sizeof(char*) );
 				};
 				Names[NNamesXX] = new char[strlen( cc1 ) + 1];
 				strcpy( Names[NNamesXX], cc1 );
@@ -4117,7 +4117,7 @@ void PieceList::Load( char* Name )
 				if ( NNames >= MaxNames )
 				{
 					MaxNames += 512;
-					Names = (char**) realloc( Names, MaxNames << 2 );
+					Names = (char**) realloc( Names, MaxNames * sizeof(char*) );
 				};
 				Names[NNames] = new char[strlen( cc1 ) + 1];
 				strcpy( Names[NNames], cc1 );
@@ -4725,7 +4725,7 @@ void RandomMapDesc::Load( char* name )
 			ERRMP( name, "RELIEF" );
 		}
 
-		Relief = (char**) malloc( NRelief * 4 );
+		Relief = (char**) malloc( NRelief * sizeof(char*) );
 
 		for ( int p = 0; p < NRelief; p++ )
 		{

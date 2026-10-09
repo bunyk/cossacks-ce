@@ -2307,8 +2307,8 @@ void AddPrimitiveChat( char* Nick, char* str,
 	if ( NCHATS >= MAXCHATS )
 	{
 		MAXCHATS += 32;
-		ChatMess = (char**) realloc( ChatMess, 4 * MAXCHATS );
-		ChatSender = (char**) realloc( ChatSender, 4 * MAXCHATS );
+		ChatMess = (char**) realloc( ChatMess, MAXCHATS * sizeof(char*) );
+		ChatSender = (char**) realloc( ChatSender, MAXCHATS * sizeof(char*) );
 	};
 	if ( NCHATS > 512 )
 	{
@@ -15323,7 +15323,7 @@ void AddPiece( char* str )
 	if ( NPIECES >= MAX_PIECES )
 	{
 		MAX_PIECES += 256;
-		PIECES_NAMES = (char**) realloc( PIECES_NAMES, MAX_PIECES << 2 );
+		PIECES_NAMES = (char**) realloc( PIECES_NAMES, MAX_PIECES * sizeof(char*) );
 	};
 	for ( int i = 0; i < NPIECES; i++ )
 	{

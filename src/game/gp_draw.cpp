@@ -56,13 +56,13 @@ GP_System::GP_System()
 	memset( RLCShadow, 0, ( sizeof(RLCShadow) )*NGPReady );
 	GPNFrames = new word[NGPReady];
 	ImageType = new byte[NGPReady];
-	UNITBL = (UNICODETABLE**) malloc( NGPReady << 2 );
+	UNITBL = (UNICODETABLE**) malloc( NGPReady * sizeof(UNICODETABLE*) );
 	memset( ImageType, 0, NGPReady );
 	memset( UNITBL, 0, NGPReady << 2 );
 	ImLx = new lpShort[NGPReady];
 	ImLy = new lpShort[NGPReady];
-	ItDX = (char**) malloc( 4 * NGPReady );
-	ItLX = (char**) malloc( 4 * NGPReady );
+	ItDX = (char**) malloc( NGPReady * sizeof(char*) );
+	ItLX = (char**) malloc( NGPReady * sizeof(char*) );
 	memset( ImLx, 0, 4 * NGPReady );
 	memset( ImLy, 0, 4 * NGPReady );
 	memset( ItDX, 0, 4 * NGPReady );

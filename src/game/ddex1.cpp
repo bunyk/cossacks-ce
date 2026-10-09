@@ -1466,7 +1466,7 @@ void EraseRND()
 			if (NRND >= MaxRND)
 			{
 				MaxRND += 300;
-				RNDF = (char**) realloc( RNDF, 4 * MaxRND );
+				RNDF = (char**) realloc( RNDF, MaxRND * sizeof(char*) );
 				RndData = (DWORD*) realloc( RndData, 2 * MaxRND );
 				Ridx = (word*) realloc( Ridx, 2 * MaxRND );
 			}

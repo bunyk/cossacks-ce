@@ -72,7 +72,7 @@ void AddFHandle( ResFile F, char* Name )
 	if (NHNames >= MaxNames)
 	{
 		MaxNames += 16;
-		FHNames = (char**) realloc( FHNames, 4 * MaxNames );
+		FHNames = (char**) realloc( FHNames, MaxNames * sizeof(char*) );
 		FHANDLES = (ResFile*) realloc( FHANDLES, 4 * MaxNames );
 	}
 

@@ -381,9 +381,9 @@ void ScenaryInterface::Load( char* Name, char* Text )
 					if ( NPages >= MaxPages )
 					{
 						MaxPages += 32;
-						Page = (char**) realloc( Page, 4 * MaxPages );
-						PageID = (char**) realloc( PageID, 4 * MaxPages );
-						PageBMP = (char**) realloc( PageBMP, 4 * MaxPages );
+						Page = (char**) realloc( Page, MaxPages * sizeof(char*) );
+						PageID = (char**) realloc( PageID, MaxPages * sizeof(char*) );
+						PageBMP = (char**) realloc( PageBMP, MaxPages * sizeof(char*) );
 						PageSize = (int*) realloc( PageSize, 4 * MaxPages );
 					}
 					STR0 += L + 1;
@@ -548,7 +548,7 @@ extern "C" DLLEXPORT bool RegisterString( GAMEOBJ* GOBJ, char* ID )
 	if ( SCENINF.NMess >= SCENINF.MaxMess )
 	{
 		SCENINF.MaxMess += 64;
-		SCENINF.Messages = (char**) realloc( SCENINF.Messages, SCENINF.MaxMess * 4 );
+		SCENINF.Messages = (char**) realloc( SCENINF.Messages, SCENINF.MaxMess * sizeof(char*) );
 	}
 
 	SCENINF.Messages[SCENINF.NMess] = id;
@@ -564,7 +564,7 @@ extern "C" DLLEXPORT bool RegisterSound( GAMEOBJ* GOBJ, char* Name )
 	if ( SCENINF.NSnd >= SCENINF.MaxSnds )
 	{
 		SCENINF.MaxSnds += 32;
-		SCENINF.Sounds = (char**) realloc( SCENINF.Sounds, 4 * SCENINF.MaxSnds );
+		SCENINF.Sounds = (char**) realloc( SCENINF.Sounds, SCENINF.MaxSnds * sizeof(char*) );
 	}
 
 	SCENINF.Sounds[SCENINF.NSnd] = new char[strlen( Name ) + 1];
@@ -578,7 +578,7 @@ extern "C" DLLEXPORT void RegisterVar( void* Var, int size )
 	if ( SCENINF.NSaves >= SCENINF.MaxSaves )
 	{
 		SCENINF.MaxSaves += 32;
-		SCENINF.SaveZone = (void**) realloc( SCENINF.SaveZone, 4 * SCENINF.MaxSaves );
+		SCENINF.SaveZone = (void**) realloc( SCENINF.SaveZone, SCENINF.MaxSaves * sizeof(void*) );
 		SCENINF.SaveSize = (int*) realloc( SCENINF.SaveSize, 4 * SCENINF.MaxSaves );
 	}
 
@@ -2906,7 +2906,7 @@ void ProcessMissionText( char* Bmp, char* Text );
 
 void AddHistory( Nation* NAT, char* Name )
 {
-	NAT->History = (char**) realloc( NAT->History, 4 * NAT->NHistory + 4 );
+	NAT->History = (char**) realloc( NAT->History, ( NAT->NHistory + 1 ) * sizeof(char*) );
 	NAT->History[NAT->NHistory] = new char[strlen( Name ) + 1];
 	strcpy( NAT->History[NAT->NHistory], Name );
 	NAT->NHistory++;
@@ -5642,7 +5642,7 @@ void MissPack::LoadMissions()
 				{
 					ErrM( "Invalid file Missiions\\Missions.txt" );
 				}
-				SM->Intro = (char**) malloc( 4 * SM->NIntro );
+				SM->Intro = (char**) malloc( SM->NIntro * sizeof(char*) );
 				for ( int j = 0; j < SM->NIntro; j++ )
 				{
 					ReadWinString( F, MissDesc, 256 );
@@ -6010,7 +6010,7 @@ WarPack::WarPack()
 
 			int NH = BTL->NHints;
 
-			BTL->Hints = (char**) malloc( 4 * NH );
+			BTL->Hints = (char**) malloc( NH * sizeof(char*) );
 			BTL->Coor = new int[2 * NH];
 			for ( int j = 0; j < NH; j++ )
 			{

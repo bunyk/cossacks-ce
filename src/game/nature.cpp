@@ -1181,7 +1181,7 @@ void LoadOrders()
 							int nL = ODE->NLines;
 							ODE->NLines++;
 							ODE->LineNU = (word*) realloc( ODE->LineNU, ( nL + 1 ) << 2 );
-							ODE->Lines = (short**) realloc( ODE->Lines, ( nL + 1 ) << 2 );
+							ODE->Lines = (short**) realloc( ODE->Lines, ( nL + 1 ) * sizeof(short*) );
 							ODE->LineNU[nL] = nz;
 							ODE->Lines[nL] = NULL;
 							if (nz)
@@ -1277,8 +1277,8 @@ AI_Description::AI_Description()
 
 			z = Gscanf( f, "%d%d%d", &Ai[i].NPeas, &Ai[i].NLandAI, &Ai[i].NWaterAI );
 			if (z != 3)InvAI();
-			Ai[i].LandAI = (char**) malloc( 4 * Ai[i].NLandAI );
-			Ai[i].WaterAI = (char**) malloc( 4 * Ai[i].NWaterAI );
+			Ai[i].LandAI = (char**) malloc( Ai[i].NLandAI * sizeof(char*) );
+			Ai[i].WaterAI = (char**) malloc( Ai[i].NWaterAI * sizeof(char*) );
 			for (int j = 0; j < Ai[i].NLandAI; j++)
 			{
 				Gscanf( f, "%s", cc );
