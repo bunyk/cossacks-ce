@@ -2755,6 +2755,8 @@ bool CheckPlayerToExit();
 extern bool RejectThisPlayer;
 extern bool realLpressed;
 extern char CurrentMap[64];
+// not ported yet (Windows-only game-start block, stubbed in linux_stubs.cpp)
+bool ProcessSingleMission( int n, int Diff );
 extern char CHATSTRING[256];
 extern DWORD CHATDPID;
 extern int CurrentMaxPing[8];
@@ -12169,6 +12171,7 @@ bool ProcessSingleMission( int n, int Diff )
 	return true;
 }
 
+#endif // _WIN32 (rest of the game-start machinery below stays Windows-only)
 bool ProcessSingleCampagin( int n )
 {
 	KeyPressed = 0;
@@ -12353,6 +12356,7 @@ HHH1:
 	SlowUnLoadPalette( "2\\agew_1.pal" );
 	return false;
 };
+#ifdef _WIN32
 struct OneAddMission
 {
 	char Title[128];
@@ -12653,7 +12657,6 @@ HHH1:
 
 void ProcessCampaigns( int Options )
 {
-#ifdef _WIN32
 	if ( !CAMPAGINS.NCamp )
 	{
 		return;
@@ -12775,7 +12778,6 @@ HHH1:
 	{
 		SlowUnLoadPalette( "2\\agew_1.pal" );
 	}
-#endif // _WIN32
 }
 
 #ifdef _WIN32

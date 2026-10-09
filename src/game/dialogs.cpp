@@ -2938,7 +2938,6 @@ DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 #endif // _WIN32
 }
 
-#ifdef _WIN32
 bool ColoredBar_OnDraw( SimpleDialog* SD )
 {
 	if (!SD->Visible)return false;
@@ -3377,7 +3376,6 @@ TextViewer* DialogsSystem::addTextViewer(
 	};
 	return nullptr;
 }
-#endif // _WIN32
 
 DLLEXPORT char LASTCLICKCHATNAME[128] = "";
 

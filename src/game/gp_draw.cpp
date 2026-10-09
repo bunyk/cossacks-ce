@@ -8,6 +8,7 @@
 #include "fastdraw.h"
 #include "gp_draw.h"
 #include "gsinc.h"
+#include "gfile.h"
 
 #ifdef _WIN32
 
@@ -9677,7 +9678,15 @@ void GP_System::ShowGPTransparentLayers( int x, int y, int FileIndex, int SprInd
 #endif // _WIN32
 void GP_System::FreeRefs( int FileIndex )
 {
-	printf("TODO: Implement FreeRefs for GP_System\n");
+	// Linux: no-op BY DESIGN. The runtime unpack cache (PackCash/GetCash ring
+	// buffer + CASHREF 32-bit pointer tables) is not used on 64-bit - the draw
+	// path decompresses each sprite into a temporary buffer per call. Since no
+	// cache blocks are ever allocated here, there is nothing to release.
+	// If the cache is ever ported (performance work for in-game rendering),
+	// port the _WIN32 body below 1:1: it walks each sprite slot and its
+	// NextPict chain, zeroes the cache block headers (INTV(PACKOFS-8)=0) so
+	// GetCash can reclaim them, and resets slots to NO_PACK.
+	(void) FileIndex;
 #ifdef _WIN32
 	//	assert(FileIndex<NGP);
 	if (( ImageType[FileIndex] & 7 ) > 1 || !GPH[FileIndex])
@@ -10582,7 +10591,6 @@ void FONERR()
 	assert( 0 );
 };
 
-#ifdef _WIN32
 int UNI_LINEDLY1 = 0;
 int UNI_LINEDY1 = 0;
 int UNI_LINEDLY2 = 0;
@@ -10699,7 +10707,6 @@ void UNIFONTS::LoadFonts()
 	};
 	Gclose( F );
 }
-#endif // _WIN32
 
 UNICODETABLE* UNIFONTS::FindFont( char* Name )
 {
