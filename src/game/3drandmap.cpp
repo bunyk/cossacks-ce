@@ -3243,6 +3243,11 @@ void ProcessSaveInSquares()
 	}
 }
 //--------------------------TERRAINS--------------------------
+// File-format struct, raw-read from *.msp terrain chunks. The original build
+// had it PACKED (66 bytes; CompSize at +30, Data at +34) - verified against
+// Terrain\srediz4.msp chunk 0: packed reads Lx=256/Ly=256/CompSize=594 and
+// 594+34 equals the chunk size exactly.
+#pragma pack(push, 1)
 struct TerrainData
 {
 	short Lx, Ly;
@@ -3253,6 +3258,8 @@ struct TerrainData
 	int   CompSize;
 	byte  Data[32];
 };
+#pragma pack(pop)
+static_assert( sizeof( TerrainData ) == 66, "TerrainData must match the packed .msp chunk layout" );
 //SqInt params
 int SqMaxX = ( 480 << ( ADDSH - 1 ) ) * 32;
 int SqMaxY = ( 480 << ( ADDSH - 1 ) ) * 32;
@@ -5274,6 +5281,10 @@ void GenerateMapForMission( char* Relief, char* Ground, char* Mount, char* Soft 
 
 };
 //----------------------------SAMPLES ENGINE-------------------//
+// File-format struct (raw-read/raw-written in *.smp.lnk and map saves):
+// the original MSVC build compiled it PACKED (14 bytes) - the .lnk files in
+// all.gsc are written at that stride, so keep it packed here too.
+#pragma pack(push, 1)
 struct SampleRoot
 {
 	byte RootType;
@@ -5283,6 +5294,8 @@ struct SampleRoot
 	DWORD AttachMask;
 	DWORD Reserved;
 };
+#pragma pack(pop)
+static_assert( sizeof( SampleRoot ) == 14, "SampleRoot must match the packed 14-byte .lnk/map-save layout" );
 struct SampleSrc
 {
 	char Name[32];
