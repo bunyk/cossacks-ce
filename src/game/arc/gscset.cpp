@@ -224,15 +224,16 @@ VOID AddItem( LPGSCFileList pFileList, LPCSTR lpcsFileName )
 LPGSCFindInfo CGSCset::gFindFirst( LPCSTR lpcsMask )
 {
 	LPGSCFindInfo lpFindInfo = NULL;
-#ifdef _WIN32
-	WIN32_FIND_DATA	FindData;
-	HANDLE	hFindFile;
 	LPGSCFileList	lpFileList = NULL;
 
 	CHAR	sUpMask[64];
 	ZeroMemory( sUpMask, 64 );
 	strcpy( sUpMask, lpcsMask );
 	_strupr( sUpMask );
+
+#ifdef _WIN32
+	WIN32_FIND_DATA	FindData;
+	HANDLE	hFindFile;
 
 	hFindFile = FindFirstFile( sUpMask, &FindData );
 
@@ -260,6 +261,7 @@ LPGSCFindInfo CGSCset::gFindFirst( LPCSTR lpcsMask )
 	};
 
 	FindClose( hFindFile );
+#endif // _WIN32 (disk enumeration; archives below are portable)
 
 	LPGSCArchList	pArchList = m_ArchList;
 	LPGSCFindData	pFindData;
@@ -294,7 +296,6 @@ LPGSCFindInfo CGSCset::gFindFirst( LPCSTR lpcsMask )
 		pArchList = pArchList->m_NextArch;
 	};
 
-#endif
 	if (lpFindInfo)
 	{
 		strcpy( lpFindInfo->m_FileName, lpFindInfo->m_Pos->m_FileName );

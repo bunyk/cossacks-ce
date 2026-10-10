@@ -15,6 +15,7 @@
 #include "ddini.h"
 #include "fastdraw.h"
 #include "gsound.h"
+#include "cdirsnd.h"
 #include "resfile.h"
 #include "mapdiscr.h"
 #include "mouse.h"
@@ -1541,15 +1542,15 @@ static BOOL doInit()
 	SDL_ShowWindow( sdlWindow );
 	SDL_UpdateWindowSurface( sdlWindow );
 
-	#ifdef _WIN32
+	// Sound system (CDirSound CDIRSND - ddex1.cpp, CDS - gamesound.cpp)
+	extern CDirSound CDIRSND;
+	extern CDirSound* CDS;
+
 	CDIRSND.CreateDirSound();
 
 	CDS = &CDIRSND;
 
-
 	LoadSounds( "SoundList.txt" );
-	#endif // _WIN32
-
 	ResFile F = RReset( "version.dat" );
 	if (F != INVALID_HANDLE_VALUE)
 	{

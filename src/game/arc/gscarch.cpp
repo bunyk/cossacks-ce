@@ -216,7 +216,6 @@ DWORD CGSCarch::CalcHash(LPCSTR lpcsFileName)
 
 LPGSCFindData CGSCarch::FindFile( LPCSTR lpcsMask )
 {
-#ifdef _WIN32
 	LPGSCarchFAT pFAT;
 	LPGSCFindData pFindData;
 	LPSTR	lpsDelim;
@@ -250,13 +249,11 @@ LPGSCFindData CGSCarch::FindFile( LPCSTR lpcsMask )
 	};
 
 	delete pFindData;
-#endif
 	return NULL;
 };
 
 BOOL CGSCarch::NextFile( LPGSCFindData gFindData )
 {
-#ifdef _WIN32
 	LPGSCarchFAT pFAT;
 	LPSTR lpsDelim;
 
@@ -278,6 +275,5 @@ BOOL CGSCarch::NextFile( LPGSCFindData gFindData )
 	};
 
 	delete gFindData;
-#endif
 	return FALSE;
 }

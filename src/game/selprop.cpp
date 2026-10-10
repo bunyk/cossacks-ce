@@ -1979,7 +1979,6 @@ void LoadMessagesFromFile( char* Name )
 void LoadMessages()
 {
 	LoadMessagesFromFile( "Comment.txt" );
-#ifdef _WIN32
 	TGSCFindInfo* FD = GSFILES.gFindFirst( "Missions\\miss_*.txt" );
 	if (FD)
 	{
@@ -2014,9 +2013,6 @@ void LoadMessages()
 			};
 		} while (good);
 	};
-#else
-	printf("TODO: Load mission messages too\n");
-#endif
 	LoadMessagesFromFile( "moretx.dat" );
 	LoadConstStr();
 }

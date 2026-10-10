@@ -179,7 +179,41 @@ _asm
 
 	}
 }
+#else
+// C translation of the isiMatchesMask asm glob matcher ('*' and '?',
+// case-insensitive; both strings are uppercased first, like the asm does)
+static BOOL MatchMaskUp( const char* file, const char* mask )
+{
+	if (!*mask) return !*file;
+	if (*mask == '?') return MatchMaskUp( file + 1, mask + 1 );
+	if (*mask == '*')
+	{
+		for (const char* f = file; ; f++)
+		{
+			if (MatchMaskUp( f, mask + 1 )) return TRUE;
+			if (!*f) return FALSE;
+		}
+	}
+	return *file == *mask && MatchMaskUp( file + 1, mask + 1 );
+}
 
+BOOL isiMatchesMask(LPSTR lpszFile, LPSTR lpszMask)
+{
+	char	szFile[255];
+	char	szMask[255];
+
+	// NOTE: unlike the asm version, do NOT uppercase in place - lpszFile can
+	// point into the read-only mapped archive FAT (CGSCarch::FindFile).
+	strcpy(szFile, lpszFile);
+	strcpy(szMask, lpszMask);
+	_strupr(szFile);
+	_strupr(szMask);
+
+	return MatchMaskUp( szFile, szMask );
+}
+#endif // _WIN32
+
+#ifdef _WIN32
 BOOL isiFileExists(LPSTR lpszFileName)
 {
 	WIN32_FIND_DATA	FindData;
