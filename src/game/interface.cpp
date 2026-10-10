@@ -61,6 +61,14 @@ UdpHolePuncher udp_hole_puncher;
 
 extern const int kChatMessageDisplayTime;
 extern const int kSystemMessageDisplayTime;
+#else // !_WIN32
+// Headers the (un-guarded) single-player game start needs: City (megapolis.h),
+// HideFlags (mapsprites.h), GNFO (einfoclass.h)
+#include "megapolis.h"
+#include "mapsprites.h"
+#include "safety.h"
+#include "strategyresearch.h"
+#include "einfoclass.h"
 #endif // _WIN32
 
 extern bool RUNMAPEDITOR;
@@ -215,7 +223,9 @@ RLCFont FDisable;
 extern bool CheapMode;
 int PanelLx;
 int PanelLy;
+#endif // _WIN32
 bool MultiplayerStart;
+#ifdef _WIN32
 extern bool ChoosePosition;
 #endif // _WIN32
 #ifdef _WIN32
@@ -884,6 +894,7 @@ bool NatChoose( SimpleDialog* SD )
 	return true;
 }
 
+#endif // _WIN32
 int coorX[8];
 int coorY[8];
 
@@ -895,6 +906,7 @@ void setCoor()
 		coorY[i] = -1;
 	}
 }
+#ifdef _WIN32
 
 void LoadAIFromDLL( byte Nat, char* Name );
 
@@ -5198,7 +5210,6 @@ ffe2:
 		}
 	}
 
-#ifdef _WIN32
 	if ( Host && PlayerMenuMode != -1 )
 	{
 		for ( int i = 0; i < 8; i++ )
@@ -5258,7 +5269,6 @@ ffe2:
 			memcpy( NatRefTBL, MPL_NatRefTBL, 8 );
 		}
 	}
-#endif // _WIN32
 
 	if ( NCHATS )
 	{
@@ -6078,6 +6088,27 @@ bool GetPreview( char* Name, byte* Data );
 extern int RunMethod;
 #endif // _WIN32
 
+#ifndef _WIN32
+// Single-player game start: declarations for pieces that live in
+// not-yet-ported files (mplayer.cpp) or that were un-guarded below.
+void CreateNationalMaskForRandomMap( char* Name );
+void CreateMaskForSaveFile( char* Name );
+void CreateNationalMaskForMap( char* Name );
+void PrepareGameMedia( byte myid, bool SaveNR );
+void CenterScreen();
+void SetupEBufs();
+void InitGame();
+void HideFlags();
+extern int PLNAT[8];
+extern int NeedCurrentTime;
+extern int tmtmt;
+extern int GLOBALTIME;
+extern int PGLOBALTIME;
+extern int EBPos;
+extern DWORD EBPos1;
+extern DWORD RealTime;
+#endif // !_WIN32
+
 bool SingleOptions()
 {
 	if ( MPL_WaitingGame( 1, 1 ) )
@@ -6086,7 +6117,59 @@ bool SingleOptions()
 		StartIGame( 1 );
 		return true;
 #else
-		return false; // No multiplayer on Linux yet
+		// Offline single-player start. Same as StartIGame( SINGLE ) +
+		// ComeInGame() from mplayer.cpp, minus the DirectPlay send paths.
+		memcpy( NatRefTBL, MPL_NatRefTBL, 8 );
+
+		NeedCurrentTime = GetSDLTickCount();
+
+		PrepareToGame();
+
+		HideFlags();
+
+		GameInProgress = true;
+		PlayerMenuMode = 0;
+
+		ShowLoading();
+
+		for ( int i = 0; i < 8; i++ )
+		{
+			PLNAT[i] = -1;
+		}
+
+		FlipPages();
+
+		if ( CurrentMap[0] == 'R' && CurrentMap[1] == 'N' && CurrentMap[3] == ' ' )
+		{
+			CreateNationalMaskForRandomMap( CurrentMap );
+		}
+		else
+		{
+			if ( strstr( CurrentMap, ".sav" ) || strstr( CurrentMap, ".SAV" ) )
+			{
+				CreateMaskForSaveFile( CurrentMap );
+			}
+			else
+			{
+				CreateNationalMaskForMap( CurrentMap );
+			}
+		}
+
+		PrepareGameMedia( 0, 1 );
+
+		CenterScreen();
+
+		FlipPages();
+
+		EBPos = 0;
+		EBPos1 = 5;
+		SetupEBufs();
+		tmtmt = 0;
+		RealTime = 0;
+		GLOBALTIME = 0;
+		PGLOBALTIME = 0;
+
+		return true;
 #endif // _WIN32
 	}
 	else
@@ -8878,12 +8961,10 @@ void PlayGame()
 
 	GSSetup800();
 
-	#ifdef _WIN32
 	LoadFog( 0 );
 
 	//Zero NucList, NucSN, NNuc
 	InitGame();
-	#endif
 
 	if ( exRealLx != RealLx )
 	{//Use last used game resoultion (loaded from settings)
@@ -11456,6 +11537,7 @@ bool WaitingJoinGame( int ID )
 	return false;
 }
 
+#endif // _WIN32 (single-player game start: cross-platform, needed on Linux)
 extern bool NotInGame;
 void CenterScreen();
 extern bool NoWinner;
@@ -11469,6 +11551,15 @@ extern int RM_Resstart;
 extern int RM_Restot;
 void FreeArrays();
 void SetupArrays();
+void InitGame();
+void HideFlags();
+void NewMap( int szX, int szY );
+extern int RunMethod;
+extern bool CheapMode;
+extern char MapScenaryDLL[200];
+extern int RES[8][8];
+extern City CITY[8];
+int DecodeOptionsFromNumber( const int number, int* result );
 extern byte* RivDir;
 extern char** NatsIDS;
 extern byte XVIIIState;
@@ -11816,6 +11907,7 @@ void PrepareGameMedia( byte myid, bool SaveNR )
 		}
 	}
 }
+#ifdef _WIN32
 
 //----------------------RANDOM MAP GENERATING DIALOG------------------
 void RandomMapDialog( char* Result )
@@ -13744,6 +13836,7 @@ int ShowUserStat( bool Prev, bool Next )
 	return ItemChoose;
 }
 
+#endif // _WIN32 (CenterScreen: cross-platform, needed on Linux)
 void CenterScreen()
 {
 	int xc = 0;
@@ -13775,6 +13868,7 @@ void CenterScreen()
 		mapy = y;
 	}
 }
+#ifdef _WIN32
 
 extern bool EnterChatMode;
 extern char ChatString[128];
