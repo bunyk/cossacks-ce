@@ -14,6 +14,10 @@
 // Keys:
 //   Up/Down/PgUp/PgDn/Home/End - navigate
 //   letters/backspace         - edit the filter box
+//   TAB                       - animate the selected .gp page (cycle its
+//                                pictures through GPS.ShowGP; +/- adjusts
+//                                the frame time, default 100 ms; press
+//                                TAB again to stop)
 //   Esc                       - quit
 
 #include <SDL3/SDL.h>
@@ -26,9 +30,48 @@
 #include <vector>
 
 #include "../src/game/arc/gscarch.h"
+#include "../src/game/gp_draw.h"
+#include "../src/game/fog.h"
+#include "../src/game/ctables.h"
+#include "../src/game/gfile.h"
+#include "../src/game/resfile.h"
+#include "../src/game/fastdraw.h"
 
 // GSC_OpenError() in gscarch.cpp references this global
 SDL_Window* sdlWindow = nullptr;
+
+// ---------------------------------------------------------------- tool-side
+// Globals that the linked game renderer (gp_draw/fastdraw/fog/resfile)
+// references but which live in game files too heavy to link into a tool
+// (ddini.cpp, newmon.cpp, ...). Values only matter where noted.
+int CurrentCursorGP = 0;            // ddini.cpp: cursor sprite id, unused here
+void* offScreenPtr = nullptr;       // ddini.cpp: only referenced, not dereferenced
+int RealLx = 0, RealLy = 0;         // ddini.cpp: logical screen size
+int SCRSizeX = 0, SCRSizeY = 0;    // ddini.cpp: offscreen buffer size
+int RSCRSizeX = 0, RSCRSizeY = 0;   // ddini.cpp: real screen size
+int COPYSizeX = 0;                  // ddini.cpp
+int LX_fmap = 0;                    // fog.cpp: fmap grid dimension (fog stubs unused)
+word RLCNSpr[1024 + 512];           // newmon.cpp: RLC sprite counters (read-only here)
+void ErrM( char* s ) { fprintf( stderr, "ErrM: %s\n", s ); }  // newmon/gtext versions not linked
+
+// bmptool.cpp's memory wrappers (guarded on Linux) - plain malloc/free
+void* _ExMalloc( int Size ) { return malloc( Size ); }
+void _ExFree( void* ptr ) { free( ptr ); }
+
+// NLine: skip to end of line (defined in activescenary.cpp in the game -
+// too heavy to link; same semantics via Ggetch)
+void NLine( GFILE* f );
+void NLine( GFILE* f )
+{
+	int c;
+	do { c = Ggetch( f ); } while ( c != 0x0A && c != EOF );
+}
+
+// normstr: normalize a string to uppercase (used by gtext/exconst parsing)
+void normstr( char* str )
+{
+	for ( char* p = str; *p; p++ ) *p = (char) toupper( (unsigned char) *p );
+}
 
 // ---------------------------------------------------------------- font
 // Public-domain 8x8 bitmap font (classic font8x8_basic, chars 0x20..0x7E).
@@ -203,6 +246,184 @@ static BmpImage previewBmp;
 static uint32_t gamePal[256];
 static bool gamePalLoaded = false;
 static std::string gamePalName;
+
+// ---------------------------------------------------------------- game renderer
+// The tool links the REAL game sprite renderer (gp_draw/fastdraw/fog/resfile).
+// We give it a small scratch "screen" and drive GPS.Show* directly, so the
+// variant previews below are produced by the exact code paths the game uses.
+static const int kScrW = 512, kScrH = 512;
+static uint8_t scratch[kScrW * kScrH];
+static bool gameRendererReady = false;
+
+static bool InitGameRenderer()
+{
+	// Registers override/resources/all .gsc archives into the game file system
+	// (GSFILES) so RReset/LoadGP find the .gp and .grd files.
+	if ( !FilesInit() )
+	{
+		fprintf( stderr, "game renderer: FilesInit() found no archives in CWD\n" );
+		return false;
+	}
+	// Loads the real fog/gradient/transform tables (trans4/trans8/yfog/wfog/
+	// Bright/Optional1-3) the Show* variants blend through.
+	LoadFog( 2 );
+
+	// Scratch screen for the sprite blits
+	ScreenPtr = scratch;
+	ScrWidth = kScrW;
+	WindX = 0;
+	WindY = 0;
+	WindX1 = kScrW - 1;
+	WindY1 = kScrH - 1;
+	gameRendererReady = true;
+	return true;
+}
+
+// Blit one sprite into the scratch buffer through a game Show* method,
+// then copy the drawn region (bounding box of non-zero pixels) into a
+// BmpImage cell with the game palette.
+static bool RenderGpVariant( int fi, int spr, int variant, BmpImage& out, int cell );
+static bool RenderGpVariant( int fi, int spr, int variant, BmpImage& out, int cell )
+{
+	memset( scratch, 0, sizeof scratch );
+	int cx = kScrW / 2, cy = kScrH / 2;
+	switch ( variant )
+	{
+	case 0: GPS.ShowGP( cx, cy, fi, spr, 0 ); break;             // normal
+	case 1: GPS.ShowGPRedN( cx, cy, fi, spr, 0, 2 ); break;     // red tint
+	case 2: GPS.ShowGPDarkN( cx, cy, fi, spr, 0, 2 ); break;     // dark tint
+	case 3: GPS.ShowGPTransparent( cx, cy, fi, spr, 0 ); break; // semi-transparent
+	default: return false;
+	}
+
+	// bounding box of drawn pixels (background = 0)
+	int x0 = kScrW, y0 = kScrH, x1 = 0, y1 = 0;
+	for ( int y = 0; y < kScrH; y++ )
+	{
+		const uint8_t* row = scratch + y * kScrW;
+		for ( int x = 0; x < kScrW; x++ )
+			if ( row[x] )
+			{
+				if ( x < x0 ) x0 = x;
+				if ( x > x1 ) x1 = x;
+				if ( y < y0 ) y0 = y;
+				if ( y > y1 ) y1 = y;
+			}
+	}
+	if ( x0 > x1 || y0 > y1 ) return false;   // nothing drawn
+
+	int bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+	float sc = std::min( (float) cell / bw, (float) cell / bh );
+	if ( sc > 4.0f ) sc = 4.0f;
+	int dw = std::max( 1, (int) ( bw * sc ) );
+	int dh = std::max( 1, (int) ( bh * sc ) );
+	int ox = ( cell - dw ) / 2;
+	int oy = ( cell - dh ) / 2;
+
+	out.ok = true;
+	out.w = cell;
+	out.h = cell;
+	out.rgba.assign( (size_t) cell * cell, 0xFF242430 );
+	for ( int y = 0; y < dh; y++ )
+	{
+		int sy = y0 + std::min( bh - 1, (int) ( y / sc ) );
+		for ( int x = 0; x < dw; x++ )
+		{
+			int sx = x0 + std::min( bw - 1, (int) ( x / sc ) );
+			uint8_t idx = scratch[sy * kScrW + sx];
+			uint32_t c = gamePalLoaded ? gamePal[idx] : 0xFF808080;
+			out.rgba[(size_t) ( oy + y ) * cell + ox + x] = c;
+		}
+	}
+	return true;
+}
+
+// Render the variant strip for the first picture of a .gp page through the
+// game's own drawing methods. Returns false if the game renderer is not
+// available or the page could not be loaded.
+static const int kVariantCell = 132;
+static bool HasExt( const std::string& name, const char* ext );
+static bool RenderGpVariantStrip( const Entry& e, int spr, BmpImage& strip )
+{
+	if ( !gameRendererReady ) return false;
+	std::string name = e.name;
+	if ( HasExt( name, ".gp" ) ) name.resize( name.size() - 3 );  // strip ".gp"
+
+	int fi = GPS.PreLoadGPImage( const_cast<char*>( name.c_str() ) );
+	if ( fi < 0 || GPS.GPNFrames[fi] <= 0 ) return false;
+	if ( spr >= GPS.GPNFrames[fi] ) spr = 0;
+
+	const int nVariants = 4;
+	strip.ok = true;
+	strip.w = kVariantCell * nVariants;
+	strip.h = kVariantCell;
+	strip.rgba.assign( (size_t) strip.w * strip.h, 0xFF242430 );
+	for ( int v = 0; v < nVariants; v++ )
+	{
+		BmpImage cell;
+		if ( !RenderGpVariant( fi, spr, v, cell, kVariantCell ) ) continue;
+		int ox = v * kVariantCell;
+		for ( int y = 0; y < cell.h; y++ )
+			for ( int x = 0; x < cell.w; x++ )
+				strip.rgba[(size_t) y * strip.w + ox + x] = cell.rgba[(size_t) y * cell.w + x];
+	}
+	GPS.UnLoadGP( fi );
+	return true;
+}
+
+// ---------------------------------------------------------------- animation
+// The game animates .gp pages by cycling the picture index at 40 ms/frame
+// through GPS.ShowGP (see Video_OnDraw in dialogs.cpp - the anm_* buttons).
+// TAB toggles the same playback here, through the real game renderer.
+static bool animEnabled = false;
+static int animFrame = 0;
+static Uint64 animLastTick = 0;
+static int animFrameMs = 100;         // adjustable with +/- (game buttons use 40)
+static int animFi = -1;
+static std::string animPage;
+
+static void UnloadAnimPage()
+{
+	if ( animFi >= 0 && animFi < GPS.NGP ) GPS.UnLoadGP( animFi );
+	animFi = -1;
+	animPage.clear();
+}
+
+// Render the next frame of the selected .gp entry into previewBmp/previewLines.
+static void BuildAnimatedFrame( const Entry& e )
+{
+	std::string name = e.name;
+	if ( HasExt( name, ".gp" ) ) name.resize( name.size() - 3 );
+
+	if ( animPage != name )
+	{
+		UnloadAnimPage();
+		animFi = GPS.PreLoadGPImage( const_cast<char*>( name.c_str() ) );
+		if ( animFi < 0 || GPS.GPNFrames[animFi] <= 0 )
+		{
+			animFi = -1;
+			return;
+		}
+		animPage = name;
+		animFrame = 0;
+	}
+
+	int np = GPS.GPNFrames[animFi];
+	int frame = animFrame % np;
+	animFrame++;
+
+	previewLines.clear();
+	previewScroll = 0;
+	char info[256];
+	snprintf( info, sizeof info, "%s  (%u bytes)", e.name.c_str(), e.size );
+	previewLines.push_back( info );
+	snprintf( info, sizeof info, "ANIMATION frame %d/%d  (%d ms/frame, +/- adjusts; game buttons run 40) - TAB stops",
+		frame + 1, np, animFrameMs );
+	previewLines.push_back( info );
+
+	previewBmp = BmpImage();
+	RenderGpVariant( animFi, frame, 0, previewBmp, 400 );
+}
 
 static void LoadGamePalette( CGSCarch& arch )
 {
@@ -404,9 +625,9 @@ static void BuildPreview( CGSCarch& arch, const Entry& e )
 	else if ( HasExt( e.name, ".gp" ) )
 	{
 		int spriteCount = 0, errors = 0;
-		previewBmp = TryDecodeGp( data, spriteCount, errors );
+		BmpImage sheet = TryDecodeGp( data, spriteCount, errors );
 		char info[160];
-		if ( previewBmp.ok )
+		if ( sheet.ok )
 		{
 			snprintf( info, sizeof info, "GP sprite page: %d picture(s)%s%s",
 				spriteCount, errors ? ", decode errors on some" : "",
@@ -417,6 +638,39 @@ static void BuildPreview( CGSCarch& arch, const Entry& e )
 			snprintf( info, sizeof info, "GP: could not decode (%d pictures)", spriteCount );
 		}
 		previewLines.push_back( info );
+
+		// Variant strip: the first picture rendered by the REAL game code
+		// (GPS.ShowGP / ShowGPRedN / ShowGPDarkN / ShowGPTransparent)
+		BmpImage strip;
+		if ( RenderGpVariantStrip( e, 0, strip ) )
+		{
+			previewLines.push_back( "variants below (game code): normal | red N=2 | dark N=2 | transparent" );
+			if ( sheet.ok )
+			{
+				// strip on top, then the full contact sheet
+				BmpImage both;
+				both.ok = true;
+				both.w = std::max( strip.w, sheet.w );
+				both.h = strip.h + 8 + sheet.h;
+				both.rgba.assign( (size_t) both.w * both.h, 0xFF242430 );
+				for ( int y = 0; y < strip.h; y++ )
+					for ( int x = 0; x < strip.w; x++ )
+						both.rgba[(size_t) y * both.w + x] = strip.rgba[(size_t) y * strip.w + x];
+				int oy = strip.h + 8;
+				for ( int y = 0; y < sheet.h; y++ )
+					for ( int x = 0; x < sheet.w; x++ )
+						both.rgba[(size_t) ( oy + y ) * both.w + x] = sheet.rgba[(size_t) y * sheet.w + x];
+				previewBmp = both;
+			}
+			else
+			{
+				previewBmp = strip;
+			}
+		}
+		else
+		{
+			previewBmp = sheet;
+		}
 		previewLines.push_back( "" );
 		BuildHexPreview( data, 64 );
 	}
@@ -772,6 +1026,10 @@ int main( int argc, char** argv )
 	// Palette for rendering GRD tables (falls back to hex if absent)
 	LoadGamePalette( arch );
 
+	// Game renderer: registers archives in the game file system (GSFILES),
+	// loads the real fog/transform tables, sets up the scratch screen
+	InitGameRenderer();
+
 	// Headless mode: gscbrowser --dump <archive> <file> -> print preview info, no UI
 	if ( dumpMode )
 	{
@@ -841,6 +1099,31 @@ int main( int argc, char** argv )
 			{
 				SDL_Keycode k = ev.key.key;
 				if ( k == SDLK_ESCAPE ) quit = true;
+				else if ( k == SDLK_TAB )
+				{
+					// toggle animation playback of the selected .gp page
+					bool selIsGp = !visible.empty() && sel < (int) visible.size()
+						&& HasExt( entries[visible[sel]].name, ".gp" );
+					if ( selIsGp )
+					{
+						animEnabled = !animEnabled;
+						animFrame = 0;
+						animLastTick = 0;
+						if ( !animEnabled )
+						{
+							UnloadAnimPage();
+							needPreview = true;   // back to static preview
+						}
+					}
+				}
+				else if ( k == SDLK_MINUS || k == SDLK_KP_MINUS )
+				{
+					animFrameMs = std::min( 500, animFrameMs + 20 );
+				}
+				else if ( k == SDLK_PLUS || k == SDLK_EQUALS || k == SDLK_KP_PLUS )
+				{
+					animFrameMs = std::max( 20, animFrameMs - 20 );
+				}
 				else if ( k == SDLK_UP ) { if ( sel > 0 ) { sel--; needPreview = true; } }
 				else if ( k == SDLK_DOWN ) { if ( sel + 1 < (int) visible.size() ) { sel++; needPreview = true; } }
 				else if ( k == SDLK_PAGEUP ) { sel = std::max( 0, sel - 20 ); needPreview = true; }
@@ -868,8 +1151,30 @@ int main( int argc, char** argv )
 
 		if ( needPreview && !visible.empty() && sel < (int) visible.size() )
 		{
-			BuildPreview( arch, entries[visible[sel]] );
-			needPreview = false;
+			const Entry& selEntry = entries[visible[sel]];
+			if ( animEnabled && HasExt( selEntry.name, ".gp" ) )
+			{
+				// animation tick below paints the preview each frame
+				needPreview = false;
+				animLastTick = 0;   // draw the first frame immediately
+			}
+			else
+			{
+				BuildPreview( arch, selEntry );
+				needPreview = false;
+			}
+		}
+
+		// animation playback (frame time adjustable with +/-, default 100 ms)
+		if ( animEnabled && !visible.empty() && sel < (int) visible.size()
+			&& HasExt( entries[visible[sel]].name, ".gp" ) )
+		{
+			Uint64 now = SDL_GetTicks();
+			if ( now - animLastTick >= (Uint64) animFrameMs )
+			{
+				animLastTick = now;
+				BuildAnimatedFrame( entries[visible[sel]] );
+			}
 		}
 
 		// ------------------------------------------------ render
@@ -878,7 +1183,7 @@ int main( int argc, char** argv )
 		const int rowH = 12;
 		FillRect( 0, 0, W, 14, COLOR_PANE );
 		char hdr[256];
-		snprintf( hdr, sizeof hdr, "%s : %d entries   filter: %s_   (Esc quits, type to filter, Ctrl+U clears)",
+		snprintf( hdr, sizeof hdr, "%s : %d entries   filter: %s_   (Esc quits, type to filter, Ctrl+U clears, TAB animates GP)",
 			archPath, (int) visible.size(), filter.c_str() );
 		DrawText( 4, 3, hdr, COLOR_BRIGHT );
 

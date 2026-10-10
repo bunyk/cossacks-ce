@@ -9217,7 +9217,6 @@ void GP_System::ShowGP(//IMPORTANT: show sprite with color masking
     GP_Header* lpGP    = GPX( lpGH, LGPH[RSprIndex] );
     GP_Header* lpGPCUR = lpGP;
 
-    {static int n=0; if(FileIndex==0&&n<5){printf("Font glyph fi=%d si=%d Opt=%d CData=0x%x LGPH=%d\n",FileIndex,RSprIndex,lpGP->Options,lpGP->CData,lpGH->LGPH[RSprIndex]);n++;}}
 
     DWORD* PAK = CASHREF[FileIndex];
     PAK += PAK[RSprIndex];
@@ -9225,6 +9224,8 @@ void GP_System::ShowGP(//IMPORTANT: show sprite with color masking
     if (ItDX[FileIndex])
         x -= ItDX[FileIndex][RSprIndex];
 
+    bool inv = SprIndex >= 4096;
+    int imt = ImageType[FileIndex] >> 4;
     int DIFF = -1;
     do
     {
@@ -9243,7 +9244,10 @@ void GP_System::ShowGP(//IMPORTANT: show sprite with color masking
         {
             // CASHREF is 32-bit pointer storage, unusable on 64-bit Linux.
             // Decompress into a temporary buffer on each draw call.
-            byte* tmp = new byte[UnpackLen];
+            // +10 slack mirrors the Windows cache block (GetCash(UnpackLen+18)
+            // with an 8-byte header): StdUnpack's final dictionary copy may
+            // legally run a few bytes past UnpackLen.
+            byte* tmp = new byte[UnpackLen + 10];
             StdUnpack( tmp, (byte*)lpGPCUR + CDOffs, UnpackLen,
                        (byte*)lpGH + lpGH->VocOffset );
             GP_ShowMaskedPict( x, y, lpGPCUR, tmp, nullptr );
@@ -9257,7 +9261,7 @@ void GP_System::ShowGP(//IMPORTANT: show sprite with color masking
         case 43:
         case 44:
         {
-            byte* tmp = new byte[UnpackLen];
+            byte* tmp = new byte[UnpackLen + 10];
             LZUnpack( tmp, (byte*)lpGPCUR + CDOffs, UnpackLen );
             GP_ShowMaskedPict( x, y, lpGPCUR, tmp, nullptr );
             delete[] tmp;
@@ -9293,7 +9297,51 @@ void GP_System::ShowGP(//IMPORTANT: show sprite with color masking
             break;
         }
         default:
-            {static int n=0; if(n<10){printf("ShowGP: unhandled Opt=%d FileIndex=%d SprIndex=%d UnpackLen=%d CDOffs=%d\n",Opt,FileIndex,SprIndex,UnpackLen,CDOffs);n++;}}
+            // Ported from the Windows switch: national-mask, transparent and
+            // shadow sprite types (previously missing -> sprites invisible)
+            if (Opt == 1)
+            {
+                // National mask: 2-bit indices -> NatPal color swap
+                byte* tmp = new byte[UnpackLen];
+                NatUnpackT( tmp, ( (byte*) lpGPCUR ) + CDOffs, UnpackLen );
+                byte* enc = (byte*) ( NatPal + ( Nation << 2 ) );
+                if (inv) GP_ShowMaskedPalPictInv( x, y, lpGPCUR, tmp, enc );
+                else GP_ShowMaskedPalPict( x, y, lpGPCUR, tmp, enc );
+                delete[] tmp;
+            }
+            else if (Opt == 2)
+            {
+                // transparent 1/4, raw data
+                if (inv) GP_ShowMaskedMultiPalTPictInv( x, y, lpGPCUR, ( (byte*) lpGPCUR ) + CDOffs, trans4 );
+                else GP_ShowMaskedMultiPalTPict( x, y, lpGPCUR, ( (byte*) lpGPCUR ) + CDOffs, trans4 );
+            }
+            else if (Opt == 3)
+            {
+                // transparent 1/2, raw data
+                if (inv) GP_ShowMaskedMultiPalTPictInv( x, y, lpGPCUR, ( (byte*) lpGPCUR ) + CDOffs, trans8 );
+                else GP_ShowMaskedMultiPalTPict( x, y, lpGPCUR, ( (byte*) lpGPCUR ) + CDOffs, trans8 );
+            }
+            else if (Opt == 4)
+            {
+                // transparent 3/4, raw data
+                if (inv) GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, ( (byte*) lpGPCUR ) + CDOffs, trans4 );
+                else GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, ( (byte*) lpGPCUR ) + CDOffs, trans4 );
+            }
+            else if (Opt == 5)
+            {
+                // Shadow: re-maps what is already on screen, themed by ImageType
+                byte* enc = fog + 4096;
+                switch (imt)
+                {
+                case 1: enc = Bright + 7936; break;    // white
+                case 2: enc = yfog + 7936; break;      // red
+                case 3: enc = Optional1 + 7936; break;
+                case 4: enc = Optional2 + 7936; break;
+                case 5: enc = Optional3 + 7936; break;
+                }
+                if (inv) GP_ShowMaskedPictShadowInv( x, y, lpGPCUR, NULL, enc );
+                else GP_ShowMaskedPictShadow( x, y, lpGPCUR, NULL, enc );
+            }
             break;
         }
 
@@ -9762,7 +9810,7 @@ void GP_System::ShowGPTransparent( int x, int y, int FileIndex, int SprIndex, by
 		{
 		case 0://standart packing
 		{
-			byte* tmp = new byte[UnpackLen];
+			byte* tmp = new byte[UnpackLen + 10];
 			StdUnpack( tmp, ( (byte*) lpGPCUR ) + CDOffs, UnpackLen,
 				( (byte*) lpGH ) + lpGH->VocOffset );
 			if (inv) GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, tmp, trans8 );
@@ -9800,7 +9848,7 @@ void GP_System::ShowGPTransparent( int x, int y, int FileIndex, int SprIndex, by
 		case 43:
 		case 44:
 		{
-			byte* tmp = new byte[UnpackLen];
+			byte* tmp = new byte[UnpackLen + 10];
 			LZUnpack( tmp, ( (byte*) lpGPCUR ) + CDOffs, UnpackLen );
 			if (inv) GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, tmp, trans8 );
 			else GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, tmp, trans8 );
@@ -10012,7 +10060,7 @@ void GP_System::ShowGPTransparentLayers( int x, int y, int FileIndex, int SprInd
 		case 0://standart packing
 			if (mask & 1)
 			{
-				byte* tmp = new byte[UnpackLen];
+				byte* tmp = new byte[UnpackLen + 10];
 				StdUnpack( tmp, ( (byte*) lpGPCUR ) + CDOffs, UnpackLen,
 					( (byte*) lpGH ) + lpGH->VocOffset );
 				if (inv) GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, tmp, trans8 );
@@ -10072,7 +10120,7 @@ void GP_System::ShowGPTransparentLayers( int x, int y, int FileIndex, int SprInd
 		case 44:
 			if (mask & 1)
 			{
-				byte* tmp = new byte[UnpackLen];
+				byte* tmp = new byte[UnpackLen + 10];
 				LZUnpack( tmp, ( (byte*) lpGPCUR ) + CDOffs, UnpackLen );
 				if (inv) GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, tmp, trans8 );
 				else GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, tmp, trans8 );
@@ -10694,7 +10742,7 @@ void GP_System::ShowGPPal( int x, int y, int FileIndex, int SprIndex, byte Natio
 		{
 		case 0://standart packing
 		{
-			byte* tmp = new byte[UnpackLen];
+			byte* tmp = new byte[UnpackLen + 10];
 			StdUnpack( tmp, ( (byte*) lpGPCUR ) + CDOffs, UnpackLen,
 				( (byte*) lpGH ) + lpGH->VocOffset );
 			if (inv) GP_ShowMaskedPalPictInv( x, y, lpGPCUR, tmp, Table );
@@ -10732,7 +10780,7 @@ void GP_System::ShowGPPal( int x, int y, int FileIndex, int SprIndex, byte Natio
 		case 43:
 		case 44:
 		{
-			byte* tmp = new byte[UnpackLen];
+			byte* tmp = new byte[UnpackLen + 10];
 			LZUnpack( tmp, ( (byte*) lpGPCUR ) + CDOffs, UnpackLen );
 			if (inv) GP_ShowMaskedPalPictInv( x, y, lpGPCUR, tmp, Table );
 			else GP_ShowMaskedPalPict( x, y, lpGPCUR, tmp, Table );
@@ -10780,7 +10828,7 @@ void GP_System::ShowGPPalLayers( int x, int y, int FileIndex, int SprIndex, byte
 		case 0://standart packing
 			if (mask & 1)
 			{
-				byte* tmp = new byte[UnpackLen];
+				byte* tmp = new byte[UnpackLen + 10];
 				StdUnpack( tmp, ( (byte*) lpGPCUR ) + CDOffs, UnpackLen,
 					( (byte*) lpGH ) + lpGH->VocOffset );
 				if (inv) GP_ShowMaskedPalPictInv( x, y, lpGPCUR, tmp, Table );
@@ -10844,7 +10892,7 @@ void GP_System::ShowGPPalLayers( int x, int y, int FileIndex, int SprIndex, byte
 		case 44:
 			if (mask & 1)
 			{
-				byte* tmp = new byte[UnpackLen];
+				byte* tmp = new byte[UnpackLen + 10];
 				LZUnpack( tmp, ( (byte*) lpGPCUR ) + CDOffs, UnpackLen );
 				if (inv) GP_ShowMaskedPalPictInv( x, y, lpGPCUR, tmp, Table );
 				else GP_ShowMaskedPalPict( x, y, lpGPCUR, tmp, Table );

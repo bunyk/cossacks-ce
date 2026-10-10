@@ -112,11 +112,20 @@ target_link_libraries(cossacks PRIVATE SDL3_image::SDL3_image SDL3::SDL3)
 find_package(Boost REQUIRED COMPONENTS context filesystem iostreams)
 target_link_libraries(cossacks PRIVATE Boost::context Boost::filesystem Boost::iostreams)
 
-# Small SDL3 utility to browse GSC resource archives
+# Small SDL3 utility to browse GSC resource archives.
+# Links the real game sprite renderer (gp_draw/fastdraw/fog/resfile) so GP
+# previews are produced by the exact code paths the game uses on Linux.
 add_executable(gscbrowser
     tools/gscbrowser.cpp
     src/game/arc/gscarch.cpp
+    src/game/arc/gscset.cpp
     src/game/arc/isimasks.cpp
     src/game/newcode/os.cpp
+    src/game/resfile.cpp
+    src/game/gtext.cpp
+    src/game/exconst.cpp
+    src/game/gp_draw.cpp
+    src/game/fastdraw.cpp
+    src/game/fog.cpp
 )
-target_link_libraries(gscbrowser PRIVATE SDL3::SDL3 Boost::iostreams)
+target_link_libraries(gscbrowser PRIVATE SDL3::SDL3 Boost::iostreams Boost::filesystem)
