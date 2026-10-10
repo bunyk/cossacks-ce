@@ -302,7 +302,14 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	//Pointer to the DirectDraw screen buffer
 	ScreenPtr = nullptr;
 
-	#ifdef _WIN32
+	// Declarations for globals that live in guarded decl blocks elsewhere
+	// (ChangeNation/MultiTvar - linux_stubs.cpp/loadsave.cpp, sfVersion - interface.cpp,
+	// CreateRadio - topograf.cpp)
+	extern bool ChangeNation;
+	extern bool MultiTvar;
+	extern int sfVersion;
+	void CreateRadio();
+
 	ChangeNation = false;
 	MultiTvar = false;
 	MEditMode = false;
@@ -318,7 +325,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	SpecCmd = 0;
 	sfVersion = 285;
 	Quality = 2;
-	#endif
 
 	RealLx = 1024;
 	RealLy = 768;
@@ -409,7 +415,19 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	WindLx = 1024;
 	WindLy = 768;
 
-	#ifdef _WIN32
+	// Declarations for globals/functions defined in other files, previously
+	// visible here only through Windows-only decl blocks
+	extern bool HealthMode;
+	extern bool InfoMode;
+	extern bool DeathMode;
+	extern bool AttackMode;
+	extern bool TransMode;
+	extern bool MUSTDRAW;
+	void InitFishMap();
+	void SetupGates();
+	void makeFden();
+	void InitXShift();
+
 	tima = 0;
 	PlayerMask = 1;
 	Flips = 0;
@@ -428,6 +446,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 
 	LockGrid = false;
 
+#ifdef _WIN32
 	FILE* Fx = fopen("cew.dll", "r");
 	if (!Fx)
 	{
@@ -438,6 +457,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	{
 		fclose(Fx);
 	}
+#endif // _WIN32 (cew.dll protection check)
 
 	//Init buffers for national units?
 	SetupNatList();
@@ -446,13 +466,11 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	makeFden();
 
 	PlayerMenuMode = 1;
-	#endif // _WIN32
 
 	Creator = 4096 + 255;
 	xxx = 0;
 	cadr = 0;
 
-	#ifdef _WIN32
 	//MouseZones?
 	InitZones();
 
@@ -468,9 +486,10 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	//Read players.txt, load dialog resources
 	SFLB_InitDialogs();
 
+#ifdef _WIN32
 	//Water colors and buffers
 	InitWater();
-	#endif // _WIN32
+#endif // _WIN32 (realwater.cpp not ported)
 
 #ifndef _WIN32
 	SFLB_InitDialogs();

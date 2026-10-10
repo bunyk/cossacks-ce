@@ -1112,6 +1112,7 @@ void ShowSuperFluentFog12_160( int x, int y, int z1x, int z2x, int z3x, int z4x 
 		};
 	};
 };
+#endif // _WIN32 (makeFden is portable)
 #define shf 300
 #define fmin 1500
 byte fden[8192];
@@ -1126,6 +1127,7 @@ void makeFden()
 			fden[i] = 5 + div( i * 153, shf ).quot;
 	}
 }
+#ifdef _WIN32
 
 int GetF( word k )
 {

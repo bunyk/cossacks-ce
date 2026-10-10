@@ -52,6 +52,8 @@ int RSCRSizeX = 0, RSCRSizeY = 0;   // ddini.cpp: real screen size
 int COPYSizeX = 0;                  // ddini.cpp
 int LX_fmap = 0;                    // fog.cpp: fmap grid dimension (fog stubs unused)
 word RLCNSpr[1024 + 512];           // newmon.cpp: RLC sprite counters (read-only here)
+int tmtmt = 0;                      // main.cpp: frame counter (InitXShift refs it, unused here)
+short TSin[257], TCos[257];         // weapon.cpp: sine tables (read-only here)
 void ErrM( char* s ) { fprintf( stderr, "ErrM: %s\n", s ); }  // newmon/gtext versions not linked
 
 // bmptool.cpp's memory wrappers (guarded on Linux) - plain malloc/free

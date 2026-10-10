@@ -127,5 +127,6 @@ add_executable(gscbrowser
     src/game/gp_draw.cpp
     src/game/fastdraw.cpp
     src/game/fog.cpp
+    src/game/newcode/securedivision.cpp
 )
 target_link_libraries(gscbrowser PRIVATE SDL3::SDL3 Boost::iostreams Boost::filesystem)

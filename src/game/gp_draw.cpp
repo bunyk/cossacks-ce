@@ -11175,6 +11175,11 @@ void TestGP()
 	HandleWater();
 }
 
+#endif // _WIN32 (InitXShift is portable)
+// Declarations previously visible only through the guarded region above
+extern int tmtmt;
+extern short TSin[257];
+extern short TCos[257];
 int XShift[512];
 void InitXShift()
 {
@@ -11214,6 +11219,8 @@ void InitXShift()
 		XShift[i] -= XShift[i - 1];
 	}
 }
+#ifdef _WIN32
+
 #endif // _WIN32
 
 LocalGP::LocalGP()
