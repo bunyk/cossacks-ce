@@ -5429,7 +5429,10 @@ void DialogsSystem::ProcessDialogs()
 #endif // _WIN32
 
 	bool UseMouse = true;
-#ifdef _WIN32
+	// Dropdown routing: while a combo's list is dropped open (ActiveParent),
+	// clicks inside the dropped zone go to its MouseOverActiveZone (item
+	// selection), and clicks outside close it. Without this block the click
+	// falls through to whatever dialog sits UNDER the dropped list.
 	if (ActiveParent&&mouseX >= ActiveX&&mouseX <= ActiveX1&&mouseY >= ActiveY&&mouseY <= ActiveY1)
 	{
 		ActiveParent->MouseOverActiveZone( ActiveParent, mouseX - ActiveX, mouseY - ActiveY, ActiveID );
@@ -5456,7 +5459,6 @@ void DialogsSystem::ProcessDialogs()
 	{
 		ActiveParent->NeedToDraw = true;
 	}
-#endif // _WIN32
 
 	SimpleDialog* SD_Hinted = nullptr;
 
