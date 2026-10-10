@@ -851,7 +851,9 @@ void LoadAllNations(byte NIndex)
 	{
 		if (strcmp(NatScripts[i], "-") && (LOADNATMASK & m0))
 		{
+			fprintf( stderr, "DBG LoadAllNations: loading nation %d '%s'\n", i, NatScripts[i] );
 			LoadNation(NatScripts[i], NIndex, i);
+			fprintf( stderr, "DBG LoadAllNations: after '%s' NMon=%d\n", NatScripts[i], NATIONS[NIndex].NMon );
 			ProcessMessages();
 		}
 		m0 <<= 1;

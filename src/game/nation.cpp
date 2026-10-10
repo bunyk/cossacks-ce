@@ -1639,9 +1639,11 @@ void LoadNations()
 {
 	//ProtectionMode=1;
 	GFILE* f = Gopen( "Nations.lst", "r" );
+	fprintf( stderr, "DBG LoadNations: f=%p\n", (void*) f );
 	ProtectionMode = 0;
 
 	int z = Gscanf( f, "%d", &NNations );
+	fprintf( stderr, "DBG LoadNations: Gscanf z=%d NNations=%d\n", z, NNations );
 #ifdef INETTESTVERSION
 	NNations = 1;
 #endif

@@ -1551,6 +1551,7 @@ void CreateNationalMaskForRandomMap( char* Name )
 			}
 		}
 	}
+	fprintf( stderr, "DBG CreateNationalMaskForRandomMap: name='%s' NNations=%d mask=%X\n", Name, NNations, LOADNATMASK );
 }
 
 extern int RM_LandType;
@@ -1611,6 +1612,7 @@ void CreateMapByName( char* Name )
 			else
 			{
 				NatUnit[k] = 0;
+				fprintf( stderr, "DBG CreateMapByName: slot %d id %d pname='%s' NMon=%d mask=%X\n", i, id, pname, nu, LOADNATMASK );
 				sprintf( cc1, "Creating map: Unknown unit: %s", pname );
 				ErrM( cc1 );
 			}

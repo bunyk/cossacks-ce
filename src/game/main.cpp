@@ -472,20 +472,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	#endif // _WIN32
 
 #ifndef _WIN32
-	// Pre-register GP slots to match Windows loading order so that
-	// CurrentCursorGP = CurPalette+5 points to the right cursor file.
-	// Windows Loading() calls InitNewMonstersSystem() before InitFonts(),
-	// which claims indices 0-4 for icon/scroll GPs, then 5-7 for cursors.
-	GPS.PreLoadGPImage( "icons" );          // 0
-	GPS.PreLoadGPImage( "smicons" );        // 1
-	GPS.PreLoadGPImage( "flag" );           // 2
-	GPS.PreLoadGPImage( "Interface\\GScroll" ); // 3
-	GPS.PreLoadGPImage( "smicons1" );       // 4
-	GPS.PreLoadGPImage( "Cursor_00" );      // 5
-	GPS.PreLoadGPImage( "Cursor_01" );      // 6
-	GPS.PreLoadGPImage( "Cursor_02" );      // 7
-	void InitFonts();
-	InitFonts();
 	SFLB_InitDialogs();
 #endif
 
@@ -1583,7 +1569,6 @@ static BOOL doInit()
 	}
 
 
-	#ifdef _WIN32
 	bool Loading();
 	if (!Loading())
 	{
@@ -1594,7 +1579,6 @@ static BOOL doInit()
 		SDL_PushEvent(&e);
 		return 0;
 	}
-	#endif // _WIN32
 
 	//create the main DirectDraw object
 	PalDone = false;
