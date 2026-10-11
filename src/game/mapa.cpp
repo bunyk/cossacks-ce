@@ -2425,11 +2425,12 @@ void GMiniShow()
 	*/
 
 	//Copy data from minimap buffer into the screen buffer
-	int scr = (int) ScreenPtr + minix + ( miniy * SCRSizeX );
-	int til = (int) &minimap + MiniX + ( MiniY * maxmap );
+	// (original used 32-bit int pointer arithmetic - fixed for 64-bit)
+	byte* scr = (byte*) ScreenPtr + minix + ( (intptr_t) miniy ) * SCRSizeX;
+	byte* til = (byte*) &minimap + MiniX + ( (intptr_t) MiniY ) * maxmap;
 	for (int i = 0; i < MiniLy; i++)
 	{
-		memcpy( (void*) scr, (void*) til, MiniLx );//REFACTORED: __asm
+		memcpy( scr, til, MiniLx );//REFACTORED: __asm
 		scr += SCRSizeX;
 		til += maxmap;
 	}
@@ -2454,7 +2455,7 @@ void GMiniShow()
 			if (mxx >= 0 && myy >= 0 && mxx < MiniLx && myy < MiniLy)
 			{
 				val = CLRT[OO->NNUM];
-				int scr = (int) ScreenPtr + minix + mxx + ( ( myy + miniy ) * SCRSizeX );
+				byte* scr = (byte*) ScreenPtr + minix + mxx + ( (intptr_t) ( myy + miniy ) ) * SCRSizeX;
 				if (OO->ImSelected & mmsk)
 				{
 					val = 0xFF;
@@ -2486,8 +2487,8 @@ void GMiniShow()
 				}
 
 				//Place a colored 2x2 square tag
-				memset( (void*) scr, val, 2 );//REFACTORED: __asm
-				memset( (void*) ( scr + SCRSizeX ), val, 2 );
+				memset( scr, val, 2 );//REFACTORED: __asm
+				memset( scr + SCRSizeX, val, 2 );
 			}
 		}
 	}
