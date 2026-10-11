@@ -292,7 +292,10 @@ void RestoreMData( void* scrn, void* buf, void* comp, int x, int y, int SSizeX, 
 		uint8_t* dst_row = scrof + x1 + (y1 + row) * SSizeX;
 
 		for (int col = 0; col < Lx; ++col) {
-			if (src_row[col] != comp_row[col]) {
+			// asm: restore bg only where the screen still equals the
+			// post-cursor save (the cursor pixel is still there); leave
+			// pixels alone that changed since the save
+			if (dst_row[col] == comp_row[col]) {
 				dst_row[col] = src_row[col];
 			}
 		}
