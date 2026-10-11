@@ -86,6 +86,43 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
   those are unrebased file offsets; the `MaskOfs()` helper now applies the same
   `(char*)table + 4 + OfsTable[n]` rebase that `GetRLCWidth/Height` use.
   Stub deletions in linux_stubs.cpp: ResultMask, GetBmOfst, PrepareIntersection1/2.
+- **Terrain triangle artifacts on relief (open, 2026-10-12)**: user reports visible
+  triangles in the texture ("like some of them are swapped, or z-fighting") plus
+  constant vertical seams on hills. A full static audit against upstream ce8bebc came
+  back FAITHFUL for every suspect: 3drandmap texture painting (SqInt, REND/REND1/REND2,
+  CostTex - diff is only benign renames), Save3DMap/LoadSurface/Tiles/Sect (raw arrays),
+  all triangle rasterizers (addLine, PrecPrepareToRender/AbsolutePrecPrepareToRender,
+  PrecRenderTriangle64/128/Dithering, DirectRenderTriangle64Dithering - note the asm
+  texture index is ((BMY>>16)&0x3F)<<8 | ((BMX>>16)&0x3F) via `ror ebx,8; mov ah,bh`;
+  the fog index folds the pixel into AL: 16384 + ((fog>>8)&~0xFF) + pixel), the dither
+  +-32768 alternation, ShowClippedTriangle(+MMX) clipping, the whole masks.cpp port,
+  RenderBestTriangle64/DirectRenderTriangle64 (identical C), GetLighting/GetVTex/DTX/
+  GetBmOfst/prp34 (mul3(x)=2x is an UPSTREAM quirk, not a port bug), darkfog/trans8
+  (loaded verbatim from .grd), randoma (from random.lst), tiles3.bmp load (0x436 seek,
+  ntex = size>>12), and the RLC mask-table rebase (same formula as the working sprite
+  path). The bug was then bisected dynamically with temporary runtime toggles
+  (cycled via Ctrl+Shift+Y: no fog pass / no checkerboard dithering / single
+  texture instead of blending / dump next 8 blends to terrain_dump_N.bin).
+  TWO LESSONS for future debugging:
+  1) event->key.mod is NOT populated by this SDL build - read modifiers via
+     GetSDLKeyState (SDL_GetKeyboardState) instead.
+  2) The blend dump (per triangle: params bm1..3/x0/y0/s1..3 + ResultMask +
+     the three source tile pages) made the bug measurable offline: expected
+     models could be scored against actual output (1.00 buggy vs 0.10
+     asm-faithful for _2; 0.67 = base+overlay for _1).
+  ALL of this instrumentation is REMOVED (fixed 2026-10-12); only the fix and
+  this note remain.
+  THE DUMPS FOUND THE BUG (fixed 2026-10-12): FastCreateMaskedBitmap64_2's
+  Linux translation double-applied the +32 column offset (dst=ResultMask+32
+  plus dst[31-i] = col 63-i, while the asm's 'dec edi' lands at col 31-i).
+  The mirrored trapezoid was written to ResultMask columns 32..63, but the
+  mask overlays (CopyMaskedBitmap, ids 54+) and the triangle sampler both use
+  columns 0..31 - so half the mixed-texture triangles (TriType 1/2,
+  PrepareIntersection2) rendered STALE ResultMask content from earlier blends
+  = the "triangles look swapped / z-fighting" artifact. Fix: dst=ResultMask.
+  Verified offline: dump0/2/3/5/7 matched the buggy model 1.00 and the
+  asm-faithful model 0.10; _1-path dumps 1/4/6 were already correct (0.67 =
+  base + overlay region).
 - **VS->screen copy (fixed 2026-10-11)**: `VirtualScreen::CopyVSPart`/`CopyVSPartMMX` had
   Windows-asm-only bodies - on Linux they compiled as EMPTY no-ops, so the fully rendered
   VS buffer was never copied to the screen (terrain invisible, menu showing through, all

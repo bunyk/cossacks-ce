@@ -590,13 +590,17 @@ EndTrapezoid:
 		pop		esi
 	};
 #else
-	//Linux translation: mirrored trapezoid filling ResultMask columns 32-w..31
+	//Linux translation: mirrored trapezoid filling ResultMask columns 31-w+1..31
 	//of 32 rows (widths as in _1). Source column c=(x+32)&63, rows start at
 	//(y-16)&63 and wrap at 64; horizontal overrun continues into the
 	//neighbouring tile at columns 64..127 of the 256-byte row.
+	//NOTE: the asm keeps the row base at ResultMask+32 but then does 'dec edi'
+	//before the backward copy - the net write column is 31-i. Do NOT add +32
+	//to dst here (double offset put the trapezoid in cols 32..63 while the
+	//mask overlays and the triangle sampler use cols 0..31).
 	int c=(x+32)&63;
 	int y0=(y-16)&63;
-	byte* dst=ResultMask+32;
+	byte* dst=ResultMask;
 	int w=2;
 	for(int half=0;half<2;half++){
 		for(int r=0;r<16;r++){
