@@ -1685,17 +1685,17 @@ bool MMChooseName( SimpleDialog* SD )
 	return false;
 }
 
-#ifdef _WIN32
-void __stdcall CDGINIT_INIT2();
-void __stdcall CDGINIT_INIT1();
-#endif
+// cross-platform: CDGINIT_INIT1 sets SmartLink (NewMonsterSmartSendToLink
+// order dispatch), CDGINIT_INIT2 sets AttackLink (AttackObjLink). Both were
+// called only under _WIN32 - on Linux every smart-send/attack order jumped
+// into the uninitialized dummy pointers (building-placement crash).
+void CDGINIT_INIT2();
+void CDGINIT_INIT1();
 
 void SFLB_ReadFirstPlayerName( char* ccc )
 {
-#ifdef _WIN32
 	CDGINIT_INIT1();
 	CDGINIT_INIT2();
-#endif
 	GFILE* F = Gopen( "players.txt", "r" );
 	ccc[0] = 0;
 	if ( F )

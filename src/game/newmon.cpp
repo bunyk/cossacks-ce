@@ -12445,10 +12445,12 @@ void MakeOneShot( OneObject* OB, int xd, int yd, int zd )
 	MakeOneShotLink( OB );
 };
 void NewMonsterSmartSendToLink( OneObject* OBJ );
-int SmartLink = 0x153829;
+// pointer-size safe: int() truncated the function pointer to 32 bits on x64
+// (the order call then jumped into sign-extended garbage - building crash)
+intptr_t SmartLink = 0x153829;
 void CDGINIT_INIT1()
 {
-	SmartLink = int( &NewMonsterSmartSendToLink ) + 0x7654391;
+	SmartLink = (intptr_t) &NewMonsterSmartSendToLink + 0x7654391;
 };
 void WaterAttackLink( OneObject* OBJ )
 {

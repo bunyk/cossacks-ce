@@ -98,6 +98,15 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
   every terrain pixel became one constant palette entry per scanline = the
   "brown-black polygons" bug. Same bug family as pattern #3's index-word truncations -
   ALWAYS check two-value table indices in asm translations.
+- **Order dispatch init (fixed 2026-10-11)**: `CDGINIT_INIT1/2` (called from
+  SFLB_ReadFirstPlayerName) were inside `#ifdef _WIN32`, so on Linux `SmartLink`
+  and `AttackLink` kept their dummy initializer values. First smart-send order
+  (ANY move command, incl. building placement) called DoLink = 0xf8aff498
+  (= 0x153829 - 0x7654391 sign-extended) -> SIGSEGV; attacks would die the same
+  way via AttackLink. Fixes: un-guarded the two init calls (both functions are
+  plain C++), and widened `SmartLink` from int to intptr_t (the int() obfuscation
+  truncated the function pointer on x64). CHECK FOR MORE: grep for the same
+  `int(FuncPtr)` + magic-constant obfuscation pattern elsewhere.
 - **Cursor save/restore (fixed 2026-10-11)**: `RestoreMData` (mouse_x.cpp) had its
   comparison INVERTED vs the asm: asm restores the saved background only where the screen
   still equals the post-cursor save; the port wrote the STALE background wherever the
