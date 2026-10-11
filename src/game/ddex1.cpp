@@ -305,7 +305,8 @@ bool Loading()
 	LoadRDS();
 
 	GoldID = GetResID( "GOLD" );
-	FoodID = GetResID( "STONE" );
+	FoodID = GetResID( "FOOD" );
+	StoneID = GetResID( "STONE" );
 	TreeID = GetResID( "WOOD" );
 	CoalID = GetResID( "COAL" );
 	IronID = GetResID( "IRON" );
