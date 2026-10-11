@@ -284,7 +284,7 @@ word EnemyInfo::ResearchCellForSupermortira(int cell, int MinDistance, int MaxDi
 					OneObject* OB = Group[MID];
 					if (OB&&OB->Serial == SN && !OB->Sdoxlo) {
 						byte use = OB->newMons->Usage;
-						if (use != SkladID&&use != MelnicaID) {
+						if (use != SkladID&&use != MillID) {
 							int R = Norma(OB->RealX - x0, OB->RealY - y0);
 							if (R > MinDistance&&R < MaxDistance&&R < BESTR) {
 								BESTR = R;

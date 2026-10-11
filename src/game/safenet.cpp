@@ -108,7 +108,7 @@ void NetSample::CreateDiversantMap(byte NI) {
 						case CenterID:
 							Pret = 40;
 							break;
-						case MelnicaID:
+						case MillID:
 							Pret = 20;
 							break;
 						case SkladID:

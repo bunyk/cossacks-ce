@@ -4094,7 +4094,7 @@ void CreateFieldsBar( byte NI, word n )
 		if ( MID != 0xFFFF )
 		{
 			OneObject* OB = Group[MID];
-			if ( OB&&OB->newMons->Usage == MelnicaID )CreateFields( NI, OB->RealX, OB->RealY, n );
+			if ( OB&&OB->newMons->Usage == MillID )CreateFields( NI, OB->RealX, OB->RealY, n );
 		};
 	};
 };

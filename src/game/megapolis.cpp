@@ -1499,8 +1499,8 @@ bool City::FindApproximateBuildingPlace( GeneralObject* GO )
 	BPR.Options = 0;
 	switch ( NM->Usage )
 	{
-	case MelnicaID:
-		Res = SearchPlace( &xx, &yy, &CheckMelnica, 25 );
+	case MillID:
+		Res = SearchPlace( &xx, &yy, &CheckMill, 25 );
 		break;
 	case CenterID:
 		Res = SearchPlace( &xx, &yy, &CheckStoneWoodSklad, 20 );
@@ -1616,8 +1616,8 @@ void City::MarkUnusablePlace()
 {
 	switch ( BPR.Usage )
 	{
-	case MelnicaID:
-		SetUnusable( BPR.NearX, BPR.NearY, CB_Melnica );
+	case MillID:
+		SetUnusable( BPR.NearX, BPR.NearY, CB_Mill );
 		break;
 	case CenterID:
 		SetUnusable( BPR.NearX, BPR.NearY, CB_Sklad );
@@ -2389,7 +2389,7 @@ void City::ProcessCreation()
 						int IDX = SmartCreationUnit( Nat->NNUM, BPR.NIndex, xx, yy );
 						if ( IDX >= 0 )
 						{
-							if ( BPR.Usage == MelnicaID )
+							if ( BPR.Usage == MillID )
 							{
 								if ( MaxFields )MaxFields += 20;
 								int xx = BPR.NearX;
@@ -2398,7 +2398,7 @@ void City::ProcessCreation()
 								{
 									for ( int dy = -6; dy <= 6; dy++ )
 									{
-										SetUnusable( xx + ( ( dx + dy ) >> 1 ), yy + ( ( dx - dy ) >> 1 ), CB_Melnica | CB_Sklad | CB_Building );
+										SetUnusable( xx + ( ( dx + dy ) >> 1 ), yy + ( ( dx - dy ) >> 1 ), CB_Mill | CB_Sklad | CB_Building );
 									};
 								};
 							};
@@ -2469,7 +2469,7 @@ void City::ProcessCreation()
 									};
 								};
 							};
-							if ( INM->Usage == MelnicaID )
+							if ( INM->Usage == MillID )
 							{
 								if ( NMeln < 4 )
 								{
@@ -2480,7 +2480,7 @@ void City::ProcessCreation()
 							};
 							//how mutch peasats do we need?
 							AdvCharacter* IDC = IGO->MoreCharacter;
-							if ( IDC->ProduceStages > 800 || INM->Usage == MelnicaID || INM->Usage == CenterID )
+							if ( IDC->ProduceStages > 800 || INM->Usage == MillID || INM->Usage == CenterID )
 							{
 								BPR.MaxPeasants = byte( INM->NBuildPt );
 								if ( INM->NBuildPt > 7 )BPR.MinPeasants = byte( INM->NBuildPt - 5 );

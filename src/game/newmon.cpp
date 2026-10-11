@@ -1342,9 +1342,9 @@ bool NewMonster::CreateFromFile( char* name )
 																	}
 																	else
 																	{
-																		if ( !strcmp( gy, MelnicaIDS ) )
+																		if ( !strcmp( gy, MillIDS ) )
 																		{
-																			Usage = MelnicaID;
+																			Usage = MillID;
 																			Ves = 100;
 																		}
 																		else
@@ -9019,7 +9019,7 @@ int Nation::CreateNewMonsterAt( int rx, int ry, int n, bool Anyway )
 					CreateGrassGround( sx, sy );
 				};
 			};
-		};
+			};
 		return -1;
 	};
 	if ( !( Anyway || NM->Wall ) )
@@ -9347,7 +9347,7 @@ void CreateGround( OneObject* G )
 	if ( NM->Building )
 	{
 		byte Use = NM->Usage;
-		if ( Use == MelnicaID || Use == SkladID || Use == MineID )
+		if ( Use == MillID || Use == SkladID || Use == MineID )
 		{
 			return;
 		}
@@ -13241,7 +13241,7 @@ void OneObject::NextStage()
 			NewCurSprite = 0;
 			byte lUsage = newMons->Usage;
 			if ( lUsage == TowerID )GNFO.AddTow( this );
-			if ( lUsage == MelnicaID && ( !Nat->AI_Enabled ) && Nat->CITY->ReadyAmount[NIndex] == 0 )
+			if ( lUsage == MillID && ( !Nat->AI_Enabled ) && Nat->CITY->ReadyAmount[NIndex] == 0 )
 			{
 				CreateFields( NNUM, RealX, RealY, Nat->PAble[NIndex][0] );
 			};

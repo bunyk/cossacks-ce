@@ -11225,13 +11225,6 @@ void GP_System::ShowGPPalLayers( int x, int y, int FileIndex, int SprIndex, byte
 	} while (DIFF != -1);
 }
 #endif // !_WIN32
-#ifndef _WIN32
-// RLC rendering is stubbed on Linux (ShowRLCItem is a no-op in fastdraw.cpp);
-// the *Pal/*Grad dispatchers live in the Windows-only fastdraw region. No-op
-// them here so the GP variants' RLC paths compile and stay inert.
-void ShowRLCItemPal( int, int, lpRLCTable, int, byte* ) {}
-void ShowRLCItemGrad( int, int, lpRLCTable, int, byte* ) {}
-#endif // !_WIN32
 GP_System GPS;
 
 #ifdef _WIN32

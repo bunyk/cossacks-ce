@@ -4007,7 +4007,7 @@ void StartAIEx( byte Nat, char* Name, int Land, int Money, int ResOnMap, int Dif
 		if ( OB )
 		{
 			byte Usage = OB->newMons->Usage;
-			if ( Usage == MelnicaID&&NML < 4 )
+			if ( Usage == MillID&&NML < 4 )
 			{
 				if ( CITY[Nat].NMeln < 4 )
 				{

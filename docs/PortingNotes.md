@@ -139,6 +139,30 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
     CorrectLockPosition stubs. STILL STUBBED: GetNextDiv/Gre/SafeCell
   (they live in safenet.cpp, not yet ported - AI long-range pathing across
   areas).
+- **RLC sprite rendering ported (2026-10-12)** - this was the invisible-wheat
+  bug. RLC files (GROW0..4 = wheat growth stages, CURSOR_Y, RLC fonts) are
+  plain RLE sprites: 4-byte header (short SizeX,SizeY), per scanline a
+  segment count byte, per segment (skip,count) + count pixel bytes.
+  - fastdraw.cpp had a PREPROCESSOR IMBALANCE: `#ifdef _WIN32` before the
+    commented-out ClearScreen never closed - the entire RLC family (asm AND
+    the existing #else stubs) sat in the Windows branch and was SILENTLY
+    skipped on Linux. Fixed the dangling guard; only after that did the
+    per-function #else branches become live.
+  - Ported the 8 core blitters as one clean-room generic (ShowRLCGen):
+    plain dst=src, pal dst=pal[src], "fon" dst=pal[dst] (mask-only - the
+    shadow/white variants), "ht" dst=pal[(src<<8)|dst] (half-transparent:
+    trans8/Dark/Fire/WFog/Blue wrappers), each x mirror (Inv) variant.
+  - ShowRLCItem (was a no-op stub): full dispatch - GP files route to
+    GPS.ShowGP; RLC pictures are at (char*)table + 4 + OfsTable[n]
+    (unrebased offsets on 64-bit!). Nation tints route via PAL1..7.
+    The 4 unguarded Item dispatchers (DarkN/Pal/Grad/RedN) got the same
+    rebase. gp_draw.cpp's duplicate ShowRLCItemPal/Grad no-op stubs
+    deleted. ShowRLCItemTrans8/Mutno/Dark/Blue/Fired remain Windows-only
+    (unreferenced on Linux so far - waves.cpp's use is commented out).
+  - Mill/wheat verified working: fields spawn (ok~32/49, failBar = mill
+    footprint), grow stage 6->7 via ObjTimer (FrmDec ticks), harvest
+    increases food. NOTE: unit "38"/"87"/"105" seen as PAble field index
+    across runs - different per random map, is the nation's field unit.
 - **Cursor save/restore (fixed 2026-10-11)**: `RestoreMData` (mouse_x.cpp) had its
   comparison INVERTED vs the asm: asm restores the saved background only where the screen
   still equals the post-cursor save; the port wrote the STALE background wherever the

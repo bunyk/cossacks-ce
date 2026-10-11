@@ -195,11 +195,11 @@ void FreeInfoMap()
 int SsMaxX;
 int SsMaxY;
 #define FieldSX 2
-bool CheckMelnica( int x, int y )
+bool CheckMill( int x, int y )
 {
 	if (x <= FieldSX || y <= FieldSX || x >= SsMaxX - FieldSX || y >= SsMaxY - FieldSX)return false;
 	int ofst = x + y*VAL_SPRNX;
-	if (CantBuild[ofst] & CB_Melnica)return false;
+	if (CantBuild[ofst] & CB_Mill)return false;
 	ofst -= FieldSX + VAL_SPRNX*FieldSX;
 	for (int dy = -FieldSX; dy <= FieldSX; dy++)
 	{

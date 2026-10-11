@@ -14,7 +14,7 @@ extern byte* InfoMap;
 #define CB_Farm		2
 #define CB_Tower	4
 #define CB_Building 8
-#define CB_Melnica  16
+#define CB_Mill  16
 #define CB_Port     32
 extern byte* CantBuild;
 
@@ -24,7 +24,7 @@ extern word MaxMine;
 void CreateInfoMap();
 void RenewInfoMap(int x,int y);
 typedef bool SearchFunction(int xx,int yy);
-bool CheckMelnica(int x,int y);
+bool CheckMill(int x,int y);
 bool CheckStoneSklad(int x,int y);
 bool CheckWoodSklad(int x,int y);
 bool CheckStoneWoodSklad(int x,int y);

@@ -151,6 +151,7 @@ void SetScreenPtr( void )
 
 #ifdef _WIN32
 void ClearScreen();
+#endif
 /*
 {
 	if(DDError) return;
@@ -413,9 +414,67 @@ void ShowRLC( int x, int y, void* PicPtr )
 	}
 }
 #else
-void ShowRLC( int x, int y, void* PicPtr )
+// Linux clean-room renderer for RLC sprites (the __asm blitters above):
+// 4-byte header (short SizeX, SizeY), then per scanline a segment count
+// byte, and per segment (skip, count) followed by count pixel bytes.
+// Modes: 0 dst=src, 1 dst=pal[src], 2 dst=pal[dst] (mask-only, "fon"),
+// 3 dst=pal[(src<<8)|dst] (half-transparent blend, "ht").
+// mirror=true draws right-to-left (the Inv variants; x = right edge).
+void ShowRLCGen( int x, int y, void* PicPtr, byte* pal, int mode, bool mirror )
 {
+	lpRLCHeader H = (lpRLCHeader)PicPtr;
+	int PLX = H->SizeX & 65535;
+	int PLY = H->SizeY & 65535;
+	if (!PLY || !PLX) return;
+	if (mirror)
+	{
+		if (y + PLY - 1 < WindY || y > WindY1) return;
+		if (x < WindX || x - PLX + 1 > WindX1) return;
+	}
+	else
+	{
+		if (y + PLY - 1 < WindY || y > WindY1) return;
+		if (x + PLX <= WindX || x > WindX1) return;
+	}
+	const byte* src = (const byte*)PicPtr + 4;
+	int yy = y;
+	for (int line = 0; line < PLY; line++, yy++)
+	{
+		int nseg = *src++;
+		if (nseg && yy >= WindY && yy <= WindY1)
+		{
+			byte* dstrow = (byte*)ScreenPtr + (size_t)yy * ScrWidth;
+			for (int s = 0; s < nseg; s++)
+			{
+				int skip = src[0];
+				int cnt = src[1];
+				src += 2;
+				for (int k = 0; k < cnt; k++)
+				{
+					int col = mirror ? (x - skip - 1 - k) : (x + skip + k);
+					if (col >= WindX && col <= WindX1)
+					{
+						byte v;
+						switch (mode)
+						{
+						case 0: v = src[k]; break;
+						case 1: v = pal[src[k]]; break;
+						case 2: v = pal[dstrow[col]]; break;
+						default: v = pal[((unsigned)src[k] << 8) | dstrow[col]]; break;
+						}
+						dstrow[col] = v;
+					}
+				}
+				src += cnt;
+			}
+		}
+		else
+		{
+			for (int s = 0; s < nseg; s++) src += 2 + src[1];
+		}
+	}
 }
+void ShowRLC( int x, int y, void* PicPtr ) { ShowRLCGen( x, y, PicPtr, nullptr, 0, false ); }
 #endif
 //End of RLC with clipping
 
@@ -645,9 +704,7 @@ void ShowRLCi( int x, int y, void* PicPtr )
 	}
 }
 #else
-void ShowRLCi( int x, int y, void* PicPtr )
-{
-}
+void ShowRLCi( int x, int y, void* PicPtr ) { ShowRLCGen( x, y, PicPtr, nullptr, 0, true ); }
 #endif
 
 //End of RLC with clipping & with palette
@@ -889,9 +946,7 @@ void ShowRLCpal( int x, int y, void* PicPtr, byte* pal )
 	}
 }
 #else
-void ShowRLCpal( int x, int y, void* PicPtr, byte* pal )
-{
-}
+void ShowRLCpal( int x, int y, void* PicPtr, byte* pal ) { ShowRLCGen( x, y, PicPtr, pal, 1, false ); }
 #endif
 //End of RLC with clipping & encoding
 
@@ -1137,9 +1192,7 @@ void ShowRLCipal( int x, int y, void* PicPtr, byte* pal )
 	}
 }
 #else
-void ShowRLCipal( int x, int y, void* PicPtr, byte* pal )
-{
-}
+void ShowRLCipal( int x, int y, void* PicPtr, byte* pal ) { ShowRLCGen( x, y, PicPtr, pal, 1, true ); }
 #endif
 //End of inverted RLC with clipping & encoding
 
@@ -1385,9 +1438,7 @@ void ShowRLCfonpal( int x, int y, void* PicPtr, byte* pal )
 	}
 }
 #else
-void ShowRLCfonpal( int x, int y, void* PicPtr, byte* pal )
-{
-}
+void ShowRLCfonpal( int x, int y, void* PicPtr, byte* pal ) { ShowRLCGen( x, y, PicPtr, pal, 2, false ); }
 #endif
 //End of RLC with clipping & encoding
 
@@ -1639,9 +1690,7 @@ void ShowRLCifonpal( int x, int y, void* PicPtr, byte* pal )
 	}
 }
 #else
-void ShowRLCifonpal( int x, int y, void* PicPtr, byte* pal )
-{
-}
+void ShowRLCifonpal( int x, int y, void* PicPtr, byte* pal ) { ShowRLCGen( x, y, PicPtr, pal, 2, true ); }
 #endif
 //End of inverted RLC with clipping & encoding->fon
 
@@ -1892,9 +1941,7 @@ void ShowRLChtpal( int x, int y, void* PicPtr, byte* pal )
 	}
 }
 #else
-void ShowRLChtpal( int x, int y, void* PicPtr, byte* pal )
-{
-}
+void ShowRLChtpal( int x, int y, void* PicPtr, byte* pal ) { ShowRLCGen( x, y, PicPtr, pal, 3, false ); }
 #endif
 //End of RLC with clipping & encoding
 
@@ -2150,9 +2197,7 @@ void ShowRLCihtpal( int x, int y, void* PicPtr, byte* pal )
 	}
 }
 #else
-void ShowRLCihtpal( int x, int y, void* PicPtr, byte* pal )
-{
-}
+void ShowRLCihtpal( int x, int y, void* PicPtr, byte* pal ) { ShowRLCGen( x, y, PicPtr, pal, 3, true ); }
 #endif
 //End of inverted RLC with clipping & encoding(half-transparent fog)
 
@@ -2249,46 +2294,50 @@ void ShowRLCiRedN( int x, int y, void* PicPtr, int N )
 };
 void ShowRLCItemDarkN( int x, int y, lpRLCTable lprt, int n, int Ints )
 {
+	// Linux: OfsTable holds unrebased offsets (see LoadRLC)
 	if (n < 4096)
 	{
-		ShowRLCDarkN( x, y, (void*) ( ( *lprt )->OfsTable[n] ), Ints );
+		ShowRLCDarkN( x, y, (void*) ( (byte*)( *lprt ) + 4 + ( *lprt )->OfsTable[n] ), Ints );
 	}
 	else
 	{
-		ShowRLCiDarkN( x, y, (void*) ( ( *lprt )->OfsTable[n - 4096] ), Ints );
+		ShowRLCiDarkN( x, y, (void*) ( (byte*)( *lprt ) + 4 + ( *lprt )->OfsTable[n - 4096] ), Ints );
 	};
 };
 void ShowRLCItemPal( int x, int y, lpRLCTable lprt, int n, byte* Pal )
 {
+	// Linux: OfsTable holds unrebased offsets (see LoadRLC)
 	if (n < 4096)
 	{
-		ShowRLCpal( x, y, (void*) ( ( *lprt )->OfsTable[n] ), Pal );
+		ShowRLCpal( x, y, (void*) ( (byte*)( *lprt ) + 4 + ( *lprt )->OfsTable[n] ), Pal );
 	}
 	else
 	{
-		ShowRLCipal( x, y, (void*) ( ( *lprt )->OfsTable[n - 4096] ), Pal );
+		ShowRLCipal( x, y, (void*) ( (byte*)( *lprt ) + 4 + ( *lprt )->OfsTable[n - 4096] ), Pal );
 	};
 };
 void ShowRLCItemGrad( int x, int y, lpRLCTable lprt, int n, byte* Pal )
 {
+	// Linux: OfsTable holds unrebased offsets (see LoadRLC)
 	if (n < 4096)
 	{
-		ShowRLChtpal( x, y, (void*) ( ( *lprt )->OfsTable[n] ), Pal );
+		ShowRLChtpal( x, y, (void*) ( (byte*)( *lprt ) + 4 + ( *lprt )->OfsTable[n] ), Pal );
 	}
 	else
 	{
-		ShowRLCihtpal( x, y, (void*) ( ( *lprt )->OfsTable[n - 4096] ), Pal );
+		ShowRLCihtpal( x, y, (void*) ( (byte*)( *lprt ) + 4 + ( *lprt )->OfsTable[n - 4096] ), Pal );
 	};
 };
 void ShowRLCItemRedN( int x, int y, lpRLCTable lprt, int n, int Ints )
 {
+	// Linux: OfsTable holds unrebased offsets (see LoadRLC)
 	if (n < 4096)
 	{
-		ShowRLCRedN( x, y, (void*) ( ( *lprt )->OfsTable[n] ), Ints );
+		ShowRLCRedN( x, y, (void*) ( (byte*)( *lprt ) + 4 + ( *lprt )->OfsTable[n] ), Ints );
 	}
 	else
 	{
-		ShowRLCiRedN( x, y, (void*) ( ( *lprt )->OfsTable[n - 4096] ), Ints );
+		ShowRLCiRedN( x, y, (void*) ( (byte*)( *lprt ) + 4 + ( *lprt )->OfsTable[n - 4096] ), Ints );
 	};
 };
 void ShowRLCWFog( int x, int y, void* PicPtr )
@@ -2335,7 +2384,6 @@ void ShowRLCiFire( int x, int y, void* PicPtr )
 {
 	ShowRLCihtpal( x, y, PicPtr, yfog );
 }
-#endif // _WIN32
 
 //Load rlc file, allocate and fill provided RLCTable
 bool LoadRLC( LPCSTR lpFileName, RLCTable *RLCtbl )
@@ -2514,9 +2562,34 @@ void ShowRLCItemFired( int x, int y, lpRLCTable lprt, int n )
 	};
 };
 #else // !_WIN32
-void ShowRLCItem( int /*x*/, int /*y*/, lpRLCTable /*lprt*/, int /*n*/, byte /*nt*/ )
+void ShowRLCItem( int x, int y, lpRLCTable lprt, int n, byte nt )
 {
-    // TODO: implement RLC sprite rendering for Linux
+	int GPID = int( *lprt );
+
+	if (GPID < 4096)
+	{
+		GPS.ShowGP( x, y, GPID, n, nt );
+		return;
+	}
+
+	// Linux: OfsTable holds unrebased file offsets (see LoadRLC) - the
+	// picture data starts at (char*)table + 4 + OfsTable[index].
+	byte* table = (byte*)( *lprt );
+	bool inv = n >= 4096;
+	int idx = inv ? ( n - 4096 ) : n;
+	void* pic = table + 4 + ( *lprt )->OfsTable[idx];
+
+	if ( nt == 0 || nt > 7 )
+	{
+		if ( inv ) ShowRLCi( x, y, pic );
+		else ShowRLC( x, y, pic );
+	}
+	else
+	{
+		static byte* NATPAL[8] = { nullptr, PAL1, PAL2, PAL3, PAL4, PAL5, PAL6, PAL7 };
+		if ( inv ) ShowRLCipal( x, y, pic, NATPAL[nt] );
+		else ShowRLCpal( x, y, pic, NATPAL[nt] );
+	}
 }
 #endif // _WIN32
 	   //

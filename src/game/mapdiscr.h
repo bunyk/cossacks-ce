@@ -1991,8 +1991,8 @@ extern int IronID;
 void UpdateAttackR( AdvCharacter* ADC );
 
 //------------------IDS-----------------//
-#define MelnicaID	0x01
-#define MelnicaIDS  "MELNICA"
+#define MillID	0x01
+#define MillIDS  "MELNICA"
 
 #define FarmID		0x02
 #define FarmIDS		"FARM"

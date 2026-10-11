@@ -470,7 +470,7 @@ void CreateStrategyInfo()
 					byte USAGE = OB->newMons->Usage;
 					switch (USAGE)
 					{
-					case MelnicaID:
+					case MillID:
 						STINF->BuildInfo |= SI_Meln;
 						break;
 					case FarmID:
