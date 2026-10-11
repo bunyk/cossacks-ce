@@ -509,18 +509,21 @@ LPBYTE CGSCset::gMapFile( LPGSCfile gFile )
 
 BOOL CGSCset::gWriteFile( LPGSCfile gFile, LPBYTE lpbBuffer, DWORD dwSize )
 {
-#ifdef _WIN32	
-	DWORD dwBytesWritten;
 	if (gFile->m_Flags)
 	{
 		return FALSE;
 	}
 	else
 	{
+#ifdef _WIN32
+		DWORD dwBytesWritten;
 		WriteFile( HANDLE( gFile->m_FileHandle ), lpbBuffer, dwSize, &dwBytesWritten, NULL );
 		return TRUE;
-	};
+#else
+		fwrite( lpbBuffer, 1, dwSize, gFile->m_fp );
+		return TRUE;
 #endif
+	};
 }
 
 LPGSCfile CGSCset::gWriteOpen( LPCSTR lpcsFileName )
@@ -544,6 +547,16 @@ LPGSCfile CGSCset::gWriteOpen( LPCSTR lpcsFileName )
 		delete gFile;
 		return NULL;
 	};
+#else
+	// Linux: plain stdio like gOpenFile's loose-file fallback (CREATE_ALWAYS -> "wb")
+	std::string path = toLinuxPath( lpcsFileName );
+	FILE* fp = fopen( path.c_str(), "wb" );
+	if (!fp) return NULL;
+	gFile = new TGSCfile;
+	gFile->m_Flags = 0;
+	gFile->m_Position = 0;
+	gFile->m_Arch = nullptr;
+	gFile->m_fp = fp;
 #endif
 	return gFile;
 }
