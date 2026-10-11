@@ -46,6 +46,7 @@ add_executable(cossacks
 	src/game/gtext.cpp
 	src/game/strecog.cpp
 	src/game/fog.cpp
+	src/game/masks.cpp
 	src/game/drawforms.cpp
 	src/game/weapon.cpp
 	src/game/3dbars.cpp

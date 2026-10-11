@@ -4,7 +4,7 @@
 //  - interface.cpp regions still guarded by _WIN32 (map interface, dialogs helpers, chat)
 //  - path.cpp (pathfinding: heavy asm, needs porting)
 //  - fog.cpp / virtscr.cpp asm regions
-//  - realwater.cpp, shiptrace.cpp, masks.cpp, mplayer.cpp (network), ir_main.cpp
+//  - realwater.cpp, shiptrace.cpp, mplayer.cpp (network), ir_main.cpp
 // Each stub keeps the exact signature from the headers so the mangled names match.
 // TODO: replace with real implementations while porting the files above.
 
@@ -72,7 +72,6 @@ DWORD RealTime = 0;
 char RECFILE[128];
 bool ChangeNation = false;
 bool AllowPathDelay = false;
-byte ResultMask[MaskLx * 256];
 
 static byte WaterStorage[1 << 20];
 byte* WaterBright = WaterStorage;
@@ -264,8 +263,6 @@ void DontMakeRaiting() {}
 int  EnterHi( int* val, int Type ) { (void)val; (void)Type; return 0; }
 bool EnterStr( char* str, char* Message ) { (void)str; (void)Message; return false; }
 void ExplorerOpenRef( int Index, char* ref ) { (void)Index; (void)ref; }
-// Real masks.cpp:510 formula (texture bitmap offset in tex1)
-int  GetBmOfst( int i ) { return ( ( i & 3 ) << 6 ) + ( ( i >> 2 ) << ( 8 + 6 ) ); }
 int  GetCurGamePtr( byte** Ptr ) { if (Ptr) *Ptr = NULL; return 0; }
 int  GetQueueMultiplier() { return 0; }
 word GetTexture() { return 0; }
@@ -288,8 +285,6 @@ void ShowCentralMessage4( char* Message, int GPIDX, int DX ) { (void)Message; (v
 void TestGP() {}
 void UnitLight( OneObject* OB ) { (void)OB; }
 void UpdateCurGame() {}
-void PrepareIntersection1( int bm1, int bm2, int bm3, int DstBM, int x, int y, int x1, int y1, xRLCTable* rlc, byte* Alpha ) { (void)bm1; (void)bm2; (void)bm3; (void)DstBM; (void)x; (void)y; (void)x1; (void)y1; (void)rlc; (void)Alpha; }
-void PrepareIntersection2( int bm1, int bm2, int bm3, int DstBM, int x, int y, int x1, int y1, xRLCTable* rlc, byte* Alpha ) { (void)bm1; (void)bm2; (void)bm3; (void)DstBM; (void)x; (void)y; (void)x1; (void)y1; (void)rlc; (void)Alpha; }
 
 //-------------- map editor / random map --------------
 void CreateNEWMAP() {}

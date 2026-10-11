@@ -359,7 +359,9 @@ void RenderTriangle64(int NLines, byte* Dest, byte* Bitmap) {
 			int fog = *(int*)(vb + 12);
 			byte* p = line;
 			for (int i = 0; i < len; i++) {
-				*p = darkfog[16384 + (fog >> 8)];
+				// asm: eax=fog sar 8, then AL replaced by the pixel value:
+				// index = 16384 + ((fog>>8)&~0xFF) | pixel
+				*p = darkfog[16384 + ((fog >> 8) & ~0xFF) + *p];
 				fog += FogDx;
 				p++;
 			}
@@ -1217,7 +1219,9 @@ int PrecRenderTriangle64(int NLines, byte* Dest, byte* Bitmap) {
 			int fog = *(int*)(vb + 12);
 			byte* p = line;
 			for (int i = 0; i < len; i++) {
-				*p = darkfog[16384 + (fog >> 8)];
+				// asm: eax=fog sar 8, then AL replaced by the pixel value:
+				// index = 16384 + ((fog>>8)&~0xFF) | pixel
+				*p = darkfog[16384 + ((fog >> 8) & ~0xFF) + *p];
 				fog += FogDx;
 				p++;
 			}
@@ -1323,7 +1327,9 @@ int PrecRenderTriangle128(int NLines, byte* Dest, byte* Bitmap) {
 			int fog = *(int*)(vb + 12);
 			byte* p = line;
 			for (int i = 0; i < len; i++) {
-				*p = darkfog[16384 + (fog >> 8)];
+				// asm: eax=fog sar 8, then AL replaced by the pixel value:
+				// index = 16384 + ((fog>>8)&~0xFF) | pixel
+				*p = darkfog[16384 + ((fog >> 8) & ~0xFF) + *p];
 				fog += FogDx;
 				p++;
 			}
@@ -1446,7 +1452,9 @@ int PrecRenderTriangle64Dithering(int NLines, byte* Dest, byte* Bitmap) {
 			if (NLines & 1) fog += 16384;
 			byte* p = line;
 			for (int i = 0; i < len; i++) {
-				*p = darkfog[16384 + (fog >> 8)];
+				// asm: eax=fog sar 8, then AL replaced by the pixel value:
+				// index = 16384 + ((fog>>8)&~0xFF) | pixel
+				*p = darkfog[16384 + ((fog >> 8) & ~0xFF) + *p];
 				fog += FogDx;
 				fog += (i & 1) ? -32768 : 32768;
 				p++;
@@ -1779,7 +1787,9 @@ int DirectRenderTriangle64Dithering(int NLines, int StartLine, int EndLine, int 
 			if (NLines & 1) fog += 16384;
 			byte* p = line;
 			for (int i = 0; i < len; i++) {
-				*p = darkfog[16384 + (fog >> 8)];
+				// asm: eax=fog sar 8, then AL replaced by the pixel value:
+				// index = 16384 + ((fog>>8)&~0xFF) | pixel
+				*p = darkfog[16384 + ((fog >> 8) & ~0xFF) + *p];
 				fog += FogDx;
 				fog += (i & 1) ? -32768 : 32768;
 				p++;

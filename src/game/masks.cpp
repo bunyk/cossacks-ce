@@ -21,7 +21,42 @@
 byte ResultMask[MaskLx*256];
 extern byte trans4[65536];
 extern byte trans8[65536];
+#ifndef _WIN32
+//Linux translation of the four CopyMasked* routines below (RLE masked copy
+//into ResultMask). Mask format: byte 2 = number of strings; then per string a
+//segment count followed by (skip,count) byte pairs. Source bitmap is 64x64 in
+//a 256-byte-row page; both coordinates wrap at 64.
+static void CopyMaskedRLE64Lin(byte* Bits,int x,int y,void* Mask,byte* Trans,int Swap){
+	byte* mask=(byte*)Mask;
+	int nrows=mask[2];
+	mask+=4;
+	for(int row=0;row<nrows;row++){
+		int nseg=*mask++;
+		int dx=0;
+		int sx=x;
+		while(nseg-->0){
+			int skip=mask[0];
+			int cnt=mask[1];
+			mask+=2;
+			sx+=skip;
+			dx+=skip;
+			for(int k=0;k<cnt;k++){
+				int dst=(row<<8)+dx;
+				byte v=Bits[(((y+row)&63)<<8)+((sx+k)&63)];
+				if(Trans){
+					byte d=ResultMask[dst];
+					v=Swap?Trans[(d<<8)|v]:Trans[(v<<8)|d];
+				};
+				ResultMask[dst]=v;
+				dx++;
+			};
+			sx+=cnt;
+		};
+	};
+};
+#endif
 void CopyMaskedBitmap64(byte* Bits,int x,int y,void* Mask){
+#ifdef _WIN32
 	__asm{
 		push	esi
 		push	edi
@@ -64,8 +99,12 @@ endrlclop:
 		pop		edi
 		pop		esi
 	};
+#else
+	CopyMaskedRLE64Lin(Bits,x,y,Mask,0,0);
+#endif
 };
 void CopyMaskedTransparentBitmap_8(byte* Bits,int x,int y,void* Mask){
+#ifdef _WIN32
 	byte nstr;
 	__asm{
 		push	esi
@@ -114,8 +153,12 @@ endrlclop:
 		pop		edi
 		pop		esi
 	};
+#else
+	CopyMaskedRLE64Lin(Bits,x,y,Mask,trans8,0);
+#endif
 };
 void CopyMaskedTransparentBitmap_4(byte* Bits,int x,int y,void* Mask){
+#ifdef _WIN32
 	byte nstr;
 	__asm{
 		push	esi
@@ -164,8 +207,12 @@ endrlclop:
 		pop		edi
 		pop		esi
 	};
+#else
+	CopyMaskedRLE64Lin(Bits,x,y,Mask,trans4,0);
+#endif
 };
 void CopyMaskedTransparentBitmap_12(byte* Bits,int x,int y,void* Mask){
+#ifdef _WIN32
 	byte nstr;
 	__asm{
 		push	esi
@@ -214,16 +261,27 @@ endrlclop:
 		pop		edi
 		pop		esi
 	};
+#else
+	CopyMaskedRLE64Lin(Bits,x,y,Mask,trans4,1);
+#endif
 };
 extern RLCTable SimpleMaskA;
 extern RLCTable SimpleMaskB;
 extern RLCTable SimpleMaskC;
 extern RLCTable SimpleMaskD;
+static void* MaskOfs(RLCTable tbl,int id){
+#ifdef _WIN32
+	return (void*)(tbl->OfsTable[id]);
+#else
+	// OfsTable holds unrebased 32-bit offsets on 64-bit (see LoadRLC)
+	return (char*)tbl + 4 + tbl->OfsTable[id];
+#endif
+};
 void CopyMaskedBitmap(byte* Bits,int x,int y,int MaskID){
-	CopyMaskedBitmap64(Bits,x,y,   (void*)(SimpleMaskA->OfsTable[MaskID]));
-	CopyMaskedTransparentBitmap_4(Bits,x,y,(void*)(SimpleMaskB->OfsTable[MaskID]));
-	CopyMaskedTransparentBitmap_8(Bits,x,y, (void*)(SimpleMaskC->OfsTable[MaskID]));
-	CopyMaskedTransparentBitmap_12(Bits,x,y, (void*)(SimpleMaskD->OfsTable[MaskID]));
+	CopyMaskedBitmap64(Bits,x,y,   MaskOfs(SimpleMaskA,MaskID));
+	CopyMaskedTransparentBitmap_4(Bits,x,y,MaskOfs(SimpleMaskB,MaskID));
+	CopyMaskedTransparentBitmap_8(Bits,x,y, MaskOfs(SimpleMaskC,MaskID));
+	CopyMaskedTransparentBitmap_12(Bits,x,y,MaskOfs(SimpleMaskD,MaskID));
 };
 //  0
 //	|\
@@ -234,6 +292,7 @@ void CopyMaskedBitmap(byte* Bits,int x,int y,int MaskID){
 //	|/ 
 //Creates triangle (Type1) with bitmap
 void FastCreateMaskedBitmap64_1(byte* Bits,int x,int y){
+#ifdef _WIN32
 	int tmedi;
 	__asm{
 		push	esi
@@ -340,6 +399,29 @@ EndTrapezoid:
 		pop		edi
 		pop		esi
 	};
+#else
+	//Linux translation of the trapezoid fill: 32 rows of ResultMask (256-byte
+	//stride); widths 2,4,...,32 then 32,30,...,2. Source is a 64x64 tile in a
+	//256-byte-row page; x wraps within the 64-wide tile, y wraps at 64 rows.
+	int x0=x&63;
+	int maxx=64-x0;
+	byte* dst=ResultMask;
+	int w=2;
+	for(int half=0;half<2;half++){
+		for(int r=0;r<16;r++){
+			int row=(y+half*16+r)&63;
+			byte* src=Bits+(row<<8)+x0;
+			if(w<=maxx){
+				memcpy(dst,src,w);
+			}else{
+				memcpy(dst,src,maxx);
+				memcpy(dst+maxx,Bits+(row<<8),w-maxx);
+			};
+			dst+=256;
+			w+=half?-2:2;
+		};
+	};
+#endif
 };
 //      /|
 //    /  |
@@ -348,6 +430,7 @@ EndTrapezoid:
 //    \  |
 //      \|
 void FastCreateMaskedBitmap64_2(byte* Bits,int x,int y){
+#ifdef _WIN32
 	int tmedi;
 	__asm{
 		push	esi
@@ -506,6 +589,26 @@ EndTrapezoid:
 		pop		edi
 		pop		esi
 	};
+#else
+	//Linux translation: mirrored trapezoid filling ResultMask columns 32-w..31
+	//of 32 rows (widths as in _1). Source column c=(x+32)&63, rows start at
+	//(y-16)&63 and wrap at 64; horizontal overrun continues into the
+	//neighbouring tile at columns 64..127 of the 256-byte row.
+	int c=(x+32)&63;
+	int y0=(y-16)&63;
+	byte* dst=ResultMask+32;
+	int w=2;
+	for(int half=0;half<2;half++){
+		for(int r=0;r<16;r++){
+			int row=(y0+half*16+r)&63;
+			byte* base=Bits+(row<<8);
+			for(int i=0;i<w;i++)
+				dst[31-i]=(i<c)?base[c-1-i]:base[63-i+c];
+			dst+=256;
+			w+=half?-2:2;
+		};
+	};
+#endif
 };
 int GetBmOfst(int i){
 	return ((i&3)<<6)+((i>>2)<<(8+6));
@@ -739,7 +842,7 @@ void PrepareIntersection1(int bm1,int bm2,int bm3,
 	if(bm1<bm2&&bm1<bm3){
 		FastCreateMaskedBitmap64_1(BitmapsArray+GetBmOfst(bm1),x0,y0);
 		CopyMaskedBitmap64(BitmapsArray+GetBmOfst(bm2),x0,y0,
-				(void*)(Masks->OfsTable[(2-s1)*3+s2]));
+				MaskOfs(Masks,(2-s1)*3+s2));
 		CopyMaskedBitmap(BitmapsArray+GetBmOfst(bm3),x0,y0,18+(2-s2)*3+s3);
 		return;
 	};
@@ -828,6 +931,7 @@ void ClearIntersectionBuffer(){
 };
 void ShowIntersectionBuffer(){
 	if(!bActive)return;
+#ifdef _WIN32
 	int SCROF=int(ScreenPtr)+256*ScrWidth+256;
 	__asm{
 		push	esi
@@ -847,5 +951,14 @@ lpp1:	mov		ecx,64
 		pop		edi
 		pop		esi
 	};
+#else
+	byte* src=ResultMask;
+	byte* dst=(byte*)ScreenPtr+256*ScrWidth+256;
+	for(int i=0;i<64;i++){
+		memcpy(dst,src,256);
+		src+=256;
+		dst+=ScrWidth;
+	};
+#endif
 	//memset(ResultMask,0,sizeof ResultMask);
 };
