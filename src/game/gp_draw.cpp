@@ -1243,6 +1243,24 @@ static void GP_ShowMaskedPictOverpointInv( int x, int y, GP_Header* Pic, byte* C
     (void)CData; (void)Encoder;
     GP_ShowMaskedGeneric( x, y, Pic, nullptr, nullptr, 5, true );
 }
+static void GP_ShowMaskedPictInv( int x, int y, GP_Header* Pic, byte* CData, byte* Encoder )
+{
+    (void)Encoder;
+    GP_ShowMaskedGeneric( x, y, Pic, CData, nullptr, 0, true );
+}
+// Water-reflection variants (Windows: GP_ShowMaskedMirrorPict/Inv, x/y + a
+// per-column vertical wobble from the XShift table). The wobble is cosmetic;
+// Linux draws them as plain/mirrored pictures without it for now.
+static void GP_ShowMaskedMirrorPict( int x, int y, GP_Header* Pic, byte* CData, int* WSHIFT )
+{
+    (void)WSHIFT;
+    GP_ShowMaskedGeneric( x, y, Pic, CData, nullptr, 0, false );
+}
+static void GP_ShowMaskedMirrorPictInv( int x, int y, GP_Header* Pic, byte* CData, int* WSHIFT )
+{
+    (void)WSHIFT;
+    GP_ShowMaskedGeneric( x, y, Pic, CData, nullptr, 0, true );
+}
 
 #endif // !_WIN32
 
@@ -9356,7 +9374,6 @@ void GP_System::ShowGPLayers(//IMPORTANT: color masking for units and buildings
 	int x, int y, int FileIndex, int SprIndex,
 	byte Nation, int mask )
 {
-	printf("TODO: implement ShowGPLayers\n");
 #ifdef _WIN32
 	if (!( FileIndex < NGP && ( SprIndex & 4095 ) < GPNFrames[FileIndex] ))
 	{
@@ -9650,6 +9667,198 @@ void GP_System::ShowGPLayers(//IMPORTANT: color masking for units and buildings
 		if (Optx & 128)CDOffs += 32768;
 		PAK++;
 		PACKOFS = (byte*) ( *PAK );//lpGPCUR->Pack;
+	} while (DIFF != -1);
+#else // !_WIN32: Linux port (same structure as the Linux ShowGPPalLayers;
+// temp-buffer decompression instead of the ring cache). Differs from PalLayers
+// in the case-0/41/42-44 draws (plain/mirror Pict, water mirroring via XShift)
+// and the national-mask table (NatPal - same as the Windows ShowGPLayers body).
+	if ( FileIndex >= NGP || ( SprIndex & 4095 ) >= GPNFrames[FileIndex] )
+	{
+		return;
+	}
+	if (( ImageType[FileIndex] & 7 ) > 1)
+	{
+		//RLC file (ShowRLCItem is a no-op on Linux)
+		if (!RLCImage[FileIndex]) LoadGP( FileIndex );
+		if (RLCImage[FileIndex]) ShowRLCItem( x, y, RLCImage + FileIndex, SprIndex, Nation );
+		return;
+	}
+	if (!GPH[FileIndex]) LoadGP( FileIndex );
+	GP_GlobalHeader* lpGH = GPH[FileIndex];
+	if (!lpGH) return;
+	GP_Header* lpGP = GPX( lpGH, LGPH[SprIndex & 4095] );
+	GP_Header* lpGPCUR = lpGP;
+	bool inv = SprIndex >= 4096;
+	int imt = ImageType[FileIndex] >> 4;
+	int DIFF = -1;
+	do
+	{
+		int UnpackLen = lpGPCUR->CData >> 14;
+		int CDOffs = lpGPCUR->CData & 16383;
+		byte Optx = lpGPCUR->Options;
+		if (( Optx & 63 ) == 43) UnpackLen += 262144;
+		if (( Optx & 63 ) == 44) UnpackLen += 262144 * 2;
+		if (Optx & 64) CDOffs += 16384;
+		if (Optx & 128) CDOffs += 32768;
+		byte Opt = Optx & 63;
+		byte* src = ( (byte*) lpGPCUR ) + CDOffs;
+		switch (Opt)
+		{
+		case 0://standart packing
+			if (mask & 1)
+			{
+				byte* tmp = new byte[UnpackLen + 10];
+				StdUnpack( tmp, src, UnpackLen, ( (byte*) lpGH ) + lpGH->VocOffset );
+				if (mask & 512)
+				{
+					if (inv) GP_ShowMaskedPictInv( x, y, lpGPCUR, tmp, NULL );
+					else GP_ShowMaskedPict( x, y, lpGPCUR, tmp, NULL );
+				}
+				else
+				{
+					if (inv) GP_ShowMaskedMirrorPictInv( x, y, lpGPCUR, tmp, XShift );
+					else GP_ShowMaskedMirrorPict( x, y, lpGPCUR, tmp, XShift );
+				}
+				delete[] tmp;
+			}
+			break;
+		case 1://National mask
+			if (mask & 2)
+			{
+				byte* tmp = new byte[UnpackLen];
+				NatUnpackT( tmp, src, UnpackLen );
+				byte* enc = (byte*) ( NatPal + ( Nation << 2 ) );
+				if (inv) GP_ShowMaskedPalPictInv( x, y, lpGPCUR, tmp, enc );
+				else GP_ShowMaskedPalPict( x, y, lpGPCUR, tmp, enc );
+				delete[] tmp;
+			}
+			break;
+		case 2://transparent 1/4
+			if (mask & 4)
+			{
+				if (inv) GP_ShowMaskedMultiPalTPictInv( x, y, lpGPCUR, src, trans4 );
+				else GP_ShowMaskedMultiPalTPict( x, y, lpGPCUR, src, trans4 );
+			}
+			break;
+		case 3://transparent 1/2
+			if (mask & 8)
+			{
+				if (inv) GP_ShowMaskedMultiPalTPictInv( x, y, lpGPCUR, src, trans8 );
+				else GP_ShowMaskedMultiPalTPict( x, y, lpGPCUR, src, trans8 );
+			}
+			break;
+		case 4://transparent 3/4
+			if (mask & 16)
+			{
+				if (inv) GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, src, trans4 );
+				else GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, src, trans4 );
+			}
+			else if (mask & 2048)
+			{
+				if (inv) GP_ShowMaskedPictInv( x, y, lpGPCUR, src, NULL );
+				else GP_ShowMaskedPict( x, y, lpGPCUR, src, NULL );
+			}
+			break;
+		case 5://Shadow / Overpoint
+			if (mask & 32)
+			{
+				if (mask & 64)
+				{
+					if (inv) GP_ShowMaskedPictOverpointInv( x, y, lpGPCUR, NULL, fog + 4096 );
+					else GP_ShowMaskedPictOverpoint( x, y, lpGPCUR, NULL, fog + 4096 );
+				}
+				else
+				{
+					if (inv) GP_ShowMaskedPictShadowInv( x, y, lpGPCUR, NULL, fog + 4096 );
+					else GP_ShowMaskedPictShadow( x, y, lpGPCUR, NULL, fog + 4096 );
+				}
+			}
+			break;
+		case 6://AlphaRY
+			if (mask & 128)
+			{
+				if (inv) GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, src, AlphaR );
+				else GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, src, AlphaR );
+			}
+			break;
+		case 7://AlphaWB
+			if (mask & 256)
+			{
+				if (inv) GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, src, AlphaW );
+				else GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, src, AlphaW );
+			}
+			break;
+		case 38://grayscale multipal (interface color themes)
+			if (mask & 1024)
+			{
+				byte* tmp = new byte[UnpackLen];
+				GreyUnpack( tmp, src, UnpackLen );
+				byte* enc = nullptr;
+				switch (imt)
+				{
+				case 1: enc = inv ? Bright : Bright + startTrans; break;
+				case 2: enc = inv ? yfog : yfog + startTrans; break;
+				case 3: enc = inv ? Optional1 : Optional1 + startTrans; break;
+				case 4: enc = inv ? Optional2 : Optional2 + startTrans; break;
+				case 5: enc = Optional3; break;
+				default: enc = fog + 1024; break;
+				}
+				GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, tmp, enc );
+				delete[] tmp;
+			}
+			break;
+		case 39:
+			if (mask & 1024)
+			{
+				byte* enc = nullptr;
+				switch (imt)
+				{
+				case 1: enc = inv ? Bright : Bright + startTrans; break;
+				case 2: enc = inv ? yfog : yfog + startTrans; break;
+				case 3: enc = inv ? Optional1 : Optional1 + startTrans; break;
+				case 4: enc = inv ? Optional2 : Optional2 + startTrans; break;
+				case 5: enc = Optional3; break;
+				default: enc = fog + 1024; break;
+				}
+				if (inv) GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, src, enc );
+				else GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, src, enc );
+			}
+			break;
+		case 41:
+			if (mask & 512)
+			{
+				if (inv) GP_ShowMaskedPictInv( x, y, lpGPCUR, src, NULL );
+				else GP_ShowMaskedPict( x, y, lpGPCUR, src, NULL );
+			}
+			else
+			{
+				if (inv) GP_ShowMaskedMirrorPictInv( x, y, lpGPCUR, src, XShift );
+				else GP_ShowMaskedMirrorPict( x, y, lpGPCUR, src, XShift );
+			}
+			break;
+		case 42:
+		case 43:
+		case 44:
+			if (mask & 1)
+			{
+				byte* tmp = new byte[UnpackLen + 10];
+				LZUnpack( tmp, src, UnpackLen );
+				if (mask & 512)
+				{
+					if (inv) GP_ShowMaskedPictInv( x, y, lpGPCUR, tmp, NULL );
+					else GP_ShowMaskedPict( x, y, lpGPCUR, tmp, NULL );
+				}
+				else
+				{
+					if (inv) GP_ShowMaskedMirrorPictInv( x, y, lpGPCUR, tmp, XShift );
+					else GP_ShowMaskedMirrorPict( x, y, lpGPCUR, tmp, XShift );
+				}
+				delete[] tmp;
+			}
+			break;
+		};
+		DIFF = lpGPCUR->NextPict;
+		lpGPCUR = (GP_Header*)( (byte*) lpGP + DIFF );
 	} while (DIFF != -1);
 #endif // _WIN32
 };

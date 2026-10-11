@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <cstring>
+#include <cstdlib>
 
 #include "gsctypes.h"
 #include "gscarch.h"
@@ -34,7 +35,11 @@ CGSCset::~CGSCset()
 
 LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool onlyInArchive )
 {
-	printf("gOpenFile: %s\n", lpcsFileName);
+	// Debug trace, opt-in via GSC_SHOW_OPEN=1 (it prints for EVERY file open)
+	if (getenv("GSC_SHOW_OPEN"))
+	{
+		printf("gOpenFile: %s\n", lpcsFileName);
+	}
 	LPGSCfile		gFile = NULL;
 	bool			inArchive = true;
 
