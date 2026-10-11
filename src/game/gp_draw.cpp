@@ -9762,15 +9762,17 @@ void GP_System::ShowGPLayers(//IMPORTANT: color masking for units and buildings
 		case 5://Shadow / Overpoint
 			if (mask & 32)
 			{
+				// Windows parity: mask bit 64 = soft table shadow,
+				// no bit 64 = black Overpoint column dither
 				if (mask & 64)
-				{
-					if (inv) GP_ShowMaskedPictOverpointInv( x, y, lpGPCUR, NULL, fog + 4096 );
-					else GP_ShowMaskedPictOverpoint( x, y, lpGPCUR, NULL, fog + 4096 );
-				}
-				else
 				{
 					if (inv) GP_ShowMaskedPictShadowInv( x, y, lpGPCUR, NULL, fog + 4096 );
 					else GP_ShowMaskedPictShadow( x, y, lpGPCUR, NULL, fog + 4096 );
+				}
+				else
+				{
+					if (inv) GP_ShowMaskedPictOverpointInv( x, y, lpGPCUR, NULL, fog + 4096 );
+					else GP_ShowMaskedPictOverpoint( x, y, lpGPCUR, NULL, fog + 4096 );
 				}
 			}
 			break;
@@ -10305,15 +10307,17 @@ void GP_System::ShowGPTransparentLayers( int x, int y, int FileIndex, int SprInd
 		case 5://Shadow / Overpoint
 			if (mask & 32)
 			{
+				// Windows parity: mask bit 64 = soft table shadow,
+				// no bit 64 = black Overpoint column dither
 				if (mask & 64)
-				{
-					if (inv) GP_ShowMaskedPictOverpointInv( x, y, lpGPCUR, NULL, fog + 4096 );
-					else GP_ShowMaskedPictOverpoint( x, y, lpGPCUR, NULL, fog + 4096 );
-				}
-				else
 				{
 					if (inv) GP_ShowMaskedPictShadowInv( x, y, lpGPCUR, NULL, fog + 4096 );
 					else GP_ShowMaskedPictShadow( x, y, lpGPCUR, NULL, fog + 4096 );
+				}
+				else
+				{
+					if (inv) GP_ShowMaskedPictOverpointInv( x, y, lpGPCUR, NULL, fog + 4096 );
+					else GP_ShowMaskedPictOverpoint( x, y, lpGPCUR, NULL, fog + 4096 );
 				}
 			}
 			break;

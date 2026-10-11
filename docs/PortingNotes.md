@@ -105,6 +105,21 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
   texture around the mouse cursor (visible while scrolling; the opaque cursor body hides
   its own smear, blended layers don't). gscbrowser can't reproduce this - the mouse
   machinery never runs there.
+- **Unit shadows (fixed 2026-10-11)**: in-game sprites draw through the Z-buffer
+  (`ShowZElement` -> `ShowGPLayers`), whose Opt-5 case selects by mask bits:
+  bit 32 = shadow layer on, bit 64 = SOFT table shadow (GP_ShowMaskedPictShadow,
+  fog+4096), no bit 64 = black Overpoint column dither. The Linux ports of
+  ShowGPLayers AND ShowGPTransparentLayers had the two branches SWAPPED, so every
+  normal unit (mask=0xFFFF) rendered the Overpoint dither - "vertical black lines
+  interleaved with terrain". ShowGP's case 5 was always correct, which is why the
+  gscbrowser variant strip (real renderer, but via ShowGP) showed a clean soft shadow.
+  gscbrowser's scratch background is now a green checker instead of black - blends
+  are invisible against black. Repro tools note: gscbrowser cannot reach the
+  Layers-dispatch paths; use TREES.GP frame 0 (shadow ellipse at dy=80) as the
+  shadow reference. KNOWN LATENT BUG (not yet fixed): AddToVisual/AddOptPoint
+  (newmon.cpp ~4460+, zbuffer.cpp ~230+) store blend-table pointers via `int()`
+  truncation (`Param2 = int(yfog)` etc.) - corrupts/crashes pulsing/colored unit
+  states; fix alongside the next audit of live int(ptr) sites.
 - **Water**: `SetWaterSpot`, `InitBlobs` etc.; `WaterDeep`/`WaterBright` point at a static
   1MB zero buffer instead of real map data.
 - **In-game UI**: `LoadMapInterface`, `ProcessMapInterface`, `DrawZones`, chat, mission

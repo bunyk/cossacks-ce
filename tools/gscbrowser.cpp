@@ -287,7 +287,12 @@ static bool InitGameRenderer()
 static bool RenderGpVariant( int fi, int spr, int variant, BmpImage& out, int cell );
 static bool RenderGpVariant( int fi, int spr, int variant, BmpImage& out, int cell )
 {
-	memset( scratch, 0, sizeof scratch );
+	// Varied checker background instead of black: blended layers (shadows,
+	// transparency swatches) are invisible against a black backdrop, which
+	// hid blend bugs in previews. Two terrain-ish palette indices.
+	for ( int y = 0; y < kScrH; y++ )
+		for ( int x = 0; x < kScrW; x++ )
+			scratch[y * kScrW + x] = ( ( ( x >> 3 ) + ( y >> 3 ) ) & 1 ) ? 48 : 68;
 	int cx = kScrW / 2, cy = kScrH / 2;
 	switch ( variant )
 	{
