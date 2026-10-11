@@ -2352,12 +2352,18 @@ bool LoadRLC( LPCSTR lpFileName, RLCTable *RLCtbl )
 		RBlockRead( f1, &( ( *RLCtbl )->sign ), fsz );
 		RClose( f1 );
 
+#ifdef _WIN32
+		// 32-bit trick: rebase the in-file offsets into absolute pointers
 		int shft = int( *RLCtbl ) + 4;
 		int cnt = ( ( *RLCtbl )->SCount & 65535 );
 		for (int i = 0; i < cnt; i++)
 		{
 			( *RLCtbl )->OfsTable[i] += shft;
 		}
+#else
+		// 64-bit: OfsTable stays an int (file bytes!) - readers compute
+		// (char*)table + 4 + OfsTable[n] instead (see GetRLCWidth/Height)
+#endif
 
 		return true;
 	}
@@ -2527,7 +2533,12 @@ int GetRLCWidth( RLCTable lpr, byte n )
 	};
 	if (n < lpr->SCount)
 	{
+#ifdef _WIN32
 		return ( *( (lpRLCHeader) ( (void*) ( lpr->OfsTable[n] ) ) ) ).SizeX;
+#else
+		// OfsTable holds unrebased 32-bit offsets on 64-bit (see LoadRLC)
+		return ( (lpRLCHeader) ( (char*) lpr + 4 + lpr->OfsTable[n] ) )->SizeX;
+#endif
 	}
 	else return 0;
 }
@@ -2592,7 +2603,12 @@ DLLEXPORT int GetRLCHeight( RLCTable lpr, byte n )
 	}
 	if (n < lpr->SCount)
 	{
+#ifdef _WIN32
 		return ( *( (lpRLCHeader) ( (void*) ( lpr->OfsTable[n] ) ) ) ).SizeY;
+#else
+		// OfsTable holds unrebased 32-bit offsets on 64-bit (see LoadRLC)
+		return ( (lpRLCHeader) ( (char*) lpr + 4 + lpr->OfsTable[n] ) )->SizeY;
+#endif
 	}
 	else
 	{

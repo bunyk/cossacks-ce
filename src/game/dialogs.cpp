@@ -715,7 +715,6 @@ GP_TextButton* DialogsSystem::addGP_TextButton(
 	};
 	return nullptr;
 };
-#ifdef _WIN32
 GP_TextButton* DialogsSystem::addGP_TextButtonLimited(
 	SimpleDialog* Parent, int x, int y, char* str,
 	int GP_File, int SpriteActive, int SpritePassive, int Lx,
@@ -1087,7 +1086,6 @@ BpxTextButton* DialogsSystem::addBpxTextButton( SimpleDialog* Parent,
 	};
 	return nullptr;
 };
-#endif // _WIN32
 
 //--------end of button with text----------//
 bool Video_OnDraw( SimpleDialog* SD )

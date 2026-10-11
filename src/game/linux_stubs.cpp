@@ -302,7 +302,6 @@ bool ReadBMP24( char* Name, BMPformat* BM, byte** data ) { (void)Name; (void)BM;
 void ReadClanData() {}
 
 //-------------- dialogs / GP drawing helpers --------------
-GP_TextButton* DialogsSystem::addGP_TextButtonLimited( SimpleDialog* Parent, int x, int y, char* str, int GP_File, int SpriteActive, int SpritePassive, int Lx, RLCFont* Active, RLCFont* Passive ) { (void)Parent; (void)x; (void)y; (void)str; (void)GP_File; (void)SpriteActive; (void)SpritePassive; (void)Lx; (void)Active; (void)Passive; return NULL; }
 
 //-------------- network (mplayer.cpp, ir_main.cpp, unsyncro extras) --------------
 // Execute-buffer reset from mplayer.cpp (real implementation: pure state, no network)
