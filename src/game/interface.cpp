@@ -64,6 +64,9 @@ extern const int kSystemMessageDisplayTime;
 #else // !_WIN32
 // Headers the (un-guarded) single-player game start needs: City (megapolis.h),
 // HideFlags (mapsprites.h), GNFO (einfoclass.h)
+#include "icontool.h"   // IconSet (DrawZones' panels)
+extern const int kChatMessageDisplayTime;
+extern const int kSystemMessageDisplayTime;
 #include "megapolis.h"
 #include "mapsprites.h"
 #include "safety.h"
@@ -174,7 +177,6 @@ extern short WheelDelta;
 void LoadMEDButtons();
 void processMLoadGame();
 extern char GameName[128];
-bool ContinueGame;
 extern word rpos;
 
 int EncodeOptionsInNumber( int *selected_opt_values );
@@ -182,6 +184,10 @@ int DecodeOptionsFromNumber( const int number, int *result );
 
 char CurrentMap[64];
 #endif _WIN32
+// Moved out of the guard: used by the un-guarded in-game menu/rendering code
+bool ContinueGame;
+int nsmaplx;
+int nsmaply;
 
 void CBar( int x, int y, int Lx, int Ly, unsigned char c );
 void PrepareEditMedia( byte myid );
@@ -201,8 +207,6 @@ extern byte mapPos[16];
 void PreLoadExtendedMap( char* s );
 void PostLoadExtendedMap( char* s );
 void InitGame();
-int nsmaplx;
-int nsmaply;
 void MFix();
 
 int WarSound;
@@ -210,11 +214,11 @@ int WorkSound;
 int OrderSound;
 int MidiSound;
 
+#endif // _WIN32 (nsmaplx/ly, WarSound...; LoPanel moved out below - used by GSSetup800)
 SQPicture LoPanel;
 RLCTable TPassive;
 RLCTable TActive;
 RLCTable TDisable;
-#endif // _WIN32
 RLCFont FPassive;
 RLCFont FActive;
 RLCFont FDisable;
@@ -269,7 +273,6 @@ int TPROCM = 0;
 #endif // _WIN32
 int LastCTRLPressTime = 0;
 
-#ifdef _WIN32
 int PrevProgStage = 0;
 char* PROGSTR = nullptr;
 extern int CurPalette;
@@ -323,7 +326,6 @@ bool NeedToPerformGSC_Report = 0;
 bool NeedToReportInGameStats = 0;
 int PrevReportTime = 0;
 int LastTimeReport_tmtmt = 0;
-#endif // _WIN32
 extern int tmtmt;
 #ifdef _WIN32
 extern City CITY[8];
@@ -6305,7 +6307,7 @@ extern int screen_width;
 extern int screen_height;
 extern double screen_ratio;
 
-#ifdef _WIN32
+#ifdef _WIN32 (options dialogs: CD/volume/modes)
 bool ProcessMenuOptions()
 {
 	LocalGP BTNS( "Interface\\Options" );
@@ -6673,7 +6675,7 @@ bool ProcessGameOptions()
 
 	return false;
 }
-#endif // _WIN32
+#endif // _WIN32 (options dialogs: CD/volume/modes)
 
 bool CreateMultiplaterInterface();
 
@@ -6979,8 +6981,14 @@ int processMainMenu()
 	return ItemChoose;
 }
 //--------------=< G A M E   S C R E E N >=------------//
-
-#ifdef _WIN32
+// (in-game screen globals - un-guarded, needed by the cross-platform game loop)
+// Declarations previously visible only through Windows-only decl blocks
+bool CHKV( char* Name );
+int GETV( char* Name );
+int mul3( int );
+void MFix();
+void CreateMiniMap();
+extern bool SHOWSLIDE;
 extern int PrpX;
 extern int PrpY;
 extern int PrpNx;
@@ -7009,7 +7017,6 @@ void GSYSDRAW()
 ColoredBar* Pan4;
 ColoredBar* Pan5;
 
-#endif
 bool GameExit;
 int MenuType;
 bool MakeMenu;
@@ -8014,7 +8021,7 @@ void CreateUnitList( ListBox* LB, int Country )
 extern int NNations;
 extern char** NatNames;
 void UnPress();
-#endif
+#endif // _WIN32 (closes the dialogs guard spliced from HEAD)
 
 void ChooseUnit()
 {
@@ -8219,7 +8226,6 @@ int LastLookTime = 0;
 
 int ProcessGMainMenu()
 {
-#ifdef _WIN32
 	if ( NPlayers > 1 )
 	{
 		if ( LastLookTime && ( GetSDLTickCount() - LastLookTime < 180000 ) )
@@ -8290,20 +8296,26 @@ stg:
 	} while ( ItemChoose == -1 );
 	if ( ItemChoose == mcmLoad )
 	{
+#ifdef _WIN32 (dialogs in guarded region)
 		ProcessGLoadGame();
+#endif
 		GMM.MarkToDraw();
 		if ( !ContinueGame )goto stg;
 	};
 	if ( ItemChoose == mcmSave )
 	{
+#ifdef _WIN32 (dialogs in guarded region)
 		ProcessGSaveGame();
+#endif
 		GMM.MarkToDraw();
 		if ( !ContinueGame )goto stg;
 	};
 	if ( ItemChoose == mcmOptions )
 	{
 		//ProcessOptions(smapx+(nsmaplx<<4)-(288>>1),smapy+(nsmaply<<4)-(288>>1));
+#ifdef _WIN32 (dialogs in guarded region)
 		ProcessGameOptions();
+#endif
 		ContinueGame = true;
 		ItemChoose = mcmResume;
 	};
@@ -8317,10 +8329,8 @@ stg:
 	GameMode = 0;
 	ClearMStack();
 	return ItemChoose;
-#endif
 }
 
-#ifdef _WIN32
 int ProcessE_GMainMenu()
 {
 	LocalGP BTNS( "Interface\\E_GameMenu" );
@@ -8370,7 +8380,9 @@ stg:
 
 	if ( ItemChoose == mcmLoad )
 	{
+#ifdef _WIN32 (dialogs in guarded region)
 		ProcessGLoadMap();
+#endif
 		GMM.MarkToDraw();
 		if ( !ContinueGame )
 			goto stg;
@@ -8378,7 +8390,9 @@ stg:
 
 	if ( ItemChoose == mcmSave )
 	{
+#ifdef _WIN32 (dialogs in guarded region)
 		ProcessGSaveMap();
+#endif
 		GMM.MarkToDraw();
 		if ( !ContinueGame )
 			goto stg;
@@ -8386,7 +8400,9 @@ stg:
 
 	if ( ItemChoose == mcmOptions )
 	{
+#ifdef _WIN32 (dialogs in guarded region)
 		ProcessGameOptions();
+#endif
 		//ProcessOptions(smapx+(nsmaplx<<4)-(288>>1),smapy+(nsmaply<<3)-(288>>1));
 		ContinueGame = true;
 		ItemChoose = mcmResume;
@@ -8488,11 +8504,9 @@ void DelUnusedZones()
 
 void EconomePostDraw();
 extern bool ECOSHOW;
-#endif
 
 extern byte PlayGameMode;
 
-#ifdef _WIN32
 void DrawZones()
 {
 	if ( PlayGameMode == 1 )
@@ -8573,11 +8587,9 @@ extern int InfDX;
 extern int InfY1;
 extern int InfY2;
 
-#endif // _WIN32
 
 void GSSetup800()
 {
-#ifdef _WIN32
 	SetDarkPalette();
 
 	CBar( 0, 0, SCRSizeX, SCRSizeY, 0 );
@@ -8714,7 +8726,6 @@ void GSSetup800()
 	{
 		mapy = msy - smaply + 1;
 	}
-#endif // _WIN32
 }
 
 void GFieldShow();
@@ -8726,7 +8737,6 @@ void GlobalHandleMouse( bool process_scrolling );
 //Load palettes
 void DrawAllScreen()
 {
-	#ifdef _WIN32
 	//Draw a lot of stuff on screen
 	GFieldShow();
 
@@ -8767,12 +8777,10 @@ void DrawAllScreen()
 		CreateMiniMap();
 	}
 	NeedLoadGamePalette = false;
-	#endif // _WIN32
 }
 
 void FastScreenProcess()
 {
-	#ifdef _WIN32
 	GFieldShow();
 
 	ProcessMessages();
@@ -8817,7 +8825,6 @@ void FastScreenProcess()
 		CreateMiniMap();
 	}
 	NeedLoadGamePalette = false;
-#endif // _WIN32
 }
 
 int StartAboutTime = 0;
@@ -8826,7 +8833,6 @@ void PostDrawGameProcess();
 
 extern bool LockPause;
 extern int WaitState;
-#ifdef _WIN32
 void IAmLeft();
 extern bool ShowStat;
 bool ShowStatistics();
@@ -8874,7 +8880,6 @@ void ShowAbout()
 	}
 	PopWindow( &TM );
 }
-#endif // _WIN32
 
 bool IngameYesNoDialog( char* dialog_text )
 {
@@ -9041,10 +9046,9 @@ StartPlay://IMPORTANT: Main game loop
 								ProcessMessages();
 							} while ( GetSDLTickCount() - t0 < 500 );
 						}
+#endif // _WIN32 (multiplayer exit block)
 						GameExit = true;
-						ShutdownMultiplayer( 0 );
 						CloseMPL();
-						#endif // _WIN32
 					}
 					break;
 				case 2:

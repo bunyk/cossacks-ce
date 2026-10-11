@@ -16,8 +16,14 @@
 #include "fastdraw.h"
 #include "gsound.h"
 #include "cdirsnd.h"
+#include "recorder.h"
 #include "resfile.h"
 #include "mapdiscr.h"
+#include "megapolis.h"
+#include "mapsprites.h"
+#include "safety.h"
+#include "strategyresearch.h"
+#include "einfoclass.h"
 #include "mouse.h"
 #include "gp_draw.h"
 #include "fonts.h"
@@ -960,9 +966,50 @@ void ResizeAndCenterWindow()
 	SDL_WarpMouseInWindow( sdlWindow, width / 2, height / 2 );
 }
 
+// Declarations for globals/functions previously visible here only through
+// Windows-only decl blocks (definitions: ddex1.cpp, multi.cpp, recorder.cpp, interface.cpp)
+extern bool NOPAUSE;
+extern bool PreNoPause;
+extern word NPlayers;
+extern int WasInGold[8], WasInCoal[8], WasInIron[8];
+extern int NInGold[8], NInCoal[8], NInIron[8];
+extern City CITY[8];
+extern bool TutOver;
+extern TimeReq ObjTimer;
+extern CDirSound* CDS;
+void ReadPichTicks();
+void WritePitchTicks();
+void ProcessMapAutosave();
+void AddRandomBlobs();
+void CmdSetSpeed( byte );
+void EnumPopulation();
+void ProcessCostPoints();
+void ProcessGuard();
+void ProcessEconomy();
+void ProcessDeathList();
+void HealWalls();
+void InitDestn();
+void GameKeyCheck();
+void CreateStrategyInfo();
+void ProcessFishing();
+void ControlGates();
+void HandleMines();
+void ResearchCurrentIsland( byte Nat );
+void ResearchBestPortToFish( byte Nat );
+void WinnerControl( bool GenerateStat );
+void ProcessSprites();
+void HandleTransport();
+void HandleMission();
+void ProcessNewMonsters();
+void ProcessExpl();
+void HandleShar( Nation* NT );
+void ProcessDynamicalTopology();
+void InitXShift();
+void WaitToTime( int t );
+void ProcessNature();
+
 void PostDrawGameProcess()
 {
-	#ifdef _WIN32
 	// Some networking logic
 	RGAME.TryToFlushNetworkStream( 0 );
 	if (PlayGameMode == 0 && NPlayers < 2)
@@ -999,7 +1046,6 @@ void PostDrawGameProcess()
 		WritePitchTicks();
 	}
 	ProcessNature();
-	#endif // _WIN32
 
 	GLOBALTIME++;
 
@@ -1015,8 +1061,9 @@ void PostDrawGameProcess()
 		CurrentStepTime -= CurrentStepTime >> 5;
 		RealGameLength = GetSDLTickCount() - RealStTime;
 
-		#ifdef _WIN32
+#ifdef _WIN32
 		HandleMultiplayer();
+#endif // _WIN32 (mplayer.cpp not ported)
 
 		SYN.Copy( &SYN1 );
 
@@ -1059,7 +1106,6 @@ void PostDrawGameProcess()
 			}
 			WritePitchTicks();
 		}
-		#endif
 	}
 
 	if (!HISPEED)
@@ -1190,12 +1236,13 @@ void PostDrawGameProcess()
 
 void PreDrawGameProcess()
 {
-#ifdef _WIN32
 	//Autosave in map editor every 5 min
 	ProcessMapAutosave();
 
-	//Something about ship traces?
+#ifdef _WIN32
+	//Something about ship traces? (shiptrace.cpp not ported)
 	AddRandomBlobs();
+#endif
 
 	//DirectX related sound procedures
 	CDS->ProcessSoundSystem();
@@ -1517,7 +1564,6 @@ void PreDrawGameProcess()
 
 	//Something about area linking?
 	ProcessDynamicalTopology();
-#endif
 }
 
 //Register winapi window class, init DirectDraw, sounds and cursor
