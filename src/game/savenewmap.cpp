@@ -10,7 +10,6 @@
 #include "walls.h"
 #include "nature.h"
 #include <time.h>
-#include <cstdio>
 #include "nucl.h"
 
 #include "megapolis.h"
@@ -1928,28 +1927,27 @@ void Save3DMap( char* Map )
 	EraseAreas();
 	ResFile f1 = RRewrite( Map );
 	//if(IOresult())return;
-#define DBG_F1(msg) fprintf( stderr, "DBG Save3DMap: after %-20s f1=%p\n", msg, (void*) (size_t) f1 )
-	SaveHeader( f1 ); DBG_F1( "SaveHeader" );
-	SavePreview( f1 ); DBG_F1( "SavePreview" );
-	SaveSurface( f1 ); DBG_F1( "SaveSurface" );
-	SaveTiles( f1 ); DBG_F1( "SaveTiles" );
-	SaveSect( f1 ); DBG_F1( "SaveSect" );
-	SaveSprites( f1 ); DBG_F1( "SaveSprites" );
-	SaveUnits3( f1 ); DBG_F1( "SaveUnits3" );
-	SaveNewWallsV2( f1 ); DBG_F1( "SaveNewWallsV2" );
-	SaveLockNew( f1 ); DBG_F1( "SaveLockNew" );
-	SaveWaterCost( f1 ); DBG_F1( "SaveWaterCost" );
-	SaveRES( f1 ); DBG_F1( "SaveRES" );
-	SaveTopology( f1 ); DBG_F1( "SaveTopology" );
-	SaveWTopology( f1 ); DBG_F1( "SaveWTopology" );
-	SaveGates( f1 ); DBG_F1( "SaveGates" );
-	SaveZonesAndGroups( f1 ); DBG_F1( "SaveZonesAndGroups" );
-	SaveFormationsNew( f1 ); DBG_F1( "SaveFormationsNew" );
-	SaveDLL( f1 ); DBG_F1( "SaveDLL" );
-	SaveAIParam( f1 ); DBG_F1( "SaveAIParam" );
-	SaveSMSInMap( f1 ); DBG_F1( "SaveSMSInMap" );
-	SavePeaceTimeInfo( f1 ); DBG_F1( "SavePeaceTimeInfo" );
-	SaveRivers( f1 ); DBG_F1( "SaveRivers" );
+	SaveHeader( f1 );
+	SavePreview( f1 );
+	SaveSurface( f1 );
+	SaveTiles( f1 );
+	SaveSect( f1 );
+	SaveSprites( f1 );
+	SaveUnits3( f1 );
+	SaveNewWallsV2( f1 );
+	SaveLockNew( f1 );
+	SaveWaterCost( f1 );
+	SaveRES( f1 );
+	SaveTopology( f1 );
+	SaveWTopology( f1 );
+	SaveGates( f1 );
+	SaveZonesAndGroups( f1 );
+	SaveFormationsNew( f1 );
+	SaveDLL( f1 );
+	SaveAIParam( f1 );
+	SaveSMSInMap( f1 );
+	SavePeaceTimeInfo( f1 );
+	SaveRivers( f1 );
 	CloseMap( f1 );
 };
 void RenameAnyway( char* src, char* dst )
