@@ -95,6 +95,7 @@ void MotionField::BSetPt(int x, int y)
 {
 	int MAPV = int(MapV);
 	if (x >= 0 && x < MAPSX&&y >= 0 && y < MAPSY) {
+#ifdef _WIN32
 		switch (ADDSH) {
 		case 1:
 			__asm {
@@ -187,6 +188,9 @@ void MotionField::BSetPt(int x, int y)
 			};
 			break;
 		};
+#else
+		MapV[( x << ( 6 + ADDSH ) ) + ( y >> 3 )] |= 1 << ( y & 7 );
+#endif
 	};
 }
 
@@ -194,6 +198,7 @@ void MotionField::BClrPt(int x, int y)
 {
 	int MAPV = int(MapV);
 	if (x >= 0 && x < MAPSX&&y >= 0 && y < MAPSY) {
+#ifdef _WIN32
 		switch (ADDSH) {
 		case 1:
 			__asm {
@@ -286,6 +291,9 @@ void MotionField::BClrPt(int x, int y)
 			};
 			break;
 		};
+#else
+		MapV[( x << ( 6 + ADDSH ) ) + ( y >> 3 )] &= ~( 1 << ( y & 7 ) );
+#endif
 
 	};
 }
@@ -338,6 +346,7 @@ int MotionField::CheckPt(int x, int y)
 	int MAPV = int(MapV);
 	if (x >= 0 && x < MAPSX&&y >= 0 && y < MAPSY) 
 	{
+#ifdef _WIN32
 		switch (ADDSH) 
 		{
 		case 1:
@@ -397,6 +406,9 @@ int MotionField::CheckPt(int x, int y)
 			}
 			break;
 		}
+#else
+		retval = MapV[( x << ( 6 + ADDSH ) ) + ( y >> 3 )] & ( 1 << ( y & 7 ) );
+#endif
 		return retval;
 	}
 	else
@@ -423,6 +435,7 @@ int MotionField::CheckVLine(int x, int y, int Lx)
 	int MAPV = int(MapV);
 	if (x > 0 && y > 0 && y + Lx - 1 < MAPSY && x < MAPSX && Lx <= 24)
 	{
+#ifdef _WIN32
 		switch (ADDSH)
 		{
 		case 1:
@@ -491,6 +504,13 @@ int MotionField::CheckVLine(int x, int y, int Lx)
 			}
 			break;
 		}
+#else
+		// one little-endian 32-bit load; (1<<Lx)-1 shifted left by (y&7),
+		// no wraparound since (y&7)+Lx <= 31
+		const byte* p = MapV + ( x << ( 6 + ADDSH ) ) + ( y >> 3 );
+		DWORD v = p[0] | ( p[1] << 8 ) | ( p[2] << 16 ) | ( p[3] << 24 );
+		retval = v & ( ( ( 1 << Lx ) - 1 ) << ( y & 7 ) );
+#endif
 		return retval;
 	}
 	else
@@ -760,6 +780,7 @@ bool OneObject::CreatePrePath(int x1, int y1)
 
 	//соединяем линией начальную и конечную точки. 
 	//Оптимизация только по скорости
+#ifdef _WIN32
 	__asm
 	{
 		mov		ax, word ptr Mdx
@@ -912,6 +933,45 @@ bool OneObject::CreatePrePath(int x1, int y1)
 		shr		edx, 1
 			mov		Pps, edx
 	}
+#else
+	//Linux translation of the asm Bresenham walker: fills pxx/pyy with the
+	//point line from (Mx,My) toward the target; Pps = number of points.
+	//The asm's eight direction cases reduce to sx/sy sign multipliers, and
+	//the 16-bit cum counter is safe (cum < Mdx + Mdy, map-sized values).
+	{
+		int nn = 0;
+		pxx[nn] = (word)Mx;
+		pyy[nn] = (word)My;
+		nn++;
+		if (Mdx > Mdy) {
+			for (int i = 0; i < Mdx; i++) {
+				Mx += sx;
+				Cum += Mdy;
+				if (Cum >= Mdx) {
+					Cum -= Mdx;
+					My += sy;
+				};
+				pxx[nn] = (word)Mx;
+				pyy[nn] = (word)My;
+				nn++;
+			};
+		}
+		else {
+			for (int i = 0; i < Mdy; i++) {
+				My += sy;
+				Cum += Mdx;
+				if (Cum >= Mdy) {
+					Cum -= Mdy;
+					Mx += sx;
+				};
+				pxx[nn] = (word)Mx;
+				pyy[nn] = (word)My;
+				nn++;
+			};
+		};
+		Pps = nn;
+	}
+#endif
 
 	Pps--;
 
@@ -1269,6 +1329,7 @@ bool OneObject::CreatePrePath2(int x1, int y1) {
 	NeedPath = false;
 	//соединяем линией начальную и конечную точки. 
 	//Оптимизация только по скорости
+#ifdef _WIN32
 	__asm {
 		mov		ax, word ptr Mdx
 		mov		bx, word ptr Mdy
@@ -1420,6 +1481,45 @@ bool OneObject::CreatePrePath2(int x1, int y1) {
 		shr		edx, 1
 			mov		Pps, edx
 	};
+#else
+	//Linux translation of the asm Bresenham walker: fills pxx/pyy with the
+	//point line from (Mx,My) toward the target; Pps = number of points.
+	//The asm's eight direction cases reduce to sx/sy sign multipliers, and
+	//the 16-bit cum counter is safe (cum < Mdx + Mdy, map-sized values).
+	{
+		int nn = 0;
+		pxx[nn] = (word)Mx;
+		pyy[nn] = (word)My;
+		nn++;
+		if (Mdx > Mdy) {
+			for (int i = 0; i < Mdx; i++) {
+				Mx += sx;
+				Cum += Mdy;
+				if (Cum >= Mdx) {
+					Cum -= Mdx;
+					My += sy;
+				};
+				pxx[nn] = (word)Mx;
+				pyy[nn] = (word)My;
+				nn++;
+			};
+		}
+		else {
+			for (int i = 0; i < Mdy; i++) {
+				My += sy;
+				Cum += Mdx;
+				if (Cum >= Mdy) {
+					Cum -= Mdy;
+					Mx += sx;
+				};
+				pxx[nn] = (word)Mx;
+				pyy[nn] = (word)My;
+				nn++;
+			};
+		};
+		Pps = nn;
+	}
+#endif
 	Pps--;
 	//assert(Pps<MaxP);
 	if (InLocked) {
@@ -1759,6 +1859,7 @@ bool OneObject::CreatePrePath4(int x1, int y1) {
 	NeedPath = false;
 	//соединяем линией начальную и конечную точки. 
 	//Оптимизация только по скорости
+#ifdef _WIN32
 	__asm {
 		mov		ax, word ptr Mdx
 		mov		bx, word ptr Mdy
@@ -1910,6 +2011,45 @@ bool OneObject::CreatePrePath4(int x1, int y1) {
 		shr		edx, 1
 			mov		Pps, edx
 	};
+#else
+	//Linux translation of the asm Bresenham walker: fills pxx/pyy with the
+	//point line from (Mx,My) toward the target; Pps = number of points.
+	//The asm's eight direction cases reduce to sx/sy sign multipliers, and
+	//the 16-bit cum counter is safe (cum < Mdx + Mdy, map-sized values).
+	{
+		int nn = 0;
+		pxx[nn] = (word)Mx;
+		pyy[nn] = (word)My;
+		nn++;
+		if (Mdx > Mdy) {
+			for (int i = 0; i < Mdx; i++) {
+				Mx += sx;
+				Cum += Mdy;
+				if (Cum >= Mdx) {
+					Cum -= Mdx;
+					My += sy;
+				};
+				pxx[nn] = (word)Mx;
+				pyy[nn] = (word)My;
+				nn++;
+			};
+		}
+		else {
+			for (int i = 0; i < Mdy; i++) {
+				My += sy;
+				Cum += Mdx;
+				if (Cum >= Mdy) {
+					Cum -= Mdy;
+					Mx += sx;
+				};
+				pxx[nn] = (word)Mx;
+				pyy[nn] = (word)My;
+				nn++;
+			};
+		};
+		Pps = nn;
+	}
+#endif
 	Pps--;
 	//assert(Pps<MaxP);
 	if (InLocked)
@@ -2244,6 +2384,7 @@ bool OneObject::CreatePrePathBordered(int x1,int y1,int Border){
 	NeedPath=false;
 	//соединяем линией начальную и конечную точки.
 	//Оптимизация только по скорости
+#ifdef _WIN32
 	__asm{
 		mov		ax,word ptr Mdx
 		mov		bx,word ptr Mdy
@@ -2395,6 +2536,45 @@ loopsEnd:
 		shr		edx,1
 		mov		Pps,edx
 	};
+#else
+	//Linux translation of the asm Bresenham walker: fills pxx/pyy with the
+	//point line from (Mx,My) toward the target; Pps = number of points.
+	//The asm's eight direction cases reduce to sx/sy sign multipliers, and
+	//the 16-bit cum counter is safe (cum < Mdx + Mdy, map-sized values).
+	{
+		int nn = 0;
+		pxx[nn] = (word)Mx;
+		pyy[nn] = (word)My;
+		nn++;
+		if (Mdx > Mdy) {
+			for (int i = 0; i < Mdx; i++) {
+				Mx += sx;
+				Cum += Mdy;
+				if (Cum >= Mdx) {
+					Cum -= Mdx;
+					My += sy;
+				};
+				pxx[nn] = (word)Mx;
+				pyy[nn] = (word)My;
+				nn++;
+			};
+		}
+		else {
+			for (int i = 0; i < Mdy; i++) {
+				My += sy;
+				Cum += Mdx;
+				if (Cum >= Mdy) {
+					Cum -= Mdy;
+					Mx += sx;
+				};
+				pxx[nn] = (word)Mx;
+				pyy[nn] = (word)My;
+				nn++;
+			};
+		};
+		Pps = nn;
+	}
+#endif
 	Pps--;
 	assert(Pps<MaxP);
 	if(InLocked){

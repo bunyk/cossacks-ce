@@ -43,7 +43,6 @@ char HEIGHTSTR[12];
 int InteriorType = 0;
 extern const int kCtrlStickyTime = 700;bool LockFog = false;
 char MapScenaryDLL[200];
-MotionField MFIELDS[2];
 byte MI_Mode = 0;
 bool MultiTvar = false;
 byte NeedToPopUp = 0;
@@ -71,7 +70,6 @@ int WorkSound = 0;
 DWORD RealTime = 0;
 char RECFILE[128];
 bool ChangeNation = false;
-bool AllowPathDelay = false;
 
 static byte WaterStorage[1 << 20];
 byte* WaterBright = WaterStorage;
@@ -96,138 +94,9 @@ RETRANS::RETRANS() { TOT = NULL; NRET = 0; MaxRET = 0; }
 RETRANS::~RETRANS() {}
 void RETRANS::Clear() {}
 
-//-------------- pathfinding (path.cpp: heavy asm, needs porting) --------------
-void OneObject::CreatePath( int x1, int y1 ) { (void)x1; (void)y1; }
-bool OneObject::CreatePrePath( int x1, int y1 ) { (void)x1; (void)y1; return false; }
-void CreateFullPath( int x1, int y1, OneObject* OB ) { (void)x1; (void)y1; (void)OB; }
-bool FindBestPosition( OneObject* OB, int* xd, int* yd, int R0 ) { (void)OB; (void)xd; (void)yd; (void)R0; return false; }
 word GetNextDivCell( byte NI, int F, int Start ) { (void)NI; (void)F; (void)Start; return 0xFFFF; }
 word GetNextGreCell( byte NI, int F, int Start ) { (void)NI; (void)F; (void)Start; return 0xFFFF; }
 word GetNextSafeCell( byte NI, int F, int start, int Fin ) { (void)NI; (void)F; (void)start; (void)Fin; return 0xFFFF; }
-
-//-------------- MotionField bit-grid (translated from path.cpp asm) --------------
-// MapV is a bit matrix: one bit per cell, 8 y-cells per byte, byte row stride
-// is 1 << (6 + ADDSH) bytes (= BMSX). The originals are the __asm blocks in
-// path.cpp (MotionField::BSetPt/BClrPt/CheckPt/CheckVLine); delete these when
-// path.cpp itself gets ported.
-void MotionField::ClearMaps()
-{
-	memset( MapV, 0, MAPSY * BMSX );//1024*128
-}
-
-void MotionField::BSetPt( int x, int y )
-{
-	if ( x >= 0 && x < MAPSX && y >= 0 && y < MAPSY )
-	{
-		MapV[( x << ( 6 + ADDSH ) ) + ( y >> 3 )] |= 1 << ( y & 7 );
-	}
-}
-
-void MotionField::BClrPt( int x, int y )
-{
-	if ( x >= 0 && x < MAPSX && y >= 0 && y < MAPSY )
-	{
-		MapV[( x << ( 6 + ADDSH ) ) + ( y >> 3 )] &= ~( 1 << ( y & 7 ) );
-	}
-}
-
-void MotionField::BSetBar( int x, int y, int Lx )
-{
-	for ( int ix = x; ix < x + Lx; ix++ )
-	{
-		for ( int iy = y; iy < y + Lx; iy++ )
-		{
-			BSetPt( ix, iy );
-		}
-	}
-}
-
-void MotionField::BClrBar( int x, int y, int Lx )
-{
-	for ( int ix = x; ix < x + Lx; ix++ )
-	{
-		for ( int iy = y; iy < y + Lx; iy++ )
-		{
-			BClrPt( ix, iy );
-		}
-	}
-}
-
-void MotionField::BSetSQ( int x, int y, int Lx, int Ly )
-{
-	for ( int ix = x; ix < x + Lx; ix++ )
-	{
-		for ( int iy = y; iy < y + Ly; iy++ )
-		{
-			BSetPt( ix, iy );
-		}
-	}
-}
-
-void MotionField::BClrSQ( int x, int y, int Lx, int Ly )
-{
-	for ( int ix = x; ix < x + Lx; ix++ )
-	{
-		for ( int iy = y; iy < y + Ly; iy++ )
-		{
-			BClrPt( ix, iy );
-		}
-	}
-}
-
-//Returns the set bit value (1,2,4,...,128), 0 if free, 1 if out of the map
-int MotionField::CheckPt( int x, int y )
-{
-	if ( x >= 0 && x < MAPSX && y >= 0 && y < MAPSY )
-	{
-		return MapV[( x << ( 6 + ADDSH ) ) + ( y >> 3 )] & ( 1 << ( y & 7 ) );
-	}
-	else
-	{
-		return 1;
-	}
-}
-
-int MotionField::CheckHLine( int x, int y, int Lx )
-{
-	for ( int i = 0; i < Lx; i++ )
-	{
-		if ( CheckPt( x + i, y ) )
-		{
-			return 1;
-		}
-	}
-	return 0;
-}
-
-//Checks Lx consecutive bits starting at (x,y) with one 32-bit load.
-//Returns the masked value (nonzero = something set), 1 if out of the map.
-int MotionField::CheckVLine( int x, int y, int Lx )
-{
-	if ( x > 0 && y > 0 && y + Lx - 1 < MAPSY && x < MAPSX && Lx <= 24 )
-	{
-		const byte* p = MapV + ( x << ( 6 + ADDSH ) ) + ( y >> 3 );
-		DWORD v = p[0] | ( p[1] << 8 ) | ( p[2] << 16 ) | ( p[3] << 24 );//little-endian dword
-		// (1<<Lx)-1 rotated left by (y&7); no wraparound since (y&7)+Lx <= 31
-		return v & ( ( ( 1 << Lx ) - 1 ) << ( y & 7 ) );
-	}
-	else
-	{
-		return 1;
-	}
-}
-
-bool MotionField::CheckBar( int x, int y, int Lx, int Ly )
-{
-	for ( int ix = 0; ix < Lx; ix++ )
-	{
-		if ( CheckVLine( x + ix, y, Ly ) )
-		{
-			return true;
-		}
-	}
-	return false;
-}
 
 //-------------- fog.cpp (asm regions not ported) --------------
 void DrawFog() {}
@@ -257,7 +126,6 @@ word CheckCoorInGP( int x, int y ) { (void)x; (void)y; return 0; }
 bool CheckFlagsNeed() { return false; }
 bool CheckGameTime() { return false; }
 void Clean_GP_IMG() {}
-void CorrectLockPosition( OneObject* OB ) { (void)OB; }
 void CreateTrace( OneObject* OB ) { (void)OB; }
 void DontMakeRaiting() {}
 int  EnterHi( int* val, int Type ) { (void)val; (void)Type; return 0; }

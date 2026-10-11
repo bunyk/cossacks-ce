@@ -80,7 +80,7 @@ add_executable(cossacks
 	src/game/economy.cpp
 	src/game/groups.cpp
 	src/game/motion.cpp
-	# src/game/path.cpp  # TODO: heavy asm, needs porting
+	src/game/path.cpp
 	src/game/navorots.cpp
 	src/game/newai.cpp
 	src/game/zbuffer.cpp

@@ -122,6 +122,23 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
   matched the FoodID branch of mapa.cpp's cursor mapping and showed the
   food/scythe cursor. Restored the upstream pair (mapa checks are sequential,
   FoodID is checked last, so both must be distinct).
+- **Pathfinding ported (2026-10-11)**: `path.cpp` is in the build. All 16 asm
+  regions guarded with `#ifdef _WIN32` + `#else` translations:
+  - MotionField bit-grid (BSetPt/BClrPt/CheckPt/CheckVLine): the ADDSH
+    switch-cases all reduce to `MapV[(x << (6+ADDSH)) + (y>>3)]` with bit
+    `(y&7)`; CheckVLine = one little-endian 32-bit load masked with
+    `((1<<Lx)-1) << (y&7)`. These translations are the ones formerly living in
+    linux_stubs.cpp (verified: fixed the CreateCostPlaces infinite loop) -
+    moved into path.cpp proper.
+  - The 4 identical Bresenham walkers in CreatePrePath/2/4/Bordered: 8-bit
+    asm direction cases reduce to sx/sy multipliers; fills pxx/pyy word
+    arrays, Pps = point count. The 16-bit cum counter is safe for map-sized
+    coordinates.
+  - Deleted from linux_stubs.cpp: MotionField translations, MFIELDS[2],
+    AllowPathDelay, CreatePath/CreatePrePath/CreateFullPath/FindBestPosition/
+    CorrectLockPosition stubs. STILL STUBBED: GetNextDiv/Gre/SafeCell
+  (they live in safenet.cpp, not yet ported - AI long-range pathing across
+  areas).
 - **Cursor save/restore (fixed 2026-10-11)**: `RestoreMData` (mouse_x.cpp) had its
   comparison INVERTED vs the asm: asm restores the saved background only where the screen
   still equals the post-cursor save; the port wrote the STALE background wherever the
