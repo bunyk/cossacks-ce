@@ -243,9 +243,6 @@ void SpotByUnit( int x, int y, int r, byte dir ) { (void)x; (void)y; (void)r; (v
 void SetupSpot() {}
 
 //-------------- virtscr.cpp --------------
-void VirtualScreen::Execute() {}
-void VirtualScreen::RefreshScreen() {}
-void VirtualScreen::RefreshTriangle( int i ) { (void)i; }
 
 //-------------- water / rivers (realwater.cpp, river.cpp asm) --------------
 void SetWaterSpot( int x, int y, int r ) { (void)x; (void)y; (void)r; }
@@ -267,7 +264,8 @@ void DontMakeRaiting() {}
 int  EnterHi( int* val, int Type ) { (void)val; (void)Type; return 0; }
 bool EnterStr( char* str, char* Message ) { (void)str; (void)Message; return false; }
 void ExplorerOpenRef( int Index, char* ref ) { (void)Index; (void)ref; }
-int  GetBmOfst( int i ) { (void)i; return 0; }
+// Real masks.cpp:510 formula (texture bitmap offset in tex1)
+int  GetBmOfst( int i ) { return ( ( i & 3 ) << 6 ) + ( ( i >> 2 ) << ( 8 + 6 ) ); }
 int  GetCurGamePtr( byte** Ptr ) { if (Ptr) *Ptr = NULL; return 0; }
 int  GetQueueMultiplier() { return 0; }
 word GetTexture() { return 0; }
@@ -294,7 +292,6 @@ void PrepareIntersection1( int bm1, int bm2, int bm3, int DstBM, int x, int y, i
 void PrepareIntersection2( int bm1, int bm2, int bm3, int DstBM, int x, int y, int x1, int y1, xRLCTable* rlc, byte* Alpha ) { (void)bm1; (void)bm2; (void)bm3; (void)DstBM; (void)x; (void)y; (void)x1; (void)y1; (void)rlc; (void)Alpha; }
 
 //-------------- map editor / random map --------------
-int  AddTHMap( int i ) { (void)i; return 0; }
 void CreateNEWMAP() {}
 int  DecodeOptionsFromNumber( const int number, int* result ) { (void)number; (void)result; return 0; }
 int  DetermineNationAI( byte Nat ) { (void)Nat; return 0; }

@@ -8805,6 +8805,20 @@ void FastScreenProcess()
 
 	if ( SHOWSLIDE )
 	{
+		//DBG: one-shot end-of-frame screen scan - did the terrain survive to the present?
+		static bool dumped = false;
+		if (!dumped)
+		{
+			dumped = true;
+			byte* sp = (byte*) ScreenPtr;
+			for (int rr = 0; rr < 5; rr++)
+			{
+				int ry = 60 + 150 * rr;
+				int nz = 0;
+				for (int i = 0; i < 128; i++) if (sp[ry*1088 + 192 + i]) nz++;
+				fprintf( stderr, "DBG EoF screen row %d cols 192..: nonzero/128=%d\n", ry, nz );
+			}
+		}
 		int time0 = GetSDLTickCount();
 
 		GSYS.RefreshView();

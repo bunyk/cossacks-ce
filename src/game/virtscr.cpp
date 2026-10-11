@@ -15,6 +15,7 @@
 #include "megapolis.h"
 #include "dialogs.h"
 #include <assert.h>
+#include <cstdio>
 #include <math.h>
 #include "masks.h"
 #include "fonts.h"
@@ -26,7 +27,7 @@
 extern byte *tex1;
 extern RLCTable SimpleMask;
 
-// int mul3( int );
+int mul3( int );
 int prp34( int i );
 
 //class that is used for fast cashing of the 3D surface
@@ -158,6 +159,16 @@ void VirtualScreen::CopyVSPart( int vx, int vy, int sx, int sy, int SizeX, int S
 			   pop		edi
 			   pop		esi
 	}
+#else
+	// Linux translation of the rep movsd/movsb loop: row-wise copy VS -> screen
+	byte* vs = VirtualScreenPointer + vx + ( (intptr_t) vy ) * RealVLx;
+	byte* sc = (byte*) ScreenPtr + sx + ( (intptr_t) sy ) * SCRSizeX;
+	for ( int i = 0; i < SizeY; i++ )
+	{
+		memcpy( sc, vs, SizeX );
+		vs += RealVLx;
+		sc += SCRSizeX;
+	};
 #endif
 }
 
@@ -200,12 +211,41 @@ void VirtualScreen::CopyVSPartMMX( int vx, int vy, int sx, int sy, int SizeX, in
 			pop		esi
 			emms
 	};
+#else
+	// Linux translation (plain row-wise copy; the MMX loop bought nothing)
+	byte* vs = VirtualScreenPointer + vx + ( (intptr_t) vy ) * RealVLx;
+	byte* sc = (byte*) ScreenPtr + sx + ( (intptr_t) sy ) * SCRSizeX;
+	for ( int i = 0; i < SizeY; i++ )
+	{
+		memcpy( sc, vs, SizeX );
+		vs += RealVLx;
+		sc += SCRSizeX;
+	};
 #endif
 };
 
-#ifdef _WIN32
 void VirtualScreen::CopyVSToScreen()
 {
+	//DBG: one-shot copy params + VS row density scan (where IS the content?)
+	static bool dumped = false;
+	if (!dumped)
+	{
+		dumped = true;
+		int tlx = smaplx << 5;
+		int tly = mul3( smaply ) << 3;
+		int cvx = div( mapx << 5, RealVLx ).rem;
+		int cvy = div( mul3( mapy ) << 3, RealVLy ).rem;
+		fprintf( stderr, "DBG CopyVSToScreen: TotLx=%d TotLy=%d vsx=%d vsy=%d (RealVLx=%d RealVLy=%d)\n",
+			tlx, tly, cvx, cvy, RealVLx, RealVLy );
+		int rows[] = { 0, 96, 288, 480, 600, 696, 800, 864, 900, 959 };
+		for (int r = 0; r < 10; r++)
+		{
+			int ry = rows[r];
+			int nz = 0;
+			for (int i = 0; i < 128; i++) if (VirtualScreenPointer[ry*RealVLx + i]) nz++;
+			fprintf( stderr, "DBG VS row %4d: nonzero/128=%d\n", ry, nz );
+		}
+	}
 	int TotLx = smaplx << 5;
 	int TotLy = mul3( smaply ) << 3;
 	int vsx = div( mapx << 5, RealVLx ).rem;
@@ -231,10 +271,51 @@ void VirtualScreen::CopyVSToScreen()
 		Ly0 = RealVLy - vsy;
 		Ly1 = TotLy - Ly0;
 	};
+	//DBG: pre-copy screen scan (5th call)
+	static int preframe = 0;
+	preframe++;
+	if (preframe == 5)
+	{
+		byte* sp = (byte*) ScreenPtr;
+		for (int rr = 0; rr < 5; rr++)
+		{
+			int ry = 60 + 150 * rr;
+			int nz = 0;
+			for (int i = 0; i < 128; i++) if (sp[ry*1088 + 192 + i]) nz++;
+			fprintf( stderr, "DBG pre-copy screen row %d: nonzero/128=%d\n", ry, nz );
+		}
+	}
 	CopyVSPart( vsx, vsy, smapx, smapy, Lx0, Ly0 );
 	CopyVSPart( 0, vsy, smapx + Lx0, smapy, Lx1, Ly0 );
 	CopyVSPart( vsx, 0, smapx, smapy + Ly0, Lx0, Ly1 );
 	CopyVSPart( 0, 0, smapx + Lx0, smapy + Ly0, Lx1, Ly1 );
+	//DBG: one-shot post-copy scan - exact source cells + destination screen rows
+	static int dumpframe = 0;
+	static bool dumped2 = false;
+	dumpframe++;
+	if (dumpframe == 5 && !dumped2)
+	{
+		dumped2 = true;
+		fprintf( stderr, "DBG post-copy: vsx=%d vsy=%d Lx0=%d Ly0=%d Lx1=%d Ly1=%d\n", vsx, vsy, Lx0, Ly0, Lx1, Ly1 );
+		// source: the exact rows/cols the first CopyVSPart reads
+		for (int rr = 0; rr < 4; rr++)
+		{
+			int ry = vsy + (Ly0 > 400 ? 100 : 20) * rr;
+			if (ry >= RealVLy) ry -= RealVLy;
+			int nz = 0;
+			for (int i = 0; i < 128; i++) if (VirtualScreenPointer[ry*RealVLx + vsx + i]) nz++;
+			fprintf( stderr, "DBG src row %d cols %d..: nonzero/128=%d\n", ry, vsx, nz );
+		}
+		// destination: screen buffer rows after the copy
+		byte* sp = (byte*) ScreenPtr;
+		for (int rr = 0; rr < 5; rr++)
+		{
+			int ry = 60 + 150 * rr;
+			int nz = 0;
+			for (int i = 0; i < 128; i++) if (sp[ry*1088 + 192 + i]) nz++;
+			fprintf( stderr, "DBG dst screen row %d cols 192..: nonzero/128=%d\n", ry, nz );
+		}
+	}
 }
 
 void VirtualScreen::RenderVSPart( int QuotX, int QuotY, int cx, int cy, int clx, int cly )
@@ -331,6 +412,11 @@ byte DTX( byte v, int t )
 }
 
 extern byte TileMap[256];
+
+//DBG: terrain-render instrumentation (see the one-shot dump in VirtualScreen::Execute)
+int g_DbgCellsRendered = 0;
+int g_DbgSectorsShown = 0;
+int g_DbgSectorsCulled = 0;
 
 int VirtualScreen::ShowLimitedSector( int i, bool Mode3D, int HiLine, int LoLine, int QuotX, int QuotY )
 {
@@ -459,8 +545,10 @@ int VirtualScreen::ShowLimitedSector( int i, bool Mode3D, int HiLine, int LoLine
 
 	if (!Visible)
 	{
+		g_DbgSectorsCulled++;
 		return 0;
 	}
+	g_DbgSectorsShown++;
 
 	//Now we are ready to render
 	int f1 = 0, f2 = 0, f3 = 0;
@@ -699,6 +787,7 @@ void VirtualScreen::RenderVerticalSet( int QuotX, int QuotY, int cx, int cy, int
 		CellFlags[pos] = 1;
 		pos += CellNX;
 	};
+	g_DbgCellsRendered += cly;
 	if (cx & 1)
 	{
 		while (Tstart != Tend&&Tstart < Tend + 2)
@@ -913,6 +1002,43 @@ void VirtualScreen::CheckVLINE( int V )
 
 void VirtualScreen::Execute()
 {
+	//DBG: one-shot layout dump
+	extern int RealLx;
+	extern int RealLy;
+	extern int SCRSizeX;
+	extern int RSCRSizeX;
+	extern int COPYSizeX;
+extern bool window_mode;
+	extern int smapx;
+	extern int smapy;
+	extern int smaplx;
+	extern int smaply;
+	extern int mapx;
+	extern int mapy;
+	static int frame = 0;
+	static bool dumped = false;
+	frame++;
+	if (frame == 5 && !dumped)   // sample after a few frames of warm-up
+	{
+		dumped = true;
+		RefreshSurface();
+		int nz = 0;
+		for (int i = 0; i < 512; i++) if (VirtualScreenPointer[i]) nz++;
+		fprintf( stderr,
+			"DBG SVSC terrain: cells=%d sectors=%d culled=%d | VS row0 first16:",
+			g_DbgCellsRendered, g_DbgSectorsShown, g_DbgSectorsCulled );
+		for (int i = 0; i < 16; i++) fprintf( stderr, " %02X", VirtualScreenPointer[i] );
+		fprintf( stderr, " | nonzero/512=%d\n", nz );
+		fprintf( stderr,
+			"DBG SVSC.Execute: window_mode=%d RealLx=%d RealLy=%d SCRSizeX=%d RSCRSizeX=%d COPYSizeX=%d\n"
+			"	field: smapx=%d smapy=%d smaplx=%d smaply=%d mapx=%d mapy=%d\n"
+			"	VS: RealVLx=%d RealVLy=%d CellNX=%d CellNY=%d CellSX=%d CellSY=%d TriUnit=%d\n",
+			window_mode, RealLx, RealLy, SCRSizeX, RSCRSizeX, COPYSizeX,
+			smapx, smapy, smaplx, smaply, mapx, mapy,
+			RealVLx, RealVLy, CellNX, CellNY, CellSX, CellSY, TriUnit );
+		CopyVSToScreen();
+		return;
+	}
 	RefreshSurface();
 	CopyVSToScreen();
 }
@@ -1067,4 +1193,3 @@ int AddTHMap( int i )
 {
 	return ( TexFlags[TexMap[i]] & 8 ? 0 : word( randoma[word( i % 8133 )] ) & 7 );
 }
-#endif

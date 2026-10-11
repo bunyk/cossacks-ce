@@ -468,28 +468,22 @@ SDMOD:;
 /*   Direct Draw palette loading*/
 void LoadPalette( LPCSTR lpFileName )
 {
-	// Palette originally was set somewhere in mdraw.dll
-	// These LoadPalette functions weren't working originally
-	if (sdlPal)
-	{
-		return;
-	}
-
-	// Need to init palette in window mode as well
-	// Probably mdraw.dll somehow sets the palette itself so that code worked before
-	//if (window_mode)
-	//{
-	//	return;
-	//}
-
 	if (SDLError)
 	{
 		return;
 	}
 
 	ResFile pf = RReset( lpFileName );
-	sdlPal = SDL_CreatePalette(256);
-	//memset( &GPal, 0, 1024 );
+
+	// Reuse the palette object: primarySurface holds a reference to sdlPal
+	// (SDL_SetSurfacePalette below), so updating its colors in place is what
+	// switches the display palette. The original early-return here meant the
+	// FIRST palette (the menu's 2\\agew_1.pal) stuck forever and the in-game
+	// 0\\agew_1.pal was never applied (the "everything brown" bug).
+	if (!sdlPal)
+	{
+		sdlPal = SDL_CreatePalette(256);
+	}
 
 	if (pf != INVALID_HANDLE_VALUE)
 	{
