@@ -9360,6 +9360,37 @@ void GP_System::ShowGP(//IMPORTANT: show sprite with color masking
                 if (inv) GP_ShowMaskedPictShadowInv( x, y, lpGPCUR, NULL, enc );
                 else GP_ShowMaskedPictShadow( x, y, lpGPCUR, NULL, enc );
             }
+            else if (Opt == 39)
+            {
+                // Raw grey data (rom10/romBig fonts); same encoders as case 38
+                // but without GreyUnpack - the data at CDOffs is already unpacked.
+                // Previously missing -> all rom10/romBig glyphs invisible.
+                byte* src = ( (byte*) lpGPCUR ) + CDOffs;
+                if (!inv)
+                {
+                    switch (imt)
+                    {
+                    case 1:  GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, src, Bright + startTrans ); break;
+                    case 2:  GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, src, yfog + startTrans ); break;
+                    case 3:  GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, src, Optional1 + startTrans ); break;
+                    case 4:  GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, src, Optional2 + startTrans ); break;
+                    case 5:  GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, src, Optional3 ); break;
+                    default: GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, src, fog + 1024 ); break;
+                    }
+                }
+                else
+                {
+                    switch (imt)
+                    {
+                    case 1:  GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, src, fog ); break;
+                    case 2:  GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, src, yfog ); break;
+                    case 3:  GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, src, Optional1 ); break;
+                    case 4:  GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, src, Optional2 ); break;
+                    case 5:  GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, src, Optional3 ); break;
+                    default: GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, src, fog + 1024 ); break;
+                    }
+                }
+            }
             break;
         }
 
@@ -10940,6 +10971,7 @@ void GP_System::ShowGPPal( int x, int y, int FileIndex, int SprIndex, byte Natio
 	GP_Header* lpGP = GPX( lpGH, LGPH[SprIndex & 4095] );
 	GP_Header* lpGPCUR = lpGP;
 	bool inv = SprIndex >= 4096;
+	int imt = ImageType[FileIndex] >> 4;
 	int DIFF = -1;
 	do
 	{
@@ -10998,6 +11030,42 @@ void GP_System::ShowGPPal( int x, int y, int FileIndex, int SprIndex, byte Natio
 			if (inv) GP_ShowMaskedPalPictInv( x, y, lpGPCUR, tmp, Table );
 			else GP_ShowMaskedPalPict( x, y, lpGPCUR, tmp, Table );
 			delete[] tmp;
+			break;
+		}
+		case 38://grey, std-packed - themed by ImageType
+		{
+			byte* tmp = new byte[UnpackLen];
+			GreyUnpack( tmp, ( (byte*) lpGPCUR ) + CDOffs, UnpackLen );
+			byte* enc = nullptr;
+			switch (imt)
+			{
+			case 1: enc = inv ? Bright : Bright + startTrans; break;
+			case 2: enc = inv ? yfog : yfog + startTrans; break;
+			case 3: enc = inv ? Optional1 : Optional1 + startTrans; break;
+			case 4: enc = inv ? Optional2 : Optional2 + startTrans; break;
+			case 5: enc = Optional3; break;
+			default: enc = fog + 1024; break;
+			}
+			if (inv) GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, tmp, enc );
+			else GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, tmp, enc );
+			delete[] tmp;
+			break;
+		}
+		case 39://grey, raw data (rom fonts)
+		{
+			byte* src = ( (byte*) lpGPCUR ) + CDOffs;
+			byte* enc = nullptr;
+			switch (imt)
+			{
+			case 1: enc = inv ? fog : Bright + startTrans; break;
+			case 2: enc = inv ? yfog : yfog + startTrans; break;
+			case 3: enc = inv ? Optional1 : Optional1 + startTrans; break;
+			case 4: enc = inv ? Optional2 : Optional2 + startTrans; break;
+			case 5: enc = Optional3; break;
+			default: enc = fog + 1024; break;
+			}
+			if (inv) GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, src, enc );
+			else GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, src, enc );
 			break;
 		}
 		}
@@ -11132,6 +11200,25 @@ void GP_System::ShowGPPalLayers( int x, int y, int FileIndex, int SprIndex, byte
 				delete[] tmp;
 			}
 			break;
+		case 39://grey, raw data (rom fonts) - same encoders, no GreyUnpack
+			if (mask & 1024)
+			{
+				byte* src = ( (byte*) lpGPCUR ) + CDOffs;
+				byte* enc = nullptr;
+				switch (imt)
+				{
+				case 1: enc = inv ? fog : Bright + startTrans; break;
+				case 2: enc = inv ? yfog : yfog + startTrans; break;
+				case 3: enc = inv ? Optional1 : Optional1 + startTrans; break;
+				case 4: enc = inv ? Optional2 : Optional2 + startTrans; break;
+				case 5: enc = Optional3; break;
+				default: enc = fog + 1024; break;
+				}
+				if (inv) GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, src, enc );
+				else GP_ShowMaskedMultiPalPict( x, y, lpGPCUR, src, enc );
+			}
+			break;
+
 		}
 		DIFF = lpGPCUR->NextPict;
 		lpGPCUR = (GP_Header*)( (byte*) lpGP + DIFF );

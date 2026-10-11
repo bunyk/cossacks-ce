@@ -107,6 +107,21 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
   plain C++), and widened `SmartLink` from int to intptr_t (the int() obfuscation
   truncated the function pointer on x64). CHECK FOR MORE: grep for the same
   `int(FuncPtr)` + magic-constant obfuscation pattern elsewhere.
+- **Font layer Opt=39 (fixed 2026-10-11)**: font GP files come in two flavours -
+  MAINFONT.GP glyphs are Opt=38 (grey, StdUnpack'd), ROM10.GP / ROMBIG.GP glyphs
+  are Opt=39 (grey, RAW pixel data, no unpack). The Linux ShowGP dispatcher had
+  38 but not 39, so every rom10/romBig glyph (resource numbers, big in-game
+  text) was silently skipped - "labels render but no numbers". Added case 39 to
+  Linux ShowGP (per-imt encoders, raw data at CDOffs), and the missing 38/39
+  cases to Linux ShowGPPal + ShowGPPalLayers (building placement preview /
+  selected buildings; gated by layer bit 1024 in the Layers variant).
+  ShowGPLayers already had both. Opt=39 appears in ~2600 frames across many
+  files (BORDER.GP etc.), so this also fixes assorted interface bits.
+  RESOURCE IDS: ddex1.cpp had `FoodID = GetResID("STONE")` with StoneID never
+  assigned (mod-lineage bug vs upstream: FoodID=FOOD, StoneID=STONE) - stones
+  matched the FoodID branch of mapa.cpp's cursor mapping and showed the
+  food/scythe cursor. Restored the upstream pair (mapa checks are sequential,
+  FoodID is checked last, so both must be distinct).
 - **Cursor save/restore (fixed 2026-10-11)**: `RestoreMData` (mouse_x.cpp) had its
   comparison INVERTED vs the asm: asm restores the saved background only where the screen
   still equals the post-cursor save; the port wrote the STALE background wherever the
