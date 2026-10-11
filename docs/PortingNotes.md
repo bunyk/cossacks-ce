@@ -152,17 +152,26 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
     plain dst=src, pal dst=pal[src], "fon" dst=pal[dst] (mask-only - the
     shadow/white variants), "ht" dst=pal[(src<<8)|dst] (half-transparent:
     trans8/Dark/Fire/WFog/Blue wrappers), each x mirror (Inv) variant.
+  - SEGMENT SKIP IS CUMULATIVE (fixed after the "vertical squares" bug):
+    the asm keeps ONE running edi per scanline - each segment's skip byte
+    advances from the PREVIOUS SEGMENT'S END, not from the line start.
+    Reading it as line-absolute shifts every segment after the first left,
+    compressing sprites into overlapping blocks ("wheat in vertical squares
+    instead of the isometric diamond"). Verified by re-decoding GROW0 with
+    cumulative skips: the 5 growth parts compose into a proper diamond.
   - ShowRLCItem (was a no-op stub): full dispatch - GP files route to
     GPS.ShowGP; RLC pictures are at (char*)table + 4 + OfsTable[n]
-    (unrebased offsets on 64-bit!). Nation tints route via PAL1..7.
+    (unrebased offsets on 64-bit!). Nation tints route via PAL1..7 (NOTE:
+    PAL1..7 are never initialized in this codebase - all-zero; nt>=1 tints
+    would render black if ever used; fields use nt=0 plain).
     The 4 unguarded Item dispatchers (DarkN/Pal/Grad/RedN) got the same
     rebase. gp_draw.cpp's duplicate ShowRLCItemPal/Grad no-op stubs
     deleted. ShowRLCItemTrans8/Mutno/Dark/Blue/Fired remain Windows-only
     (unreferenced on Linux so far - waves.cpp's use is commented out).
-  - Mill/wheat verified working: fields spawn (ok~32/49, failBar = mill
-    footprint), grow stage 6->7 via ObjTimer (FrmDec ticks), harvest
-    increases food. NOTE: unit "38"/"87"/"105" seen as PAble field index
-    across runs - different per random map, is the nation's field unit.
+  - In-game screen palette: `if (CurPalette==2) LoadPalette("2\\agew_1.pal")
+    else LoadPalette("0\\agew_1.pal")` - the DK mod's gameplay matches 2\AGEW_1.PAL
+    (wheat indices 89/90/241-244 = yellow/green "fresh wheat"; under 0\ they
+    are purple-blue - useful for identifying which palette is active).
 - **Cursor save/restore (fixed 2026-10-11)**: `RestoreMData` (mouse_x.cpp) had its
   comparison INVERTED vs the asm: asm restores the saved background only where the screen
   still equals the post-cursor save; the port wrote the STALE background wherever the

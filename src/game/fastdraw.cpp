@@ -444,14 +444,16 @@ void ShowRLCGen( int x, int y, void* PicPtr, byte* pal, int mode, bool mirror )
 		if (nseg && yy >= WindY && yy <= WindY1)
 		{
 			byte* dstrow = (byte*)ScreenPtr + (size_t)yy * ScrWidth;
+			int colpos = 0;   // running column: segment skips are RELATIVE
 			for (int s = 0; s < nseg; s++)
 			{
 				int skip = src[0];
 				int cnt = src[1];
 				src += 2;
+				colpos += skip;   // advance from the previous segment's end
 				for (int k = 0; k < cnt; k++)
 				{
-					int col = mirror ? (x - skip - 1 - k) : (x + skip + k);
+					int col = mirror ? (x - colpos - 1 - k) : (x + colpos + k);
 					if (col >= WindX && col <= WindX1)
 					{
 						byte v;
@@ -465,6 +467,7 @@ void ShowRLCGen( int x, int y, void* PicPtr, byte* pal, int mode, bool mirror )
 						dstrow[col] = v;
 					}
 				}
+				colpos += cnt;
 				src += cnt;
 			}
 		}
