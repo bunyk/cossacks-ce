@@ -4743,7 +4743,7 @@ void GP_PageControl::AddPage( int x0, int y0, int px1, int py1, int Index )
 }
 //-------------end of PageControl------------//
 
-#ifdef _WIN32
+	//un-guarded 2026-10-12: BorderEx dialog borders (portable C++)
 extern int BordGP2;
 void DrawHdrTable( int x0, int y0, int x1, int y1 );
 void DrawScrollDoubleTableF( int x0, int y0, int x1, int y1, int ym );
@@ -4853,7 +4853,7 @@ CustomBorder* DialogsSystem::addCustomBorder( int x, int y, int x1, int y1,
 	}
 	else return nullptr;
 }
-#endif // _WIN32
+
 
 //-------------------------------------------//
 SimpleDialog::SimpleDialog()

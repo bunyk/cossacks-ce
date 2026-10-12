@@ -658,6 +658,7 @@ DLLEXPORT int ItemChoose;
 
 DLLEXPORT bool MMItemChoose( SimpleDialog* SD )
 {
+	printf("DBG MMItemChoose: item=%d\n", SD->UserParam);
 	ItemChoose = SD->UserParam;
 	Lpressed = false;
 	return true;
@@ -6180,7 +6181,32 @@ bool SingleOptions()
 	}
 }
 
-#ifdef _WIN32
+//Screen-snapshot helpers (real defs at ~16334 are in the editor guard region)
+void PushScreen( byte** Ptr )
+{
+	*Ptr = new byte[ScrWidth*RealLy];
+	memcpy( *Ptr, ScreenPtr, ScrWidth*RealLy );
+}
+void PopScreen( byte* Ptr )
+{
+	memcpy( ScreenPtr, Ptr, ScrWidth*RealLy );
+	free( Ptr );
+}
+
+//Declarations for the un-guarded dialog regions below (their original
+//declaration blocks are still in _WIN32 regions higher up in this file)
+extern int WarSound;        // defined in a guarded block at the top
+extern int MidiSound;
+extern int ModeLX[32];      // ddex1.cpp video mode table
+extern int ModeLY[32];
+extern int NModes;
+extern char GameName[128];  // loadsave.cpp
+extern char SaveFileName[128];
+void UnPress();
+void processMultiplayer();
+#include "recorder.h"       // RecordGame RGAME
+
+	//un-guarded 2026-10-12: PlayMode/RECFILE defs + CD prototypes (CD calls stubbed)
 int ProcessWars();
 void processBattleMultiplayer();
 
@@ -6301,13 +6327,13 @@ void StopPlayCD();
 void PlayRandomTrack();
 extern byte TracksMask[16];
 char RECFILE[128] = "";
-#endif // _WIN32
+
 
 extern int screen_width;
 extern int screen_height;
 extern double screen_ratio;
 
-#ifdef _WIN32 (options dialogs: CD/volume/modes)
+	//un-guarded 2026-10-12: options dialogs (portable C++; CD-audio calls stubbed)
 bool ProcessMenuOptions()
 {
 	LocalGP BTNS( "Interface\\Options" );
@@ -6497,6 +6523,7 @@ bool ProcessMenuOptions()
 
 bool ProcessGameOptions()
 {
+	printf("DBG GameOptions: enter\n");
 	LocalGP BTNS( "Interface\\Options_for_Game" );
 	LocalGP HFONT( "rom10" );
 	RLCFont hfnt( HFONT.GPID );
@@ -6675,7 +6702,7 @@ bool ProcessGameOptions()
 
 	return false;
 }
-#endif // _WIN32 (options dialogs: CD/volume/modes)
+
 
 bool CreateMultiplaterInterface();
 
@@ -7021,7 +7048,49 @@ bool GameExit;
 int MenuType;
 bool MakeMenu;
 
-#ifdef _WIN32
+#ifndef _WIN32
+// POSIX shim for the Win32 find-file API used by the save/load game dialogs.
+// HANDLE is void* (newcode/os.h); patterns accept Win32 backslash paths.
+#include <glob.h>
+struct WIN32_FIND_DATA { char cFileName[260]; };
+struct FindShimState { glob_t g; size_t idx; };
+static bool FindNextFile( HANDLE HF, WIN32_FIND_DATA* FD );
+static HANDLE FindFirstFile( const char* pattern, WIN32_FIND_DATA* FD )
+{
+	char pat[512];
+	int n = 0;
+	for ( const char* s = pattern; *s; s++ )pat[n++] = ( *s == '\\' ) ? '/' : *s;
+	pat[n] = 0;
+	FindShimState* st = new FindShimState;
+	if ( glob( pat, 0, nullptr, &st->g ) != 0 || st->g.gl_pathc == 0 )
+	{
+		globfree( &st->g );
+		delete st;
+		return INVALID_HANDLE_VALUE;
+	}
+	st->idx = 0;
+	FindNextFile( (HANDLE)st, FD );   // fill first entry
+	return (HANDLE)st;
+}
+static bool FindNextFile( HANDLE HF, WIN32_FIND_DATA* FD )
+{
+	FindShimState* st = (FindShimState*)HF;
+	if ( st->idx >= st->g.gl_pathc )return false;
+	const char* base = strrchr( st->g.gl_pathv[st->idx], '/' );
+	base = base ? base + 1 : st->g.gl_pathv[st->idx];
+	strncpy( FD->cFileName, base, 259 );
+	FD->cFileName[259] = 0;
+	st->idx++;
+	return true;
+}
+static void FindClose( HANDLE HF )
+{
+	FindShimState* st = (FindShimState*)HF;
+	globfree( &st->g );
+	delete st;
+}
+#endif
+	//un-guarded 2026-10-12: save-file name lists + InstallName (portable C++)
 int NNames;
 char* names[128];
 char* fnames[128];
@@ -7092,11 +7161,10 @@ void InstallName( ListBox* LB, WIN32_FIND_DATA* FD, char* StartDir )
 		else RClose( ff1 );
 	}
 }
-#endif // _WIN32
+
 
 void SFLB_CreateGamesList( ListBox* LB )
 {
-#ifdef _WIN32
 	WIN32_FIND_DATA FD;
 	ClearNames();
 	HANDLE HF = FindFirstFile( "*.sav", &FD );
@@ -7104,13 +7172,11 @@ void SFLB_CreateGamesList( ListBox* LB )
 	{
 		InstallName( LB, &FD, "" );
 		while ( FindNextFile( HF, &FD ) )InstallName( LB, &FD, "" );
+		FindClose( HF );
 	};
-#else
-	printf("TODO: implement SFLB_CreateGamesList\n");
-#endif // _WIN32
 }
 
-#ifdef _WIN32
+	//un-guarded 2026-10-12: load-game dialogs (portable C++, no asm/winapi)
 void CreateRecList( ListBox* LB )
 {
 	WIN32_FIND_DATA FD;
@@ -7211,6 +7277,7 @@ bool CheckFileIdentity( char* Name )
 
 void ProcessGLoadGame()
 {
+	printf("DBG LoadGame: enter\n");
 	LocalGP BTNS( "Interface\\G_Load_Game" );
 	LocalGP SCROL( "Interface\\GScroll" );
 	LocalGP HFONT( "rom10" );
@@ -7631,7 +7698,7 @@ int EnterHi( int * val, int Type )
 };
 extern "C" DLLEXPORT void ShowVictory();
 extern "C" DLLEXPORT void SelChangeNation( byte SrcNat, byte DstNat );
-#endif
+
 
 void EnterChat()
 {
@@ -7761,10 +7828,11 @@ void EnterChat()
 	#endif // _WIN32
 };
 
-#ifdef _WIN32
+	//un-guarded 2026-10-12: save-game dialogs (portable C++, no asm/winapi)
 void SaveGame( char* fnm, char* Messtr, int ID );
 void ProcessGSaveGame()
 {
+	printf("DBG SaveGame: enter\n");
 	if ( strstr( GameName, ".m3d" ) || strstr( GameName, ".M3D" ) )GameName[0] = 0;
 	LocalGP BTNS( "Interface\\G_Save_Game" );
 	LocalGP SCROL( "Interface\\GScroll" );
@@ -7834,6 +7902,7 @@ void ProcessGSaveGame()
 			if ( ItemChoose == mcmOk )ItemChoose = -1;
 		};
 	} while ( ItemChoose == -1 );
+	printf("DBG SaveGame: loop exit choose=%d str='%s'\n", ItemChoose, IB->Str);
 	if ( ItemChoose == mcmOk )
 	{
 		CmdSaveNetworkGame( MyNation, GetSDLTickCount(), IB->Str );
@@ -8021,7 +8090,7 @@ void CreateUnitList( ListBox* LB, int Country )
 extern int NNations;
 extern char** NatNames;
 void UnPress();
-#endif // _WIN32 (closes the dialogs guard spliced from HEAD)
+
 
 void ChooseUnit()
 {
@@ -8294,28 +8363,26 @@ stg:
 			//IAmLeft();
 		};
 	} while ( ItemChoose == -1 );
+	printf("DBG GMainMenu: chose=%d\n", ItemChoose);
 	if ( ItemChoose == mcmLoad )
 	{
-#ifdef _WIN32 (dialogs in guarded region)
+		//call-site guard removed 2026-10-12: dialogs now ported
 		ProcessGLoadGame();
-#endif
 		GMM.MarkToDraw();
 		if ( !ContinueGame )goto stg;
 	};
 	if ( ItemChoose == mcmSave )
 	{
-#ifdef _WIN32 (dialogs in guarded region)
+		//call-site guard removed 2026-10-12
 		ProcessGSaveGame();
-#endif
 		GMM.MarkToDraw();
 		if ( !ContinueGame )goto stg;
 	};
 	if ( ItemChoose == mcmOptions )
 	{
 		//ProcessOptions(smapx+(nsmaplx<<4)-(288>>1),smapy+(nsmaply<<4)-(288>>1));
-#ifdef _WIN32 (dialogs in guarded region)
+		//call-site guard removed 2026-10-12
 		ProcessGameOptions();
-#endif
 		ContinueGame = true;
 		ItemChoose = mcmResume;
 	};
@@ -8400,9 +8467,8 @@ stg:
 
 	if ( ItemChoose == mcmOptions )
 	{
-#ifdef _WIN32 (dialogs in guarded region)
+		//call-site guard removed 2026-10-12
 		ProcessGameOptions();
-#endif
 		//ProcessOptions(smapx+(nsmaplx<<4)-(288>>1),smapy+(nsmaply<<3)-(288>>1));
 		ContinueGame = true;
 		ItemChoose = mcmResume;
@@ -8883,7 +8949,8 @@ void ShowAbout()
 
 bool IngameYesNoDialog( char* dialog_text )
 {
-	#ifdef _WIN32
+	//un-guarded 2026-10-12: portable DialogsSystem code (was #ifdef _WIN32
+	//#else return false TODO - broke the game menu's Exit confirm)
 	ItemChoose = -1;
 	int dialog_width = 600;
 	int dialog_height = 200;
@@ -8941,9 +9008,6 @@ bool IngameYesNoDialog( char* dialog_text )
 		ItemChoose = -1;
 		return false;
 	}
-	#else
-	return false; // TODO: implement
-	#endif // _WIN32
 }
 
 bool Lobby = 0;

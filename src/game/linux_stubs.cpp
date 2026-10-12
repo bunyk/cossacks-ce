@@ -44,7 +44,7 @@ int InteriorType = 0;
 extern const int kCtrlStickyTime = 700;bool LockFog = false;
 char MapScenaryDLL[200];
 byte MI_Mode = 0;
-bool MultiTvar = false;
+// MultiTvar: real definition now in interface.cpp (un-guarded)
 byte NeedToPopUp = 0;
 word NTextures = 0;
 bool OptHidden = false;
@@ -68,8 +68,8 @@ bool TP_Made = false;
 int WarSound = 0;
 int WorkSound = 0;
 DWORD RealTime = 0;
-char RECFILE[128];
-bool ChangeNation = false;
+// RECFILE: real definition now in interface.cpp (un-guarded)
+// ChangeNation: real definition now in interface.cpp (un-guarded)
 
 // WaterDeep / WaterBright are now real (realwater.cpp, allocated in loadsave.cpp)
 
@@ -120,8 +120,8 @@ bool CheckGameTime() { return false; }
 void Clean_GP_IMG() {}
 void CreateTrace( OneObject* OB ) { (void)OB; }
 void DontMakeRaiting() {}
-int  EnterHi( int* val, int Type ) { (void)val; (void)Type; return 0; }
-bool EnterStr( char* str, char* Message ) { (void)str; (void)Message; return false; }
+// EnterHi: real definition now in interface.cpp (un-guarded)
+// EnterStr: real definition now in interface.cpp (un-guarded)
 void ExplorerOpenRef( int Index, char* ref ) { (void)Index; (void)ref; }
 int  GetCurGamePtr( byte** Ptr ) { if (Ptr) *Ptr = NULL; return 0; }
 word GetTexture() { return 0; }
@@ -235,6 +235,28 @@ bool ShowStatistics()
 {
 	return false;
 }
+
+// CD-audio API (devicecd.cpp - Windows MCI CD player, not ported).
+// The options dialogs call these; volumes are no-ops without a CD engine.
+int  GetCDVolume() { return 0; }
+void SetCDVolume( int Vol ) { (void)Vol; }
+void StopPlayCD() {}
+void PlayRandomTrack() {}
+// ChangeNation/MultiTvar globals were stubbed here; the real definitions
+// come from interface.cpp's un-guarded dialog region now - removed.
+
+// MidiSound: definition lives in a _WIN32 block of interface.cpp (line ~215)
+int MidiSound = 0;
+// GoHomeAnyway: defined in a guarded region of interface.cpp
+void GoHomeAnyway() {}
+// PushScreen/PopScreen: real defs now spliced into interface.cpp
+// DialogsSystem::addBorder: guarded dialogs.cpp region - skip frame border
+// processMultiplayer/processBattleMultiplayer: guarded interface.cpp regions
+bool processMultiplayer() { return false; }
+bool processBattleMultiplayer() { return false; }
+// ProcessSavingFile/ProcessLoadingFile: guarded file-picker dialogs
+bool ProcessSavingFile( char* Mask, char* DestName, int Header, bool clear ) { (void)Mask; (void)DestName; (void)Header; (void)clear; return false; }
+bool ProcessLoadingFile( char* Mask, char* DestName, int Header ) { (void)Mask; (void)DestName; (void)Header; return false; }
 
 // network functions (mplayer.cpp)
 void AnalyseMessages() {}

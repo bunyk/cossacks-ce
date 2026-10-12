@@ -262,6 +262,26 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
   texture around the mouse cursor (visible while scrolling; the opaque cursor body hides
   its own smear, blended layers don't). gscbrowser can't reproduce this - the mouse
   machinery never runs there.
+- **Game menu items enabled (fixed 2026-10-12)**: F12 menu opened but Save/
+  Load/Options did nothing - their handlers (ProcessGLoadGame/ProcessGSaveGame/
+  ProcessGameOptions + the whole options/load/save dialog layer) sat in five
+  `#ifdef _WIN32` regions of interface.cpp (~6183 decls+MM_ProcessMultiPlayer,
+  ~6310 options, ~7024 name lists, ~7113 load, ~7764 save) and one in
+  dialogs.cpp (~4746 BorderEx) - ALL portable C++ (verified: zero asm, zero
+  winapi). Un-guarded all six. CAUTION: use a real brace-matched guard-end
+  finder for these regions; a naive "first #endif" match or replace-by-line-
+  range eats neighboring declarations (one bad edit destroyed 76 lines of
+  decls and had to be reverted with git checkout).
+  Supporting ports/stubs: POSIX glob shim for FindFirstFile/FindNextFile/
+  FindClose + WIN32_FIND_DATA (interface.cpp, handles Win32 backslash
+  patterns), SFLB_CreateGamesList got the real implementation (was a TODO
+  printf), PushScreen/PopScreen spliced from the editor-guard region,
+  CD-audio API stubbed (devicecd.cpp MCI - GetCDVolume/SetCDVolume/
+  StopPlayCD/PlayRandomTrack; sliders inert), MidiSound/RECFILE/ChangeNation/
+  MultiTvar/EnterStr/EnterHi duplicates removed from linux_stubs (real defs
+  now in un-guarded interface.cpp), processMultiplayer/processBattleMultiplayer/
+  ProcessSavingFile/ProcessLoadingFile stubbed (guarded regions, MP/file-picker
+  only). Save files land as *.sav next to the executable.
 - **In-game hotkeys un-guarded (fixed 2026-10-12)**: F12 (main menu), Pause
   (CmdPause -> NOPAUSE toggle) and every letter/F-key hotkey in GameKeyCheck
   did nothing - the whole ~350-line switch block (main.cpp ~1781-2134) was
