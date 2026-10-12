@@ -6,7 +6,6 @@ State and findings as of 2026-10-09. Companion to `docs/Ubuntu.md` (build instru
 
 - **Build succeeds**: `cmake --build build` produces `build/Debug/cossacks` (64-bit ELF,
   links clean) and the `gscbrowser` resource-browser tool.
-- All work is **uncommitted** on branch `linux`. Consider committing before continuing.
 - Runtime progress: main menu works; single-player options screen works (nation
   dropdown populated, random-map settings visible, shared cross-platform event loop);
   **campaign flow works** (campaign list + campaign mission list screens; picking a
@@ -263,6 +262,20 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
   texture around the mouse cursor (visible while scrolling; the opaque cursor body hides
   its own smear, blended layers don't). gscbrowser can't reproduce this - the mouse
   machinery never runs there.
+- **AV blend-table pointer truncation CRASH (fixed 2026-10-12)**: the KNOWN
+  LATENT BUG from the f3aa479 note finally fired: selecting certain buildings/
+  walls draws the pulsing highlight via Z-elements with Param1=AV_PULSING|AV_DARK
+  etc.; AddOptPoint/AddOptLine/AddToVisual stored the blend table as
+  `Param2 = int(wfog)` - a 64-bit pointer truncated to 32 bits - and the draw
+  side did `(byte*)par2 + (N<<8)` -> SIGSEGV in GP_ShowMaskedPalPict/
+  GP_ShowMaskedGeneric (Encoder read). FIX: the table is fully determined by
+  the type+color bits that ALREADY live in Param1 (CType bits 0..3,
+  CProp AV_RED/WHITE/DARK bits 4..7 survive `Options & 0xFFFFF0F`), so a new
+  `AVBlendTable(Param1)` (zbuffer.cpp, also used by newmon.cpp's UParam draw
+  path) rebuilds yfog/wfog/fog+1024(+2048) at draw time; all 27 int(ptr)
+  stores replaced with comments. LESSON: never store a pointer through int()
+  fields - if an index/enum carries the same information, rebuild at the
+  consumer instead of widening the struct.
 - **Selected-building shadows (fixed 2026-10-12)**: the THIRD case-5 dispatcher
   had the same f3aa479 branch swap - the LINUX port of `ShowGPPalLayers`
   (gp_draw.cpp ~11152; the selected-buildings path: ShowZElement sees

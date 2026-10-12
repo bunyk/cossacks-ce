@@ -124,7 +124,7 @@ int  EnterHi( int* val, int Type ) { (void)val; (void)Type; return 0; }
 bool EnterStr( char* str, char* Message ) { (void)str; (void)Message; return false; }
 void ExplorerOpenRef( int Index, char* ref ) { (void)Index; (void)ref; }
 int  GetCurGamePtr( byte** Ptr ) { if (Ptr) *Ptr = NULL; return 0; }
-int  GetQueueMultiplier() { return 0; }
+// GetQueueMultiplier: real port in newcode/queuemanagement.cpp (now in build)
 word GetTexture() { return 0; }
 int  GetTreeItem() { return 0; }
 void Init_GP_IMG() {}

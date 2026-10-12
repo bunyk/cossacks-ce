@@ -1132,6 +1132,7 @@ extern bool NOPAUSE;
 
 void HPR( int n )
 {
+	printf("DBG HPR: ability tile click\n");
 	if (GetTotalUnits() > LULIMIT)
 	{
 		CreateTimedHintEx( UNILIMIT, kImportantMessageDisplayTime, 32 );//Unit limit has been reached!
@@ -1143,6 +1144,9 @@ void HPR( int n )
 	word ai_index = AI->OInd;
 	GeneralObject* GO = nation->Mon[ai_index];
 	NewMonster* NM = GO->newMons;
+	printf("DBG HPR: ai_index=%d totalunits=%d LULIMIT=%d sprite=%d wall=%d bldg=%d costhint=%d\n",
+		ai_index, GetTotalUnits(), LULIMIT, NM->SpriteObject, NM->Wall, NM->Building,
+		CheckCostHint( NatRefTBL[MyNation], ai_index ));
 	if (NM->SpriteObject && !NM->Wall)
 	{
 		CmdFieldBar( MyNation, ai_index );
@@ -1167,6 +1171,13 @@ void HPR( int n )
 			{
 				CmdProduceObj( MyNation, ai_index );
 			}
+		}
+		else
+		{
+			printf("DBG HPR: branch PRODUCE but CheckCostHint=0 - dumping cost\n");
+			int Cost[8];
+			GetUnitCost( NatRefTBL[MyNation], ai_index, Cost );
+			for (int i = 0; i < 8; i++)printf("DBG HPR: res[%d] have=%d cost=%d\n", i, XRESRC( NatRefTBL[MyNation], i ), Cost[i]);
 		}
 	}
 }
@@ -1636,6 +1647,7 @@ void ShowAbility()
 			unit_index = object->Index;
 			nation_index = object->NIndex;
 			number_of_options = nation->PACount[nation_index];
+			printf("DBG ShowAbility: bldg idx=%d PACount=%d\n", nation_index, number_of_options);
 			for (int j = 0; j < number_of_options; j++)
 			{
 				s = nation->PAble[nation_index][j];

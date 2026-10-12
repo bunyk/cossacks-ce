@@ -36,6 +36,7 @@ add_executable(cossacks
 	src/game/mouse_x.cpp
 	src/game/newcode/securedivision.cpp
 	src/game/newcode/os.cpp
+	src/game/newcode/queuemanagement.cpp
 	src/game/mapa.cpp
 	src/game/select.cpp
 	src/game/dialogs.cpp

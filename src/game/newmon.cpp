@@ -4449,6 +4449,8 @@ extern byte rfog[8192];
 extern byte darkfog[40960];
 extern byte yfog[8192];
 extern byte trans8[65536];
+extern byte* AVBlendTable( int FullParam1 );   // zbuffer.cpp - AV table rebuild
+
 void AddToVisual( short uy, short x, short y, OneObject* OB, word FileID, word Sprite, int Options )
 {
 	int CType = Options & 0x0F;
@@ -4461,13 +4463,13 @@ void AddToVisual( short uy, short x, short y, OneObject* OB, word FileID, word S
 		switch ( CProp )
 		{
 		case AV_RED:
-			Param2 = int( yfog );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_WHITE:
-			Param2 = int( wfog );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_DARK:
-			Param2 = int( fog + 1024 );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		default:
 			Param1 = 0;
@@ -4479,13 +4481,13 @@ void AddToVisual( short uy, short x, short y, OneObject* OB, word FileID, word S
 		switch ( CProp )
 		{
 		case AV_RED:
-			Param2 = int( yfog + 2048 );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_WHITE:
-			Param2 = int( wfog + 2048 );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_DARK:
-			Param2 = int( fog + 1024 + 2048 );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		default:
 			Param1 = 0;
@@ -4495,13 +4497,13 @@ void AddToVisual( short uy, short x, short y, OneObject* OB, word FileID, word S
 		switch ( CProp )
 		{
 		case AV_RED:
-			Param2 = int( yfog );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_WHITE:
-			Param2 = int( wfog );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_DARK:
-			Param2 = int( fog + 1024 );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		default:
 			Param1 = 0;
@@ -4612,18 +4614,20 @@ void ShowVisualLess( int yend )
 				break;
 			case AV_PULSING:
 			{
+				//table ptr rebuilt from Param1's type/color bits
+				//(Param2 used to hold an int()-truncated pointer)
 				int NNN = 5 + int( 8 * ( sin( double( GetSDLTickCount() ) / 100 ) + 2 ) );
-				GPS.ShowGPPal( smapx + UnitX[fu], smapy + UnitY[fu], FID, spr, nat, (byte*) par2 + ( NNN << 8 ) );
+				GPS.ShowGPPal( smapx + UnitX[fu], smapy + UnitY[fu], FID, spr, nat, AVBlendTable( UParam1[fu] ) + ( NNN << 8 ) );
 			};
 			break;
 			case AV_TRANSPARENT:
 				GPS.ShowGPTransparent( smapx + UnitX[fu], smapy + UnitY[fu], FID, spr, nat );
 				break;
 			case AV_PALETTE:
-				GPS.ShowGPPal( smapx + UnitX[fu], smapy + UnitY[fu], FID, spr, nat, (byte*) par2 );
+				GPS.ShowGPPal( smapx + UnitX[fu], smapy + UnitY[fu], FID, spr, nat, AVBlendTable( UParam1[fu] ) );
 				break;
 			case AV_GRADIENT:
-				GPS.ShowGPGrad( smapx + UnitX[fu], smapy + UnitY[fu], FID, spr, nat, (byte*) par2 );
+				GPS.ShowGPGrad( smapx + UnitX[fu], smapy + UnitY[fu], FID, spr, nat, AVBlendTable( UParam1[fu] ) );
 				break;
 			};
 			fu = NURef[fu];

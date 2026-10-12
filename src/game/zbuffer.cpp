@@ -219,6 +219,40 @@ extern byte darkfog[40960];
 extern byte yfog[8192];
 extern byte trans8[65536];
 
+// AV_PULSING / AV_PALETTE / AV_GRADIENT elements used to carry the blend
+// table POINTER in Param2 - on 64-bit the original `Param2 = int(table)`
+// truncates it (crash in GP_ShowMaskedPalPict via the wfog Encoder). The
+// table is fully determined by the type + color-prop bits kept in Param1
+// (CType = bits 0..3, CProp = bits 4..7), so the draw side rebuilds it here.
+byte* AVBlendTable( int FullParam1 )
+{
+	switch (FullParam1 & 0xF)
+	{
+	case AV_PULSING:
+		switch (FullParam1 & 0xF0)
+		{
+		case AV_RED:   return yfog;
+		case AV_WHITE: return wfog;
+		default:       return fog + 1024;   // AV_DARK
+		}
+	case AV_PALETTE:
+		switch (FullParam1 & 0xF0)
+		{
+		case AV_RED:   return yfog + 2048;
+		case AV_WHITE: return wfog + 2048;
+		default:       return fog + 1024 + 2048;
+		}
+	case AV_GRADIENT:
+		switch (FullParam1 & 0xF0)
+		{
+		case AV_RED:   return yfog;
+		case AV_WHITE: return wfog;
+		default:       return fog + 1024;
+		}
+	}
+	return nullptr;
+}
+
 void AddOptPoint( byte Method, short XL, short YL, short x, short y, OneObject* OB, word FileID, word Sprite, int Options )
 {
 	int CType = Options & 0x0F;
@@ -231,13 +265,13 @@ void AddOptPoint( byte Method, short XL, short YL, short x, short y, OneObject* 
 		switch (CProp)
 		{
 		case AV_RED:
-			Param2 = int( yfog );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_WHITE:
-			Param2 = int( wfog );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_DARK:
-			Param2 = int( fog + 1024 );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		default:
 			Param1 = 0;
@@ -249,13 +283,13 @@ void AddOptPoint( byte Method, short XL, short YL, short x, short y, OneObject* 
 		switch (CProp)
 		{
 		case AV_RED:
-			Param2 = int( yfog + 2048 );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_WHITE:
-			Param2 = int( wfog + 2048 );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_DARK:
-			Param2 = int( fog + 1024 + 2048 );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		default:
 			Param1 = 0;
@@ -265,13 +299,13 @@ void AddOptPoint( byte Method, short XL, short YL, short x, short y, OneObject* 
 		switch (CProp)
 		{
 		case AV_RED:
-			Param2 = int( yfog );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_WHITE:
-			Param2 = int( wfog );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_DARK:
-			Param2 = int( fog + 1024 );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		default:
 			Param1 = 0;
@@ -305,13 +339,13 @@ void AddOptLine( short X1, short Y1, short X2, short Y2, short x, short y, OneOb
 		switch (CProp)
 		{
 		case AV_RED:
-			Param2 = int( yfog );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_WHITE:
-			Param2 = int( wfog );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_DARK:
-			Param2 = int( fog + 1024 );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		default:
 			Param1 = 0;
@@ -323,13 +357,13 @@ void AddOptLine( short X1, short Y1, short X2, short Y2, short x, short y, OneOb
 		switch (CProp)
 		{
 		case AV_RED:
-			Param2 = int( yfog + 2048 );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_WHITE:
-			Param2 = int( wfog + 2048 );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_DARK:
-			Param2 = int( fog + 1024 + 2048 );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		default:
 			Param1 = 0;
@@ -339,13 +373,13 @@ void AddOptLine( short X1, short Y1, short X2, short Y2, short x, short y, OneOb
 		switch (CProp)
 		{
 		case AV_RED:
-			Param2 = int( yfog );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_WHITE:
-			Param2 = int( wfog );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		case AV_DARK:
-			Param2 = int( fog + 1024 );
+			//table ptr rebuilt at draw time (AVBlendTable)
 			break;
 		default:
 			Param1 = 0;
@@ -648,8 +682,10 @@ void ShowZElement( ZElement* ZEL )
 
 	case AV_PULSING:
 	{
+		//Param2 used to hold the (truncated) table pointer - rebuilt from
+		//Param1's type/color bits instead (see AVBlendTable)
 		int NNN = 5 + int( 8 * ( sin( double( GetSDLTickCount() ) / 100 ) + 2 ) );
-		GPS.ShowGPPalLayers( smapx + ZEL->x, smapy + ZEL->y, ZEL->FileID, ZEL->SpriteID, nat, (byte*) par2 + ( NNN << 8 ), mask );
+		GPS.ShowGPPalLayers( smapx + ZEL->x, smapy + ZEL->y, ZEL->FileID, ZEL->SpriteID, nat, AVBlendTable( ZEL->Param1 ) + ( NNN << 8 ), mask );
 	}
 	break;
 
@@ -658,11 +694,11 @@ void ShowZElement( ZElement* ZEL )
 		break;
 
 	case AV_PALETTE:
-		GPS.ShowGPPalLayers( smapx + ZEL->x, smapy + ZEL->y, ZEL->FileID, ZEL->SpriteID, nat, (byte*) par2, mask );
+		GPS.ShowGPPalLayers( smapx + ZEL->x, smapy + ZEL->y, ZEL->FileID, ZEL->SpriteID, nat, AVBlendTable( ZEL->Param1 ), mask );
 		break;
 
 	case AV_GRADIENT:
-		GPS.ShowGPGrad( smapx + ZEL->x, smapy + ZEL->y, ZEL->FileID, ZEL->SpriteID, nat, (byte*) par2 );
+		GPS.ShowGPGrad( smapx + ZEL->x, smapy + ZEL->y, ZEL->FileID, ZEL->SpriteID, nat, AVBlendTable( ZEL->Param1 ) );
 		break;
 	}
 
