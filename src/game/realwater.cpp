@@ -74,6 +74,7 @@ void ExtrapolateCell(int x, int y)
 	int src = (xxx << 4) + ((yyy << 9));
 	int dst = (8 + (x << 3) + ((y << 3) + 8)*WaveLx) << 1;
 	int DWx = WaveLx - 16;
+#ifdef _WIN32
 	int SW0 = int(ScWave0);
 	int W0 = int(Wave0);
 	int SW1 = int(ScWave1);
@@ -146,6 +147,25 @@ void ExtrapolateCell(int x, int y)
 			pop		esi
 
 	};
+#else
+	//Linux translation. NOTE (upstream quirk, preserved as-is): the asm
+	//computes 'dst' but adds it to the SOURCE register (esi) - the destination
+	//stays the plain array base - and the destination stride is 512 bytes,
+	//not WaveLx*2. Copy exactly that.
+	{
+		short* scw[3] = { ScWave0, ScWave1, ScWave2 };
+		short* wav[3] = { Wave0, Wave1, Wave2 };
+		for (int k = 0; k < 3; k++) {
+			byte* sp = (byte*)scw[k] + src + dst;
+			byte* dp = (byte*)wav[k];
+			for (int i = 0; i < 8; i++) {
+				memcpy(dp, sp, 16);
+				sp += WaveLx * 2;
+				dp += 512;
+			}
+		}
+	}
+#endif
 	//for(int i=0;i<8;i++){
 		/*
 		memcpy(Wave0+dst,Wave0+src,16);
@@ -305,6 +325,7 @@ void ProcessWaves1(short* wave0, short* wave1, short* wave2, int xx, int yy, int
 	int DWave = (WaveLx - Lx) << 1;
 	int cyc = Ly;
 	int cyc1;
+#ifdef _WIN32
 	__asm {
 		push	esi
 		push	edi
@@ -340,10 +361,41 @@ void ProcessWaves1(short* wave0, short* wave1, short* wave2, int xx, int yy, int
 					  pop		edi
 					  pop		esi
 	};
+#else
+	//Linux translation: 2D wave propagation with the original 16-bit
+	//wraparound semantics (every add truncates to short like the ax register):
+	//   new = (short)(((sum4 - 2*cur) >> 3) + cur - prev), then
+	//   result -= (result >> 16)   [16-bit sar: 0 for >=0, -1 for <0]
+	{
+		byte* w0b = (byte*)wave0;
+		byte* w1b = (byte*)wave1;
+		byte* w2b = (byte*)wave2;
+		int ofs = StWave;
+		for (int y = 0; y < Ly; y++) {
+			for (int i = 0; i < Lx; i++) {
+				int ax = (short)(*(short*)(w1b + ofs + 2) + *(short*)(w1b + ofs - 2));
+				ax = (short)(ax + *(short*)(w1b + ofs - WaveLx * 2));
+				ax = (short)(ax + *(short*)(w1b + ofs + WaveLx * 2));
+				int cx = *(short*)(w1b + ofs);
+				ax = (short)(ax - (short)(cx << 1));
+				ax = (short)(ax - (short)(cx << 1));
+				ax = (short)((short)ax >> 3);
+				ax = (short)(ax + cx);
+				ax = (short)(ax - *(short*)(w0b + ofs));
+				ax = (short)(ax - ((short)ax >> 16));
+				*(short*)(w2b + ofs) = (short)ax;
+				ofs += 2;
+			}
+			ofs += DWave;
+		}
+	}
+#endif
 };
 void ProcessWaves(short* wave0, short* wave1, short* wave2, int xx, int yy, int Lx, int Ly) {
 	ProcessWaves1(wave0, wave1, wave2, xx, yy, Lx, Ly);
 	return;
+#ifdef _WIN32
+	//dead code below (unreachable, kept from the original source)
 	int StWave = (xx + yy*WaveLx) << 1;
 	int DWave = (WaveLx - Lx) << 1;
 	int cyc = Ly;
@@ -379,6 +431,7 @@ void ProcessWaves(short* wave0, short* wave1, short* wave2, int xx, int yy, int 
 					  pop		edi
 					  pop		esi
 	};
+#endif // _WIN32 dead code
 };
 
 void ProcessWaveFrame(short* Wave, int x, int y, int x1, int y1) {
@@ -674,6 +727,7 @@ void DrawCost(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Msh
 	if (z1 > 143 && z2 > 143 && z3 > 143 && z4 > 143) {
 		//simple copy
 		int ofst = int(ScreenPtr) + x + y*ScrWidth;
+#ifdef _WIN32
 		__asm {
 			push	esi
 			push	edi
@@ -710,6 +764,27 @@ void DrawCost(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Msh
 						  pop		edi
 						  pop		esi
 		};
+#else
+		//Linux translation: one wave sample -> 4 screen pixels; the same
+		//dword is also written one row down at +2 (isometric staircase).
+		//8 wave rows, each on an even screen row.
+		{
+			byte* dst = (byte*)ScreenPtr + x + y*ScrWidth;
+			byte* wv = (byte*)Wave;
+			for (int row = 0; row < 8; row++) {
+				for (int i = 0; i < 8; i++) {
+					int dx = (short)(*(short*)(wv + WaveLx * 2) - *(short*)(wv - WaveLx * 2));
+					uint32_t c = (uint32_t)Colors4[(dx >> ashift) + ASHI];
+					*(uint32_t*)dst = c;
+					*(uint32_t*)(dst + ScrWidth + 2) = c;
+					dst += 4;
+					wv += 2;
+				}
+				dst += 2 * ScrWidth - 32;
+				wv += (WaveLx * 2) - 16;
+			}
+		}
+#endif
 	}
 	else {
 		;
@@ -725,6 +800,7 @@ void DrawCost(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Msh
 		int d = (z1 + z4 - z2 - z3) >> 8;
 		int cyc2 = 8;
 		int cyc1;
+#ifdef _WIN32
 		__asm {
 			//curved clipping
 			push	esi
@@ -852,6 +928,54 @@ void DrawCost(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Msh
 																																				pop		edi
 																																				pop		esi
 		}
+#else
+		//Linux translation of the "curved clipping" shore renderer:
+		//per pixel, z = a + b*x interpolated across the cell (a/b drift
+		//per row by c/d); pixels with z below 0x800000 stay untouched,
+		//z >= 0x900000 becomes solid water, in between blends through
+		//WaterCost[(zband<<4 | colorNibble) | (dstPixel<<8)]. Pixels 1
+		//and 3 of each 4-pack test against +0x10000 (checkerboard dither
+		//of the shore line). Every written pixel is duplicated one row
+		//down at +2 (isometric smear).
+		{
+			byte* dst = (byte*)ScreenPtr + x + y*ScrWidth;
+			byte* wv = (byte*)Wave;
+			for (int row = 0; row < 8; row++) {
+				for (int i = 0; i < 8; i++) {
+					int dx = (short)(*(short*)(wv + WaveLx * 2) - *(short*)(wv - WaveLx * 2));
+					uint32_t c4 = (uint32_t)Colors4[(dx >> ashift) + ASHI];
+					byte cl = (byte)(((c4 & 0xFF) - 0xB0) & 0xF);
+					byte ch = (byte)(c4 >> 8);
+					int ebx = a;
+					for (int k = 0; k < 4; k++) {
+						if (ebx < 0x00800000) {
+							 dst++;
+						} else if (ebx >= 0x00900000) {
+							 dst[0] = ch;
+							 dst[ScrWidth + 2] = ch;
+							 dst++;
+						} else {
+							 int band = (ebx - 0x00800000) >> 12;
+							 int idx = ((band & 0xF0) | cl) | (dst[0] << 8);
+							 byte v = WaterCost[idx];
+							 dst[0] = v;
+							 dst[ScrWidth + 2] = v;
+							 dst++;
+						}
+						ebx += b;
+						ebx += (k & 1) ? -0x10000 : 0x10000;
+					}
+					a = ebx;
+					wv += 2;
+				}
+				dst += 2 * ScrWidth - 32;
+				wv += (WaveLx * 2) - 16;
+				a0 += c;
+				a = a0;
+				b += d;
+			}
+		}
+#endif
 	}
 }
 
@@ -870,6 +994,7 @@ void DrawCost2(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 	{
 		//simple copy
 		int ofst = int(ScreenPtr) + x + y*ScrWidth;
+#ifdef _WIN32
 		__asm {
 			push	esi
 			push	edi
@@ -947,6 +1072,46 @@ void DrawCost2(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 																		 pop		edi
 																		 pop		esi
 		}
+#else
+		//Linux translation: row pairs alternate shades - the first pair
+		//of every 4-row band is shade ASHI full-width, the second pair is
+		//half ASHI (cols 0..15) + half ASHI1 (cols 16..31). One wave sample
+		//-> 4 screen pixels, duplicated one row down at +2.
+		{
+			byte* dst = (byte*)ScreenPtr + x + y*ScrWidth;
+			byte* wv = (byte*)Wave;
+			for (int band = 0; band < 4; band++) {
+				for (int i = 0; i < 8; i++) {
+					int dx = (short)(*(short*)(wv + WaveLx * 2) - *(short*)(wv - WaveLx * 2));
+					uint32_t c = (uint32_t)Colors4[(dx >> ashift) + ASHI];
+					*(uint32_t*)dst = c;
+					*(uint32_t*)(dst + ScrWidth + 2) = c;
+					dst += 4;
+					wv += 2;
+				}
+				dst += 2 * ScrWidth - 32;
+				wv += (WaveLx * 2) - 16;
+				for (int i = 0; i < 4; i++) {
+					int dx = (short)(*(short*)(wv + WaveLx * 2) - *(short*)(wv - WaveLx * 2));
+					uint32_t c = (uint32_t)Colors4[(dx >> ashift) + ASHI];
+					*(uint32_t*)dst = c;
+					*(uint32_t*)(dst + ScrWidth + 2) = c;
+					dst += 4;
+					wv += 2;
+				}
+				for (int i = 0; i < 4; i++) {
+					int dx = (short)(*(short*)(wv + WaveLx * 2) - *(short*)(wv - WaveLx * 2));
+					uint32_t c = (uint32_t)Colors4[(dx >> ashift) + ASHI1];
+					*(uint32_t*)dst = c;
+					*(uint32_t*)(dst + ScrWidth + 2) = c;
+					dst += 4;
+					wv += 2;
+				}
+				dst += 2 * ScrWidth - 32;
+				wv += (WaveLx * 2) - 16;
+			}
+		}
+#endif
 	}
 	else 
 	{
@@ -962,6 +1127,7 @@ void DrawCost2(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 		int d = (z1 + z4 - z2 - z3) >> 8;
 		int cyc2 = 8;
 		int cyc1;
+#ifdef _WIN32
 		__asm 
 		{
 			//curved clipping
@@ -1090,6 +1256,50 @@ void DrawCost2(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 																																				pop		edi
 																																				pop		esi
 		}
+#else
+		//Linux translation of the shore renderer with two shades: like the
+		//DrawCost shore path (per-pixel z test with checkerboard dither of
+		//the shore line, WaterCost blend, +2 smear one row down), reading
+		//the wave color from ASHI.
+		{
+			byte* dst = (byte*)ScreenPtr + x + y*ScrWidth;
+			byte* wv = (byte*)Wave;
+			for (int row = 0; row < 8; row++) {
+				for (int i = 0; i < 8; i++) {
+					int dx = (short)(*(short*)(wv + WaveLx * 2) - *(short*)(wv - WaveLx * 2));
+					uint32_t c4 = (uint32_t)Colors4[(dx >> ashift) + ASHI];
+					byte cl = (byte)(((c4 & 0xFF) - 0xB0) & 0xF);
+					byte ch = (byte)(c4 >> 8);
+					int ebx = a;
+					for (int k = 0; k < 4; k++) {
+						if (ebx < 0x00800000) {
+							dst++;
+						} else if (ebx >= 0x00900000) {
+							dst[0] = ch;
+							dst[ScrWidth + 2] = ch;
+							dst++;
+						} else {
+							int band = (ebx - 0x00800000) >> 12;
+							int idx = ((band & 0xF0) | cl) | (CostCL << 8);
+							byte v = WaterCost[idx];
+							dst[0] = v;
+							dst[ScrWidth + 2] = v;
+							dst++;
+						}
+						ebx += b;
+						ebx += (k & 1) ? -0x10000 : 0x10000;
+					}
+					a = ebx;
+					wv += 2;
+				}
+				dst += 2 * ScrWidth - 32;
+				wv += (WaveLx * 2) - 16;
+				a0 += c;
+				a = a0;
+				b += d;
+			}
+		}
+#endif
 	}
 }
 
@@ -1106,6 +1316,7 @@ void DrawCost1(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 	{
 		//simple copy
 		int ofst = int(ScreenPtr) + x + y*ScrWidth;
+#ifdef _WIN32
 		__asm 
 		{
 			push	esi
@@ -1178,6 +1389,46 @@ void DrawCost1(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 																		 pop		edi
 																		 pop		esi
 		}
+#else
+		//Linux translation: row pairs alternate shades - the first pair
+		//of every 4-row band is shade ASHI full-width, the second pair is
+		//half ASHI (cols 0..15) + half ASHI1 (cols 16..31). One wave sample
+		//-> 4 screen pixels, duplicated one row down at +2.
+		{
+			byte* dst = (byte*)ScreenPtr + x + y*ScrWidth;
+			byte* wv = (byte*)Wave;
+			for (int band = 0; band < 4; band++) {
+				for (int i = 0; i < 8; i++) {
+					int dx = (short)(*(short*)(wv + WaveLx * 2) - *(short*)(wv - WaveLx * 2));
+					uint32_t c = (uint32_t)Colors4[(dx >> ashift) + ASHI];
+					*(uint32_t*)dst = c;
+					*(uint32_t*)(dst + ScrWidth + 2) = c;
+					dst += 4;
+					wv += 2;
+				}
+				dst += 2 * ScrWidth - 32;
+				wv += (WaveLx * 2) - 16;
+				for (int i = 0; i < 4; i++) {
+					int dx = (short)(*(short*)(wv + WaveLx * 2) - *(short*)(wv - WaveLx * 2));
+					uint32_t c = (uint32_t)Colors4[(dx >> ashift) + ASHI];
+					*(uint32_t*)dst = c;
+					*(uint32_t*)(dst + ScrWidth + 2) = c;
+					dst += 4;
+					wv += 2;
+				}
+				for (int i = 0; i < 4; i++) {
+					int dx = (short)(*(short*)(wv + WaveLx * 2) - *(short*)(wv - WaveLx * 2));
+					uint32_t c = (uint32_t)Colors4[(dx >> ashift) + ASHI1];
+					*(uint32_t*)dst = c;
+					*(uint32_t*)(dst + ScrWidth + 2) = c;
+					dst += 4;
+					wv += 2;
+				}
+				dst += 2 * ScrWidth - 32;
+				wv += (WaveLx * 2) - 16;
+			}
+		}
+#endif
 	}
 	else 
 	{
@@ -1193,6 +1444,7 @@ void DrawCost1(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 		int d = (z1 + z4 - z2 - z3) >> 8;
 		int cyc2 = 8;
 		int cyc1;
+#ifdef _WIN32
 		__asm 
 		{
 			//curved clipping
@@ -1321,6 +1573,50 @@ void DrawCost1(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 																																				pop		edi
 																																				pop		esi
 		}
+#else
+		//Linux translation of the shore renderer with two shades: like the
+		//DrawCost shore path (per-pixel z test with checkerboard dither of
+		//the shore line, WaterCost blend, +2 smear one row down), reading
+		//the wave color from ASHI.
+		{
+			byte* dst = (byte*)ScreenPtr + x + y*ScrWidth;
+			byte* wv = (byte*)Wave;
+			for (int row = 0; row < 8; row++) {
+				for (int i = 0; i < 8; i++) {
+					int dx = (short)(*(short*)(wv + WaveLx * 2) - *(short*)(wv - WaveLx * 2));
+					uint32_t c4 = (uint32_t)Colors4[(dx >> ashift) + ASHI];
+					byte cl = (byte)(((c4 & 0xFF) - 0xB0) & 0xF);
+					byte ch = (byte)(c4 >> 8);
+					int ebx = a;
+					for (int k = 0; k < 4; k++) {
+						if (ebx < 0x00800000) {
+							dst++;
+						} else if (ebx >= 0x00900000) {
+							dst[0] = ch;
+							dst[ScrWidth + 2] = ch;
+							dst++;
+						} else {
+							int band = (ebx - 0x00800000) >> 12;
+							int idx = ((band & 0xF0) | cl) | (dst[0] << 8);
+							byte v = WaterCost[idx];
+							dst[0] = v;
+							dst[ScrWidth + 2] = v;
+							dst++;
+						}
+						ebx += b;
+						ebx += (k & 1) ? -0x10000 : 0x10000;
+					}
+					a = ebx;
+					wv += 2;
+				}
+				dst += 2 * ScrWidth - 32;
+				wv += (WaveLx * 2) - 16;
+				a0 += c;
+				a = a0;
+				b += d;
+			}
+		}
+#endif
 	}
 }
 
@@ -1431,6 +1727,7 @@ void CopyWaves(short* wave, int SrcOfs, int DstOfs, int Lx, int Ly)
 		//direct copy
 		int addo = (WaveLx - Lx) << 1;
 		int Lx1 = Lx >> 1;
+#ifdef _WIN32
 		__asm 
 		{
 			push	esi
@@ -1452,13 +1749,28 @@ void CopyWaves(short* wave, int SrcOfs, int DstOfs, int Lx, int Ly)
 				   pop		edi
 				   pop		esi
 		}
+#else
+		//Linux translation: per-row memmove. The asm picks copy direction by
+		//SrcOfs vs DstOfs so overlapping ranges copy without corruption -
+		//memmove per row gives identical results in both directions.
+		{
+			byte* sb = (byte*)wave + SrcOfs;
+			byte* db = (byte*)wave + DstOfs;
+			for (int y = 0; y < Ly; y++) {
+				memmove(db, sb, Lx1 << 2);
+				sb += (Lx1 << 2) + addo;
+				db += (Lx1 << 2) + addo;
+			}
+		}
+#endif
 	}
-	else 
+	else
 	{
 		//inverse copy
 		int addo = (WaveLx - Lx) << 1;
 		int add1 = (Lx + Ly*WaveLx - 1) << 1;
 		int Lx1 = Lx >> 1;
+#ifdef _WIN32
 		__asm 
 		{
 			push	esi
@@ -1482,6 +1794,20 @@ void CopyWaves(short* wave, int SrcOfs, int DstOfs, int Lx, int Ly)
 				   pop		edi
 				   pop		esi
 		}
+
+#else
+		//Linux translation: rows copied in DESCENDING order (the asm runs
+		//rep movsd with std from the end of the block) so that overlapping
+		//source/destination ranges do not corrupt not-yet-copied rows.
+		{
+			byte* sb = (byte*)wave + SrcOfs;
+			byte* db = (byte*)wave + DstOfs;
+			int R = (Lx1 << 2) + addo;   // one wave row in bytes
+			for (int y = Ly - 1; y >= 0; y--) {
+				memmove(db + y*R, sb + y*R, Lx1 << 2);
+			}
+		}
+#endif
 	}
 }
 
@@ -1695,6 +2021,7 @@ void FastProcess1(short* Wave0, short* Wave1, short* Wave2)
 {
 	int cyc = WaveLy - 2;
 	int	cyc1;
+#ifdef _WIN32
 	__asm 
 	{
 		push	esi
@@ -1727,12 +2054,39 @@ void FastProcess1(short* Wave0, short* Wave1, short* Wave2)
 					   pop		edi
 					   pop		esi
 	}
+#else
+	//Linux translation: full-buffer pass - same 16-bit wave kernel as ProcessWaves1
+	//but damping 6, this start offset and row count.
+	{
+		byte* w0b = (byte*)Wave0;
+		byte* w1b = (byte*)Wave1;
+		byte* w2b = (byte*)Wave2;
+		int ofs = (WaveLx + 1) * 2;
+		for (int y = 0; y < (WaveLy - 2); y++) {
+			for (int i = 0; i < WaveLx - 2; i++) {
+				int ax = (short)(*(short*)(w1b + ofs + 2) + *(short*)(w1b + ofs - 2));
+				ax = (short)(ax + *(short*)(w1b + ofs - WaveLx * 2));
+				ax = (short)(ax + *(short*)(w1b + ofs + WaveLx * 2));
+				int cx = *(short*)(w1b + ofs);
+				ax = (short)(ax - (short)(cx << 1));
+				ax = (short)(ax - (short)(cx << 1));
+				ax = (short)((short)ax >> 6);
+				ax = (short)(ax + cx);
+				ax = (short)(ax - *(short*)(w0b + ofs));
+				*(short*)(w2b + ofs) = (short)ax;
+				ofs += 2;
+			}
+			ofs += 4;
+		}
+	}
+#endif
 }
 
 void FastProcess1_0(short* Wave0, short* Wave1, short* Wave2) 
 {
 	int cyc = (WaveLy - 2) >> 1;
 	int	cyc1;
+#ifdef _WIN32
 	__asm 
 	{
 		push	esi
@@ -1763,12 +2117,39 @@ void FastProcess1_0(short* Wave0, short* Wave1, short* Wave2)
 					   pop		edi
 					   pop		esi
 	}
+#else
+	//Linux translation: first half of the doubled buffer - same 16-bit wave kernel as ProcessWaves1
+	//but damping 4, this start offset and row count.
+	{
+		byte* w0b = (byte*)Wave0;
+		byte* w1b = (byte*)Wave1;
+		byte* w2b = (byte*)Wave2;
+		int ofs = (WaveLx + 1) * 2;
+		for (int y = 0; y < ((WaveLy - 2) >> 1); y++) {
+			for (int i = 0; i < WaveLx - 2; i++) {
+				int ax = (short)(*(short*)(w1b + ofs + 2) + *(short*)(w1b + ofs - 2));
+				ax = (short)(ax + *(short*)(w1b + ofs - WaveLx * 2));
+				ax = (short)(ax + *(short*)(w1b + ofs + WaveLx * 2));
+				int cx = *(short*)(w1b + ofs);
+				ax = (short)(ax - (short)(cx << 1));
+				ax = (short)(ax - (short)(cx << 1));
+				ax = (short)((short)ax >> 4);
+				ax = (short)(ax + cx);
+				ax = (short)(ax - *(short*)(w0b + ofs));
+				*(short*)(w2b + ofs) = (short)ax;
+				ofs += 2;
+			}
+			ofs += 4;
+		}
+	}
+#endif
 }
 
 void FastProcess1_1(short* Wave0, short* Wave1, short* Wave2) 
 {
 	int cyc = (WaveLy - 2) >> 1;
 	int	cyc1;
+#ifdef _WIN32
 	__asm 
 	{
 		push	esi
@@ -1799,6 +2180,32 @@ void FastProcess1_1(short* Wave0, short* Wave1, short* Wave2)
 					   pop		edi
 					   pop		esi
 	}
+#else
+	//Linux translation: second half of the doubled buffer (horizontal wrap) - same 16-bit wave kernel as ProcessWaves1
+	//but damping 4, this start offset and row count.
+	{
+		byte* w0b = (byte*)Wave0;
+		byte* w1b = (byte*)Wave1;
+		byte* w2b = (byte*)Wave2;
+		int ofs = WaveLx*WaveLy + 2;
+		for (int y = 0; y < ((WaveLy - 2) >> 1); y++) {
+			for (int i = 0; i < WaveLx - 2; i++) {
+				int ax = (short)(*(short*)(w1b + ofs + 2) + *(short*)(w1b + ofs - 2));
+				ax = (short)(ax + *(short*)(w1b + ofs - WaveLx * 2));
+				ax = (short)(ax + *(short*)(w1b + ofs + WaveLx * 2));
+				int cx = *(short*)(w1b + ofs);
+				ax = (short)(ax - (short)(cx << 1));
+				ax = (short)(ax - (short)(cx << 1));
+				ax = (short)((short)ax >> 4);
+				ax = (short)(ax + cx);
+				ax = (short)(ax - *(short*)(w0b + ofs));
+				*(short*)(w2b + ofs) = (short)ax;
+				ofs += 2;
+			}
+			ofs += 4;
+		}
+	}
+#endif
 }
 
 static int tttx;
@@ -1831,17 +2238,8 @@ void ProcessWaves(short* Wave0, short* Wave1, short* Wave2)
 	tttx = !tttx;
 }
 
-void DisturbWater(short* Wave) 
-{
-	int ofst = int(Wave + ((1 + WaveLx) << 1));
-	__asm {
-		push	esi
-		push	edi
-
-		pop		esi
-		pop		edi
-	};
-}
+// Upstream relic: DisturbWater's original asm body was empty (push/pop only) -
+// it never disturbed anything. Removed entirely (callers: none).
 
 void CorrectLeftWaves();
 
@@ -1926,6 +2324,15 @@ void HandleWater() {
 	DrawAllWater();
 
 	CorrectLeftWaves();
+}
+
+//Per-frame water entry point, called from TestTriangle() (3dgraph.cpp)
+//after SVSC.Execute() has copied the terrain to the screen.
+void TestGP();
+
+void TestGP()
+{
+	HandleWater();
 }
 
 //EDITOR FUNCTIONS

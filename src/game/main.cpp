@@ -492,10 +492,9 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	//Read players.txt, load dialog resources
 	SFLB_InitDialogs();
 
-#ifdef _WIN32
-	//Water colors and buffers
+	//Water colors and buffers (realwater.cpp ported)
+	extern void InitWater();
 	InitWater();
-#endif // _WIN32 (realwater.cpp not ported)
 
 #ifndef _WIN32
 	SFLB_InitDialogs();

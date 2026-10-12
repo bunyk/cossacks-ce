@@ -58,6 +58,7 @@ add_executable(cossacks
 	src/game/multi.cpp
 	src/game/unsyncro.cpp
 	src/game/recorder.cpp
+	src/game/realwater.cpp
 	src/game/river.cpp
 	src/game/savenewmap.cpp
 	src/game/gvclass.cpp

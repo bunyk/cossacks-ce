@@ -71,9 +71,7 @@ DWORD RealTime = 0;
 char RECFILE[128];
 bool ChangeNation = false;
 
-static byte WaterStorage[1 << 20];
-byte* WaterBright = WaterStorage;
-byte* WaterDeep = WaterStorage;
+// WaterDeep / WaterBright are now real (realwater.cpp, allocated in loadsave.cpp)
 
 // network / internet objects (mplayer.cpp, ir_main.cpp are not ported)
 PingSumm PSUMM;
@@ -107,18 +105,12 @@ void SetupFog() {}
 void ProcessFog1() {}
 void TurnFogOff() {}
 void CreateFogImage() {}
-void SpotByUnit( int x, int y, int r, byte dir ) { (void)x; (void)y; (void)r; (void)dir; }
-void SetupSpot() {}
 
 //-------------- virtscr.cpp --------------
 
 //-------------- water / rivers (realwater.cpp, river.cpp asm) --------------
-void SetWaterSpot( int x, int y, int r ) { (void)x; (void)y; (void)r; }
-void EraseWaterSpot( int x, int y, int r ) { (void)x; (void)y; (void)r; }
-void CreateWaterLocking( int x, int y, int x1, int y1 ) { (void)x; (void)y; (void)x1; (void)y1; }
 void InitBlobs() {}
 void TestBlob() {}
-void SetBrightSpot( int x, int y, int Brightness, bool dir ) { (void)x; (void)y; (void)Brightness; (void)dir; }
 
 //-------------- interface.cpp guarded regions --------------
 bool AskMissionQuestion( char* Bmp, char* Text ) { (void)Bmp; (void)Text; return false; }
@@ -150,7 +142,6 @@ void SetBrokenState() {}
 void ShowChat() {}
 int  ShowHistryItem( char* Bmp, char* Text ) { (void)Bmp; (void)Text; return 0; }
 void ShowCentralMessage4( char* Message, int GPIDX, int DX ) { (void)Message; (void)GPIDX; (void)DX; }
-void TestGP() {}
 void UnitLight( OneObject* OB ) { (void)OB; }
 void UpdateCurGame() {}
 

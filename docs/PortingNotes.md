@@ -49,8 +49,8 @@ State and findings as of 2026-10-09. Companion to `docs/Ubuntu.md` (build instru
 - Added to CMakeLists (were never built): `cdirsnd.cpp`, `cwave.cpp`, `unsyncro.cpp` (RandNew!),
   `recorder.cpp`, `river.cpp`, `savenewmap.cpp`, `gvclass.cpp`, `report.cpp`, `linux_stubs.cpp`,
   `masks.cpp` (2026-10-11, asm ported - see "Terrain texture masks" below)
-- Still NOT in build / not ported: `path.cpp` (heavy asm), `realwater.cpp` (15 asm),
-  `shiptrace.cpp` (4 asm), `fastdraw.cpp` (12 guards, 33 asm, partially done),
+- Still NOT in build / not ported: `shiptrace.cpp` (4 asm),
+  `fastdraw.cpp` (12 guards, 33 asm, partially done),
   `fog.cpp` (asm regions), `interface.cpp` (~82 scattered guards,
   partially enabled), `mplayer.cpp` (defines MyDPID - conflicts with interface.cpp), `ir_main.cpp`,
   `bmptool.cpp` (pure Win GDI/DIB - left guarded on purpose).
@@ -123,6 +123,53 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
   Verified offline: dump0/2/3/5/7 matched the buggy model 1.00 and the
   asm-faithful model 0.10; _1-path dumps 1/4/6 were already correct (0.67 =
   base + overlay region).
+- - **Water: realwater.cpp fully ported (2026-10-12)**: the animated sea was
+  entirely absent (TestGP stub -> no HandleWater; WaterDeep/WaterBright pointed
+  at a 1MB zero buffer). Ported all 13 asm routines behind #ifdef _WIN32 with
+  C++ translations:
+  - `ProcessWaves1` + `FastProcess1/_0/_1`: 16-bit wave equation
+    `new = (short)(((sum4 - 2*cur) >> k) + cur - prev)` - keep EVERY add
+    truncated to (short) like the ax register, and the sign-adjust
+    `result -= (short)result >> 16` (16-bit sar -> 0 or -1).
+  - `ExtrapolateCell`: 8x16-byte block copies. UPSTREAM QUIRK preserved:
+    the asm adds 'dst' to the SOURCE (esi), destination is the plain array
+    base, and the destination row stride is 512 bytes (not WaveLx*2=520).
+  - `DrawCost`, `DrawCost1`, `DrawCost2`: the water cell renderers. Cell =
+    32x16 screen px, 8 wave rows drawn on even rows, each wave sample covers
+    4 px and the same dword is smeared one row down at +2 (isometric
+    staircase). Gradient = Wave[pos+WaveLx]-Wave[pos-WaveLx] (16-bit wrap!),
+    color = Colors4[(grad>>7)+1024+shade]. Shore cells (WaterDeep 128..143):
+    per-pixel bilinear z; z<0x800000 -> leave terrain, z>=0x900000 -> solid
+    water, else WaterCost[((zband&0xF0)|colorNibble) | (pixel<<8)] blend;
+    pixels 1,3 of each 4-pack test against +0x10000 (checkerboard shore
+    dither). DrawCost1 blends with the UNDERLYING pixel, DrawCost2 with the
+    constant CostCL 0x3D; DrawCost1/2 alternate shades ASHI/ASHI1 per row
+    pair (8+4+4 sample split in the solid branch).
+  - `CopyWaves`: per-row memmove; the inverse branch must copy rows in
+    DESCENDING order (asm rep movsd with std) to avoid inter-row corruption.
+  - `DisturbWater`: the asm was EMPTY (push/pop only) - removed entirely
+    (no callers, no effect on Windows either).
+  - VISUAL NOTE: at darker->lighter water shade transitions the engine draws
+    stepped, slightly jagged vertical lines (4-px wave-sample granularity +
+    the Colors4 parity dither columns + the +2 isometric row offset). This
+    is the authentic renderer look, confirmed by an offline simulation of
+    the exact translation logic - NOT a porting bug. The water palette is
+    0xB0..0xBF of the active AGEW_1.PAL: the ROOT/0 palette holds the smooth
+    blue ramp + foam whites there, while the mod's 2\ palette has REDS at
+    those indices (water would render as harsh red noise under palette set 2).
+  Wiring: realwater.cpp added to CMake; InitWater un-guarded (main.cpp);
+  TestGP moved from gp_draw.cpp (was #ifdef _WIN32) next to HandleWater -
+  call chain GFieldShow -> TestTriangle -> SVSC.Execute() + TestGP() ->
+  HandleWater() runs per frame and draws straight into ScreenPtr (after the
+  VS copy, before panels). Removed linux_stubs: TestGP, SetWaterSpot,
+  EraseWaterSpot, CreateWaterLocking, SetBrightSpot, SetupSpot, SpotByUnit,
+  WaterDeep/WaterBright static buffer (real arrays come from SetupArrays in
+  loadsave.cpp, filled by map generation). WaterBright spots now work
+  (unit ripples in newmon.cpp were silently dropped). Minimap water: the
+  fork's base source had water recolored to black/grey (0x00/0x01/0xE7/0xEF)
+  - restored the original blue ramp 0xB3..0xB7 in 3dmaped.cpp CreateMiniMap.
+  NOTE: water colors are hardcoded palette indices 0xB0..0xBF - if the mod's
+  palette repurposes those rows, water will take on whatever colors they hold.
 - **VS->screen copy (fixed 2026-10-11)**: `VirtualScreen::CopyVSPart`/`CopyVSPartMMX` had
   Windows-asm-only bodies - on Linux they compiled as EMPTY no-ops, so the fully rendered
   VS buffer was never copied to the screen (terrain invisible, menu showing through, all
@@ -216,6 +263,24 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
   texture around the mouse cursor (visible while scrolling; the opaque cursor body hides
   its own smear, blended layers don't). gscbrowser can't reproduce this - the mouse
   machinery never runs there.
+- **Selected-building shadows (fixed 2026-10-12)**: the THIRD case-5 dispatcher
+  had the same f3aa479 branch swap - the LINUX port of `ShowGPPalLayers`
+  (gp_draw.cpp ~11152; the selected-buildings path: ShowZElement sees
+  ImSelected+NewBuilding -> par1=7432 -> ShowGPPalLayers(wfog+(N<<8))).
+  mask bit 64 must select GP_ShowMaskedPictShadow (soft), no bit 64 =
+  Overpoint (black column dither) - the Linux port had them swapped, so
+  selecting a building turned its shadow into vertical black lines
+  (unselected buildings draw via ShowGPLayers, which f3aa479 had already
+  fixed - hence "buildings ok, selected buildings broken").
+  LESSON: f3aa479 fixed ShowGPLayers + ShowGPTransparentLayers but missed
+  the SEPARATE Linux port of ShowGPPalLayers - the file has THREE parallel
+  dispatcher families (original WIN32 asm, in-place commented-asm C++
+  replacements, and dedicated `// Linux port of ...` functions after
+  #endif); audit ALL of them for the same bug pattern when one is found.
+  Also fixed 5 latent `lpGPCUR = lpGP + DIFF` layer-advance sites (inside
+  WIN32-only regions): the asm adds RAW BYTES (`mov eax,lpGP; add eax,DIFF`),
+  pointer arithmetic scales by sizeof(GP_Header)=23 - must be
+  `(GP_Header*)((byte*)lpGP + DIFF)` (the Linux ports already did this).
 - **Unit shadows (fixed 2026-10-11)**: in-game sprites draw through the Z-buffer
   (`ShowZElement` -> `ShowGPLayers`), whose Opt-5 case selects by mask bits:
   bit 32 = shadow layer on, bit 64 = SOFT table shadow (GP_ShowMaskedPictShadow,

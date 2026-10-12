@@ -646,31 +646,32 @@ void CreateMiniMap()
 			int ofs = i + j * MaxWX;
 			if (WaterDeep[ofs] > 128)
 			{
-				//IMPORTANT: change water coloring in minimap for better visibility
-				//current = black;// grey;//blue (orignial)
+				//Water coloring on the minimap: restored to the original blue
+				//ramp (0xB4..0xB7); a 0x00/0x01/0xE7/0xEF black/grey variant
+				//was here before and made water invisible
 				int B = WaterBright[ofs];
-				byte c = 0x00;// 0x6A;//0xB3
+				byte c = 0xB3;
 				if (B > (6 * 16 - 8))
 				{//Lighter
-					c = 0x00;// 0x6E;//0xB7
+					c = 0xB7;
 				}
 				else
 				{
 					if (B > (5 * 16 - 8))
 					{
-						c = 0x01;// 0x6D;//0xB6
+						c = 0xB6;
 					}
 					else
 					{
 						if (B > (3 * 16 - 8))
 						{
-							c = 0xE7;// 0x6C;//0xB5
+							c = 0xB5;
 						}
 						else
 						{
 							if (B > (1 * 16 - 8))
 							{//Darker
-								c = 0xEF;// 0x6B;//0xB4
+								c = 0xB4;
 							}
 						}
 					}

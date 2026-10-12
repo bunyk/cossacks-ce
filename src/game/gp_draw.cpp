@@ -10004,7 +10004,7 @@ void GP_System::ShowGPTransparent( int x, int y, int FileIndex, int SprIndex, by
 			mov		lpGPCUR, eax
 		};
 		*/
-		lpGPCUR =  lpGP + DIFF;
+		lpGPCUR = (GP_Header*)( (byte*) lpGP + DIFF );
 		UnpackLen = lpGPCUR->CData >> 14;
 		CDOffs = lpGPCUR->CData & 16383;
 		byte Optx = lpGPCUR->Options;
@@ -10249,7 +10249,7 @@ void GP_System::ShowGPTransparentLayers( int x, int y, int FileIndex, int SprInd
 			mov		lpGPCUR, eax
 		};
 		*/
-		lpGPCUR =  lpGP + DIFF;
+		lpGPCUR = (GP_Header*)( (byte*) lpGP + DIFF );
 
 		UnpackLen = lpGPCUR->CData >> 14;
 		CDOffs = lpGPCUR->CData & 16383;
@@ -10438,7 +10438,7 @@ void GP_System::FreeRefs( int FileIndex )
 				mov		lpGPCUR, eax
 			}
 			*/
-			lpGPCUR = lpGP + DIFF;
+			lpGPCUR = (GP_Header*)( (byte*) lpGP + DIFF );
 
 			UnpackLen = lpGPCUR->CData >> 14;
 			CDOffs = lpGPCUR->CData & 16383;
@@ -10660,7 +10660,7 @@ void GP_System::ShowGPPal(//IMPORTANT: color masking for buildings (only in plac
 			mov		lpGPCUR, eax
 		};
 		*/
-		lpGPCUR =  lpGP + DIFF;
+		lpGPCUR = (GP_Header*)( (byte*) lpGP + DIFF );
 		UnpackLen = lpGPCUR->CData >> 14;
 		CDOffs = lpGPCUR->CData & 16383;
 		byte Optx = lpGPCUR->Options;
@@ -10896,7 +10896,7 @@ void GP_System::ShowGPPalLayers(//IMPORTANT: color masking for buildings (only w
 			add		eax, DIFF
 			mov		lpGPCUR, eax
 		};*/
-		lpGPCUR =  lpGP + DIFF;
+		lpGPCUR = (GP_Header*)( (byte*) lpGP + DIFF );
 		UnpackLen = lpGPCUR->CData >> 14;
 		CDOffs = lpGPCUR->CData & 16383;
 		byte Optx = lpGPCUR->Options;
@@ -11152,15 +11152,18 @@ void GP_System::ShowGPPalLayers( int x, int y, int FileIndex, int SprIndex, byte
 		case 5://Shadow / Overpoint
 			if (mask & 32)
 			{
+				// Windows parity: mask bit 64 = soft table shadow,
+				// no bit 64 = black Overpoint column dither (the
+				// branches here were swapped like the f3aa479 bug)
 				if (mask & 64)
-				{
-					if (inv) GP_ShowMaskedPictOverpointInv( x, y, lpGPCUR, nullptr, fog + 4096 );
-					else GP_ShowMaskedPictOverpoint( x, y, lpGPCUR, nullptr, fog + 4096 );
-				}
-				else
 				{
 					if (inv) GP_ShowMaskedPictShadowInv( x, y, lpGPCUR, nullptr, fog + 4096 );
 					else GP_ShowMaskedPictShadow( x, y, lpGPCUR, nullptr, fog + 4096 );
+				}
+				else
+				{
+					if (inv) GP_ShowMaskedPictOverpointInv( x, y, lpGPCUR, nullptr, fog + 4096 );
+					else GP_ShowMaskedPictOverpoint( x, y, lpGPCUR, nullptr, fog + 4096 );
 				}
 			}
 			break;
@@ -11460,15 +11463,7 @@ void WaterSpot::Draw( int xx, int yy )
 	};
 };
 
-WaterSpot WSPOT;
-
-//Calls HandleWater()
-void TestGP()
-{
-	HandleWater();
-}
-
-#endif // _WIN32 (InitXShift is portable)
+#endif // _WIN32
 // Declarations previously visible only through the guarded region above
 extern int tmtmt;
 extern short TSin[257];
