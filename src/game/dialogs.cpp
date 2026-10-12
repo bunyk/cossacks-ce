@@ -4743,7 +4743,7 @@ void GP_PageControl::AddPage( int x0, int y0, int px1, int py1, int Index )
 }
 //-------------end of PageControl------------//
 
-	//un-guarded 2026-10-12: BorderEx dialog borders (portable C++)
+//BorderEx: dialog frame drawn from GP border tiles (see BorderEx_OnDraw)
 extern int BordGP2;
 void DrawHdrTable( int x0, int y0, int x1, int y1 );
 void DrawScrollDoubleTableF( int x0, int y0, int x1, int y1, int ym );

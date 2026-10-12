@@ -1713,9 +1713,9 @@ void ClearModes()
 }
 
 
-//Declarations for the in-game hotkey block below (globals live in
-//ddex1.cpp/mapa.cpp/interface.cpp; prototypes for guarded-region functions)
-extern byte SpecCmd;   // mapa.cpp (declared at top, re-listed for clarity)
+//Declarations for the in-game hotkey block below; the globals themselves
+//live in ddex1.cpp/mapa.cpp/interface.cpp.
+extern byte SpecCmd;   // special command set by hotkeys, consumed by ProcessKey
 extern bool MiniActive;
 extern bool Recreate;
 extern bool FullMini;
@@ -1736,7 +1736,7 @@ extern bool EnterChatMode;
 extern void SetGameDisplayModeAnyway( int Lx, int Ly );
 extern bool ShowStatistics();
 extern bool CheckFlagsNeed();
-extern bool ChangeNation;   // flag, not a function (bool per existing decl)
+extern bool ChangeNation;   // hotkeys switch this nation flag
 extern void ClearKeyStack();
 extern void ClearMStack();
 
@@ -1805,8 +1805,9 @@ void GameKeyCheck()
 		case SDLK_BACKSPACE:
 			SpecCmd = 112;
 			break;
-		//In-game hotkeys (F1-F12, Pause, letter keys) - portable SDL code,
-		//un-guarded 2026-10-12 (was compiled out: F12 menu / Pause did nothing)
+		//In-game hotkeys. F1-F4 send multiplayer taunts first (CheckFNSend);
+		//when chat is off they fall through to menu/panel actions. F12 opens
+		//the game menu, Pause toggles the sim via the ExBuf pause command.
 		case SDLK_U:
 			if (Inform != 2)
 			{

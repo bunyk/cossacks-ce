@@ -62,7 +62,7 @@ UdpHolePuncher udp_hole_puncher;
 extern const int kChatMessageDisplayTime;
 extern const int kSystemMessageDisplayTime;
 #else // !_WIN32
-// Headers the (un-guarded) single-player game start needs: City (megapolis.h),
+// Extra headers the single-player game start needs: City (megapolis.h),
 // HideFlags (mapsprites.h), GNFO (einfoclass.h)
 #include "icontool.h"   // IconSet (DrawZones' panels)
 extern const int kChatMessageDisplayTime;
@@ -184,7 +184,7 @@ int DecodeOptionsFromNumber( const int number, int *result );
 
 char CurrentMap[64];
 #endif _WIN32
-// Moved out of the guard: used by the un-guarded in-game menu/rendering code
+// In-game screen globals shared with the menu system
 bool ContinueGame;
 int nsmaplx;
 int nsmaply;
@@ -658,7 +658,6 @@ DLLEXPORT int ItemChoose;
 
 DLLEXPORT bool MMItemChoose( SimpleDialog* SD )
 {
-	printf("DBG MMItemChoose: item=%d\n", SD->UserParam);
 	ItemChoose = SD->UserParam;
 	Lpressed = false;
 	return true;
@@ -6092,8 +6091,8 @@ extern int RunMethod;
 #endif // _WIN32
 
 #ifndef _WIN32
-// Single-player game start: declarations for pieces that live in
-// not-yet-ported files (mplayer.cpp) or that were un-guarded below.
+// Single-player game start: declarations for pieces implemented in
+// not-yet-ported files (mplayer.cpp) or defined further below in this file.
 void CreateNationalMaskForRandomMap( char* Name );
 void CreateMaskForSaveFile( char* Name );
 void CreateNationalMaskForMap( char* Name );
@@ -6193,9 +6192,9 @@ void PopScreen( byte* Ptr )
 	free( Ptr );
 }
 
-//Declarations for the un-guarded dialog regions below (their original
-//declaration blocks are still in _WIN32 regions higher up in this file)
-extern int WarSound;        // defined in a guarded block at the top
+//Declarations for the save/load/options dialogs below (their originals sit
+//in Windows-only declaration blocks higher up in this file)
+extern int WarSound;
 extern int MidiSound;
 extern int ModeLX[32];      // ddex1.cpp video mode table
 extern int ModeLY[32];
@@ -6206,7 +6205,6 @@ void UnPress();
 void processMultiplayer();
 #include "recorder.h"       // RecordGame RGAME
 
-	//un-guarded 2026-10-12: PlayMode/RECFILE defs + CD prototypes (CD calls stubbed)
 int ProcessWars();
 void processBattleMultiplayer();
 
@@ -6333,7 +6331,9 @@ extern int screen_width;
 extern int screen_height;
 extern double screen_ratio;
 
-	//un-guarded 2026-10-12: options dialogs (portable C++; CD-audio calls stubbed)
+//Options screen shared by the main menu (ProcessMenuOptions) and the in-game
+//menu (ProcessGameOptions). Sliders write straight into the sound-system
+//globals; the CD track controls are no-ops on Linux (no MCI CD engine).
 bool ProcessMenuOptions()
 {
 	LocalGP BTNS( "Interface\\Options" );
@@ -6523,7 +6523,6 @@ bool ProcessMenuOptions()
 
 bool ProcessGameOptions()
 {
-	printf("DBG GameOptions: enter\n");
 	LocalGP BTNS( "Interface\\Options_for_Game" );
 	LocalGP HFONT( "rom10" );
 	RLCFont hfnt( HFONT.GPID );
@@ -7008,8 +7007,8 @@ int processMainMenu()
 	return ItemChoose;
 }
 //--------------=< G A M E   S C R E E N >=------------//
-// (in-game screen globals - un-guarded, needed by the cross-platform game loop)
-// Declarations previously visible only through Windows-only decl blocks
+// In-game screen globals used by the game loop (the menu code reads
+// ContinueGame to decide whether a submenu closed with Ok/Cancel)
 bool CHKV( char* Name );
 int GETV( char* Name );
 int mul3( int );
@@ -7090,7 +7089,9 @@ static void FindClose( HANDLE HF )
 	delete st;
 }
 #endif
-	//un-guarded 2026-10-12: save-file name lists + InstallName (portable C++)
+//Pool of save-game file names for the load/save list boxes. InstallName()
+//validates a file against the current save format version (sfVersion)
+//before adding it; FreeNames() releases the list between dialog runs.
 int NNames;
 char* names[128];
 char* fnames[128];
@@ -7176,7 +7177,8 @@ void SFLB_CreateGamesList( ListBox* LB )
 	};
 }
 
-	//un-guarded 2026-10-12: load-game dialogs (portable C++, no asm/winapi)
+//Fills a list box with the replay (*.rec) files found in the working
+//directory and in Autorecord/ (recorded games), newest-format ones only.
 void CreateRecList( ListBox* LB )
 {
 	WIN32_FIND_DATA FD;
@@ -7277,7 +7279,6 @@ bool CheckFileIdentity( char* Name )
 
 void ProcessGLoadGame()
 {
-	printf("DBG LoadGame: enter\n");
 	LocalGP BTNS( "Interface\\G_Load_Game" );
 	LocalGP SCROL( "Interface\\GScroll" );
 	LocalGP HFONT( "rom10" );
@@ -7828,11 +7829,12 @@ void EnterChat()
 	#endif // _WIN32
 };
 
-	//un-guarded 2026-10-12: save-game dialogs (portable C++, no asm/winapi)
+//In-game "Save" dialog: name box + list of existing *.sav files.
+//Ok queues a save command through the ExBuf (cmd 40) so it executes in
+//sync with the game loop; Cancel just returns to the menu.
 void SaveGame( char* fnm, char* Messtr, int ID );
 void ProcessGSaveGame()
 {
-	printf("DBG SaveGame: enter\n");
 	if ( strstr( GameName, ".m3d" ) || strstr( GameName, ".M3D" ) )GameName[0] = 0;
 	LocalGP BTNS( "Interface\\G_Save_Game" );
 	LocalGP SCROL( "Interface\\GScroll" );
@@ -7902,7 +7904,6 @@ void ProcessGSaveGame()
 			if ( ItemChoose == mcmOk )ItemChoose = -1;
 		};
 	} while ( ItemChoose == -1 );
-	printf("DBG SaveGame: loop exit choose=%d str='%s'\n", ItemChoose, IB->Str);
 	if ( ItemChoose == mcmOk )
 	{
 		CmdSaveNetworkGame( MyNation, GetSDLTickCount(), IB->Str );
@@ -8363,17 +8364,14 @@ stg:
 			//IAmLeft();
 		};
 	} while ( ItemChoose == -1 );
-	printf("DBG GMainMenu: chose=%d\n", ItemChoose);
 	if ( ItemChoose == mcmLoad )
 	{
-		//call-site guard removed 2026-10-12: dialogs now ported
 		ProcessGLoadGame();
 		GMM.MarkToDraw();
 		if ( !ContinueGame )goto stg;
 	};
 	if ( ItemChoose == mcmSave )
 	{
-		//call-site guard removed 2026-10-12
 		ProcessGSaveGame();
 		GMM.MarkToDraw();
 		if ( !ContinueGame )goto stg;
@@ -8381,7 +8379,6 @@ stg:
 	if ( ItemChoose == mcmOptions )
 	{
 		//ProcessOptions(smapx+(nsmaplx<<4)-(288>>1),smapy+(nsmaply<<4)-(288>>1));
-		//call-site guard removed 2026-10-12
 		ProcessGameOptions();
 		ContinueGame = true;
 		ItemChoose = mcmResume;
@@ -8467,7 +8464,6 @@ stg:
 
 	if ( ItemChoose == mcmOptions )
 	{
-		//call-site guard removed 2026-10-12
 		ProcessGameOptions();
 		//ProcessOptions(smapx+(nsmaplx<<4)-(288>>1),smapy+(nsmaply<<3)-(288>>1));
 		ContinueGame = true;
@@ -8949,8 +8945,9 @@ void ShowAbout()
 
 bool IngameYesNoDialog( char* dialog_text )
 {
-	//un-guarded 2026-10-12: portable DialogsSystem code (was #ifdef _WIN32
-	//#else return false TODO - broke the game menu's Exit confirm)
+	//Modal yes/no question built from text buttons. ItemChoose is the shared
+	//result channel for all menu dialogs: mcmOk / mcmCancel; RETURN and ESC
+	//map to the same values through StdKeys().
 	ItemChoose = -1;
 	int dialog_width = 600;
 	int dialog_height = 200;

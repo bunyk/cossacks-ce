@@ -282,6 +282,19 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
   now in un-guarded interface.cpp), processMultiplayer/processBattleMultiplayer/
   ProcessSavingFile/ProcessLoadingFile stubbed (guarded regions, MP/file-picker
   only). Save files land as *.sav next to the executable.
+- **Game menu items enabled, round 2 (fixed 2026-10-12)**: after un-guarding
+  the dialog definitions, Save/Load/Options STILL did nothing - the CALL SITES
+  in ProcessGMainMenu had their OWN separate `#ifdef _WIN32` guards around the
+  ProcessGLoadGame()/ProcessGSaveGame()/ProcessGameOptions() calls (and the
+  editor menu around ProcessGameOptions). ItemChoose dispatched fine (DBG
+  probes showed mcmOptions=0xE7/mcmSave=0xF8/mcmLoad=0xF7/mcmExit=0xFF
+  arriving correctly) but the calls were compiled out. Also un-guarded
+  IngameYesNoDialog (its whole body was `#ifdef _WIN32` + `#else return false
+  TODO`) - that alone broke Exit, since the confirm always answered "no".
+  LESSON: definition guards and call-site guards are independent; when a
+  feature "still does nothing" after porting its implementation, grep the
+  CALL SITES for their own guards. mcm* constants live in dialogs.h
+  (mcmExit=0xFF, mcmSave=0xF8, mcmLoad=0xF7, mcmOptions=0xE7...).
 - **In-game hotkeys un-guarded (fixed 2026-10-12)**: F12 (main menu), Pause
   (CmdPause -> NOPAUSE toggle) and every letter/F-key hotkey in GameKeyCheck
   did nothing - the whole ~350-line switch block (main.cpp ~1781-2134) was

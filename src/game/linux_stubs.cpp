@@ -44,7 +44,6 @@ int InteriorType = 0;
 extern const int kCtrlStickyTime = 700;bool LockFog = false;
 char MapScenaryDLL[200];
 byte MI_Mode = 0;
-// MultiTvar: real definition now in interface.cpp (un-guarded)
 byte NeedToPopUp = 0;
 word NTextures = 0;
 bool OptHidden = false;
@@ -68,10 +67,6 @@ bool TP_Made = false;
 int WarSound = 0;
 int WorkSound = 0;
 DWORD RealTime = 0;
-// RECFILE: real definition now in interface.cpp (un-guarded)
-// ChangeNation: real definition now in interface.cpp (un-guarded)
-
-// WaterDeep / WaterBright are now real (realwater.cpp, allocated in loadsave.cpp)
 
 // network / internet objects (mplayer.cpp, ir_main.cpp are not ported)
 PingSumm PSUMM;
@@ -120,8 +115,6 @@ bool CheckGameTime() { return false; }
 void Clean_GP_IMG() {}
 void CreateTrace( OneObject* OB ) { (void)OB; }
 void DontMakeRaiting() {}
-// EnterHi: real definition now in interface.cpp (un-guarded)
-// EnterStr: real definition now in interface.cpp (un-guarded)
 void ExplorerOpenRef( int Index, char* ref ) { (void)Index; (void)ref; }
 int  GetCurGamePtr( byte** Ptr ) { if (Ptr) *Ptr = NULL; return 0; }
 word GetTexture() { return 0; }
@@ -228,9 +221,7 @@ bool CheckFNSend( int idx )
 	}
 	return false;
 }
-// ShowStatistics: reached only via CapsLock in the (now un-guarded) hotkey
-// block; the real statistics screens (ShowStatScreen/ShowUserStat) are still
-// in a _WIN32 region in interface.cpp (~12879). Stub until that is ported.
+// CapsLock opens the end-of-game statistics screens; not implemented yet.
 bool ShowStatistics()
 {
 	return false;
@@ -242,19 +233,14 @@ int  GetCDVolume() { return 0; }
 void SetCDVolume( int Vol ) { (void)Vol; }
 void StopPlayCD() {}
 void PlayRandomTrack() {}
-// ChangeNation/MultiTvar globals were stubbed here; the real definitions
-// come from interface.cpp's un-guarded dialog region now - removed.
-
-// MidiSound: definition lives in a _WIN32 block of interface.cpp (line ~215)
+// Music volume as the options dialog slider sees it (no CD/MIDI engine yet)
 int MidiSound = 0;
-// GoHomeAnyway: defined in a guarded region of interface.cpp
+// IChat library callback (DLLIMPORT in interface.cpp); no-op without the DLL
 void GoHomeAnyway() {}
-// PushScreen/PopScreen: real defs now spliced into interface.cpp
-// DialogsSystem::addBorder: guarded dialogs.cpp region - skip frame border
-// processMultiplayer/processBattleMultiplayer: guarded interface.cpp regions
+// Multiplayer lobby screens; single-player play never reaches them.
 bool processMultiplayer() { return false; }
 bool processBattleMultiplayer() { return false; }
-// ProcessSavingFile/ProcessLoadingFile: guarded file-picker dialogs
+// Map editor file pickers (save/load a map under a chosen name)
 bool ProcessSavingFile( char* Mask, char* DestName, int Header, bool clear ) { (void)Mask; (void)DestName; (void)Header; (void)clear; return false; }
 bool ProcessLoadingFile( char* Mask, char* DestName, int Header ) { (void)Mask; (void)DestName; (void)Header; return false; }
 
