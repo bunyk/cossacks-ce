@@ -187,12 +187,11 @@ void OneObject::Produce( word ID )
 void GetUnitCost( byte NI, word NIndex, int* Cost, word Power );
 void OneObject::Produce( word ID, word GroupID )
 {
-	printf("DBG Produce: enter id=%d grp=%d bldg=%d ready=%d\n", ID, GroupID, newMons->Building, Ready);
 	bool PREVIEW = 0;
-	if ( CheckOrderAbility() ){ printf("DBG Produce: FAIL CheckOrderAbility\n"); return; }
-	if ( UnlimitedMotion ){ printf("DBG Produce: FAIL UnlimitedMotion\n"); return; }
+	if ( CheckOrderAbility() )return;
+	if ( UnlimitedMotion )return;
 	NewMonster* NM = newMons;
-	if ( !( NM->Building&&Ready ) ){ printf("DBG Produce: FAIL not bldg/ready\n"); return; }
+	if ( !( NM->Building&&Ready ) )return;
 	int FAST = ID >> 13;
 	ID &= 8191;
 	//checking for infinity
@@ -257,9 +256,8 @@ void OneObject::Produce( word ID, word GroupID )
 		{
 			PREVIEW = 1;
 		}
-		else { printf("DBG Produce: FAIL ApplyCost (id=%d)\n", ID); return; }
+		else return;
 	}
-	printf("DBG Produce: order created id=%d\n", ID);
 
 	Order1* Or1 = CreateOrder( 2 );
 	Or1->PrioryLevel = 96;
@@ -356,7 +354,6 @@ word CheckBuildingInCell( int cx, int cy, int dstx, int dsty )
 };
 void ProduceObjLink( OneObject* OBJ )
 {
-	printf("DBG ProduceObjLink: obj=%d progress=%d/%d\n", OBJ->Index, OBJ->LocalOrder->info.Produce.Progress, OBJ->LocalOrder->info.Produce.NStages);
 	OBJ->PrioryLevel = OBJ->LocalOrder->PrioryLevel;
 	NewMonster* NM = OBJ->newMons;
 	Nation* NT = OBJ->Nat;
@@ -428,7 +425,6 @@ void ProduceObjLink( OneObject* OBJ )
 	xxx += step;
 	OBJ->LocalOrder->info.Produce.Progress = xxx;
 	if ( xxx < nxxx )return;
-	printf("DBG ProduceObjLink: COMPLETE unit=%d\n", OBJ->LocalOrder->info.Produce.ObjIndex);
 	int xx, yy;
 	OBJ->GetCornerXY( &xx, &yy );
 	//if(!NM->NBornPt){

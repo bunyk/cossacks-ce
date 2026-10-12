@@ -262,6 +262,37 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
   texture around the mouse cursor (visible while scrolling; the opaque cursor body hides
   its own smear, blended layers don't). gscbrowser can't reproduce this - the mouse
   machinery never runs there.
+- **In-game hotkeys un-guarded (fixed 2026-10-12)**: F12 (main menu), Pause
+  (CmdPause -> NOPAUSE toggle) and every letter/F-key hotkey in GameKeyCheck
+  did nothing - the whole ~350-line switch block (main.cpp ~1781-2134) was
+  `#ifdef _WIN32` even though it was already fully SDL-ported. Un-guarded.
+  Needed: a file-scope extern/prototype block before GameKeyCheck (the
+  declarations lived in ddex1.cpp's scope, not main.cpp's) - watch the types:
+  ChangeNation is a bool FLAG not a function, NeedToPopUp is byte. Two
+  callees came from still-guarded regions and were re-implemented/stubbed in
+  linux_stubs.cpp: CheckFNSend (+NGSPlayers global; F1-F9 multiplayer-taunt
+  check - with chat off it returns false so F1 opens the help menu) and
+  ShowStatistics (CapsLock; returns false - the real statistics screens
+  ShowStatScreen/ShowUserStat live in interface.cpp's guarded ~12879 region,
+  port them separately when needed). GameKeyCheck dispatch note: the PlayGameMode==1
+  branch (top of function) is the replay 'exit on any key' path.
+- **Unit production from buildings (fixed 2026-10-12)**: clicking a unit button
+  in a building's panel did nothing. The whole chain was already ported and
+  intact (ShowAbility -> HPR -> CmdProduceObj -> ExBuf cmd 78 -> ExecuteBuffer
+  -> ProduceObject -> OneObject::Produce -> order -> ProduceObjLink per frame
+  -> CreateNewMonsterAt) - found by DBG probes at each hop. The break:
+  `GetQueueMultiplier()` was stubbed to return 0 in linux_stubs.cpp, and HPR
+  queues production via `for (i = 0; i < GetQueueMultiplier(); i++)` - zero
+  iterations, click silently swallowed. The real function lives in
+  newcode/queuemanagement.cpp (modifier keys pick the count: F5=250, Tab=50,
+  F2=36, Alt=20, F1=15, Shift=5, default 1) and its SDL port was ALREADY in
+  the tree - just never added to CMake. FIX: added to build, deleted the stub.
+  LESSON: grep linux_stubs for functions that RETURN VALUES (not just void
+  no-ops) - a void stub breaks loudly, a `return 0` stub breaks silently and
+  looks like a data/logic bug. Also: in-game controls are already ported:
+  Pause/Break key = CmdPause -> NOPAUSE toggle (sim gated in main.cpp),
+  F12 = main menu (MenuType=1 -> ProcessGMainMenu, linked), Esc = clear
+  current mode (attack/build cancel) - all un-guarded.
 - **AV blend-table pointer truncation CRASH (fixed 2026-10-12)**: the KNOWN
   LATENT BUG from the f3aa479 note finally fired: selecting certain buildings/
   walls draws the pulsing highlight via Z-elements with Param1=AV_PULSING|AV_DARK

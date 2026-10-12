@@ -168,7 +168,6 @@ int PrevProdUnit = 0;
 void CmdProduceObj( byte NI, word Type )
 {
 	//if(!NOPAUSE)return;//!!!
-	printf("DBG CmdProduceObj: NI=%d Type=%d\n", NI, Type);
 	if ( GetSDLKeyState( SDL_SCANCODE_LCTRL ) )Type |= 8192;
 	if ( !AddUnitsToCash( NI, Type ) )return;
 	if ( PrevProdPos != -1 && PrevProdUnit == Type )
@@ -2387,7 +2386,6 @@ void ProduceObject( byte NI, word Type )
 			if ( int( OB ) )
 			{
 				int pp = OB->CheckAbility( Type & 8191, false );
-				printf("DBG ProduceObject: sel unit=%d CheckAbility=%d ready=%d\n", SMon[k], pp, OB->Ready);
 				if ( pp == -1 && OB->Ready )
 				{
 					if ( Type & 8192 )OB->Produce( Type & 8191, 0xFFFE );
@@ -5115,7 +5113,6 @@ void ExecuteBuffer()
 			break;
 
 		case 78:
-			printf("DBG ExBuf78: ni=%d n=%d type=%d\n", ExBuf[pos], ExBuf[pos + 1], *(word*)(&ExBuf[pos + 2]));
 			ProduceObjects( ExBuf[pos], ExBuf[pos + 1], *(word*) ( &ExBuf[pos + 2] ) );
 			pos += 4;
 			break;

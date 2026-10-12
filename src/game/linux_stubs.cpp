@@ -124,7 +124,6 @@ int  EnterHi( int* val, int Type ) { (void)val; (void)Type; return 0; }
 bool EnterStr( char* str, char* Message ) { (void)str; (void)Message; return false; }
 void ExplorerOpenRef( int Index, char* ref ) { (void)Index; (void)ref; }
 int  GetCurGamePtr( byte** Ptr ) { if (Ptr) *Ptr = NULL; return 0; }
-// GetQueueMultiplier: real port in newcode/queuemanagement.cpp (now in build)
 word GetTexture() { return 0; }
 int  GetTreeItem() { return 0; }
 void Init_GP_IMG() {}
@@ -209,6 +208,33 @@ int PPTIME = 0;
 CDPID ServerDPID = 0;
 int CurrentStartTime[8];
 int NextStartTime[8];
+
+// CheckFNSend: tiny port of interface.cpp's version (which lives in a
+// _WIN32-guarded chat region). F1..F9 in GameKeyCheck call it to check
+// whether the key was a multiplayer taunt; with chat disabled it always
+// returns false so the F-keys open their local menus.
+extern bool EnterChatMode;   // ddex1.cpp
+int NGSPlayers = 0;
+bool CheckFNSend( int idx )
+{
+	if ( !EnterChatMode )
+	{
+		return false;
+	}
+	if ( idx < NGSPlayers )
+	{
+		EnterChatMode = 0;
+		return true;
+	}
+	return false;
+}
+// ShowStatistics: reached only via CapsLock in the (now un-guarded) hotkey
+// block; the real statistics screens (ShowStatScreen/ShowUserStat) are still
+// in a _WIN32 region in interface.cpp (~12879). Stub until that is ported.
+bool ShowStatistics()
+{
+	return false;
+}
 
 // network functions (mplayer.cpp)
 void AnalyseMessages() {}
