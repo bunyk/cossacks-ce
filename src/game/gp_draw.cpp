@@ -1120,6 +1120,12 @@ static void GP_ShowMaskedGeneric( int x, int y, GP_Header* Pic, byte* CData,
                 {
                     int out = mirror ? (Lx - 1 - col) : col;
                     int sx = left_edge + out;
+                    // Consume the source pixel even when this column is
+                    // clipped: the Windows asm advances the source pointer
+                    // over off-screen columns too. Skipping the consumption
+                    // here desyncs pix from the mask stream and smears the
+                    // rest of the row.
+                    byte src = (op == 3 || op == 5) ? 0 : *pix++;
                     if (sx < WindX || sx > WindX1) continue;
                     byte* d = screen_row + out;
                     if (op == 5)
@@ -1133,7 +1139,6 @@ static void GP_ShowMaskedGeneric( int x, int y, GP_Header* Pic, byte* CData,
                     if (op == 3)          outc = Encoder[*d];
                     else
                     {
-                        byte src = *pix++;
                         switch (op)
                         {
                         case 0:  outc = src; break;
@@ -1161,6 +1166,12 @@ static void GP_ShowMaskedGeneric( int x, int y, GP_Header* Pic, byte* CData,
                 {
                     int out = mirror ? (Lx - 1 - col) : col;
                     int sx = left_edge + out;
+                    // Consume the source pixel even when this column is
+                    // clipped: the Windows asm advances the source pointer
+                    // over off-screen columns too. Skipping the consumption
+                    // here desyncs pix from the mask stream and smears the
+                    // rest of the row.
+                    byte src = (op == 3 || op == 5) ? 0 : *pix++;
                     if (sx < WindX || sx > WindX1) continue;
                     byte* d = screen_row + out;
                     if (op == 5)
@@ -1174,7 +1185,6 @@ static void GP_ShowMaskedGeneric( int x, int y, GP_Header* Pic, byte* CData,
                     if (op == 3)          outc = Encoder[*d];
                     else
                     {
-                        byte src = *pix++;
                         switch (op)
                         {
                         case 0:  outc = src; break;
