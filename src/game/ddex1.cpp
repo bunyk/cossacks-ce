@@ -1239,7 +1239,7 @@ void SERROR2();
 
 extern int PlayMode;
 void StopPlayCD();
-void PlayRandomTrack();
+bool PlayRandomTrack();
 bool First = 1;
 bool ProcessMessagesEx();
 void ClearRGB();
@@ -1512,8 +1512,8 @@ void EraseRND()
 }
 #endif
 
-void PlayCDTrack( int Id );
-void PlayRandomTrack();
+bool PlayCDTrack( int Id );
+bool PlayRandomTrack();
 extern int PlayMode;
 
 #ifndef NODPLAY

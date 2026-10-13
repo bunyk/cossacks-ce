@@ -6342,7 +6342,7 @@ int GetCDVolume();
 void SetCDVolume( int );
 int PlayMode = 2;
 void StopPlayCD();
-void PlayRandomTrack();
+bool PlayRandomTrack();
 extern byte TracksMask[16];
 char RECFILE[128] = "";
 
@@ -11870,6 +11870,13 @@ void PrepareGameMedia( byte myid, bool SaveNR )
 		{
 			NATIONS[i].NMask = NMASKS[i];
 		}
+
+		// National music: devicecd indexes the per-nation track table
+		// (TRACKS.CD, ai.dat nation order) by CurrentNation, which only the
+		// multiplayer lobby ever set. Single-player now derives it from the
+		// player's units (peasant ID -> ai.dat index, same lookup replays
+		// use). -1 (no units yet) means NATMUS falls back to a random track.
+		CurrentNation = DetermineNationAI( MyNation );
 
 		if ( MapScenaryDLL[0] )
 		{

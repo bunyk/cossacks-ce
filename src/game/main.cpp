@@ -515,6 +515,16 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	LoadFog(2);
 	LoadPalette("2\\agew_1.pal");
 
+	// Music autostart (PlayMode defaults to 2 = random music, ddex1.cpp).
+	// On Windows this call sits in the _WIN32 block below; nothing ever
+	// started music on Linux unless the user toggled the options combo.
+	extern int PlayMode;
+	bool PlayRandomTrack();
+	if (PlayMode)
+	{
+		PlayRandomTrack();
+	}
+
 	#ifdef _WIN32
 	//Init DirectPlay and DPInfo structure
 	SetupMultiplayer();

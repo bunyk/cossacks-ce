@@ -18,13 +18,18 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-void PlayRandomTrack();
+bool PlayRandomTrack();
 
 static void SDLCALL MusicStreamCallback(void* userdata, SDL_AudioStream* stream, int additionalAmount, int totalAmount)
 {
 	if (!SDL_GetAudioStreamAvailable(stream))
 	{
-		PlayRandomTrack();
+		if (!PlayRandomTrack())
+		{
+			// Nothing playable (all track files missing) - stop re-arming
+			// instead of spinning on the audio thread.
+			SDL_SetAudioStreamGetCallback(stream, nullptr, nullptr);
+		}
 	}
 }
 
@@ -36,6 +41,7 @@ int NTracks = 19;
 byte TracksMask[32] = { 2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20 };
 CDeviceCD::CDeviceCD()
 {
+	m_volume = 100;
 	// Intentionally deferred: this global object is constructed before
 	// SDL_Init and before the game archives are registered (FilesInit), so
 	// neither the audio device nor Gopen("Tracks.cd") would work here.
@@ -69,6 +75,7 @@ bool CDeviceCD::Open()
 		return false;
 	}
 
+	SDL_SetAudioStreamGain(audioStream, static_cast<float>(m_volume) / 100.0f);
 	success = SDL_ResumeAudioStreamDevice(audioStream);
 	if (!success)
 	{
@@ -141,20 +148,20 @@ bool CDeviceCD::Stop()
 
 DWORD CDeviceCD::GetVolume()
 {
-	float gain = SDL_GetAudioStreamGain(audioStream);
-	if (gain == -1.0f)
-	{
-		gain = 0.0f;
-	}
-	return static_cast<DWORD>(round(gain * 100.0f));
+	return m_volume;
 }
 
 bool CDeviceCD::SetVolume(DWORD Volume)
 {
-	// TODO: set volume only if different from current volume to avoid calling it every frame
-	bool success = SDL_SetAudioStreamGain(audioStream, static_cast<float>(Volume / 100.0f));
-
-	return 1;
+	// Cache the desired volume; the options dialog calls this every frame,
+	// and the stream may not exist yet (music not started) - the cached
+	// value is applied when Open() creates the stream.
+	m_volume = Volume;
+	if (audioStream)
+	{
+		SDL_SetAudioStreamGain(audioStream, static_cast<float>(Volume) / 100.0f);
+	}
+	return true;
 }
 bool CDeviceCD::Play(DWORD Track)
 {
@@ -254,6 +261,9 @@ bool CDeviceCD::Play(DWORD Track)
 
 		success = SDL_SetAudioStreamGetCallback(audioStream, MusicStreamCallback, nullptr);
 
+		// One line per track start - low frequency, keep
+		printf("Music: playing %s (%d samples, %d ch, %d Hz)\n", filename, dataRead, channels, sampleRate);
+
 		return true;
 	}
 	else
@@ -263,34 +273,47 @@ int PrevTrack3 = -1;
 int PrevTrack2 = -1;
 int PrevTrack1 = -1;
 int NextCommand = -1;
-void PlayCDTrack(int Id);
+bool PlayCDTrack(int Id);
 extern int srando();
 
 CDeviceCD CDPLAY;
-void PlayCDTrack(int Id) {
-	CDPLAY.Play(Id);
+// Returns false when the track file is missing or fails to decode
+// (PlayRandomTrack uses that to fall back to another track).
+bool PlayCDTrack(int Id) {
+	return CDPLAY.Play(Id);
 };
 extern int CurrentNation;
 extern int PlayMode;
 
 extern uint64_t GetSDLTickCount();
 
-void PlayRandomTrack()
+bool PlayRandomTrack()
 {
 	if (PlayMode == 1 && CurrentNation != -1) {
-		PlayCDTrack(TracksMask[CurrentNation]);
-		return;
+		// National music: fall back to a random track when the nation's
+		// track file is missing - e.g. the GOG Tracks/ rip has no
+		// Track_20.ogg while the track table assigns 20 to one nation.
+		if (PlayCDTrack(TracksMask[CurrentNation])) {
+			return true;
+		};
 	};
-	int Track = -1;
-	do {
-		// TODO: replace with random
-		Track = (((GetSDLTickCount() & 0b111111111111)*NTracks) >> 12) + StartTrack;
-		if (Track == PrevTrack1 || Track == PrevTrack2 || Track == PrevTrack3)Track = -1;
-	} while (Track == -1);
-	PrevTrack3 = PrevTrack2;
-	PrevTrack2 = PrevTrack1;
-	PrevTrack1 = Track;
-	PlayCDTrack(Track);
+	// Random track: time-based pseudo-random, no immediate repeats,
+	// skips missing files, bounded (no spin on the audio thread).
+	for (int attempts = 0; attempts < NTracks * 2; attempts++) {
+		// Keep the pseudo-random spread INSIDE the track range: mask the
+		// varied seed to 12 bits like the original (unwrapped sums gave
+		// candidates above the last track - all decode failures - and
+		// with an unlucky tick phase every attempt missed).
+		int Track = (((((GetSDLTickCount() & 0xFFF) + attempts * 131) & 0xFFF) * NTracks) >> 12) + StartTrack;
+		if (Track == PrevTrack1 || Track == PrevTrack2 || Track == PrevTrack3)continue;
+		if (PlayCDTrack(Track)) {
+			PrevTrack3 = PrevTrack2;
+			PrevTrack2 = PrevTrack1;
+			PrevTrack1 = Track;
+			return true;
+		};
+	};
+	return false;
 }
 
 void StopPlayCD()

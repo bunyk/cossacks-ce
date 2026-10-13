@@ -582,6 +582,59 @@ lives in the session scratchpad (sndtest.cpp - links cdirsnd.cpp+cwave.cpp,
 plays any Sound/*.wav without launching the game; reuse for future audio
 regressions).
 
+
+ROUND 8 - national music in SINGLE PLAYER never got a nation: CurrentNation
+(interface.cpp) was only ever set by the multiplayer lobby's player-slot
+page (MNATION combo, ~4351); single-player left it -1, so NATMUS fell into
+the random path (or worse, into Track_00 if the lobby default leaked).
+MyNation is a COLOR SLOT, not a nation type - the ai.dat index the track
+table wants comes from DetermineNationAI (the same lookup replays use:
+scan the player's units' peasant ID -> GlobalAI.Ai[j]). PrepareGameMedia
+now sets CurrentNation = DetermineNationAI(MyNation) right after
+Load3DMap; -1 makes NATMUS fall back to random. Austria = ai.dat index 2
+-> TracksMask[2] = Track_05.ogg.
+
+
+ROUND 9 - music volume slider reset to 0 on every options reopen: the
+volume lived ONLY on the SDL stream gain. Before the first track ever
+played, CDPLAY.audioStream is NULL (lazy init), so SetVolume silently
+failed and GetVolume turned the -1.0f "no stream" error gain into 0 -
+the dialog re-read 0 and showed the slider at 0. CDeviceCD now caches
+m_volume (0..100, default 100): SetVolume stores it and applies it only
+if a stream exists; Open() applies it to fresh streams; GetVolume returns
+the cached value. Volume now persists across dialog sessions and across
+music on/off.
+
+
+ROUND 10 - "still no track playing" regression + Track_05 verified: the
+ROUND 7 random-picker rewrite had a range bug: ((tick&0xFFF)+attempts*131)
+escaped the 12-bit range as attempts grew, so candidates could exceed the
+last track number (all decode failures), and with an unlucky tick phase
+EVERY candidate in the bounded loop missed -> PlayRandomTrack returned
+false -> the callback disarmed itself -> silence (national music at the
+main menu falls into this fallback too, CurrentNation==-1 there). Fixed:
+mask the varied seed back into 12 bits (((base + attempts*131) & 0xFFF)
+* NTracks >> 12) + StartTrack). Track_05.ogg (Austria's national track)
+verified good OFFLINE with the game's decoder (stb_vorbis: 6.39M samples
+stereo 44.1kHz) and played audibly via a scratchpad harness (oggtest.cpp).
+Added a permanent low-frequency log: "Music: playing <file>" on every
+track start (devicecd.cpp).
+
+
+ROUND 11 - music NEVER auto-started on Linux: the startup call
+`if (PlayMode) PlayRandomTrack();` sits in the _WIN32 block at the end of
+SDL_AppInit (with SetupMultiplayer/SetupHint/mode.dat write). PlayMode
+DEFAULTS TO 2 (ddex1.cpp: "int PlayMode = 2" - random music ON), so on
+Windows music starts with the app; on Linux nothing called PlayRandomTrack
+at startup - music only played when the user cycled the options Music
+combo (the PrevPlayMode != ... transition gate fires the call), which is
+why the first music test worked and later sessions were silent. Moved a
+Linux copy of the call right after LoadPalette (PlayMode/PlayRandomTrack
+are not declared in any header - externs added at the call site).
+NOTE: the rest of that _WIN32 block (SetupHint UI color masking, tmtmt/
+REALTIME/KeyPressed resets, OnMouseMoveRedraw) is still not ported -
+SetupHint may matter for in-game UI hints, check when hints are tested.
+
 ## Enemy AI - TODO to continue later
 
 - **Strip the temporary DBG probe**: `fprintf(stderr, "DBG LoadAIFromDLL:
