@@ -9262,10 +9262,12 @@ void GP_System::ShowGP(//IMPORTANT: show sprite with color masking
         {
             // CASHREF is 32-bit pointer storage, unusable on 64-bit Linux.
             // Decompress into a temporary buffer on each draw call.
-            // +10 slack mirrors the Windows cache block (GetCash(UnpackLen+18)
-            // with an 8-byte header): StdUnpack's final dictionary copy may
-            // legally run a few bytes past UnpackLen.
-            byte* tmp = new byte[UnpackLen + 10];
+            // Slack covers StdUnpack's final dictionary copy, which (exactly
+            // like the Windows asm) may legally run up to 17 bytes past
+            // UnpackLen. On Windows the overrun lands inside the big GetCash
+            // ring buffer; here each sprite is its own heap chunk, so without
+            // the extra room it corrupts the next chunk's header.
+            byte* tmp = new byte[UnpackLen + 32];
             StdUnpack( tmp, (byte*)lpGPCUR + CDOffs, UnpackLen,
                        (byte*)lpGH + lpGH->VocOffset );
             GP_ShowMaskedPict( x, y, lpGPCUR, tmp, nullptr );
@@ -9738,7 +9740,9 @@ void GP_System::ShowGPLayers(//IMPORTANT: color masking for units and buildings
 		case 0://standart packing
 			if (mask & 1)
 			{
-				byte* tmp = new byte[UnpackLen + 10];
+				// +32 slack: StdUnpack's final dictionary copy may legally run
+				// up to 17 bytes past UnpackLen (same as the Windows asm).
+				byte* tmp = new byte[UnpackLen + 32];
 				StdUnpack( tmp, src, UnpackLen, ( (byte*) lpGH ) + lpGH->VocOffset );
 				if (mask & 512)
 				{
@@ -10052,7 +10056,7 @@ void GP_System::ShowGPTransparent( int x, int y, int FileIndex, int SprIndex, by
 		{
 		case 0://standart packing
 		{
-			byte* tmp = new byte[UnpackLen + 10];
+			byte* tmp = new byte[UnpackLen + 32];
 			StdUnpack( tmp, ( (byte*) lpGPCUR ) + CDOffs, UnpackLen,
 				( (byte*) lpGH ) + lpGH->VocOffset );
 			if (inv) GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, tmp, trans8 );
@@ -10302,7 +10306,7 @@ void GP_System::ShowGPTransparentLayers( int x, int y, int FileIndex, int SprInd
 		case 0://standart packing
 			if (mask & 1)
 			{
-				byte* tmp = new byte[UnpackLen + 10];
+				byte* tmp = new byte[UnpackLen + 32];
 				StdUnpack( tmp, ( (byte*) lpGPCUR ) + CDOffs, UnpackLen,
 					( (byte*) lpGH ) + lpGH->VocOffset );
 				if (inv) GP_ShowMaskedMultiPalPictInv( x, y, lpGPCUR, tmp, trans8 );
@@ -10987,7 +10991,7 @@ void GP_System::ShowGPPal( int x, int y, int FileIndex, int SprIndex, byte Natio
 		{
 		case 0://standart packing
 		{
-			byte* tmp = new byte[UnpackLen + 10];
+			byte* tmp = new byte[UnpackLen + 32];
 			StdUnpack( tmp, ( (byte*) lpGPCUR ) + CDOffs, UnpackLen,
 				( (byte*) lpGH ) + lpGH->VocOffset );
 			if (inv) GP_ShowMaskedPalPictInv( x, y, lpGPCUR, tmp, Table );
@@ -11109,7 +11113,7 @@ void GP_System::ShowGPPalLayers( int x, int y, int FileIndex, int SprIndex, byte
 		case 0://standart packing
 			if (mask & 1)
 			{
-				byte* tmp = new byte[UnpackLen + 10];
+				byte* tmp = new byte[UnpackLen + 32];
 				StdUnpack( tmp, ( (byte*) lpGPCUR ) + CDOffs, UnpackLen,
 					( (byte*) lpGH ) + lpGH->VocOffset );
 				if (inv) GP_ShowMaskedPalPictInv( x, y, lpGPCUR, tmp, Table );

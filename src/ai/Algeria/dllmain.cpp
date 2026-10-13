@@ -1,5 +1,19 @@
 #include <cstdio>
+
+#ifdef _WIN32
 #include <wtypes.h>
+#else
+// Linux port: the game dlopen()s this module; game functions are resolved
+// from the main executable (linked with -rdynamic) via dlsym(RTLD_DEFAULT).
+// The module itself is compiled with -fvisibility=hidden so its own
+// same-named globals (the function pointers in typedefs.h) are NOT
+// interposed by the game's exported functions.
+#include <dlfcn.h>
+#include <unistd.h>
+typedef void* HINSTANCE;
+#define __declspec(x) __attribute__((visibility("default")))
+#endif
+
 #include "objects.h"
 #include "typedefs.h"
 
@@ -32,6 +46,7 @@ unsigned short LAND_BALANCE[38] = {
 
 void* LoadFunction(const char* Name)
 {
+#ifdef _WIN32
 	void* fn = GetProcAddress(hLib, Name);
 	if (!fn)
 	{
@@ -40,6 +55,16 @@ void* LoadFunction(const char* Name)
 		MessageBoxA(NULL, ccc, "DLL init error.", 0);
 	};
 	return fn;
+#else
+	// The main executable exports its extern "C" AI-API functions
+	// (activescenary.cpp) into the global symbol scope.
+	void* fn = dlsym(RTLD_DEFAULT, Name);
+	if (!fn)
+	{
+		fprintf(stderr, "AI module: game does not export function: %s\n", Name);
+	};
+	return fn;
+#endif
 };
 
 
@@ -738,6 +763,7 @@ extern "C" __declspec(dllexport) void ProcessAI()
 	}
 }
 
+#ifdef _WIN32
 BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
 {
 	switch (dwReason)
@@ -787,3 +813,39 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
 	}
 	return TRUE;
 };
+#else
+// Linux: this constructor runs at dlopen() time, like DllMain(DLL_PROCESS_ATTACH).
+__attribute__((constructor)) void AI_OnLoad()
+{
+	LOAD_FUNCTION(RegisterUnitType);
+	LOAD_FUNCTION(RegisterUpgrade);
+	LOAD_FUNCTION(AI_Torg);
+	LOAD_FUNCTION(TryUnit);
+	LOAD_FUNCTION(TryUpgrade);
+	LOAD_FUNCTION(SetMineBalanse);
+	LOAD_FUNCTION(SetPDistribution);
+	LOAD_FUNCTION(AssignAmountOfMineUpgrades);
+	LOAD_FUNCTION(AssignMineUpgrade);
+	LOAD_FUNCTION(AssignMine);
+	LOAD_FUNCTION(AssignPeasant);
+	LOAD_FUNCTION(AssignHouse);
+	LOAD_FUNCTION(SET_MINE_CAPTURE_RADIUS);
+	LOAD_FUNCTION(SET_MINE_UPGRADE1_RADIUS);
+	LOAD_FUNCTION(SET_MINE_UPGRADE2_RADIUS);
+	LOAD_FUNCTION(SET_DEFAULT_MAX_WORKERS);
+	LOAD_FUNCTION(SET_MIN_PEASANT_BRIGADE);
+	LOAD_FUNCTION(GetMoney);
+	LOAD_FUNCTION(GetUnits);
+	LOAD_FUNCTION(GetReadyUnits);
+	LOAD_FUNCTION(UpgIsDone);
+	LOAD_FUNCTION(UpgIsRun);
+	LOAD_FUNCTION(FieldExist);
+	LOAD_FUNCTION(GetDifficulty);
+	LOAD_FUNCTION(GetStartRes);
+	LOAD_FUNCTION(GetLandType);
+	LOAD_FUNCTION(AssignFormUnit);
+	LOAD_FUNCTION(GetAIRegister);
+	LOAD_FUNCTION(SetAIRegister);
+	OnInit();
+}
+#endif

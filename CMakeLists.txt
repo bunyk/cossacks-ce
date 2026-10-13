@@ -110,6 +110,23 @@ add_executable(cossacks
 # Link to the actual SDL3 libraries.
 target_link_libraries(cossacks PRIVATE SDL3_image::SDL3_image SDL3::SDL3)
 
+# Export the game's extern "C" AI-API functions (activescenary.cpp) into the
+# dynamic symbol table, so AI modules loaded with dlopen can resolve them
+# via dlsym(RTLD_DEFAULT) - the Linux equivalent of the AI DLLs calling
+# GetProcAddress on the game executable.
+target_link_options(cossacks PRIVATE "-rdynamic")
+
+
+# Nation AI module (Algeria.dll on Windows). The game dlopen()s it via
+# LoadAIFromDLL; on failure-free data the name comes from the text tables
+# (e.g. "AI\Algeria.dll"). Drop the built Algeria.so next to the game data.
+add_library(Algeria MODULE src/ai/Algeria/dllmain.cpp)
+set_target_properties(Algeria PROPERTIES PREFIX "" OUTPUT_NAME "Algeria")
+# Hidden by default: keeps the module's same-named function-pointer globals
+# (typedefs.h) from being interposed by the game's exported symbols. The three
+# game-facing exports (InitAI/ProcessAI/OnInit) override this explicitly.
+target_compile_options(Algeria PRIVATE "-fvisibility=hidden")
+
 
 # And Boost
 find_package(Boost REQUIRED COMPONENTS context filesystem iostreams)

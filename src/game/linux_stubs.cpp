@@ -121,9 +121,8 @@ word GetTexture() { return 0; }
 int  GetTreeItem() { return 0; }
 void Init_GP_IMG() {}
 bool IsGameActive() { return false; }
-void LoadAIFromDLL( byte Nat, char* Name ) { (void)Nat; (void)Name; }
-void LoadMapInterface() {}
 void LoadPalettes() {}
+void LoadMapInterface() {}
 void LoadSaveFile() {}
 void ProcessMapInterface() {}
 int  ProcessComplexQuestion( int Nx, char* Bmp1, byte or1, char* Text1, char* Bmp2, byte or2, char* Text2, char* Quest ) { (void)Nx; (void)Bmp1; (void)or1; (void)Text1; (void)Bmp2; (void)or2; (void)Text2; (void)Quest; return 0; }
@@ -140,7 +139,6 @@ void UpdateCurGame() {}
 //-------------- map editor / random map --------------
 void CreateNEWMAP() {}
 int  DecodeOptionsFromNumber( const int number, int* result ) { (void)number; (void)result; return 0; }
-int  DetermineNationAI( byte Nat ) { (void)Nat; return 0; }
 bool ReadBMP24( char* Name, BMPformat* BM, byte** data ) { (void)Name; (void)BM; (void)data; return false; }
 void ReadClanData() {}
 

@@ -383,6 +383,48 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
 - If you enable the real file later, delete the matching stubs or you get multiple-definition
   link errors (this already happened with `DialogsSystem::addViewPort` in gvclass.cpp).
 
+## Enemy AI loading layer ported (2026-10-13)
+
+The AI is NOT in the engine: it is a per-nation MODULE the game loads at match
+start. Chain: PrepareGameMedia (random map) or loadsave.cpp LoadAI (saves) /
+recorder.cpp (replays) -> StartAIEx / LoadAIFromDLL (activescenary.cpp ~5800)
+-> LoadLibrary("<nation AI dll>"), call its InitAI export, store
+NT->ProcessAIinDLL. The per-tick driver was already ported: City::FindNeedProject
+(megapolis.cpp:1212) calls NT->ProcessAIinDLL() when `hLibAI && ProcessAIinDLL`.
+The fallback "script AI" (strecog.cpp LoadAI(char*,Nation*) / NT->AI_Req) has NO
+callers - dead code, the module path is the only AI.
+
+Ported this round:
+- os.h/os.cpp: LoadLibrary/FreeLibrary/GetProcAddress are now REAL (were
+  hardcoded NULL): osLoadLibrary = dlopen with Windows-path translation
+  (backslash->slash, ".dll" retried as ".so", bare names tried in ./ and the
+  exe dir via /proc/self/exe); errors logged to stderr.
+- activescenary.cpp LoadAIFromDLL un-guarded: shared body, Linux branch logs
+  load failures instead of message-box+assert (a missing AI module leaves the
+  nation inert, the megapolis tick checks hLibAI && ProcessAIinDLL).
+  linux_stubs.cpp: LoadAIFromDLL stub DELETED.
+- interface.cpp: DetermineNationAI un-guarded (was at the tail of the
+  Windows-only lobby block; guard boundary moved above it). Stub deleted.
+- CMake: `target_link_options(cossacks PRIVATE -rdynamic)` puts the 182
+  extern "C" DLLEXPORT AI-API functions (activescenary.cpp) into the exe's
+  .dynsym; AI modules resolve them with dlsym(RTLD_DEFAULT) - the Linux
+  equivalent of the AI DLLs calling GetProcAddress("DMCR.EXE").
+- src/ai/Algeria (the only nation AI SOURCE in this tree; all others ship as
+  PE DLLs in the game data): builds as Algeria.so (CMake MODULE target,
+  PREFIX "" so no lib prefix). dllmain.cpp got a Linux port: wtypes.h replaced
+  by a dlfcn shim, `__declspec(x)` #defined away, DllMain(DLL_PROCESS_ATTACH)
+  duplicated as an `__attribute__((constructor)) AI_OnLoad()` (runs at dlopen
+  time, calls the same LOAD_FUNCTION list + OnInit). Built copy placed at
+  AI/Algeria.so in the game dir.
+- VERIFY AT RUNTIME: what module name the DK mod's text tables actually map
+  the AI IDs to (GetTextByID("NATION.0") feeds LoadAIFromDLL directly) - the
+  tables live encrypted inside all.gsc, so watch stderr for
+  "LoadLibrary(...) failed" / "LoadAIFromDLL:" lines when starting a random
+  map with a computer opponent. If the mod references PE-only DLLs (e.g.
+  "AI\Kreatures.dll"), the nation will stay inert until a matching .so exists.
+  NOTE: dlopen CANNOT read files inside all.gsc - AI modules must be loose
+  files in the game dir.
+
 ## Recurring bug patterns (checklist for any newly enabled file)
 
 1. **`sizeof TypeName` without parens** - legal on MSVC, error on GCC. -> `sizeof(TypeName)`.

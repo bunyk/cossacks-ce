@@ -5801,9 +5801,13 @@ CampaginPack::~CampaginPack()
 	}
 }
 
-#ifdef _WIN32
+// Loads the nation AI module (Windows: nation DLL, Linux: shared library)
+// and calls its InitAI export. On Linux load failures are logged and the
+// nation simply keeps its ProcessAIinDLL == NULL (the AI tick checks both).
 void LoadAIFromDLL( byte Nat, char* Name )
 {
+	// DBG: reveals what AI module name the data's text tables resolve to
+	fprintf( stderr, "DBG LoadAIFromDLL: Nat=%d Name='%s'\n", Nat, Name );
 	Nat = AssignTBL[Nat];
 	Nation* NT = NATIONS + Nat;
 	AiIsRunNow = true;
@@ -5819,8 +5823,12 @@ void LoadAIFromDLL( byte Nat, char* Name )
 		{
 			char cc[128];
 			sprintf( cc, "%s : Could not load <void ProcessAI()>", Name );
+#ifdef _WIN32
 			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "AI loadind from DLL", cc, sdlWindow);
 			assert( 0 );
+#else
+			fprintf( stderr, "LoadAIFromDLL: %s\n", cc );
+#endif
 		}
 		else
 		{
@@ -5829,13 +5837,21 @@ void LoadAIFromDLL( byte Nat, char* Name )
 			{
 				char cc[128];
 				sprintf( cc, "%s : Could not load <void InitAI()>", Name );
+#ifdef _WIN32
 				SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "AI loadind from DLL", cc, sdlWindow);
 				assert( 0 );
+#else
+				fprintf( stderr, "LoadAIFromDLL: %s\n", cc );
+				NT->ProcessAIinDLL = NULL;
+#endif
 			}
-			AiIsRunNow = true;
-			INITAI();
-			AiIsRunNow = false;
-			NT->DLLName = Name;
+			else
+			{
+				AiIsRunNow = true;
+				INITAI();
+				AiIsRunNow = false;
+				NT->DLLName = Name;
+			}
 		}
 	}
 	else
@@ -5843,12 +5859,15 @@ void LoadAIFromDLL( byte Nat, char* Name )
 #ifndef STARFORCE
 		char cc[128];
 		sprintf( cc, "Could not load %s", Name );
+#ifdef _WIN32
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "AI loadind from DLL", cc, sdlWindow);
 		assert( 0 );
+#else
+		fprintf( stderr, "LoadAIFromDLL: %s\n", cc );
+#endif
 #endif
 	}
 }
-#endif // _WIN32
 
 extern char PlName[64];
 void SavePlayerData( char* Name )

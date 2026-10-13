@@ -6061,6 +6061,8 @@ bool MPL_WaitingBattleGame( bool Host, int BattleID )
 	return ( ItemChoose == mcmOk ) || PlayerMenuMode != 1;//ItemChoose==mcmOk;
 }
 
+#endif // _WIN32 (the lobby above is Windows-only; the pieces below are cross-platform)
+
 void CreateNationalMaskForRandomMap( char* );
 void CreateMaskForSaveFile( char* );
 void CreateNationalMaskForMap( char* );
@@ -6088,7 +6090,6 @@ int DetermineNationAI( byte Nat )
 bool GetPreview( char* Name, byte* Data );
 
 extern int RunMethod;
-#endif // _WIN32
 
 #ifndef _WIN32
 // Single-player game start: declarations for pieces implemented in
@@ -6122,6 +6123,25 @@ bool SingleOptions()
 		// Offline single-player start. Same as StartIGame( SINGLE ) +
 		// ComeInGame() from mplayer.cpp, minus the DirectPlay send paths.
 		memcpy( NatRefTBL, MPL_NatRefTBL, 8 );
+
+		// StartIGame fills COMPSTART from the host player's COMPINFO before
+		// the network start packet; offline single player copies it directly.
+		// PrepareGameMedia decodes it (slot color/nation/difficulty/team) and
+		// calls StartAIEx for every enabled computer slot.
+		extern word COMPSTART[8];
+		int HostID = -1;
+		for ( int i = 0; i < 8; i++ )
+		{
+			if ( PINFO[i].Host )
+			{
+				HostID = i;
+			}
+		}
+		if ( HostID == -1 )
+		{
+			HostID = 0;
+		}
+		memcpy( COMPSTART, PINFO[HostID].COMPINFO, sizeof COMPSTART );
 
 		NeedCurrentTime = GetSDLTickCount();
 

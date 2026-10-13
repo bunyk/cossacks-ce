@@ -49,11 +49,16 @@ typedef unsigned int UINT;
 // Handle to a DDL or something
 typedef void* HINSTANCE;
 
-// Windows DLL loading has no Linux equivalent in this port;
-// LoadLibrary fails (returns NULL) so callers take their error paths.
-#define LoadLibrary(Name) ((HINSTANCE)0)
-#define FreeLibrary(Lib)
-#define GetProcAddress(Lib, Name) ((void*)0)
+// Dynamic library loading: implemented via dlopen in os.cpp.
+// Windows names like "AI\Algeria.dll" are tried as-is (with backslashes
+// converted), then with the .dll extension swapped for .so.
+HINSTANCE osLoadLibrary(const char* Name);
+void osFreeLibrary(HINSTANCE Lib);
+void* osGetProcAddress(HINSTANCE Lib, const char* Name);
+
+#define LoadLibrary(Name) osLoadLibrary(Name)
+#define FreeLibrary(Lib) osFreeLibrary(Lib)
+#define GetProcAddress(Lib, Name) osGetProcAddress((Lib), (Name))
 
 // Global memory allocator shims (only fixed blocks were used)
 #define GMEM_FIXED 0
