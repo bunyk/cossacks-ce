@@ -10,12 +10,30 @@
 
 #ifndef _WIN32
 #include <string>
+#include <dirent.h>
+#include <ctype.h>
 // Convert Windows backslash paths to forward slashes for Linux.
 static std::string toLinuxPath( LPCSTR path )
 {
     std::string s( path );
     for (char& c : s) if (c == '\\') c = '/';
     return s;
+}
+// Case-insensitive wildcard match ('*' and '?'), mirroring what FindFirstFile
+// does with the up-cased mask on Windows (used by gFindFirst's disk scan).
+static bool WildMatchCI( const char* pat, const char* name )
+{
+    const char *p = pat, *s = name, *star = NULL, *ss = NULL;
+    while (*s)
+    {
+        if (*p == '?' || tolower( (unsigned char)*p ) == tolower( (unsigned char)*s ))
+        { p++; s++; }
+        else if (*p == '*') { star = p++; ss = s; }
+        else if (star) { p = star + 1; s = ++ss; }
+        else return false;
+    }
+    while (*p == '*') p++;
+    return *p == 0;
 }
 #endif
 
@@ -266,6 +284,44 @@ LPGSCFindInfo CGSCset::gFindFirst( LPCSTR lpcsMask )
 	};
 
 	FindClose( hFindFile );
+#else
+	// POSIX disk enumeration, mirroring the FindFirstFile block above:
+	// scan the mask's own directory and keep the entries whose name matches
+	// the up-cased mask (wildcards '*' and '?', case-insensitive). Without
+	// this, files that only exist on disk (e.g. generated *.m3d maps) are
+	// never listed on Linux.
+	{
+		std::string maskPath = toLinuxPath( sUpMask );
+		size_t slash = maskPath.rfind( '/' );
+		std::string dir = (slash == std::string::npos) ? "." : maskPath.substr( 0, slash );
+		std::string pat = (slash == std::string::npos) ? maskPath : maskPath.substr( slash + 1 );
+
+		DIR* dirp = opendir( dir.c_str() );
+		if (dirp)
+		{
+			struct dirent* de;
+			while ((de = readdir( dirp )) != NULL)
+			{
+				if (!WildMatchCI( pat.c_str(), de->d_name )) continue;
+				if (!lpFindInfo)
+				{
+					lpFindInfo = new TGSCFindInfo;
+					lpFindInfo->m_Pos = NULL;
+					lpFindInfo->m_FileList = NULL;
+
+					lpFileList = new TGSCFileList;
+					lpFindInfo->m_FileList = lpFileList;
+					lpFindInfo->m_Pos = lpFileList;
+					lpFileList->m_NextEntry = NULL;
+					strncpy( lpFileList->m_FileName, de->d_name, sizeof( lpFileList->m_FileName ) - 1 );
+					lpFileList->m_FileName[sizeof( lpFileList->m_FileName ) - 1] = 0;
+				}
+				else
+					AddItem( lpFindInfo->m_FileList, de->d_name );
+			}
+			closedir( dirp );
+		}
+	}
 #endif // _WIN32 (disk enumeration; archives below are portable)
 
 	LPGSCArchList	pArchList = m_ArchList;

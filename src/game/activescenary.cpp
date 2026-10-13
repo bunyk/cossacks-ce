@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
+#include <sys/stat.h>
 
 #include "ddini.h"
 #include "activescenary.h"
@@ -5873,7 +5874,15 @@ extern char PlName[64];
 void SavePlayerData( char* Name )
 {
 	char cc[200];
+#ifndef _WIN32
+	// Mirror the Linux branch of SFLB_LoadPDATA: forward-slash path. The
+	// Players directory may be missing in a fresh install, so create it
+	// (mkdir with an existing dir just fails with EEXIST, which is fine).
+	mkdir( "Players", 0755 );
+	sprintf( cc, "Players/%s.txt", Name );
+#else
 	sprintf( cc, "Players\\%s.txt", Name );
+#endif
 	GFILE* F = Gopen( cc, "w" );
 	if ( F )
 	{
