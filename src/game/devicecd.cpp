@@ -158,6 +158,7 @@ bool CDeviceCD::SetVolume(DWORD Volume)
 }
 bool CDeviceCD::Play(DWORD Track)
 {
+	fprintf(stderr, "DBG CDeviceCD::Play: track=%lu FOpened=%d\n", (unsigned long)Track, (int)FOpened);
 	if (!FOpened)
 	{
 		// Lazy init (constructor ran too early, before SDL/FilesInit):
@@ -196,6 +197,8 @@ bool CDeviceCD::Play(DWORD Track)
 		// TODO: probably need to make this in a separate thread to avoid blocking the main thread with decoding
 		// (if SDL doesn't call this from a separate thread already)
 		dataRead = stb_vorbis_decode_filename(filename, &channels, &sampleRate, &buffer);
+		fprintf(stderr, "DBG CDeviceCD::Play: track=%lu file='%s' decode=%d ch=%d rate=%d\n",
+			(unsigned long)Track, filename, dataRead, channels, sampleRate);
 		if (dataRead == -1)
 		{
 			return false;
@@ -277,6 +280,7 @@ extern uint64_t GetSDLTickCount();
 
 void PlayRandomTrack()
 {
+	fprintf(stderr, "DBG PlayRandomTrack: PlayMode=%d CurrentNation=%d\n", PlayMode, CurrentNation);
 	if (PlayMode == 1 && CurrentNation != -1) {
 		PlayCDTrack(TracksMask[CurrentNation]);
 		return;

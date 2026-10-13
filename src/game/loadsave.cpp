@@ -3215,6 +3215,12 @@ int LX_fmap;
 
 word GetV_fmap( int x, int y )
 {
+	// Fog-of-war is not ported yet (fog.cpp asm regions): fmap is never
+	// filled on Linux, which permanently returned 0 here and muted every
+	// war/work/order sound (they gate on GetV_fmap(...) >= 2000). While
+	// fog is off, treat the whole map as visible. Remove together with
+	// the real fog.cpp port.
+	if (!FogMode) return 32000;
 	ARR_RETVAL( x, y, fmap, LX_fmap );
 }
 

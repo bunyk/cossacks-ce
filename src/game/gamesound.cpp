@@ -149,9 +149,11 @@ void LoadSounds(char* fn) {
 
 DLLEXPORT void PlayEffect(int n, int pan, int vol) {
 	static int dbgPlayCount = 0;
-	if (dbgPlayCount < 5)
+	static int dbgTotal = 0;
+	dbgTotal++;
+	if (dbgPlayCount < 5 || (dbgTotal % 200) == 0)
 	{
-		fprintf(stderr, "DBG PlayEffect: n=%d SoundOK=%d %s\n", n, (int)SoundOK, n >= 0 && n < NSounds ? (NSnd[n] > 0 ? "buffered" : "EMPTY") : "out-of-range");
+		fprintf(stderr, "DBG PlayEffect: n=%d SoundOK=%d %s (total=%d)\n", n, (int)SoundOK, n >= 0 && n < NSounds ? (NSnd[n] > 0 ? "buffered" : "EMPTY") : "out-of-range", dbgTotal);
 		dbgPlayCount++;
 	}
 	if (!SoundOK)return;

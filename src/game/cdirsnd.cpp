@@ -11,6 +11,9 @@
 #include <time.h>
 #include <stdio.h>
 
+// Mixes up to additionalAmount bytes from one playing sound buffer into dest.
+// dest receives additionalAmount BYTES of S16 stereo samples.
+// Volume/pan use the DirectSound-style dB values stored on the buffer.
 static void StreamAudioBuffer(SoundBuffer* pSoundBuffer, Sint16* destSamples, int additionalAmount)
 {
 	if (!pSoundBuffer->playing)
@@ -18,110 +21,88 @@ static void StreamAudioBuffer(SoundBuffer* pSoundBuffer, Sint16* destSamples, in
 		return;
 	}
 
-	int bufferSize = (additionalAmount < (int)(pSoundBuffer->size - pSoundBuffer->pos) ? additionalAmount : (int)(pSoundBuffer->size - pSoundBuffer->pos));
-
-	// FIXME: the size in bytes should be just additionalAmount since it's the size in bytes, not words
-	Sint16* samples = (Sint16*)malloc(sizeof(Sint16) * bufferSize);
-	memcpy(samples, (byte*)pSoundBuffer->data + pSoundBuffer->pos, (size_t)bufferSize);
-	// Some fade-out effect?
-	//if (bufferSize < additionalAmount)
-	//{
-	//	float endQueue;
-	//	for (int i = 0; i < bufferSize; i += 2)
-	//	{
-	//		endQueue = clip->currentVolume - (clip->currentVolume / bufferSize) * i;
-	//		endQueue = endQueue > 0.05f ? endQueue : 0.0f;
-	//		samples[i] *= endQueue * clip->leftPan;
-	//		samples[i + 1] *= endQueue * clip->rightPan;
-	//		destSamples[i] += samples[i];
-	//		destSamples[i + 1] += samples[i + 1];
-	//	}
-	//}
-	//else
-	if (true)
+	int chunkBytes = (int)(pSoundBuffer->size - pSoundBuffer->pos);
+	if (chunkBytes > additionalAmount)
 	{
-		// FIXME: bufferSize is size in bytes, and since we operate words in samples, bufferSize/2 iterations are enough
-		for (int i = 0; i < bufferSize; i += 2)
-		{
-			// TODO: calculate float volume and pans in Set functions so we don't load the CPU here
-			float volume = pow(10.0f, pSoundBuffer->volume / 2000.0f);
-			float leftPan;
-			float rightPan;
-			if (pSoundBuffer->pan < 0)
-			{
-				leftPan = 1.0f;
-				rightPan = pow(10.0f, pSoundBuffer->pan / 2000.0f);
-			}
-			else if (pSoundBuffer->pan > 0) {
-				leftPan = pow(10.0f, -pSoundBuffer->pan / 2000.0f);
-				rightPan = 1.0f;
-			}
-			else
-			{
-				leftPan = 1.0f;
-				rightPan = 1.0f;
-			}
-			if (volume < 0.0001f) volume = 0.0f;
-			else if (volume > 1.0f) volume = 1.0f;
-			if (leftPan < 0.0001) leftPan = 0;
-			else if (leftPan > 1.0f) leftPan = 1.0f;
-			if (rightPan < 0.0001) rightPan = 0;
-			else if (rightPan > 1.0f) rightPan = 1.0f;
-
-			samples[i] *= volume * leftPan;
-			samples[i + 1] *= volume * rightPan;
-			destSamples[i] += samples[i];
-			destSamples[i + 1] += samples[i + 1];
-		}
+		chunkBytes = additionalAmount;
 	}
-	pSoundBuffer->pos += bufferSize;
+	if (chunkBytes <= 0)
+	{
+		pSoundBuffer->playing = false;
+		return;
+	}
+
+	// DirectSound volume: 0 (loudest) .. -10000; pow scale, clamped to 0..1
+	float volume = pow(10.0f, pSoundBuffer->volume / 2000.0f);
+	if (volume < 0.0001f) volume = 0.0f;
+	else if (volume > 1.0f) volume = 1.0f;
+
+	// DirectSound pan: -10000 (left only) .. 10000 (right only)
+	float leftPan, rightPan;
+	if (pSoundBuffer->pan < 0)
+	{
+		leftPan = 1.0f;
+		rightPan = pow(10.0f, pSoundBuffer->pan / 2000.0f);
+	}
+	else if (pSoundBuffer->pan > 0)
+	{
+		leftPan = pow(10.0f, -pSoundBuffer->pan / 2000.0f);
+		rightPan = 1.0f;
+	}
+	else
+	{
+		leftPan = 1.0f;
+		rightPan = 1.0f;
+	}
+	if (leftPan < 0.0001f) leftPan = 0;
+	else if (leftPan > 1.0f) leftPan = 1.0f;
+	if (rightPan < 0.0001f) rightPan = 0;
+	else if (rightPan > 1.0f) rightPan = 1.0f;
+
+	const Sint16* src = (const Sint16*)((byte*)pSoundBuffer->data + pSoundBuffer->pos);
+	int chunkSamples = chunkBytes / 2;
+	for (int i = 0; i < chunkSamples; i += 2)
+	{
+		float l = src[i] * volume * leftPan;
+		float r = src[i + 1] * volume * rightPan;
+		int dl = destSamples[i] + (int)l;
+		int dr = destSamples[i + 1] + (int)r;
+		destSamples[i] = (Sint16)(dl > 32767 ? 32767 : (dl < -32768 ? -32768 : dl));
+		destSamples[i + 1] = (Sint16)(dr > 32767 ? 32767 : (dr < -32768 ? -32768 : dr));
+	}
+
+	pSoundBuffer->pos += chunkBytes;
 
 	if (pSoundBuffer->pos >= pSoundBuffer->size)
 	{
-		//if (clip->loop == SDL_TRUE)
-		//{
-		//	clip->audioLength = 0;
-		//	clip->audioPos = clip->wavBuffer;
-		//}
-		//else
-		if (true)
+		pSoundBuffer->playing = false;
+	}
+}
+
+// One get-callback for the whole system: mix every playing buffer into a
+// fresh block and put the result on the (single) master stream.
+static void SDLCALL MasterStreamCallback(void* userdata, SDL_AudioStream* stream, int additionalAmount, int totalAmount)
+{
+	CDirSound* ds = (CDirSound*)userdata;
+
+	Sint16* mix = (Sint16*)malloc(additionalAmount);
+	if (!mix)
+	{
+		return;
+	}
+	memset(mix, 0, additionalAmount);
+
+	for (int i = 1; i <= (int)ds->m_currentBufferNum; i++)
+	{
+		SoundBuffer* sb = ds->m_bufferPointers[i];
+		if (sb && sb->playing)
 		{
-			pSoundBuffer->playing = false;
+			StreamAudioBuffer(sb, mix, additionalAmount);
 		}
 	}
 
-	free(samples);
-}
-
-static void SDLCALL AudioStreamCallback(void* userdata, SDL_AudioStream* stream, int additionalAmount, int totalAmount)
-{
-	SoundBuffer* pSoundBuffer = (SoundBuffer*)userdata;
-
-	// FIXME: the size in bytes should be just additionalAmount since it's the size in bytes, not words
-	Sint16* samples = (Sint16*)malloc(sizeof(Sint16) * additionalAmount);
-	memset(samples, '\0', additionalAmount);
-
-	StreamAudioBuffer(pSoundBuffer, samples, additionalAmount);
-
-	Sint8* copiedSamples = (Sint8*)malloc(additionalAmount);
-	memset(copiedSamples, '\0', additionalAmount);
-	memcpy(copiedSamples, ((const Sint16*)samples), (size_t)additionalAmount);
-
-	Uint8* mixBuffer = (Uint8*)malloc(additionalAmount);
-	memset(mixBuffer, '\0', additionalAmount);
-	float volume = pow(10.0f, pSoundBuffer->volume / 2000.0f);
-	if (!SDL_MixAudio(mixBuffer, (const Uint8*)copiedSamples, SDL_AUDIO_S16, additionalAmount, volume))
-	{
-		SDL_Log("Error mixing the bus samples %s", SDL_GetError());
-	}
-	if (!SDL_PutAudioStreamData(stream, mixBuffer, additionalAmount))
-	{
-		SDL_Log("Could not put data on Audio stream, %s", SDL_GetError());
-	}
-
-	free(samples);
-	free(copiedSamples);
-	free(mixBuffer);
+	SDL_PutAudioStreamData(stream, mix, additionalAmount);
+	free(mix);
 }
 
 ///////////////////////////////////////////////////////////
@@ -133,6 +114,7 @@ void CDirSound::CreateDirSound()
 {
 	// Initialize class data members.
 	m_currentBufferNum = 0;
+	m_masterStream = NULL;
 
 	for (UINT x = 0; x < MAXSND1; ++x)
 	{
@@ -150,6 +132,15 @@ void CDirSound::CreateDirSound()
 		if (m_SDLAudioDeviceID)
 		{
 			SDL_ResumeAudioDevice(m_SDLAudioDeviceID);
+			// ONE master stream for the whole system; its get-callback mixes
+			// all playing buffers (replaces the old one-stream-per-buffer
+			// design that opened ~200 streams on the device).
+			m_masterStream = SDL_OpenAudioDeviceStream(m_SDLAudioDeviceID, &m_audioSpec, MasterStreamCallback, this);
+			fprintf(stderr, "DBG CreateDirSound: master stream=%p err='%s'\n", (void*)m_masterStream, SDL_GetError());
+			if (m_masterStream)
+			{
+				SDL_ResumeAudioStreamDevice(m_masterStream);
+			}
 		}
 	}
 }
@@ -184,7 +175,12 @@ void CDirSound::ReleaseAll()
 		m_bufferPointers[x] = NULL;
 	}
 
-	// Release the DirectSound object.
+	// Release the master stream, then the DirectSound object.
+	if (m_masterStream)
+	{
+		SDL_DestroyAudioStream(m_masterStream);
+		m_masterStream = NULL;
+	}
 	if (m_SDLAudioDeviceID)
 		SDL_CloseAudioDevice(m_SDLAudioDeviceID);
 }
@@ -236,17 +232,7 @@ UINT CDirSound::DuplicateSoundBuffer(UINT bufferNum)
 	}
 	memcpy(m_bufferPointers[m_currentBufferNum], m_bufferPointers[bufferNum], sizeof(SoundBuffer));
 	m_bufferPointers[m_currentBufferNum]->isDuplicated = true;
-
-	m_bufferPointers[m_currentBufferNum]->stream = SDL_OpenAudioDeviceStream(m_SDLAudioDeviceID, &m_audioSpec, AudioStreamCallback, m_bufferPointers[m_currentBufferNum]);
-	if (m_bufferPointers[m_currentBufferNum]->stream == nullptr)
-	{
-		return 0;
-	}
-	if (!SDL_ResumeAudioStreamDevice(m_bufferPointers[m_currentBufferNum]->stream))
-	{
-		SDL_DestroyAudioStream(m_bufferPointers[m_currentBufferNum]->stream);
-		return 0;
-	}
+	// No per-buffer stream: the master stream's callback mixes all buffers.
 
 	return m_currentBufferNum;
 }
@@ -257,8 +243,6 @@ UINT CDirSound::DuplicateSoundBuffer(UINT bufferNum)
 ///////////////////////////////////////////////////////////
 BOOL CDirSound::CopyWaveToBuffer(CWave* pWave, UINT bufferNum)
 {
-	bool success;
-
 	// Check for a valid buffer number.
 	if ((bufferNum > m_currentBufferNum) || (bufferNum == 0))
 		return FALSE;
@@ -267,22 +251,7 @@ BOOL CDirSound::CopyWaveToBuffer(CWave* pWave, UINT bufferNum)
 	SoundBuffer* pSoundBuffer =
 		m_bufferPointers[bufferNum];
 
-	m_bufferPointers[m_currentBufferNum]->stream = SDL_OpenAudioDeviceStream(m_SDLAudioDeviceID, &m_audioSpec, AudioStreamCallback, m_bufferPointers[m_currentBufferNum]);
-	if (m_bufferPointers[m_currentBufferNum]->stream == nullptr)
-	{
-		return false;
-	}
-	if (!SDL_ResumeAudioStreamDevice(m_bufferPointers[m_currentBufferNum]->stream))
-	{
-		SDL_DestroyAudioStream(m_bufferPointers[m_currentBufferNum]->stream);
-		return false;
-	}
-
-
-	// Lock the buffer.
-	success = SDL_LockAudioStream(pSoundBuffer->stream);
-	if (!success)
-		return FALSE;
+	// No per-buffer stream: the master stream's callback mixes all buffers.
 
 	// Copy the data into the buffer.
 	char* pWaveData = pWave->GetWaveDataPtr();
@@ -290,8 +259,6 @@ BOOL CDirSound::CopyWaveToBuffer(CWave* pWave, UINT bufferNum)
 	pSoundBuffer->data = malloc(pSoundBuffer->size);
 	pSoundBuffer->spec = *pWave->GetWaveSpecPtr();
 	memcpy(pSoundBuffer->data, pWaveData, pSoundBuffer->size);
-
-	SDL_UnlockAudioStream(pSoundBuffer->stream);
 
 	return TRUE;
 }
@@ -331,7 +298,6 @@ BOOL CDirSound::PlaySoundNum(UINT bufferNum)
 	pSoundBuffer->pos = 0;
 	// Play the sound.
 	pSoundBuffer->playing = true;
-
 	return true;
 }
 BOOL CDirSound::PlayCoorSound(UINT bufferNum, int x, int vx)

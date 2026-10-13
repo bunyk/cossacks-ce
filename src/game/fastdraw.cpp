@@ -2598,8 +2598,11 @@ void ShowRLCItem( int x, int y, lpRLCTable lprt, int n, byte nt )
 	   //
 int GetRLCWidth( RLCTable lpr, byte n )
 {
-	int GPID = int( lpr );
-	if (GPID < 4096)
+	// 64-BIT FIX: font-handle-vs-pointer test. int(lpr) truncated 64-bit heap
+	// pointers to negative values which passed "GPID < 4096" (PortingNotes
+	// pattern #3). Compare the pointer width instead; handles are small ints.
+	int GPID = (int)(uintptr_t)( lpr );
+	if ((uintptr_t)lpr < 4096)
 	{
 		if (n == 32)
 		{
@@ -2636,8 +2639,9 @@ int GetRLCWidthUNICODE( RLCTable lpr, byte* strptr, int* L )
 			( GetCHEX( strptr[2] ) << 8 ) +
 			( GetCHEX( strptr[3] ) << 4 ) +
 			GetCHEX( strptr[4] );
-		int GPID = int( lpr );
-		if (GPID < 4096)
+		// 64-BIT FIX: font-handle-vs-pointer test (see GetRLCWidth)
+		int GPID = (int)(uintptr_t)( lpr );
+		if ((uintptr_t)lpr < 4096)
 		{
 			UNICODETABLE* UT = GPS.UNITBL[GPID];
 			if (!UT)return 0;
@@ -2672,8 +2676,11 @@ int GetRLCWidthUNICODE( RLCTable lpr, byte* strptr, int* L )
 
 DLLEXPORT int GetRLCHeight( RLCTable lpr, byte n )
 {
-	int GPID = int( lpr );
-	if (GPID < 4096)
+	// 64-BIT FIX: font-handle-vs-pointer test. int(lpr) truncated 64-bit heap
+	// pointers to negative values which passed "GPID < 4096" (PortingNotes
+	// pattern #3). Compare the pointer width instead; handles are small ints.
+	int GPID = (int)(uintptr_t)( lpr );
+	if ((uintptr_t)lpr < 4096)
 	{
 		return GPS.GetGPHeight( GPID, n );
 	}

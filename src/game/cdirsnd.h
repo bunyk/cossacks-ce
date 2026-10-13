@@ -39,15 +39,22 @@ struct SoundBuffer {
 class CDirSound
 {
 protected:
-    //LPDIRECTSOUND m_pDirectSoundObj;
+    //SDL_AudioDeviceID m_SDLAudioDeviceID;
 	SDL_AudioDeviceID m_SDLAudioDeviceID;
     //HWND m_hWindow;
     //LPDIRECTSOUNDBUFFER m_bufferPointers[MAXSND1];
     //DWORD m_bufferSizes[MAXSND1];
 	SoundBuffer* m_bufferPointers[MAXSND1];
     SDL_AudioSpec m_audioSpec = { SDL_AUDIO_S16, 2, 22050 };
+    // ONE stream for the whole system; the get-callback mixes all playing
+    // buffers into it (DirectSound-style). The old design opened one SDL
+    // stream per sound buffer (~200 open streams), which PipeWire/Pulse
+    // could not sustain and audio dropped out intermittently.
+    SDL_AudioStream* m_masterStream;
 
 public:
+	// Needs access to m_bufferPointers/m_currentBufferNum for mixing
+	friend void SDLCALL MasterStreamCallback(void* userdata, SDL_AudioStream* stream, int additionalAmount, int totalAmount);
 	//short Volume[MAXSND1];
 	//short SrcX[MAXSND1];
 	//short SrcY[MAXSND1];
