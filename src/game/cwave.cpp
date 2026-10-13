@@ -41,7 +41,14 @@ BOOL CWave::LoadWaveFile(char* fileName)
 {
 	Uint8* audio_buf;
     Uint32 audio_len;
-    bool success = SDL_LoadWAV(fileName, &m_waveSpec, &audio_buf, &audio_len);
+    // SoundList.txt uses Windows paths ("Sound\ResKam1.wav"); SDL_LoadWAV
+    // needs forward slashes on Linux.
+    char linuxName[512];
+    int i;
+    for (i = 0; fileName[i] && i < 511; i++)
+        linuxName[i] = fileName[i] == '\\' ? '/' : fileName[i];
+    linuxName[i] = 0;
+    bool success = SDL_LoadWAV(linuxName, &m_waveSpec, &audio_buf, &audio_len);
     if (!success)
     {
         return false;

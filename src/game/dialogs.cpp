@@ -12,10 +12,10 @@
 #include "fonts.h"
 #include "lines.h"
 
-#ifdef _WIN32
+// cdirsnd.h (MaxSnd) + gsound.h: needed by GetSound/SimpleDialog::AssignSound,
+// now cross-platform (were _WIN32-only includes).
 #include "cdirsnd.h"
 #include "gsound.h"
-#endif // _WIN32
 
 int ROLLU2 = 1;
 extern int UNI_LINEDLY1;
@@ -33,9 +33,9 @@ extern SDL_Keycode LastKey;
 extern bool MUSTDRAW;
 extern int RealLx;
 extern int RealLy;
-#ifdef _WIN32
+// Used by GetSound/SimpleDialog::AssignSound (now cross-platform)
 extern char* SoundID[MaxSnd];
-#endif // _WIN32
+extern word NSounds;
 extern byte LastAsciiKey;
 void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr );
 #ifdef _WIN32
@@ -67,7 +67,9 @@ DLLEXPORT void SetCurPtr( int v )
 
 DLLEXPORT int GetSound( char* Name )
 {
-#ifdef _WIN32
+	// Cross-platform: SearchStr + ErrM are portable. Was entirely
+	// _WIN32-guarded, which made it fall off the end of a non-void
+	// function on Linux and return garbage sound IDs.
 	if (!NSounds)return -1;
 	int ID = SearchStr( SoundID, Name, NSounds );
 	if (ID == -1)
@@ -79,7 +81,6 @@ DLLEXPORT int GetSound( char* Name )
 		return -1;
 	};
 	return ID;
-#endif // _WIN32
 }
 
 DialogsSystem::DialogsSystem( int x, int y )
@@ -4908,7 +4909,8 @@ void SimpleDialog::AssignSound( int ID, int Usage )
 
 void SimpleDialog::AssignSound( char* Name, int Usage )
 {
-#ifdef _WIN32
+	// Cross-platform (SearchStr/ErrM are portable). Was entirely
+	// _WIN32-guarded: on Linux no button ever got its click sound.
 	int ID = SearchStr( SoundID, Name, NSounds );
 	if (ID == -1)
 	{
@@ -4918,7 +4920,6 @@ void SimpleDialog::AssignSound( char* Name, int Usage )
 		return;
 	};
 	AssignSound( ID, Usage );
-#endif // _WIN32
 };
 
 extern void yield();

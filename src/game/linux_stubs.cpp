@@ -47,7 +47,7 @@ byte MI_Mode = 0;
 byte NeedToPopUp = 0;
 word NTextures = 0;
 bool OptHidden = false;
-int OrderSound = 0;
+int OrderSound = 100;
 int PREVGLOBALTIME = 0;
 word PrevRpos = 0;
 int RM_LandType = 0;
@@ -64,8 +64,12 @@ int TM_Tan0 = 0;
 int TM_Tan1 = 0;
 bool ToolsHidden = false;
 bool TP_Made = false;
-int WarSound = 0;
-int WorkSound = 0;
+// Sound volumes: DirectSound-style slider positions (0..100). 0 would mean
+// near-silence (PlayEffect subtracts (100-WarSound)*40 from the volume);
+// on Windows these load from mode.dat, which Linux does not read - default
+// to full volume instead. The options dialog writes back real values.
+int WarSound = 100;
+int WorkSound = 100;
 DWORD RealTime = 0;
 
 // network / internet objects (mplayer.cpp, ir_main.cpp are not ported)
@@ -121,7 +125,8 @@ word GetTexture() { return 0; }
 int  GetTreeItem() { return 0; }
 void Init_GP_IMG() {}
 bool IsGameActive() { return false; }
-void LoadPalettes() {}
+// LoadPalettes: real implementation in fastdraw.cpp (loads PAL1..7 for
+// ShowRLCItem nation tints - wheat fields were black without it)
 void LoadMapInterface() {}
 void LoadSaveFile() {}
 void ProcessMapInterface() {}
@@ -225,14 +230,11 @@ bool ShowStatistics()
 	return false;
 }
 
-// CD-audio API (devicecd.cpp - Windows MCI CD player, not ported).
-// The options dialogs call these; volumes are no-ops without a CD engine.
-int  GetCDVolume() { return 0; }
-void SetCDVolume( int Vol ) { (void)Vol; }
-void StopPlayCD() {}
-void PlayRandomTrack() {}
-// Music volume as the options dialog slider sees it (no CD/MIDI engine yet)
-int MidiSound = 0;
+// CD-audio/music: real implementations now in devicecd.cpp (SDL3 audio
+// stream + stb_vorbis "Tracks/Track_XX.ogg"); stubs deleted.
+// MidiSound stays here: it is only the options-slider state variable
+// (interface.cpp's definition is inside a _WIN32 region). 100 = full.
+int MidiSound = 100;
 // IChat library callback (DLLIMPORT in interface.cpp); no-op without the DLL
 void GoHomeAnyway() {}
 // Multiplayer lobby screens; single-player play never reaches them.

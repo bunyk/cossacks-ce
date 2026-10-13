@@ -9,6 +9,7 @@
 #include <math.h>
 #include <string.h>
 #include <time.h>
+#include <stdio.h>
 
 static void StreamAudioBuffer(SoundBuffer* pSoundBuffer, Sint16* destSamples, int additionalAmount)
 {
@@ -141,9 +142,11 @@ void CDirSound::CreateDirSound()
 	// Create the main SDL audio device.
 	bool success;
 	success = SDL_InitSubSystem(SDL_INIT_AUDIO);
+	fprintf(stderr, "DBG CreateDirSound: SDL_InitSubSystem(AUDIO)=%d err='%s'\n", (int)success, SDL_GetError());
 	if (success)
 	{
 		m_SDLAudioDeviceID = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &m_audioSpec);
+		fprintf(stderr, "DBG CreateDirSound: device=%u err='%s'\n", (unsigned)m_SDLAudioDeviceID, SDL_GetError());
 		if (m_SDLAudioDeviceID)
 		{
 			SDL_ResumeAudioDevice(m_SDLAudioDeviceID);
@@ -398,8 +401,7 @@ void CDirSound::SetPan(UINT bufferNum, int pan) {
 	// Get a pointer to the requested buffer.
 	SoundBuffer* pSoundBuffer = m_bufferPointers[bufferNum];
 
-	// Make sure the buffer is set to play from the beginning.
-	pSoundBuffer->pan;
+	pSoundBuffer->pan = pan;
 }
 
 void CDirSound::ProcessSoundSystem()
@@ -449,19 +451,14 @@ int CDirSound::GetPos(UINT bufferNum)
 
 bool CDirSound::IsPlaying(UINT bufferNum)
 {
-	HRESULT result;
-
 	// Check for a valid buffer number.
 	if ((bufferNum > m_currentBufferNum) || (bufferNum == 0))
 	{
 		return 0;
 	}
 
-	return false;
-
 	// Get a pointer to the requested buffer.
 	SoundBuffer* pSoundBuffer = m_bufferPointers[bufferNum];
 
-	// Make sure the buffer is set to play from the beginning.
 	return pSoundBuffer->playing;
 }

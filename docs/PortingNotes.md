@@ -457,6 +457,88 @@ nation logs `LoadLibrary(AI\X.dll) failed` and stays inert. `TryUnit`
 validates `Type=='UTYP'` so unregistered units are safely ignored - wrong-
 nation modules would be inert, not fatal.
 
+ROUND 3 (the actual in-game silence): **GetSound and
+SimpleDialog::AssignSound(char*,int) (dialogs.cpp) had their ENTIRE BODIES
+inside `#ifdef _WIN32`** - the empty-function trap in non-void form: on
+Linux GetSound fell off the end and returned GARBAGE (observed n=19637 in
+PlayEffect), so EVERY sound ID in the game was garbage -> every
+PlayEffect/PlayCoorEffect call hit `if (n < NSounds)` false -> silence
+even though the device was open and 197 buffers were loaded (DBG probes
+confirmed: SoundOK=1 NSounds=60 total=197). Un-guarded both (plain
+SearchStr/ErrM code), plus their supporting decls: dialogs.cpp's
+`#include "cdirsnd.h"/"gsound.h"` (MaxSnd) and `extern char* SoundID[];
+extern word NSounds;` were also _WIN32-only. DBG probes still in
+(CreateDirSound/LoadSounds/PlayEffect in cdirsnd.cpp/gamesound.cpp) -
+strip once sound is confirmed audible.
+
+## Sound + music enabled (2026-10-13)
+
+ROUND 2 (the "I don't hear anything" fix): **the vendored SDL3 had NO audio
+drivers** - it was configured before libasound2-dev/libpulse-dev/
+libpipewire-0.3-dev were installed, so libSDL3.so contained only the
+dummy + disk audio drivers ("No available audio device" - the game then
+sets SoundOK=false and silently loads zero sound buffers). After
+installing those packages: `cmake -B build -U "ALSA_*" -U "PULSEAUDIO_*"
+-U "PIPEWIRE_*" -U "JACK_*" -U "SNDIO_*"` to un-cache the NOTFOUND find
+results, rebuild -> libSDL3.so now has pipewire/pulseaudio/alsa.
+Verified OFFLINE with a scratchpad harness (sndtest.cpp linking
+cdirsnd.cpp+cwave.cpp directly): device opens, wav loads, and GetPos()
+advances at exactly 88200 B/s = real time for S16/2ch/22050 - the device
+callback IS pulling real data. ALSO fixed two fork bugs in cdirsnd.cpp:
+- `IsPlaying` had an unconditional `return false;` at the top (rest dead
+  code) - PlayEffect's "don't replay a sound that is already playing"
+  logic never worked (every trigger re-fired; harmless but wrong), and
+  ControlPan's rand()<350 check never worked.
+- `SetPan` was a NO-OP statement (`pSoundBuffer->pan;` - missing `= pan`)
+  - all stereo panning was dead; now assigned.
+- The byte-vs-word confusion in AudioStreamCallback/StreamAudioBuffer was
+  audited: despite the sloppy sizes, the final A bytes put on the stream
+  are the real first-A-bytes of source with volume/pan applied (the
+  garbage the loop computes beyond that is simply never copied out) -
+  output is correct; the FIXMEs remain cosmetic.
+
+The engine's audio backends were ALREADY SDL3-ported (gamesound.cpp fully
+un-guarded; cdirsnd.cpp = SDL_OpenAudioDevice + per-buffer
+SDL_OpenAudioDeviceStream with a mixing callback; cwave.cpp = SDL_LoadWAV +
+SDL_CreateAudioStream conversion to S16/2ch/22050; devicecd.cpp = full
+SDL3+stb_vorbis rework of the CD player, playing Tracks/Track_XX.ogg).
+What was missing (all fixed this round):
+
+- **The data**: the DK mod's all.gsc contains only SOUNDLIST.TXT + TRACKS.CD -
+  NO wav/ogg files (SDL_LoadWAV/stb_vorbis read loose files, they CANNOT go
+  through the GSC archive). Copied the loose Sound/ (4.9M, 114 wavs - all 112
+  names the mod's SOUNDLIST.TXT references are present) and Tracks/ (32M,
+  18 oggs) from the GOG Back to War install into the game dir.
+- **cwave.cpp**: SoundList paths are Windows-style ("Sound\ResKam1.wav") -
+  now converted backslash->slash before SDL_LoadWAV.
+- **devicecd.cpp was NEVER IN THE BUILD**: added it + newcode/stb_vorbis.c
+  (implementation TU; the .h is STB_VORBIS_HEADER_ONLY wrapper) to CMake.
+  Fixed there: include case ("sdl3/sdl.h" -> "SDL3/SDL.h"), devicecd.h used
+  DWORD/SDL types without includes (now includes SDL3/os.h), "Tracks\\..." ->
+  "Tracks/...", and the LAZY-INIT fix: CDeviceCD CDPLAY is a GLOBAL - its
+  ctor ran before SDL_Init/FilesInit, so Open() failed silently at startup
+  and nothing retried; the ctor is now empty and Play() lazily reads
+  Tracks.cd (via Gopen, works with the archive) + opens the device.
+- **linux_stubs.cpp**: GetCDVolume/SetCDVolume/StopPlayCD/PlayRandomTrack
+  stubs DELETED (real defs now compile). MidiSound stays (options-slider
+  state var only; interface.cpp's def is _WIN32-guarded).
+- **Volume defaults**: WarSound/WorkSound/OrderSound were 0 = near-SILENT
+  (PlayEffect does vol -= (100-WarSound)*40 in DirectSound units;
+  0 -> -4000 -> 1% gain). Windows loads these from mode.dat (guard kept);
+  Linux defaults are now 100 (full). MidiSound likewise 100.
+
+Music flow: Options dialog (main menu or F12) Music combo -> PlayMode=1 ->
+PlayRandomTrack -> PlayCDTrack(TracksMask[...]) -> stb_vorbis decode ->
+SDL audio stream; the stream's get-callback re-arms PlayRandomTrack when
+drained, so it plays continuously. CDPLAY.GetVolume/SetVolume map the
+options slider. KNOWN SUSPECT if sound plays but sounds WRONG: cdirsnd.cpp
+AudioStreamCallback/StreamAudioBuffer have open FIXMEs about byte-vs-word
+sizes (SDL3's callback additionalAmount is BYTES; the code mixes
+sizeof(Sint16)*additionalAmount allocations with additionalAmount-byte
+memcpys) - if effects come out as noise/half-speed, that mixing math is the
+first place to look. SDL_InitSubSystem returns BOOL (true=success) in
+SDL3 - the existing checks in cdirsnd/devicecd are correct as written.
+
 ## Enemy AI - TODO to continue later
 
 - **Strip the temporary DBG probe**: `fprintf(stderr, "DBG LoadAIFromDLL:

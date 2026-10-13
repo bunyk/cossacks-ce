@@ -1,3 +1,6 @@
+#include <SDL3/SDL.h>
+#include "newcode/os.h"
+
 typedef void VOIDFN();
 class CDeviceCD
 {

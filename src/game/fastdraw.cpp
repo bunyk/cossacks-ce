@@ -2827,27 +2827,11 @@ int GetRLCStrWidth( char* str, lpRLCFont lpf )
 	};
 	return L;
 };
-#ifdef _WIN32
-void ShowShadString( int x, int y, LPCSTR lps, lpRLCFont lpf )
-{
-	if (lps == nullptr) return;
-	byte	ch;
-	int		i = 0;
-	do
-	{
-		ch = lps[i];
-		if (ch != 0)
-		{
-			ShowRLCItem( x, y, &( lpf->RLC ), lpf->FirstSymbol + ch, 0 );
-			int LL = 1;
-			x += GetRLCWidthUNICODE( lpf->RLC, (byte*) ( lps + i ), &LL );
-			i += LL - 1;
-		}
-		i++;
-	} while (ch - 0);
-}
-
-void LoadPalettes()//IMPORTANT: load color palettes for ???
+//Loads the PAL1..PAL7 remap tables used by ShowRLCItem's nation tints (nt=1..7).
+//Was WIN32-only with a no-op stub on Linux, leaving PAL1..7 all-zero: any
+//nation-tinted RLC sprite (e.g. a wheat field owned by nation 1..7) rendered
+//pitch black (palette index 0) instead of its tint.
+void LoadPalettes()//IMPORTANT: load color palettes for color masking
 {
 	ResFile f1 = RReset( "pal1.dat" );
 	RBlockRead( f1, PAL1, 256 );
@@ -2870,6 +2854,25 @@ void LoadPalettes()//IMPORTANT: load color palettes for ???
 	f1 = RReset( "pal7.dat" );
 	RBlockRead( f1, PAL7, 256 );
 	RClose( f1 );
+}
+#ifdef _WIN32
+void ShowShadString( int x, int y, LPCSTR lps, lpRLCFont lpf )
+{
+	if (lps == nullptr) return;
+	byte	ch;
+	int		i = 0;
+	do
+	{
+		ch = lps[i];
+		if (ch != 0)
+		{
+			ShowRLCItem( x, y, &( lpf->RLC ), lpf->FirstSymbol + ch, 0 );
+			int LL = 1;
+			x += GetRLCWidthUNICODE( lpf->RLC, (byte*) ( lps + i ), &LL );
+			i += LL - 1;
+		}
+		i++;
+	} while (ch - 0);
 }
 
 RLCFont::RLCFont( char* Name )

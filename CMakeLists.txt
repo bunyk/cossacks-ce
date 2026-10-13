@@ -55,6 +55,8 @@ add_executable(cossacks
 	src/game/nature.cpp
 	src/game/cdirsnd.cpp
 	src/game/cwave.cpp
+	src/game/devicecd.cpp
+	src/game/newcode/stb_vorbis.c
 	src/game/gamesound.cpp
 	src/game/multi.cpp
 	src/game/unsyncro.cpp

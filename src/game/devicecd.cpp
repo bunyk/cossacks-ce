@@ -2,12 +2,14 @@
 //
 
 // #include "windows.h"
-#include "sdl3/sdl.h"
-#include "sdl3/sdl_audio.h"
+#include "SDL3/SDL.h"
+#include "SDL3/SDL_audio.h"
 #include "newcode/stb_vorbis.h"
 #pragma pack(1)
 #include "devicecd.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 #include "resfile.h"
 #include "gfile.h"
 #ifdef _DEBUG
@@ -34,13 +36,10 @@ int NTracks = 19;
 byte TracksMask[32] = { 2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20 };
 CDeviceCD::CDeviceCD()
 {
-	GFILE* f = Gopen("Tracks.cd", "r");
-	if (f) {
-		Gscanf(f, "%d%d", &StartTrack, &NTracks);
-		for (int i = 0; i < NTracks; i++)Gscanf(f, "%d", TracksMask + i);
-		Gclose(f);
-	};
-	Open();
+	// Intentionally deferred: this global object is constructed before
+	// SDL_Init and before the game archives are registered (FilesInit), so
+	// neither the audio device nor Gopen("Tracks.cd") would work here.
+	// Play() does the lazy init on first use.
 }
 
 CDeviceCD::~CDeviceCD()
@@ -159,6 +158,18 @@ bool CDeviceCD::SetVolume(DWORD Volume)
 }
 bool CDeviceCD::Play(DWORD Track)
 {
+	if (!FOpened)
+	{
+		// Lazy init (constructor ran too early, before SDL/FilesInit):
+		// load the track list, then open the audio device.
+		GFILE* f = Gopen("Tracks.cd", "r");
+		if (f) {
+			Gscanf(f, "%d%d", &StartTrack, &NTracks);
+			for (int i = 0; i < NTracks; i++)Gscanf(f, "%d", TracksMask + i);
+			Gclose(f);
+		}
+		Open();
+	}
 	if (FOpened)
 	{
 		bool success;
@@ -179,7 +190,8 @@ bool CDeviceCD::Play(DWORD Track)
 
 		char filename[30];
 
-		sprintf(filename, "Tracks\\Track_%02d.ogg", Track);
+		// Forward slashes: valid on Windows fopen too, required on Linux
+		sprintf(filename, "Tracks/Track_%02d.ogg", Track);
 
 		// TODO: probably need to make this in a separate thread to avoid blocking the main thread with decoding
 		// (if SDL doesn't call this from a separate thread already)

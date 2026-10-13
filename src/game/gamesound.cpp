@@ -135,6 +135,12 @@ void LoadSounds(char* fn) {
 	};
 	//NSounds=0;
 	Gclose(f1);
+	// DBG: sound system state after loading
+	{
+		int total = 0;
+		for (int i = 0; i < NSounds; i++) total += NSnd[i];
+		fprintf(stderr, "DBG LoadSounds: SoundOK=%d NSounds=%d total buffers=%d\n", (int)SoundOK, NSounds, total);
+	}
 	//if(!CDS->DirectSoundOK()){
 	//	NSounds=0;
 	//};
@@ -142,6 +148,12 @@ void LoadSounds(char* fn) {
 };
 
 DLLEXPORT void PlayEffect(int n, int pan, int vol) {
+	static int dbgPlayCount = 0;
+	if (dbgPlayCount < 5)
+	{
+		fprintf(stderr, "DBG PlayEffect: n=%d SoundOK=%d %s\n", n, (int)SoundOK, n >= 0 && n < NSounds ? (NSnd[n] > 0 ? "buffered" : "EMPTY") : "out-of-range");
+		dbgPlayCount++;
+	}
 	if (!SoundOK)return;
 	vol -= (100 - WarSound) * 40;
 	if (n < NSounds) {
