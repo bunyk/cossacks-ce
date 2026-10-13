@@ -2567,9 +2567,12 @@ void ShowRLCItemFired( int x, int y, lpRLCTable lprt, int n )
 #else // !_WIN32
 void ShowRLCItem( int x, int y, lpRLCTable lprt, int n, byte nt )
 {
-	int GPID = int( *lprt );
+	// 64-BIT FIX: font-handle-vs-pointer test (see GetRLCWidth) -
+	// int(*lprt) truncated heap pointers to negative "GP file ids"
+	// and crashed ShowGP.
+	int GPID = (int)(uintptr_t)( *lprt );
 
-	if (GPID < 4096)
+	if ((uintptr_t)( *lprt ) < 4096)
 	{
 		GPS.ShowGP( x, y, GPID, n, nt );
 		return;

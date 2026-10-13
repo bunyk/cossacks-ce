@@ -193,6 +193,8 @@ DLLEXPORT void PlayEffect(int n, int pan, int vol) {
 };
 
 void PlayCoorEffect(int n, int x, int y, int pan, int vol) {
+	static int dbgAddProbe = 0;
+	if (dbgAddProbe++ < 3) fprintf(stderr, "DBG PlayCoorEffect: n=%d\n", n);
 	if (!SoundOK)return;
 	vol -= (100 - WarSound) * 40;
 	if (n < NSounds) {
@@ -229,6 +231,8 @@ void PlayCoorEffect(int n, int x, int y, int pan, int vol) {
 	};
 };
 void PlaySingleEffect(int n, int pan, int vol) {
+	static int dbgAddProbe = 0;
+	if (dbgAddProbe++ < 3) fprintf(stderr, "DBG PlaySingleEffect: n=%d\n", n);
 	if (!SoundOK)return;
 	vol -= (100 - WarSound) * 40;
 	if (n < NSounds) {
@@ -291,6 +295,11 @@ extern int FogMode;
 word GetFog(int x, int y);
 
 void AddEffectV(int x, int y, int vx, int id) {
+	static int dbgAddProbe = 0;
+	if (dbgAddProbe++ < 3)
+	{
+		fprintf(stderr, "DBG %s: x=%d y=%d id=%d SoundOK=%d\n", __func__, x, y, id, (int)SoundOK);
+	}
 	if (!SoundOK)return;
 	if (id < 0)return;
 	if (x<LoMinX || x>LoMaxX || y<LoMinY || y>LoMaxY)return;
@@ -317,6 +326,11 @@ void AddEffect(int x, int y, int id) {
 	AddEffectV(x, y, 0, id);
 };
 void AddUnlimitedEffect(int x, int y, int id) {
+	static int dbgAddProbe = 0;
+	if (dbgAddProbe++ < 3)
+	{
+		fprintf(stderr, "DBG %s: x=%d y=%d id=%d SoundOK=%d\n", __func__, x, y, id, (int)SoundOK);
+	}
 	if (!SoundOK)return;
 	if (id < 0)return;
 	//fog checking;
@@ -334,6 +348,11 @@ void AddUnlimitedEffect(int x, int y, int id) {
 	PlayEffect(id, pan, 0);
 };
 void AddSingleEffect(int x, int y, int id) {
+	static int dbgAddProbe = 0;
+	if (dbgAddProbe++ < 3)
+	{
+		fprintf(stderr, "DBG %s: x=%d y=%d id=%d SoundOK=%d\n", __func__, x, y, id, (int)SoundOK);
+	}
 	if (!SoundOK)return;
 	if (id < 0)return;
 	if (x<LoMinX || x>LoMaxX || y<LoMinY || y>LoMaxY)return;
@@ -357,6 +376,11 @@ void AddSingleEffect(int x, int y, int id) {
 	};
 };
 void AddWarEffect(int x, int y, int id) {
+	static int dbgAddProbe = 0;
+	if (dbgAddProbe++ < 3)
+	{
+		fprintf(stderr, "DBG %s: x=%d y=%d id=%d SoundOK=%d\n", __func__, x, y, id, (int)SoundOK);
+	}
 	if (!SoundOK)return;
 	if (GetV_fmap(x, y) < 2000)return;
 	if (id < 0)return;
@@ -379,6 +403,11 @@ void AddWarEffect(int x, int y, int id) {
 	};
 };
 void AddWorkEffect(int x, int y, int id) {
+	static int dbgAddProbe = 0;
+	if (dbgAddProbe++ < 3)
+	{
+		fprintf(stderr, "DBG %s: x=%d y=%d id=%d SoundOK=%d\n", __func__, x, y, id, (int)SoundOK);
+	}
 	if (!SoundOK)return;
 	if (GetV_fmap(x, y) < 2000)return;
 	if (id < 0)return;
@@ -401,8 +430,13 @@ void AddWorkEffect(int x, int y, int id) {
 	};
 }
 
-void AddOrderEffect(int x, int y, int id) 
+void AddOrderEffect(int x, int y, int id)
 {
+	static int dbgAddProbe = 0;
+	if (dbgAddProbe++ < 3)
+	{
+		fprintf(stderr, "DBG %s: x=%d y=%d id=%d SoundOK=%d\n", __func__, x, y, id, (int)SoundOK);
+	}
 	if (!SoundOK)
 	{
 		return;

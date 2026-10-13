@@ -99,7 +99,13 @@ word GetNextSafeCell( byte NI, int F, int start, int Fin ) { (void)NI; (void)F; 
 void DrawFog() {}
 void DrawMiniFog() {}
 void FogSpot( int x, int y ) { (void)x; (void)y; }
-word GetFog( int x, int y ) { (void)x; (void)y; return 0; }
+// Fog of war is not ported yet (fog.cpp asm regions). PrepareToGame sets
+// FogMode=1 at every match start, and the unported fog data reads as
+// "everything fogged" (0), which gates out ALL in-game sound effects
+// (Add*Effect early-return on GetFog(...) < 900) and hides every click
+// hint. Report "fully visible" until fog.cpp is ported for real.
+// Remove this (and GetV_fmap in loadsave.cpp) together with the port.
+word GetFog( int x, int y ) { (void)x; (void)y; return 1000; }
 void SetupFog() {}
 void ProcessFog1() {}
 void TurnFogOff() {}
