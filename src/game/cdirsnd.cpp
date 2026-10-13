@@ -124,20 +124,17 @@ void CDirSound::CreateDirSound()
 	// Create the main SDL audio device.
 	bool success;
 	success = SDL_InitSubSystem(SDL_INIT_AUDIO);
-	fprintf(stderr, "DBG CreateDirSound: SDL_InitSubSystem(AUDIO)=%d err='%s'\n", (int)success, SDL_GetError());
 	if (success)
 	{
 		m_SDLAudioDeviceID = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &m_audioSpec);
-		fprintf(stderr, "DBG CreateDirSound: device=%u err='%s'\n", (unsigned)m_SDLAudioDeviceID, SDL_GetError());
-		if (m_SDLAudioDeviceID)
+			if (m_SDLAudioDeviceID)
 		{
 			SDL_ResumeAudioDevice(m_SDLAudioDeviceID);
 			// ONE master stream for the whole system; its get-callback mixes
 			// all playing buffers (replaces the old one-stream-per-buffer
 			// design that opened ~200 streams on the device).
 			m_masterStream = SDL_OpenAudioDeviceStream(m_SDLAudioDeviceID, &m_audioSpec, MasterStreamCallback, this);
-			fprintf(stderr, "DBG CreateDirSound: master stream=%p err='%s'\n", (void*)m_masterStream, SDL_GetError());
-			if (m_masterStream)
+					if (m_masterStream)
 			{
 				SDL_ResumeAudioStreamDevice(m_masterStream);
 			}

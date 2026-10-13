@@ -467,9 +467,7 @@ even though the device was open and 197 buffers were loaded (DBG probes
 confirmed: SoundOK=1 NSounds=60 total=197). Un-guarded both (plain
 SearchStr/ErrM code), plus their supporting decls: dialogs.cpp's
 `#include "cdirsnd.h"/"gsound.h"` (MaxSnd) and `extern char* SoundID[];
-extern word NSounds;` were also _WIN32-only. DBG probes still in
-(CreateDirSound/LoadSounds/PlayEffect in cdirsnd.cpp/gamesound.cpp) -
-strip once sound is confirmed audible.
+extern word NSounds;` were also _WIN32-only.
 
 ## Sound + music enabled (2026-10-13)
 
@@ -531,13 +529,58 @@ Music flow: Options dialog (main menu or F12) Music combo -> PlayMode=1 ->
 PlayRandomTrack -> PlayCDTrack(TracksMask[...]) -> stb_vorbis decode ->
 SDL audio stream; the stream's get-callback re-arms PlayRandomTrack when
 drained, so it plays continuously. CDPLAY.GetVolume/SetVolume map the
-options slider. KNOWN SUSPECT if sound plays but sounds WRONG: cdirsnd.cpp
-AudioStreamCallback/StreamAudioBuffer have open FIXMEs about byte-vs-word
-sizes (SDL3's callback additionalAmount is BYTES; the code mixes
-sizeof(Sint16)*additionalAmount allocations with additionalAmount-byte
-memcpys) - if effects come out as noise/half-speed, that mixing math is the
-first place to look. SDL_InitSubSystem returns BOOL (true=success) in
-SDL3 - the existing checks in cdirsnd/devicecd are correct as written.
+options slider. SDL_InitSubSystem returns BOOL (true=success) in
+SDL3 - the checks in cdirsnd/devicecd are correct as written.
+
+
+ROUND 4 - CDirSound redesigned to ONE stream (the intermittent
+"audio disappears mid-session" bug): the fork's design opened ONE
+SDL_OpenAudioDeviceStream PER SOUND BUFFER (~200 streams on one PipeWire
+client, all created by LoadSounds at startup). PipeWire shed the client
+intermittently (the sink input vanished while the app ran). Redesigned
+DirectSound-style: ONE master stream (m_masterStream) whose single
+get-callback (MasterStreamCallback) mixes every playing SoundBuffer into
+each block (StreamAudioBuffer = proper S16 mixer with clamping, per-buffer
+DirectSound-style volume/pan; CreateSoundBuffer/DuplicateSoundBuffer/
+CopyWaveToBuffer no longer open streams). Verified offline via the
+scratchpad sndtest.cpp harness (GetPos advances at 88200 B/s, clips end
+exactly at size).
+
+ROUND 5 - in-game silence was FOG GATING + two 64-bit font crashes:
+- **Fog gates**: PrepareToGame (ddex1.cpp:1416) sets FogMode=1 at EVERY
+  match start, and the unported GetFog stub returned 0 = "all fogged", so
+  every Add*Effect with a fog check returned before playing anything.
+  INTERIM (REMOVE WITH THE FOG.CPP PORT): linux_stubs GetFog now returns
+  1000 (visible), and GetV_fmap (loadsave.cpp) is documented all-visible
+  (it feeds only the three sound gates). DBG probes proved triggers fired
+  while PlaySingleEffect was never reached until these were fixed.
+- **64-bit font crashes (pattern #3 family), ASLR-dependent - they came
+  and went between runs and did NOT reproduce under gdb**: the RLC-font API
+  encodes "font as small GP-handle" vs "font as RLCTable*" with
+  `int(lpr) < 4096` - on 64-bit a truncated heap pointer can be NEGATIVE
+  and passes the test. Fixed with `(uintptr_t)lpr < 4096` in fastdraw.cpp
+  GetRLCWidth, GetRLCHeight, GetRLCWidthUNICODE (the width side; crashed
+  inside GP_System::LoadGP case 2 via the rom10 width table) and
+  ShowRLCItem (the DRAW side; crashed via ShowString -> ShowChar ->
+  ShowGP(FileIndex=-777319232)). Both hit first from the in-game
+  unit-info panel (CreateUNITINF_UNIT, its "25" text button).
+- **Main-menu Options button did nothing**: the dispatch
+  `ItemChoose == mcmEdit -> ProcessMenuOptions()` sat in the shared _WIN32
+  dispatch block with the editor/video/load items (call-site guard vs
+  ported definition - same lesson as the F12 menu round). Guard boundary
+  moved so only mcmEdit runs on Linux; mcmVideo (editor media) / mcmLoad /
+  mcmExit STAY guarded - the main-menu Load and Exit buttons are still
+  dead (TODO).
+
+ROUND 6 - SOUND + MUSIC CONFIRMED WORKING END-TO-END (user-tested):
+menu clicks, in-game effects (orders/combat/ambient with panning), and
+background music (Options -> Music combo -> PlayRandomTrack ->
+CDeviceCD::Play -> stb_vorbis decodes Tracks/Track_XX.ogg (5.9M samples
+at 44.1kHz observed) -> its own SDL stream, auto-advancing when drained).
+ALL DBG probes from this round are STRIPPED. The offline probe harness
+lives in the session scratchpad (sndtest.cpp - links cdirsnd.cpp+cwave.cpp,
+plays any Sound/*.wav without launching the game; reuse for future audio
+regressions).
 
 ## Enemy AI - TODO to continue later
 

@@ -6974,6 +6974,7 @@ int processMainMenu()
 			PrepareEditMedia( 0 );
 			ItemChoose = mcmSingle;
 		}
+#endif // _WIN32 (mcmVideo: map-editor media, not ported)
 
 		if ( ItemChoose == mcmEdit )
 		{
@@ -6981,6 +6982,10 @@ int processMainMenu()
 			ProcessMenuOptions();
 			continue;
 		}
+
+// Options button: ProcessMenuOptions is fully ported; this dispatch was
+// the only guarded piece, so Options silently did nothing on Linux.
+#ifdef _WIN32
 
 		if ( ItemChoose == mcmLoad )
 		{

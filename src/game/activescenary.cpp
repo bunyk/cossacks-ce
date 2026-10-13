@@ -5807,8 +5807,6 @@ CampaginPack::~CampaginPack()
 // nation simply keeps its ProcessAIinDLL == NULL (the AI tick checks both).
 void LoadAIFromDLL( byte Nat, char* Name )
 {
-	// DBG: reveals what AI module name the data's text tables resolve to
-	fprintf( stderr, "DBG LoadAIFromDLL: Nat=%d Name='%s'\n", Nat, Name );
 	Nat = AssignTBL[Nat];
 	Nation* NT = NATIONS + Nat;
 	AiIsRunNow = true;
