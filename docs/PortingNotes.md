@@ -416,14 +416,86 @@ Ported this round:
   duplicated as an `__attribute__((constructor)) AI_OnLoad()` (runs at dlopen
   time, calls the same LOAD_FUNCTION list + OnInit). Built copy placed at
   AI/Algeria.so in the game dir.
-- VERIFY AT RUNTIME: what module name the DK mod's text tables actually map
-  the AI IDs to (GetTextByID("NATION.0") feeds LoadAIFromDLL directly) - the
-  tables live encrypted inside all.gsc, so watch stderr for
-  "LoadLibrary(...) failed" / "LoadAIFromDLL:" lines when starting a random
-  map with a computer opponent. If the mod references PE-only DLLs (e.g.
-  "AI\Kreatures.dll"), the nation will stay inert until a matching .so exists.
-  NOTE: dlopen CANNOT read files inside all.gsc - AI modules must be loose
-  files in the game dir.
+- RUNTIME CONFIRMED (2026-10-13, user-tested): **Algeria as a random-map
+  computer opponent WORKS end-to-end** - map start loads AI/Algeria.so,
+  InitAI registers units, the megapolis tick calls ProcessAI. Two fixes
+  were needed after the first probe run (see below). NOTE: dlopen CANNOT
+  read files inside all.gsc - AI modules must be loose files in the game
+  dir (a built copy is at AI/Algeria.so in the repo).
+
+Two bugs found by the first probe run, both fixed:
+
+- **COMPSTART was never filled on Linux** (the silent "nothing happens"):
+  the single-player lobby stores computer slots in PINFO[HostID].COMPINFO
+  (word: color | team<<4 | difficulty<<8 | nation<<11; the lobby also dumps
+  them to comp.opt). On Windows StartIGame (mplayer.cpp, not ported) does
+  `memcpy(COMPSTART, PINFO[HostID].COMPINFO, 16)` before the network start
+  packet; PrepareGameMedia then decodes COMPSTART into PINFO[i] and calls
+  StartAIEx per slot. The Linux SingleOptions #else branch had skipped that
+  copy, so the decode loop and the AI loop iterated over zeros. FIX:
+  interface.cpp SingleOptions Linux branch now finds the host slot and
+  copies COMPINFO -> COMPSTART before PrepareGameMedia (same as StartIGame).
+- **Symbol interposition SIGSEGV in the module constructor** (crash at the
+  `LOAD_FUNCTION(RegisterUnitType)` line): the module's function-pointer
+  globals (typedefs.h: `tpRegisterUnitType* RegisterUnitType` etc.) are
+  same-named as the game's exported API functions. With -rdynamic the
+  exe's symbols sit FIRST in the global lookup scope, so the module's own
+  `RegisterUnitType = <ptr>` store bound to the exe's code symbol and
+  wrote into read-only .text. FIX: the module is compiled with
+  `-fvisibility=hidden` (CMake target_compile_options) and only the three
+  game-facing exports (InitAI/OnInit/ProcessAI) are marked
+  `__attribute__((visibility("default")))` - the Linux #else defines
+  `__declspec(x)` as that attribute. LESSON for any future dlopen'ed module
+  in this codebase: hidden by default, export explicitly; and never let a
+  module define globals that mirror game export names.
+
+What the DK mod's data actually wants (learned via the DBG probe):
+GetTextByID("<NATION>.0") resolves to STOCK Cossacks AI DLL paths -
+`AI\POLAND.dll`, `AI\Algeria.dll` etc. (the mod kept stock ai.dat nation
+IDs). The game dir has only AI/Algeria.so so far; every other opponent
+nation logs `LoadLibrary(AI\X.dll) failed` and stays inert. `TryUnit`
+validates `Type=='UTYP'` so unregistered units are safely ignored - wrong-
+nation modules would be inert, not fatal.
+
+## Enemy AI - TODO to continue later
+
+- **Strip the temporary DBG probe**: `fprintf(stderr, "DBG LoadAIFromDLL:
+  Nat=%d Name='%s'")` at the top of LoadAIFromDLL (activescenary.cpp) -
+  keep the failure logs in os.cpp/osLoadLibrary, those are permanent.
+- **Update this file** when AI for other nations works.
+- **AI for the other 19 nations**: NO public source exists - this tree has
+  only src/ai/Algeria; the game data (and the GOG install at
+  ~/.wine/.../AI/) ships 20 Windows PE DLLs (32-bit, cannot dlopen).
+  Checked MisterCoderman/cossacks-1.52-platform: its ai/ folder is the
+  same PE binaries; the "statically recompiled x86->C" AI is internal to
+  their wasm build, not published as source. Realistic options:
+  a) quick stopgap: copy/symlink Algeria.so as AI/<OtherNation>.so -
+     registrations against nation-0 unit names mostly fail, AI stays
+     inert (safe but useless);
+  b) hand-port the PE DLLs: they all follow the Algeria template
+     (LoadFunction + nation-specific Register* lists + ProcessAI decision
+     tree) - extract each DLL's string table + decompile TryUnit call
+     sequences (each is maybe a day of work per nation);
+  c) an x86-32 interpreter for the PE DLLs (what cossacks-1.52-platform
+     did in-wasm for mission DLLs) - big machinery.
+- **Verify AI behavior in-game**: production seen, peasants working,
+  attacks? If the AI builds nothing despite the module ticking, next
+  suspects are the per-tick path (City::FindNeedProject is gated by
+  CT->AI_DEVELOPMENT, set by megapolis.cpp:194 / SET_AI_DEVELOPMENT
+  scenario cmd, activescenary.cpp:4117) and the safenet.cpp stubs.
+- **safenet.cpp GetNextDiv/Gre/SafeCell still STUBBED** (linux_stubs.cpp)
+  = AI long-range pathing across areas; AI units will stall on large maps
+  until ported. THIS is the next real porting task for AI gameplay.
+- **Difficulty**: StartAIEx passes Diff-1; CITY[Nat].Difficulty drives AI
+  resource cheat levels (check it feeds through with the DK mod).
+- **Saves/replays**: loadsave.cpp LoadAI (CT->AIID path) and recorder.cpp
+  (DetermineNationAI + LoadAIFromDLL) are now live code on Linux - test
+  that a saved game with an AI opponent restores the module (module is
+  re-dlopen'ed on load; watch for stale NT->hLibAI across games - the
+  loadsave.cpp:208 FreeLibrary(hLibAI) path was for the scenario DLL).
+- **Scenario DLLs** (UserMissions\CMS_start.dll, activescenary.cpp ~425)
+  now ALSO go through the real dlopen path - they will fail gracefully
+  until someone ports/ships them as .so.
 
 ## Recurring bug patterns (checklist for any newly enabled file)
 

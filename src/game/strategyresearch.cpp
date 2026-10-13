@@ -42,7 +42,14 @@ class DamageMap(){
 
 };
 */
-const byte StrCod[26] = { 0xFF,0xFF,0xFF,0xFF,0xFF,5,0xFF,0xFF,2,4,3,0,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0,1,2,2,0xFF,0xFF };
+// Maps a unit Usage ID (mapdiscr.h) to its CellInfo counter:
+// 0=NSword, 1=NStrel, 2=NCaval, 3=NPush, 4=NMort, 5=NTow, 0xFF=ignored.
+// Sized to cover all defined IDs (up to ParomID 0x1F); the old 26-entry
+// table was read out of bounds for ships (GaleraID 0x1B, IaxtaID 0x1C,
+// ShebekaID 0x1E, ParomID 0x1F), turning the garbage byte into a wild
+// "((word*)SINFO)[ID]++" write far past the CellInfo and corrupting the heap.
+const byte StrCod[32] = { 0xFF,0xFF,0xFF,0xFF,0xFF,5,0xFF,0xFF,2,4,3,0,0xFF,0xFF,0xFF,0xFF,
+                          0xFF,0xFF,0xFF,0xFF,0,1,2,2,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF };
 
 void GlobalArmyInfo::ResearchArmyDistribution(byte NI) {
 #ifdef NOSTRATINF
@@ -62,7 +69,9 @@ void GlobalArmyInfo::ResearchArmyDistribution(byte NI) {
 		OneObject* OB = Group[MID];
 		if (OB && (!OB->Sdoxlo) && GN0 != GNFO.EINF[OB->NNUM]) {
 			NewMonster* NM = OB->newMons;
-			byte ID = StrCod[NM->Usage];
+			// Guard against unknown Usage values (mods/new unit data):
+			// an out-of-range ID would write far past the CellInfo entry.
+			byte ID = (NM->Usage < sizeof(StrCod)) ? StrCod[NM->Usage] : 0xFF;
 			if (ID != 0xFF) {
 				int xx1 = OB->RealX >> 10;
 				int yy1 = OB->RealY >> 10;
