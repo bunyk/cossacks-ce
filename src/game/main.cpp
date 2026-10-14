@@ -599,6 +599,44 @@ void ClipCursorToWindowArea()
 
 extern bool ScanPressed[SDL_SCANCODE_KP_0 + 1];
 
+// Resizable-window support: current window output size (window coordinates)
+// and the scale from window space to the game's logical RealLx x RealLy
+// canvas. Updated on resize; mouse events are converted so clicks land
+// where the (stretched) picture shows them.
+// Letterbox rect shared with the renderer (defined in ddini.cpp, computed
+// by ComputeLetterbox(): the RealLx x RealLy canvas fitted into the window
+// with the aspect preserved). Mouse events map through it.
+struct SDL_Rect;
+extern "C" {
+extern SDL_Rect g_letterbox;
+extern "C" void ComputeLetterbox();
+}
+static int g_wndW = 0, g_wndH = 0;
+static void UpdateWindowSize()
+{
+	if (sdlWindow)
+	{
+		SDL_GetWindowSize(sdlWindow, &g_wndW, &g_wndH);
+		ComputeLetterbox();
+	}
+}
+static void ScaleMouseToLogical(int* x, int* y)
+{
+	if (g_wndW > 0 && g_wndH > 0 && (g_wndW != RealLx || g_wndH != RealLy))
+	{
+		ComputeLetterbox();
+		if (g_letterbox.w > 0 && g_letterbox.h > 0)
+		{
+			*x = ( ( *x - g_letterbox.x ) * RealLx ) / g_letterbox.w;
+			*y = ( ( *y - g_letterbox.y ) * RealLy ) / g_letterbox.h;
+			if (*x < 0) *x = 0;
+			if (*y < 0) *y = 0;
+			if (*x >= RealLx) *x = RealLx - 1;
+			if (*y >= RealLy) *y = RealLy - 1;
+		}
+	}
+}
+
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 {
 	static BYTE phase = 0;
@@ -634,6 +672,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 	case SDL_EVENT_MOUSE_BUTTON_DOWN:
 	{
 		int bx = (int)event->button.x, by = (int)event->button.y;
+		ScaleMouseToLogical(&bx, &by);
 		SDL_MouseButtonFlags mouseFlags = SDL_GetMouseState(nullptr, nullptr);
 		if (event->button.button == SDL_BUTTON_LEFT)
 		{
@@ -662,6 +701,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 	case SDL_EVENT_MOUSE_BUTTON_UP:
 	{
 		int bx = (int)event->button.x, by = (int)event->button.y;
+		ScaleMouseToLogical(&bx, &by);
 		SDL_MouseButtonFlags mouseFlags = SDL_GetMouseState(nullptr, nullptr);
 		if (event->button.button == SDL_BUTTON_LEFT)
 		{
@@ -704,6 +744,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 	case SDL_EVENT_MOUSE_MOTION:
 	{
 		int mx = (int)event->motion.x, my = (int)event->motion.y;
+		ScaleMouseToLogical(&mx, &my);
 		if (ScreenPtr)
 		{
 			if (mx != mouseX || my != mouseY)
@@ -719,6 +760,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 	case SDL_EVENT_WINDOW_MOVED:
 	case SDL_EVENT_WINDOW_RESIZED:
 		//Adjust cursor zone after window was moved
+		UpdateWindowSize();
 		ClipCursorToWindowArea();
 		break;
 
@@ -985,8 +1027,15 @@ void ResizeAndCenterWindow()
 		return;
 	}
 
-	int width = RealLx;
-	int height = RealLy;
+	// The window is user-resizable (SDL_WINDOW_RESIZABLE) and the logical
+	// canvas is stretched/letterboxed into it by FlipPages - so the window
+	// SIZE is no longer tied to the logical resolution here. This only
+	// centers the current window on the screen. (Startup creates the
+	// window at RealLx x RealLy in doInit.)
+	int width = 0, height = 0;
+	SDL_GetWindowSize( sdlWindow, &width, &height );
+	if (width <= 0) width = RealLx;
+	if (height <= 0) height = RealLy;
 
 	int x = screen_width / 2 - width / 2;
 	int y = screen_height / 2 - height / 2;
@@ -1001,8 +1050,6 @@ void ResizeAndCenterWindow()
 	}
 
 	SDL_SetWindowPosition( sdlWindow, x, y );
-	SDL_SetWindowSize( sdlWindow, width, height );
-	SDL_SyncWindow( sdlWindow );
 
 	ClipCursorToWindowArea();
 
@@ -1621,6 +1668,14 @@ static BOOL doInit()
 	{
 		windowFlags |= SDL_WINDOW_FULLSCREEN;
 	}
+	else
+	{
+		// Resizable window: the renderer path (FlipPages -> BlitSurfaceScaled
+		// -> RenderTexture) stretches the logical RealLx x RealLy 8-bit
+		// canvas to whatever the window size is; mouse input is scaled back
+		// in SDL_AppEvent (see ScaleMouseToLogical).
+		windowFlags |= SDL_WINDOW_RESIZABLE;
+	}
 	if (borderless)
 	{
 		windowFlags |= SDL_WINDOW_BORDERLESS;
@@ -1645,6 +1700,7 @@ static BOOL doInit()
 	{
 		ResizeAndCenterWindow();
 	}
+	UpdateWindowSize();   // baseline for the mouse coordinate scaling
 	
 	// TODO: this was mapped from winapi, not really needed
 	SDL_ShowWindow( sdlWindow );

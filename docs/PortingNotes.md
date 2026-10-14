@@ -965,6 +965,42 @@ DESIGN NOTE (upstream, kept): the whole-track decode on the audio thread
 is the root flaw - a future rework should decode on a worker thread and
 feed the stream incrementally.
 
+
+## Resizable window (2026-10-14)
+
+Window mode now sets SDL_WINDOW_RESIZABLE. The render path already scaled
+(window mode: FlipPages -> BlitSurfaceScaled -> primaryTexture (RealLx x
+RealLy) -> RenderTexture(nullptr, nullptr) = stretch to window), so the
+picture scales for free. Mouse input did NOT: SDL reports window-space
+coordinates while the game works in logical RealLx x RealLy space - added
+g_wndW/g_wndH tracking (set after window creation + on every
+SDL_EVENT_WINDOW_RESIZED/MOVED) and ScaleMouseToLogical() applied to all
+mouse event handlers (motion + both button cases) in SDL_AppEvent.
+NOTE: the picture is STRETCHED to the window aspect (same convention as
+the fullscreen path); letterboxing would need a dst-rect in RenderTexture
+- not done, keep behavior consistent with fullscreen.
+
+
+## Resizable window round 2 (2026-10-14): aspect letterbox + no snap-back
+
+- Menu/game resolution changes snapped the window back to 1024x768:
+  ResizeAndCenterWindow SDL_SetWindowSize(RealLx, RealLy) ran from
+  SetGameDisplayModeAnyway (menu return) and every SetGameDisplayMode.
+  DECOUPLED: the window size is now USER-ONLY (OS resize grip);
+  ResizeAndCenterWindow only centers/clips/warps (warp uses the real
+  window size). doInit still creates the window at RealLx x RealLy.
+- Aspect-preserving letterbox instead of stretch: ddini.cpp exports
+  g_letterbox (SDL_Rect, window space) + ComputeLetterbox() (fits
+  RealLx x RealLy into the window, bars on the surplus axis).
+  FlipPages window path: RenderClear(black) + RenderTexture with the
+  letterbox dst rect (SDL_FRect - RenderTexture takes floats).
+  ScaleMouseToLogical (main.cpp) maps through the same rect:
+  (x-lb.x)*RealLx/lb.w, clamped - clicks land under the cursor inside
+  the letterboxed area; cursor in the black bars clamps to the edge.
+  ComputeLetterbox is recomputed per flip AND per mouse event (both
+  resolution and window size can change at any time; the math is 4
+  divisions).
+
 ## Recurring bug patterns (checklist for any newly enabled file)
 
 1. **`sizeof TypeName` without parens** - legal on MSVC, error on GCC. -> `sizeof(TypeName)`.

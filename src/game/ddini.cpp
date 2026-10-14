@@ -111,6 +111,42 @@ extern bool InGame;
 
 extern void yield();
 
+// Letterboxed destination rect for the resizable window (see also
+// ScaleMouseToLogical in main.cpp): the RealLx x RealLy logical canvas
+// fitted into the window with the aspect PRESERVED (black bars on the
+// surplus axis). Recomputed on demand - resolution and window size can
+// both change at any time.
+extern "C" SDL_Rect g_letterbox = { 0, 0, 0, 0 };
+extern "C" void ComputeLetterbox()
+{
+	int w = 0, h = 0;
+	if (sdlWindow)
+	{
+		SDL_GetWindowSize(sdlWindow, &w, &h);
+	}
+	if (w <= 0) w = RealLx;
+	if (h <= 0) h = RealLy;
+	if (RealLx <= 0 || RealLy <= 0) return;
+
+	// Fit RealLx x RealLy into w x h, preserving aspect
+	if ((int64_t)w * RealLy <= (int64_t)h * RealLx)
+	{
+		// Width-limited: full width, vertical bars
+		g_letterbox.w = w;
+		g_letterbox.h = (int)(((int64_t)w * RealLy) / RealLx);
+		g_letterbox.x = 0;
+		g_letterbox.y = (h - g_letterbox.h) / 2;
+	}
+	else
+	{
+		// Height-limited: full height, horizontal bars
+		g_letterbox.h = h;
+		g_letterbox.w = (int)(((int64_t)h * RealLx) / RealLy);
+		g_letterbox.y = 0;
+		g_letterbox.x = (w - g_letterbox.w) / 2;
+	}
+}
+
 //Copies secundary screen buffer into primary buffer
 //Call rate: menu ~545 Hz, ingame ~38 Hz
 DLLEXPORT void FlipPages( void )
@@ -133,8 +169,14 @@ DLLEXPORT void FlipPages( void )
 		SDL_BlitSurfaceScaled(srcSurface, nullptr, targetSurface, nullptr, SDL_SCALEMODE_LINEAR);
 		SDL_UnlockTexture(primaryTexture);
 
-		// SDL_RenderClear(renderer);
-		SDL_RenderTexture(renderer, primaryTexture, nullptr, nullptr);
+		// Letterbox: aspect-preserving fit into the (resizable) window;
+		// the surplus area is cleared to black.
+		ComputeLetterbox();
+		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+		SDL_RenderClear(renderer);
+		SDL_FRect dstRect = { (float)g_letterbox.x, (float)g_letterbox.y,
+			(float)g_letterbox.w, (float)g_letterbox.h };
+		SDL_RenderTexture(renderer, primaryTexture, nullptr, &dstRect);
 		SDL_RenderPresent(renderer);
 
 		SDL_DestroySurface(srcSurface);
