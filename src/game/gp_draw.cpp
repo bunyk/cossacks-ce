@@ -342,12 +342,6 @@ int GP_Header::GetLx()
 		DIFF = GPH->NextPict;
 		int Lxx = GPH->dx + GPH->Lx;
 		if (Lxx > LxMax)LxMax = Lxx;
-		/*__asm {
-			mov	eax, GPS
-			add	eax, DIFF
-			mov	GPH, eax
-		};
-		*/
 		GPH = (GP_Header*)((uintptr_t)GPS + DIFF);
 	} while (DIFF != -1);
 	return LxMax;
@@ -363,13 +357,6 @@ int GP_Header::GetLy()
 		DIFF = GPH->NextPict;
 		int Lyy = GPH->dy + GPH->Ly;
 		if (Lyy > LyMax)LyMax = Lyy;
-		/*
-		__asm {
-			mov	eax, GPS
-			add	eax, DIFF
-			mov	GPH, eax
-		};
-		*/
 		GPH = (GP_Header*)((uintptr_t)GPS + DIFF);
 	} while (DIFF != -1);
 	return LyMax;

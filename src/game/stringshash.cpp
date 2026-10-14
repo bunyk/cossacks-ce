@@ -4,23 +4,9 @@ typedef unsigned char byte;
 #include "stringhash.h"
 
 inline byte CalcHash(char* s){
-#ifdef _WIN32
-	__asm{
-		mov esi,s
-		cld
-		xor bl,bl
-		xor eax,eax
-strlp1: lodsb
-		add bl,al
-		or al,al
-		jnz strlp1
-		mov al,bl
-	};
-#else
 	byte h = 0;
 	for (const char* p = s; *p; p++) h += (byte)*p;
 	return h;
-#endif
 };
 StrHash::StrHash(){
 	memset(this,0,sizeof(StrHash));

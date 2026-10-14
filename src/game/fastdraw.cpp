@@ -152,24 +152,6 @@ void SetScreenPtr( void )
 #ifdef _WIN32
 void ClearScreen();
 #endif
-/*
-{
-	if(DDError) return;
-	int sz=ScrWidth*ScrHeight*BytesPerPixel/4;
-	__asm
-	{
-		push	edi
-		push	esi
-		mov		edi,ScreenPtr
-		xor		eax,eax
-		cld
-		mov		ecx,sz
-		rep		stosd
-		pop		esi
-		pop		edi
-	}
-}
-*/
 
 //Showing RLC image with clipping
 #ifdef _WIN32
