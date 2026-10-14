@@ -33,7 +33,10 @@ word*  NObj3;
 void InitObjs3()
 {
 	memset( OBARS, 0, sizeof OBARS );
-	memset( Obj3Map, 0, B3SZ * 4 );
+	// 64-BIT FIX (pattern #2): Obj3Map is a POINTER array - B3SZ*4 zeroed
+	// only half of it, leaving dangling pointers in the second half after
+	// ClearObjs3 freed the cells (see below).
+	memset( Obj3Map, 0, B3SZ * sizeof(word*) );
 	memset( NObj3, 0, B3SZ * 2 );
 	NBars = 0;
 }
@@ -52,7 +55,12 @@ void ClearObjs3()
 	{
 		if (Obj3Map[i])
 		{
+			// NULL after free like the OBARS loop above - otherwise the
+			// next ClearObjs3 pass (every UnLoading, i.e. after EVERY
+			// match) would free the dangling pointers again
+			// ("free(): invalid pointer" at exit).
 			free( Obj3Map[i] );
+			Obj3Map[i] = NULL;
 		};
 	};
 	InitObjs3();

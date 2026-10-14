@@ -902,6 +902,33 @@ mapa.cpp) needed local extern decls; GUARDMODE/PATROLMODE are BOOL.
 LESSON repeated: even after un-guarding a whole switch once (the hotkeys
 round), check the INDIVIDUAL cases for their own nested sub-guards.
 
+
+## Statistics round 3 (2026-10-14): ESC key + exit crash + background
+
+- ESC after Victory/Defeat did nothing: the ESC case in GameKeyCheck
+  (main.cpp) had its own NESTED sub-guard inside the already-un-guarded
+  hotkey switch - mode resets AND `if (WaitState == 1) WaitState = 2;`
+  (the advance that lets ESC skip the victory screen; CheckVictory then
+  sets GameExit/ShowStat). Lesson: after un-guarding a switch, check each
+  CASE for nested sub-guards.
+- EXIT CRASH "free(): invalid pointer" in ClearObjs3 (via UnLoading ->
+  _ExFree - note ddini.h #defines free as _ExFree everywhere): TWO bugs:
+  (a) InitObjs3 memset(Obj3Map, 0, B3SZ*4) zeroed only HALF the pointer
+  array on 64-bit (pattern #2) -> after the first ClearObjs3 the second
+  half held DANGLING cell pointers; (b) ClearObjs3 freed Obj3Map[i]
+  WITHOUT nulling them (the OBARS loop does null). UnLoading runs after
+  EVERY match, so the second pass double-freed -> abort at exit.
+  Fixed: full-size memset (B3SZ*sizeof(word*)) + null-after-free.
+- Stats screen BACKGROUND see-through (map visible under the graph):
+  likely ORIGINAL LOOK, not a port bug - verified the stats code is
+  byte-identical to upstream ce8bebc (no ClearScreen before
+  ShowStatistics; Xbar is a 1-PIXEL BORDER box, NOT a fill - the grid
+  cells are transparent by design; the frozen game frame was in the
+  framebuffer on Windows too). VERIFY: run ./build/Debug/gscbrowser,
+  open INTERFACE\STATISTIC_SCREEN.GP and look at frame 2 (the
+  "Backgrounds for UI elements" GPS.ShowGP frame) - if it is a partial
+  graphic with transparent areas, the see-through is authentic.
+
 ## Recurring bug patterns (checklist for any newly enabled file)
 
 1. **`sizeof TypeName` without parens** - legal on MSVC, error on GCC. -> `sizeof(TypeName)`.
