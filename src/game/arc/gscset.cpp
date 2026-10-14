@@ -7,6 +7,9 @@
 #include "gsctypes.h"
 #include "gscarch.h"
 #include "gscset.h"
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 
 #ifndef _WIN32
 #include <string>
@@ -61,9 +64,9 @@ LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool onlyInArchive )
 	LPGSCfile		gFile = NULL;
 	bool			inArchive = true;
 
-#ifdef _WIN32
 	if (!onlyInArchive)
 	{
+#ifdef _WIN32
 		HANDLE			hFindFile;
 		WIN32_FIND_DATA	FindData;
 		hFindFile = FindFirstFile( lpcsFileName, &FindData );
@@ -72,8 +75,18 @@ LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool onlyInArchive )
 			inArchive = false;
 		}
 		FindClose( hFindFile );
+#else
+		// LOOSE FILES TAKE PRIORITY over archive entries, matching the
+		// Windows FindFirstFile check. Without this the game read the mod
+		// archive's stale MODE.DAT (WarSound=0) while the settings write
+		// went to the loose mode.dat next to the executable - the settings
+		// never loaded back.
+		if (access(lpcsFileName, F_OK) == 0)
+		{
+			inArchive = false;
+		}
+#endif
 	}
-#endif _WIN32
 
 	if (inArchive)
 	{

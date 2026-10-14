@@ -811,7 +811,49 @@ The Load3DMapLandOnly chunk-walk DBG probe is STRIPPED (verified clean:
 VIEW SURF TILE SECT TREE UNI3 WAL2 LOC1 SEA2 RESU TOP1 TOPW ZON1 FOR1
 .DLL AIIA PSMS PEAC RIV1 ENDM). Note the map files are written fresh at
 every random-map start; old m3ds written by pre-PEAC-fix builds stay
-unloadable - delete stale RN*.m3d files (EraseRND is still stubbed).
+unloadable. EraseRND is now PORTED (was a printf stub): dirent scan for
+"RN? *.m3d", mtime sort, deletes all but the 3 NEWEST (same behavior as
+the Windows FindFirstFile+SortClass version); the call in SDL_AppInit is
+un-guarded.
+
+
+## Options-slider sync + EraseRND (2026-10-13)
+
+"Main menu options show music volume 100, sound 0, random track":
+- The music slider is initialized from GetCDVolume() - the DEVICE volume
+  (CDPLAY.m_volume), not the persisted MidiSound; nothing applied the
+  loaded MidiSound to the device at startup, so the slider showed the
+  device default (100). FIX: SDL_AppInit applies SetCDVolume(MidiSound)
+  right after the mode.dat load - slider, device and file now agree.
+- "Sound 0": the mode.dat from earlier sessions holds zeros - those
+  sessions ended in the audio-teardown hang (Ctrl-C before the exit
+  write), so the good values never saved. With the exit fixed, quitting
+  writes the real values.
+
+
+QUIRK (not a bug): the options volume sliders use the original VScrollBar
+semantics - marker at TOP = 0 (silent), marker at BOTTOM = max (loudest);
+dragging DOWN increases the value (VScrollBar_MouseOver maps SPos from
+the marker's Y directly). Identical on Windows. mode.dat confirmed the
+persistence round-trips (user drags "up" save 0/6 exactly as dragged).
+
+
+## Loose-file priority bug (settings never loaded - 2026-10-14)
+
+THE ROOT CAUSE of "settings don't load back": CGSCset::gOpenFile's
+loose-file priority check (Windows: FindFirstFile, then archive lookup)
+was _WIN32-only, so on Linux the ARCHIVE was always searched first - and
+the DK mod's all.gsc CONTAINS ITS OWN STALE MODE.DAT (WarSound=0). The
+game read the archive's copy while Gopen("wt") writes the LOOSE file -
+settings wrote to disk and loaded from 1998. Diagnosed with headless
+Gopen/Gprintf/Gscanf round-trip harnesses (gwtest/gwread in the session
+scratchpad: both paths verified perfect in isolation) + in-game load
+probes (file=98, loaded=0). FIXED: portable check - `access(F_OK)` marks
+a loose file present, mirroring the Windows priority. NOTE: this also
+affects ANY loose file that shares a name with an archive entry
+(overrides the earlier "loose-file fallback" behavior, which only
+kicked in on archive MISS). The load/options probes are stripped again
+after verification.
 
 ## Recurring bug patterns (checklist for any newly enabled file)
 

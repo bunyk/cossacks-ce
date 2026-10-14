@@ -300,10 +300,10 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	}
 	printf("Files initialized.\n");
 
-	#ifdef _WIN32
-	//Delete random generated *.m3d map files
+	//Delete random generated *.m3d map files (keeps the 3 newest; now
+	//ported on Linux too - the call was the usual guarded-call-site trap)
+	void EraseRND();
 	EraseRND();
-	#endif
 
 	//Pointer to the DirectDraw screen buffer
 	ScreenPtr = nullptr;
@@ -377,6 +377,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 			&WarSound, &OrderSound, &OrderSound, &MidiSound,
 			&dummy, &ScrollSpeed, &exFMode, &PlayMode);
 		Gclose(fff);
+		fprintf( stderr, "DBG mode.dat loaded: WarSound=%d MidiSound=%d PlayMode=%d\n",
+			WarSound, MidiSound, PlayMode );
 
 		//Set last 'global resolution' according to current mode
 		if (window_mode)
@@ -400,6 +402,13 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 		Gscanf(rec_settings_file, "%d%s", &RecordMode, &RECFILE);
 		Gclose(rec_settings_file);
 	}
+
+	// Apply the saved music volume to the device: the options dialogs
+	// initialize their music slider from GetCDVolume() (the DEVICE volume),
+	// so without this the slider would show the device default (100)
+	// instead of the persisted MidiSound on first open.
+	void SetCDVolume( int Vol );
+	SetCDVolume( MidiSound );
 
 	//Look if loaded values match possible screen resolutions
 	bool ExMode = 0;

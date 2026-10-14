@@ -6356,6 +6356,8 @@ extern double screen_ratio;
 //globals; the CD track controls are no-ops on Linux (no MCI CD engine).
 bool ProcessMenuOptions()
 {
+	fprintf( stderr, "DBG MenuOptions open: WarSound=%d MidiSound=%d PlayMode=%d\n",
+		WarSound, MidiSound, PlayMode );
 	LocalGP BTNS( "Interface\\Options" );
 
 	LocalGP HFONT( "rom10" );

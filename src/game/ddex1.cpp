@@ -23,6 +23,10 @@
 #include "nature.h"
 #include <time.h>
 #include "nucl.h"
+#ifndef _WIN32
+#include <dirent.h>
+#include <sys/stat.h>
+#endif // _WIN32 (Linux EraseRND)
 
 #include "megapolis.h"
 #include "dialogs.h"
@@ -1505,10 +1509,62 @@ void EraseRND()
 		}
 	}
 }
-#else 
+#else
 void EraseRND()
 {
-	printf( "TODO: EraseRND() not implemented\n" );
+	// Delete stale random-map files, keeping the 3 NEWEST (the Windows
+	// version collects "RN? *.m3d", sorts by creation time and deletes
+	// all but the last 3; here: dirent scan + mtime sort, same behavior).
+	struct RNFile { char name[300]; time_t mtime; };
+	RNFile files[512];
+	int n = 0;
+
+	DIR* dir = opendir( "." );
+	if ( dir )
+	{
+		struct dirent* de;
+		while ( ( de = readdir( dir ) ) && n < 512 )
+		{
+			const char* nm = de->d_name;
+			size_t len = strlen( nm );
+			// Pattern "RN? *.m3d": "RN" + one char + ' ' + ... + ".m3d"
+			if ( len < 8 ) continue;
+			if ( strncmp( nm, "RN", 2 ) != 0 ) continue;
+			if ( nm[3] != ' ' ) continue;
+			if ( strcmp( nm + len - 4, ".m3d" ) != 0 ) continue;
+
+			struct stat st;
+			if ( stat( nm, &st ) == 0 )
+			{
+				strncpy( files[n].name, nm, 299 );
+				files[n].name[299] = 0;
+				files[n].mtime = st.st_mtime;
+				n++;
+			}
+		}
+		closedir( dir );
+	}
+
+	if ( n > 3 )
+	{
+		// Oldest first, delete all but the 3 newest
+		for ( int i = 0; i < n; i++ )
+		{
+			for ( int j = i + 1; j < n; j++ )
+			{
+				if ( files[j].mtime < files[i].mtime )
+				{
+					RNFile t = files[i];
+					files[i] = files[j];
+					files[j] = t;
+				}
+			}
+		}
+		for ( int i = 0; i < n - 3; i++ )
+		{
+			remove( files[i].name );
+		}
+	}
 }
 #endif
 
