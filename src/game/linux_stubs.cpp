@@ -164,7 +164,7 @@ void SetupEBufs()
 }
 
 int  GetPing( DWORD pid ) { (void)pid; return 0; }
-char* GetPName( int i ) { (void)i; return (char*)""; }
+// GetPName: real definition in interface.cpp (un-guarded)
 void LOOSEIGAME( char* Nick ) { (void)Nick; }
 void WINIGAME( char* Nick ) { (void)Nick; }
 void GetGameID( char* s ) { if (s) s[0] = 0; }
@@ -219,11 +219,8 @@ bool CheckFNSend( int idx )
 	}
 	return false;
 }
-// CapsLock opens the end-of-game statistics screens; not implemented yet.
-bool ShowStatistics()
-{
-	return false;
-}
+// ShowStatistics: real definition in interface.cpp (ported with the
+// ShowStatScreen/ShowUserStat statistics screens).
 
 // CD-audio/music: real implementations now in devicecd.cpp (SDL3 audio
 // stream + stb_vorbis "Tracks/Track_XX.ogg"); stubs deleted.

@@ -377,8 +377,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 			&WarSound, &OrderSound, &OrderSound, &MidiSound,
 			&dummy, &ScrollSpeed, &exFMode, &PlayMode);
 		Gclose(fff);
-		fprintf( stderr, "DBG mode.dat loaded: WarSound=%d MidiSound=%d PlayMode=%d\n",
-			WarSound, MidiSound, PlayMode );
 
 		//Set last 'global resolution' according to current mode
 		if (window_mode)
@@ -1830,7 +1828,20 @@ void GameKeyCheck()
 			curdx = 0;
 			curdy = 0;
 			PauseMode = 0;
-			#ifdef _WIN32
+			// Un-guarded (was _WIN32-only, the usual call-site trap): the
+			// mode resets AND the WaitState 1->2 advance - the latter is
+			// what lets ESC skip the Victory/Defeat "press ESC" message and
+			// proceed to the statistics screens (mapa.cpp CheckVictory sets
+			// GameExit/ShowStat once WaitState==2).
+			// Globals owned by game files not visible here (the decls sat
+			// in the guarded block).
+			extern bool SetDestMode;
+			extern bool GoAndAttackMode;
+			extern bool GUARDMODE;
+			extern bool PATROLMODE;
+			extern int WaitState;
+			extern int ShowGameScreen;
+			extern bool AttGrMode;
 			SetDestMode = false;
 			GoAndAttackMode = false;
 			GUARDMODE = 0;
@@ -1843,7 +1854,6 @@ void GameKeyCheck()
 				ShowGameScreen = 2;
 
 			AttGrMode = 0;
-			#endif
 			break;
 		case SDLK_SPACE:
 			SpecCmd = 111;

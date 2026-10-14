@@ -831,11 +831,15 @@ un-guarded.
   writes the real values.
 
 
-QUIRK (not a bug): the options volume sliders use the original VScrollBar
-semantics - marker at TOP = 0 (silent), marker at BOTTOM = max (loudest);
-dragging DOWN increases the value (VScrollBar_MouseOver maps SPos from
-the marker's Y directly). Identical on Windows. mode.dat confirmed the
-persistence round-trips (user drags "up" save 0/6 exactly as dragged).
+CORRECTION (superseded by "Loose-file priority bug" below): an earlier
+note here wrongly claimed the volume sliders were a top/bottom-inverted
+"quirk" and blamed user dragging direction. WRONG twice over: (1) the
+options sliders are the HORIZONTAL GP variant (left=silent, right=loud,
+as users expect) - the vertical VScrollBar_MouseOver semantics analyzed
+were for a different widget; (2) the values seen at reopen were the
+archive's STALE MODE.DAT (see the loose-file priority bug), not anything
+the user dragged. The correct diagnosis and fix: access(F_OK) loose-file
+priority in gOpenFile.
 
 
 ## Loose-file priority bug (settings never loaded - 2026-10-14)
@@ -854,6 +858,49 @@ affects ANY loose file that shares a name with an archive entry
 (overrides the earlier "loose-file fallback" behavior, which only
 kicked in on archive MISS). The load/options probes are stripped again
 after verification.
+
+
+## ShowStatistics un-stubbed (2026-10-14) - end-of-game statistics screens
+
+The statistics trio was NOT in a guarded region by itself: it sat at the
+tail of the big _WIN32 block whose head is the battles screens
+(ProcessOneBattle/ProcessWars/SlideShow, interface.cpp L12972+). Guard
+SPLIT: #endif moved up right after SlideShow - the stats block
+(PrintNum/ShowStatistics/CreateCommName/CalculateStatsScreenOffsets/
+ShowStatScreen/ShowUnitsList/ShowUserStat + LPAL/ROME globals) is
+cross-platform; the battles screens stay guarded (their call sites are
+in guarded menus anyway). Verified via nm: all three symbols now compile
+into interface.cpp.o.
+Supporting un-guards (all plain C++):
+- PlayGame's end-of-match block `if (ShowStat) { ShowStatistics() ... }`
+  (interface.cpp ~9228) - THE call site that matters: CmdEndGame ->
+  mapa.cpp CheckVictory sets ShowStat=1 on win/loss (un-guarded), then
+  PlayGame's exit path shows the 3-screen stats (arrows navigate, ESC
+  closes; res==3 means exit to menu). The J hotkey in GameKeyCheck only
+  fires for PlayGameMode==2 (recorded replay viewings).
+- GetPName + Names/tmm* globals block (interface.cpp ~2040) - stub
+  deleted from linux_stubs.
+- dialogs.cpp: both addListBox overloads (SQPicture variant + LxLy
+  variant, L2242-2331) and ListBox_OnMouseOver (L2178) - plain C++,
+  no asm/winapi; used by stats (and later by chat).
+- interface.cpp got extern decls for lines.cpp's Hline/Vline/Xbar/DrawLine
+  (in the build since long ago; header not included there).
+- linux_stubs.cpp: ShowStatistics stub DELETED.
+NOTE: ShowUserStat reads per-unit statistics (units built/lost per
+type) - verify in-game that the numbers look sane with the DK mod.
+
+
+ROUND 2 (2026-10-14): ESC after Victory/Defeat did nothing. The ESC case in
+GameKeyCheck (main.cpp ~1819) had a SECOND sub-block guarded: the mode resets
+(SetDestMode/GoAndAttackMode/GUARDMODE/PATROLMODE/AttGrMode/ShowGameScreen)
+AND the `if (WaitState == 1) WaitState = 2;` advance. Chain: CheckVictory
+(mapa.cpp ~1140) sets WaitState=1 (via WaitState 0->1 assignment at ~1219)
+and shows "press ESC"; ESC must bump WaitState to 2, then the next
+CheckVictory pass sets GameExit=true + ShowStat=1 -> PlayGame's exit path
+-> ShowStatistics. All globals (defined in mine.cpp/multi.cpp/selprop.cpp/
+mapa.cpp) needed local extern decls; GUARDMODE/PATROLMODE are BOOL.
+LESSON repeated: even after un-guarding a whole switch once (the hotkeys
+round), check the INDIVIDUAL cases for their own nested sub-guards.
 
 ## Recurring bug patterns (checklist for any newly enabled file)
 

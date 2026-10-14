@@ -2175,7 +2175,7 @@ bool ListBox_OnDraw( SimpleDialog* SD )
 	};
 	return true;
 };
-#ifdef _WIN32
+// Plain C++ (needed by the un-guarded addListBox overloads below)
 bool ListBox_OnMouseOver( SimpleDialog* SD )
 {
 	if (!Lpressed)return false;
@@ -2196,7 +2196,6 @@ bool ListBox_OnMouseOver( SimpleDialog* SD )
 	};
 	return true;
 };
-#endif // _WIN32
 bool GPListBox_OnMouseOver( SimpleDialog* SD )
 {
 	//if(!Lpressed)return false;
@@ -2239,7 +2238,8 @@ bool ListBox_Refresh( SimpleDialog* SD )
 	};
 	return true;
 };
-#ifdef _WIN32
+// Two addListBox overloads (SQPicture items / plain LxLy box) - plain C++,
+// used by the statistics screens (and chat); un-guarded.
 ListBox* DialogsSystem::addListBox( SimpleDialog* Parent,
 	int x, int y, int Ny,
 	SQPicture* ItemPic,
@@ -2328,7 +2328,6 @@ ListBox* DialogsSystem::addListBox( SimpleDialog* Parent,
 	};
 	return nullptr;
 };
-#endif // _WIN32
 ListBox* DialogsSystem::addGP_ListBox( SimpleDialog* Parent, int x, int y, int Ny,
 	int GP_File, int Sprite, int Ly,
 	RLCFont* AFont,

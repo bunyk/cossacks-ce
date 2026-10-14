@@ -2037,7 +2037,6 @@ DLLEXPORT bool EnumPlr()
 PlayerInfo PINFO[8];
 PlayerInfo prev_host_info;
 
-#ifdef _WIN32
 char Names[32][8];
 int tmm1, tmm2, tmm3;
 extern int COUN;
@@ -2050,7 +2049,6 @@ char* GetPName( int i )
 	for ( int j = 0; j < 8; j++ )if ( PINFO[j].ColorID == i )return PINFO[j].name;
 	return Unknm;
 };
-#endif // _WIN32
 bool ColorMouseOver( SimpleDialog* SD )
 {
 	if ( !SD->Enabled )return false;
@@ -6356,8 +6354,6 @@ extern double screen_ratio;
 //globals; the CD track controls are no-ops on Linux (no MCI CD engine).
 bool ProcessMenuOptions()
 {
-	fprintf( stderr, "DBG MenuOptions open: WarSound=%d MidiSound=%d PlayMode=%d\n",
-		WarSound, MidiSound, PlayMode );
 	LocalGP BTNS( "Interface\\Options" );
 
 	LocalGP HFONT( "rom10" );
@@ -9227,7 +9223,6 @@ StartPlay://IMPORTANT: Main game loop
 
 	IgnoreSlow = true;
 
-#ifdef _WIN32
 	if ( ShowStat )
 	{
 		int ExRX = RealLx;
@@ -9249,7 +9244,6 @@ StartPlay://IMPORTANT: Main game loop
 		}
 		SlowUnLoadPalette( "0\\agew_1.pal" );
 	}
-#endif // _WIN32
 
 	ClearScreen();
 	IgnoreSlow = false;
@@ -13223,8 +13217,16 @@ void SlideShow()
 	};
 }
 
+#endif // _WIN32 (ProcessOneBattle/ProcessWars/SlideShow - battles screens, port separately)
+
 void ClearScreen();
 char* ROME[6] = { "II","III","IV","V","VI","VII" };
+// Statistics screens use the lines.cpp primitives (in the build, header
+// not included here)
+void Hline( int x, int y, int xend, byte c );
+void Vline( int x, int y, int yend, byte c );
+void Xbar( int x, int y, int lx, int ly, byte c );
+void DrawLine( int x, int y, int x1, int y1, byte c );
 int ShowStatScreen( bool Next, bool Prev, byte Kind );
 int ShowUserStat( bool Prev, bool Next );
 int LPAL = 1;
@@ -13935,7 +13937,6 @@ int ShowUserStat( bool Prev, bool Next )
 	return ItemChoose;
 }
 
-#endif // _WIN32 (CenterScreen: cross-platform, needed on Linux)
 void CenterScreen()
 {
 	int xc = 0;
