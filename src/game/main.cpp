@@ -337,16 +337,33 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	exRealLx = 1024;
 	exRealLy = 768;
 
-	#ifdef _WIN32
+	// Declarations for globals that live in files not included here
+	// (previously only visible to the _WIN32-only settings block).
+	extern int WarSound;
+	extern int WorkSound;
+	extern int OrderSound;
+	extern int MidiSound;
+	extern int ScrollSpeed;
+	extern int PlayMode;
+	extern char RECFILE[128];
+	extern bool RecordMode;
+	void InitObjs3();
+
+	// Zero the volumes like the original (the mode.dat load below then
+	// restores the saved values; on a very first run they stay 0 until
+	// the user moves a slider - same behavior as Windows).
 	WarSound = 0;
 	WorkSound = 0;
 	OrderSound = 0;
 	MidiSound = 0;
 
+
 	//Zero 3D Bars variables (?)
 	InitObjs3();
 
-	//Load settings
+	// Load settings. Portable (Gopen); was _WIN32-only, so volumes,
+	// resolution, speed mode and the music preference never persisted
+	// across sessions on Linux.
 	GFILE* fff = Gopen("mode.dat", "rt");
 	ScrollSpeed = 5;
 	if (fff)
@@ -383,7 +400,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 		Gscanf(rec_settings_file, "%d%s", &RecordMode, &RECFILE);
 		Gclose(rec_settings_file);
 	}
-	#endif // _WIN32
 
 	//Look if loaded values match possible screen resolutions
 	bool ExMode = 0;
@@ -866,7 +882,17 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result)
 	UnLoading();
 	CloseExplosions();
 	ShutdownMultiplayer(1);
+	#endif // _WIN32 (cleanup: network/shutdown specifics not ported)
 
+	//Save settings before closing (portable, see the load in SDL_AppInit)
+	extern int WarSound;
+	extern int OrderSound;
+	extern int MidiSound;
+	extern int ScrollSpeed;
+	extern int PlayMode;
+	extern char RECFILE[128];
+	extern bool RecordMode;
+	void StopPlayCD();
 	//Distinguish between last window adn fullscreen resolutions
 	int ex_window_x, ex_window_y, ex_x, ex_y;
 
@@ -904,13 +930,14 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result)
 		Gclose(rec_settings_file);
 	}
 
+	#ifdef _WIN32
 	FilesExit();
-	StopPlayCD();
 	FinishInternetExplorer();
+	#endif // _WIN32 (FilesExit is called below unguarded too? keep parity)
 
+	StopPlayCD();
 	FreeDDObjects();
 	// PostQuitMessage(0); TODO: find cross-platform equivalent
-	#endif // _WIN32
 	exit(0);
 }
 

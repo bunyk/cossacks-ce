@@ -1226,14 +1226,16 @@ void SaveObjects( SaveBuf* SB )
 					if (ORDR)ORD1 = *ORDR;
 				};
 			};
-			//NewAnimations
-			if (OB->HiLayer)pp = int( OB->HiLayer ) - int( OB->newMons );
+			//NewAnimations. Stored as a 32-bit offset relative to newMons
+			// (small value, fits); computed in 64-bit - the original
+			// int(ptr)-int(ptr) truncated both pointers.
+			if (OB->HiLayer)pp = (int)( (intptr_t)OB->HiLayer - (intptr_t)OB->newMons );
 			else pp = -1;
 			xBlockWrite( SB, &pp, 4 );
-			if (OB->NewAnm)pp = int( OB->NewAnm ) - int( OB->newMons );
+			if (OB->NewAnm)pp = (int)( (intptr_t)OB->NewAnm - (intptr_t)OB->newMons );
 			else pp = -1;
 			xBlockWrite( SB, &pp, 4 );
-			if (OB->LoLayer)pp = int( OB->LoLayer ) - int( OB->newMons );
+			if (OB->LoLayer)pp = (int)( (intptr_t)OB->LoLayer - (intptr_t)OB->newMons );
 			else pp = -1;
 			xBlockWrite( SB, &pp, 4 );
 		};
@@ -1291,12 +1293,16 @@ void LoadObjects( SaveBuf* SB )
 			PRE = OR1;
 		};
 		//NewAnimations
+		// 64-BIT FIX: restore relative to the REAL newMons pointer (the
+		// original added the offset to int(newMons) - a truncated 32-bit
+		// pointer, so every loaded animation pointer was invalid and the
+		// first DoLink crashed on NewAnm->NFrames).
 		xBlockRead( SB, &pp, 4 );
-		if (pp != -1)OB->HiLayer = (NewAnimation*) ( int( OB->newMons ) + pp );
+		if (pp != -1)OB->HiLayer = (NewAnimation*) ( (byte*)OB->newMons + pp );
 		xBlockRead( SB, &pp, 4 );
-		if (pp != -1)OB->NewAnm = (NewAnimation*) ( int( OB->newMons ) + pp );
+		if (pp != -1)OB->NewAnm = (NewAnimation*) ( (byte*)OB->newMons + pp );
 		xBlockRead( SB, &pp, 4 );
-		if (pp != -1)OB->LoLayer = (NewAnimation*) ( int( OB->newMons ) + pp );
+		if (pp != -1)OB->LoLayer = (NewAnimation*) ( (byte*)OB->newMons + pp );
 		if (OB->InFire)CreateGround( OB );
 		OB->ImSelected = OB->Selected;
 	};

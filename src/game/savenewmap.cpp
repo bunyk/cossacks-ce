@@ -1865,7 +1865,11 @@ void SavePeaceTimeInfo( ResFile f1 )
 	{
 		int i = 'PEAC';
 		RBlockWrite( f1, &i, 4 );
-		int sz = 4 + NATLX*NATLX + 4 + 8 + 3;
+		// Size must be 4 + body; the body holds SEVEN 1-byte state flags
+		// (was "+ 3": 4 bytes short, which desynced the chunk walk on load
+		// - the next chunk's signature was read 4 bytes early and the loop
+		// fell into the unknown-chunk RSeek(garbage) branch).
+		int sz = 4 + NATLX*NATLX + 4 + 8 + 7;
 		RBlockWrite( f1, &sz, 4 );
 		RBlockWrite( f1, NatDeals, NATLX*NATLX );
 		RBlockWrite( f1, &PeaceTimeLeft, 4 );
@@ -1912,13 +1916,15 @@ void LoadPeaceTimeInfo( ResFile f1 )
 	RBlockRead( f1, NatDeals, NATLX*NATLX );
 	RBlockRead( f1, &PeaceTimeLeft, 4 );
 	RBlockRead( f1, CordonIDX, 8 );
-	RBlockWrite( f1, &BalloonState, 1 );
-	RBlockWrite( f1, &CannonState, 1 );
-	RBlockWrite( f1, &NoArtilleryState, 1 );
-	RBlockWrite( f1, &XVIIIState, 1 );
-	RBlockWrite( f1, &DipCentreState, 1 );
-	RBlockWrite( f1, &ShipyardState, 1 );
-	RBlockWrite( f1, &MarketState, 1 );
+	// RBlockRead, not RBlockWrite (upstream bug: wrote to the read handle,
+	// so the 7 state flags never loaded AND the stream desynced 7 bytes).
+	RBlockRead( f1, &BalloonState, 1 );
+	RBlockRead( f1, &CannonState, 1 );
+	RBlockRead( f1, &NoArtilleryState, 1 );
+	RBlockRead( f1, &XVIIIState, 1 );
+	RBlockRead( f1, &DipCentreState, 1 );
+	RBlockRead( f1, &ShipyardState, 1 );
+	RBlockRead( f1, &MarketState, 1 );
 }
 
 void Save3DMap( char* Map )
@@ -2241,6 +2247,17 @@ void Load3DMapLandOnly( char* Map )
 		RBlockRead( f1, &sign, 4 );
 		RBlockRead( f1, &size, 4 );
 		posit += 4 + size;
+		{
+			// DBG: chunk-walk trace (strip once save/load is verified)
+			static int dbgChunks = 0;
+			if ( dbgChunks < 60 )
+			{
+				char* s4 = (char*)&sign;
+				fprintf( stderr, "DBG chunk %2d: '%c%c%c%c' size=%d posit=%d\n",
+					dbgChunks, s4[0], s4[1], s4[2], s4[3], size, posit );
+				dbgChunks++;
+			}
+		}
 		switch ( sign )
 		{
 		case 'FRUS':

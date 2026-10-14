@@ -747,6 +747,29 @@ full-fog fill == model (0). gscbrowser needed new inert shims for the
 now-live fog globals (msx/msy/mapx/mapy/smaplx/smaply/smapx/smapy/ADDSH/
 MiniMode/MiniLx/MiniLy/MiniX/MiniY/minix/miniy/GetHeight).
 
+
+## mode.dat / rec.dat settings persistence ported (2026-10-13)
+
+The settings load in SDL_AppInit and the save at shutdown were entirely
+_WIN32-guarded (portable Gopen/Gscanf/Gprintf code), so on Linux the
+volumes, resolution, scroll speed, speed mode, music preference and
+record settings reset every session. Guard boundaries moved:
+- READ (SDL_AppInit ~350): InitObjs3 + the volume zeroing + mode.dat (12
+  values: window res, fullscreen res, WarSound, OrderSound x2, MidiSound,
+  dummy-7th, ScrollSpeed, exFMode, PlayMode) + rec.dat now load on Linux -
+  IDENTICAL to the original including the zero-then-load volume behavior
+  (linux_stubs defaults reverted to 0 to match; first run is silent until
+  the user moves a slider, exactly like Windows). PlayMode loads BEFORE
+  the ROUND-11 music autostart, so the saved music preference auto-starts.
+- WRITE (SDL_AppQuit ~890): resolution packing + mode.dat/rec.dat saves
+  are portable now; the Windows-only cleanup (ClearScreen/UnLoading/
+  CloseExplosions/ShutdownMultiplayer/FilesExit/FinishInternetExplorer)
+  stays guarded. StopPlayCD() + FreeDDObjects() now run on Linux at exit.
+- Both un-guarded sites needed extern decl blocks (the symbols were only
+  visible to the guarded code): WarSound/WorkSound/OrderSound/MidiSound/
+  ScrollSpeed/PlayMode/RECFILE/RecordMode/InitObjs3/StopPlayCD.
+The "Linux doesn't read mode.dat" gap from the sound rounds is CLOSED.
+
 ## Recurring bug patterns (checklist for any newly enabled file)
 
 1. **`sizeof TypeName` without parens** - legal on MSVC, error on GCC. -> `sizeof(TypeName)`.
