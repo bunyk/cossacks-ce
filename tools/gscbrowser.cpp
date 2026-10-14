@@ -51,6 +51,19 @@ int SCRSizeX = 0, SCRSizeY = 0;    // ddini.cpp: offscreen buffer size
 int RSCRSizeX = 0, RSCRSizeY = 0;   // ddini.cpp: real screen size
 int COPYSizeX = 0;                  // ddini.cpp
 int LX_fmap = 0;                    // fog.cpp: fmap grid dimension (fog stubs unused)
+// fog.cpp (now compiled live in the tool): map/screen geometry referenced
+// by the fog code but owned by game files not linked here. The tool never
+// runs the fog pipeline, so inert values are fine.
+int msx = 0, msy = 0;                // mapa.cpp: map size in cells
+int mapx = 0, mapy = 0;              // mapa.cpp: viewport cell position
+int smaplx = 0, smaply = 0;          // mapa.cpp: viewport size in cells
+int smapx = 0, smapy = 0;            // mapa.cpp: viewport pixel offset
+int ADDSH = 1;                       // mapdiscr.h: map size shift
+bool MiniMode = false;              // mapa.cpp
+int MiniLx = 0, MiniLy = 0;          // minimap size
+int MiniX = 0, MiniY = 0;            // minimap map position
+int minix = 0, miniy = 0;            // minimap screen position
+int GetHeight( int x, int y ) { (void)x; (void)y; return 0; }  // 3dgraph.cpp
 word RLCNSpr[1024 + 512];           // newmon.cpp: RLC sprite counters (read-only here)
 int tmtmt = 0;                      // main.cpp: frame counter (InitXShift refs it, unused here)
 short TSin[257], TCos[257];         // weapon.cpp: sine tables (read-only here)

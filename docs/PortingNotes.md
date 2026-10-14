@@ -675,6 +675,78 @@ SetupHint may matter for in-game UI hints, check when hints are tested.
   now ALSO go through the real dlopen path - they will fail gracefully
   until someone ports/ships them as .so.
 
+
+## Remaining port surface audit (2026-10-13)
+
+"Remove all guards in interface.cpp" is the wrong goal. Audited: 67 _WIN32
+regions / 9908 lines = 18 regions ~7000 lines MULTIPLAYER (lobby phase 2,
+GSC online, chat, DirectPlay callers - blocked on mplayer.cpp/ir_main.cpp,
+~12k lines needing a DirectPlay -> UDP/SDL_net replacement - its own
+project), 47 regions ~2860 lines plain C++, 2 regions 68 lines winapi
+(GetComputerName - trivial shim; mission-list scan - the FindFirstFile
+glob shim already exists). The big asm files (gp_draw ~10k, fastdraw 2k,
+3dgraph/realwater/path/masks ~5k) are ALREADY PORTED - their guards keep
+the original asm as reference by convention and should never be deleted.
+
+Genuinely left, by value:
+- mode.dat read/write (main.cpp WIN32 block) ~60 lines - settings
+  persistence (volumes/resolution survive restarts)
+- Statistics screens (ShowStatScreen/ShowUserStat) ~300 - replaces the
+  ShowStatistics stub
+- SelectSingleMission (~12420, known bounce bug), mission list browser +
+  history battles (ProcessOneBattle ~963), random map dialog (~355)
+- fog.cpp ~1350 asm lines - real fog-of-war; removes the GetFog/GetV_fmap
+  interims, restores AI visibility semantics
+- safenet.cpp GetNextDiv/Gre/SafeCell - AI long-range pathing
+- mplayer.cpp + ir_main.cpp - multiplayer project
+- bmptool.cpp stays guarded forever (pure Win GDI)
+
+
+## fog.cpp PORTED (2026-10-13) - real fog of war, interims removed
+
+All live fog asm translated; the interim hacks are GONE (GetFog returning
+1000, GetV_fmap all-visible comment, linux_stubs fog/UnitLight/FogMode
+stubs - all deleted; FogMode is defined in fog.cpp now).
+
+What was translated (asm + #else per convention):
+- ProcessFog1_1/2/3 + ProcessFog1: 16-bit 5-point blur with decay
+  (out = (sum4>>2) - (sum4>>10), sums wrap to 16 bits) over the active
+  sub-rect (cols/rows 1..mlx-1/mly-1 of the (msx/4+6) x (msy/4+6) region);
+  the three asm variants differ ONLY in the row stride FMSX2_C (bytes) =
+  2*FMSX_C, FMSX_C = 134<<(ADDSH-1) - one shared FogBlurPass(S) covers
+  all three. Starts at word index S+1 (= asm byte offset 2+FMSX2_C).
+- ShowSuperFluentFog32_160_16 (DrawFog's per-cell renderer): 32x16 block,
+  bilinear corner fog (b=(z2-z1)>>5, c=(z3-z1)>>4, d=(z1+z4-z3-z2)>>9),
+  per pixel darkfog[((fog>>8)&0xFF00)+pixel] - the same level-pixel fold
+  as the terrain rasterizers; all corners <=63 skips, >=96 fills 0.
+- DrawMiniFog (minimap): fmap <= 1300 blacks the pixel + its lower twin;
+  64-BIT FIX: the original int(ScreenPtr)/int(fmap) byte offsets are real
+  pointers now (fp is word*, so the asm byte strides DDDX/F_add halve).
+Plain C++ un-guarded: SetupFog, GetF, TurnFogOn/Off, UnitLight (per-unit
+vision spots by VisionType), WFSC/SetWF/CreateFogImage (4x upscale of the
+viewport fog), DrawFog, FogSpot, GetFog, FOGOFFS init in LoadFog.
+KEPT WINDOWS-ONLY (dead - zero callers in the tree, verified by grep):
+SetScreenFog16x16, ProcessScreenFog16x16 (old BFog system),
+ShowSuperFluentFog16_160, ShowSuperFluentFog12_160 (DrawFog only uses the
+32x16 variant), SetLightPoint, ShowSuperFog decl; LoadBlobs() stays
+guarded (shiptrace.cpp not ported).
+
+PIPELINE (all live): PreDrawGameProcess -> ProcessNewMonsters ->
+CalculateMotion -> UnitLight(own units, newmon:8020) -> FogSpot writes
+8000; GFieldShow per frame (mapa:~1878, gated FogMode && !Vision) ->
+ProcessFog1 (blur/diffuse) -> CreateFogImage (upscale to WFSC) ->
+DrawFog (32x16 blocks via GetF -> 5 visible / fden[] dark);
+DrawMiniFog on the minimap (mapa:~2570); GetFog/GetV_fmap return REAL
+values now (sound gates: unexplored areas silent - CORRECT behavior now,
+not a hack).
+
+VERIFIED OFFLINE (fogtest.cpp harness in the session scratchpad, links
+fog.cpp with game-global shims): FogBlurPass == independent model of the
+asm (0 mismatches), ShowSuperFluentFog32_160_16 bilinear == model (0),
+full-fog fill == model (0). gscbrowser needed new inert shims for the
+now-live fog globals (msx/msy/mapx/mapy/smaplx/smaply/smapx/smapy/ADDSH/
+MiniMode/MiniLx/MiniLy/MiniX/MiniY/minix/miniy/GetHeight).
+
 ## Recurring bug patterns (checklist for any newly enabled file)
 
 1. **`sizeof TypeName` without parens** - legal on MSVC, error on GCC. -> `sizeof(TypeName)`.

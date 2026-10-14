@@ -64,12 +64,41 @@ void LoadOptionalTable( int n, char* Name )
 	RClose( F );
 }
 
-#ifdef _WIN32
 int mul3( int );
 
+// Fog mode: 0 = off, 1 = on (options / PrepareToGame set it)
 int FogMode;
 
-void ShowSuperFog();
+#ifdef _WIN32
+void ShowSuperFog(); // declared, never defined or called (dead)
+#endif
+
+// Fog diffusion pass (the "new fog"): out = (sum4 >> 2) - (sum4 >> 10) -
+// a 5-point blur with decay; sums wrap to 16 bits like the asm dx register.
+// Applied to the active sub-rect (cols/rows 1..mlx-1/mly-1 of the
+// (msx/4+6) x (msy/4+6) region). The three Windows asm variants below are
+// IDENTICAL except for the row stride constant FMSX2_C (in BYTES), which
+// is 2*FMSX_C with FMSX_C = 134 << (ADDSH-1) - i.e. the fmap row stride
+// in words. This shared translation covers all three (S = row stride in
+// WORDS; the asm starts at byte offset 2+FMSX2_C = word index S+1).
+static void FogBlurPass( int S )
+{
+	const word* src = fmap1;
+	word* dst = fmap;
+	int idx = S + 1;
+	int rows = ( ( msy >> 2 ) + kFogOffset + kFogOffset ) - 1;
+	int cols = ( ( msx >> 2 ) + kFogOffset + kFogOffset ) - 1;
+	for ( int y = 0; y < rows; y++ )
+	{
+		for ( int x = 0; x < cols; x++ )
+		{
+			word sum = (word)( src[idx - S] + src[idx + S] + src[idx - 1] + src[idx + 1] );
+			dst[idx] = (word)( ( sum >> 2 ) - ( sum >> 10 ) );
+			idx++;
+		}
+		idx += S - cols;
+	}
+}
 
 #define FMSX_C 134
 #define FMSX2_C (2*FMSX_C)
@@ -77,14 +106,12 @@ void ShowSuperFog();
 void ProcessFog1_1()
 {
 	memcpy( fmap1, fmap, LX_fmap*LX_fmap * 2 );
-
 	int mlx = ( msx >> 2 ) + kFogOffset + kFogOffset;
 	int mly = ( msy >> 2 ) + kFogOffset + kFogOffset;
 	int fDV = ( mlx*mly ) << 1;
 	int fDH = ( mlx << 1 ) - 2;
-
 	byte z = 1;
-
+#ifdef _WIN32
 	__asm
 	{
 		push	esi
@@ -122,6 +149,9 @@ void ProcessFog1_1()
 			   pop		edi
 			   pop		esi
 	}
+#else
+	FogBlurPass( FMSX_C );
+#endif
 }
 
 #undef FMSX_C
@@ -138,6 +168,7 @@ void ProcessFog1_2()
 	int fDV = ( mlx*mly ) << 1;
 	int fDH = ( mlx << 1 ) - 2;
 	byte z = 1;
+#ifdef _WIN32
 	__asm {
 		push	esi
 		push	edi
@@ -176,7 +207,10 @@ void ProcessFog1_2()
 			   pop		edi
 			   pop		esi
 	};
-};
+#else
+	FogBlurPass( FMSX_C );
+#endif
+}
 
 
 #undef FMSX_C
@@ -193,6 +227,7 @@ void ProcessFog1_3()
 	int fDV = ( mlx*mly ) << 1;
 	int fDH = ( mlx << 1 ) - 2;
 	byte z = 1;
+#ifdef _WIN32
 	__asm {
 		push	esi
 		push	edi
@@ -230,7 +265,10 @@ void ProcessFog1_3()
 			   pop		edi
 			   pop		esi
 	};
-};
+#else
+	FogBlurPass( FMSX_C );
+#endif
+}
 
 void ProcessFog1()
 {
@@ -249,8 +287,9 @@ void ProcessFog1()
 }
 
 int FOGOFFS[1024];
-void LoadBlobs();
-#endif // _WIN32
+#ifdef _WIN32
+void LoadBlobs(); // shiptrace.cpp (not ported)
+#endif
 
 DLLEXPORT int CurPalette = 0;
 extern int CurrentCursorGP;
@@ -317,16 +356,15 @@ DLLEXPORT void LoadFog( int set )
 	fx = RReset( "agew_1gc.pal" );
 	RBlockRead( fx, &GraySet, 256 );
 	RClose( fx );
-#ifdef _WIN32
 	for ( int i = 0; i < 1024; i++ )
 	{
 		FOGOFFS[i] = i*FMSX;
 	}
-	LoadBlobs();
+#ifdef _WIN32
+	LoadBlobs(); // shiptrace.cpp (not ported)
 #endif
 }
 
-#ifdef _WIN32
 void SetupFog()
 {
 	for ( int i = 0; i < 1024; i++ )
@@ -335,6 +373,9 @@ void SetupFog()
 	}
 }
 
+#ifdef _WIN32
+// BFog pair (SetScreenFog16x16/ProcessScreenFog16x16): old fog screen
+// buffers - no callers anywhere in the tree, kept Windows-only.
 #define Shifter 7
 
 static byte BFog[64][64];
@@ -420,10 +461,16 @@ void ProcessScreenFog16x16()
 	smaplx--;
 	smaply--;
 }
+#endif // _WIN32 (dead BFog pair)
 
 #define zmin 0
 #define zmax 32
 
+// Renders one 32x16-pixel fog block with bilinearly interpolated fog
+// values (z1..z4 = corners, 16.16 after the <<16 below; high = dark).
+// Per pixel: dst = darkfog[((fog >> 8) & 0xFF00) + dst] - the same
+// level-pixel fold as the terrain rasterizers. All four corners <= 63:
+// fully visible, nothing to draw; all >= 96: fill with color 0.
 void ShowSuperFluentFog32_160_16( int x, int y, int z1x, int z2x, int z3x, int z4x )
 {
 	if ( MiniMode )
@@ -446,6 +493,7 @@ void ShowSuperFluentFog32_160_16( int x, int y, int z1x, int z2x, int z3x, int z
 
 	if ( z1x >= 96 && z2x >= 96 && z3x >= 96 && z4x >= 96 )
 	{
+#ifdef _WIN32
 		__asm
 		{
 			push	edi
@@ -461,6 +509,15 @@ void ShowSuperFluentFog32_160_16( int x, int y, int z1x, int z2x, int z3x, int z
 				  jnz		iug
 				  pop		edi
 		}
+#else
+		// Full fog: fill the 32x16 block with color 0
+		byte* dst = ScreenPtr + x + y * SCRSizeX;
+		for ( int row = 0; row < 16; row++ )
+		{
+			memset( dst, 0, 32 );
+			dst += SCRSizeX;
+		}
+#endif
 		return;
 	}
 	else
@@ -468,6 +525,7 @@ void ShowSuperFluentFog32_160_16( int x, int y, int z1x, int z2x, int z3x, int z
 		int a, b, p;
 		int c = ( z3 - z1 ) >> 4;
 		int d = ( z1 + z4 - z3 - z2 ) >> 9;
+#ifdef _WIN32
 		__asm
 		{
 			push	edi
@@ -712,21 +770,33 @@ void ShowSuperFluentFog32_160_16( int x, int y, int z1x, int z2x, int z3x, int z
 				   add		esi, 8
 				   add		ebx, edx
 				   //jnz		qqw1
-				   add		esi, adds
-				   add		edx, d
-				   mov		ebx, p
-				   add		ebx, c
-				   //mov		cl,4
-				   mov		p, ebx
-				   dec		ch
-				   jnz		qqw1
-				   popf
-				   pop		esi
-				   pop		edi
+#else
+		// Bilinear corner interpolation: per-row fog start p (= z1 + row*c),
+		// per-pixel increment b (starts (z2-z1)/32, gains row*d). The index
+		// into darkfog folds the pixel byte into AL exactly like the asm:
+		// darkfog[((fog >> 8) & 0xFF00) + pixel].
+		byte* dst = ScreenPtr + x + y * SCRSizeX;
+		b = ( z2 - z1 ) >> 5;
+		p = z1;
+		for ( int row = 0; row < 16; row++ )
+		{
+			int fog = p;
+			for ( int i = 0; i < 32; i++ )
+			{
+				dst[i] = darkfog[( ( fog >> 8 ) & 0xFF00 ) + dst[i]];
+				fog += b;
+			}
+			dst += SCRSizeX;
+			b += d;
+			p += c;
 		}
+#endif
 	}
 }
 
+#ifdef _WIN32
+// ShowSuperFluentFog16_160 / 12_160: no callers anywhere in the tree
+// (DrawFog only uses the 32x16 variant) - kept Windows-only.
 void ShowSuperFluentFog16_160( int x, int y, int z1x, int z2x, int z3x, int z4x )
 {
 	int z1 = z1x << 16;
@@ -1127,8 +1197,6 @@ void makeFden()
 			fden[i] = 5 + div( i * 153, shf ).quot;
 	}
 }
-#ifdef _WIN32
-
 int GetF( word k )
 {
 	if ( k >= fmin )
@@ -1149,6 +1217,8 @@ void TurnFogOff()
 	FogMode = 0;
 }
 
+#ifdef _WIN32
+// SetLightPoint: no callers in the tree (dead) - kept Windows-only.
 void SetLightPoint( int x, int y )
 {
 	int xx1 = x >> 5;
@@ -1169,6 +1239,7 @@ void SetLightPoint( int x, int y )
 		mov		word ptr[fmap + eax], 16383;
 	}
 }
+#endif // _WIN32 (dead SetLightPoint)
 
 void FogSpot( int x, int y );
 
@@ -1467,11 +1538,15 @@ extern int MiniLx;
 extern int MiniLy;
 extern int MiniX, MiniY;
 
+// Blacks out fogged cells on the minimap: fmap <= 1300 (the asm's unsigned
+// "ja" skips visible cells) paints the pixel AND the one one row below.
+// 64-BIT FIX: the original computed byte offsets via int(ScreenPtr)/
+// int(fmap); the translation uses real pointers (fp is a WORD pointer, so
+// the asm's byte strides DDDX/F_add halve).
 void DrawMiniFog()
 {
-	int sofs = int( ScreenPtr ) + minix + miniy * ScrWidth;
-	int fofs = int( fmap ) + ( ( ( ( MiniX >> 1 ) << ( ADDSH - 1 ) ) + kFogOffset + 1 + FMSX*( ( ( MiniY >> 1 ) << ( ADDSH - 1 ) ) + kFogOffset + 1 ) ) << 1 );
-
+	byte* scr = ScreenPtr + minix + miniy * ScrWidth;
+	word* fp = fmap + ( ( ( MiniX >> 1 ) << ( ADDSH - 1 ) ) + kFogOffset + 1 + FMSX * ( ( ( MiniY >> 1 ) << ( ADDSH - 1 ) ) + kFogOffset + 1 ) );
 
 	int MMSX = ( MiniLx / 2 );
 	int MMSY = ( MiniLy / 2 );
@@ -1479,34 +1554,19 @@ void DrawMiniFog()
 	int F_add = ( FMSX2 << ( ADDSH - 1 ) ) - ( MMSX << ADDSH );
 	int DDDX = 1 << ADDSH;
 
-	__asm
+	for ( int y = 0; y < MMSY; y++ )
 	{
-		push	esi
-		push	edi
-		pushf
-		mov		esi, fofs
-		mov		edi, sofs
-		mov		edx, ScrWidth
-		mov		ebx, DDDX
-		lopx1 :
-		mov		ecx, MMSX
-			lopx3 : mov     ax, [esi]
-			add		esi, ebx
-
-			cmp		ax, 1300
-			ja		lopx2
-			mov		word ptr[edi], 0
-			mov		word ptr[edi + edx], 0
-			lopx2:	add		edi, 2
-			dec		ecx
-			jnz		lopx3
-			add		esi, F_add
-			add		edi, addscr
-			dec		MMSY
-			jnz		lopx1
-			popf
-			pop		edi
-			pop		esi
+		for ( int x = 0; x < MMSX; x++ )
+		{
+			if ( *fp <= 1300 )
+			{
+				*(word*)scr = 0;
+				*(word*)( scr + ScrWidth ) = 0;
+			}
+			fp += DDDX >> 1;
+			scr += 2;
+		}
+		fp += F_add >> 1;
+		scr += addscr;
 	}
 }
-#endif // _WIN32

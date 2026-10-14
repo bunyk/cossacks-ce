@@ -38,7 +38,7 @@ int PLNAT[8];
 EXBUFFER EBufs[MaxPL];
 EXBUFFER EBufs1[MaxPL];
 int ExitNI = 0;
-int FogMode = 0;
+// FogMode: defined in fog.cpp (ported)
 char HEIGHTSTR[12];
 int InteriorType = 0;
 extern const int kCtrlStickyTime = 700;bool LockFog = false;
@@ -95,21 +95,11 @@ word GetNextDivCell( byte NI, int F, int Start ) { (void)NI; (void)F; (void)Star
 word GetNextGreCell( byte NI, int F, int Start ) { (void)NI; (void)F; (void)Start; return 0xFFFF; }
 word GetNextSafeCell( byte NI, int F, int start, int Fin ) { (void)NI; (void)F; (void)start; (void)Fin; return 0xFFFF; }
 
-//-------------- fog.cpp (asm regions not ported) --------------
-void DrawFog() {}
-void DrawMiniFog() {}
-void FogSpot( int x, int y ) { (void)x; (void)y; }
-// Fog of war is not ported yet (fog.cpp asm regions). PrepareToGame sets
-// FogMode=1 at every match start, and the unported fog data reads as
-// "everything fogged" (0), which gates out ALL in-game sound effects
-// (Add*Effect early-return on GetFog(...) < 900) and hides every click
-// hint. Report "fully visible" until fog.cpp is ported for real.
-// Remove this (and GetV_fmap in loadsave.cpp) together with the port.
-word GetFog( int x, int y ) { (void)x; (void)y; return 1000; }
-void SetupFog() {}
-void ProcessFog1() {}
-void TurnFogOff() {}
-void CreateFogImage() {}
+//-------------- fog.cpp --------------
+// fog.cpp is PORTED (asm translated): the former DrawFog/DrawMiniFog/
+// FogSpot/GetFog/SetupFog/ProcessFog1/TurnFogOff/CreateFogImage/UnitLight
+// stubs are deleted - real definitions compile now. FogMode is defined
+// in fog.cpp as well.
 
 //-------------- virtscr.cpp --------------
 
@@ -144,7 +134,7 @@ void SetBrokenState() {}
 void ShowChat() {}
 int  ShowHistryItem( char* Bmp, char* Text ) { (void)Bmp; (void)Text; return 0; }
 void ShowCentralMessage4( char* Message, int GPIDX, int DX ) { (void)Message; (void)GPIDX; (void)DX; }
-void UnitLight( OneObject* OB ) { (void)OB; }
+// UnitLight: real definition in fog.cpp (ported)
 void UpdateCurGame() {}
 
 //-------------- map editor / random map --------------
