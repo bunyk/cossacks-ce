@@ -929,6 +929,18 @@ round), check the INDIVIDUAL cases for their own nested sub-guards.
   "Backgrounds for UI elements" GPS.ShowGP frame) - if it is a partial
   graphic with transparent areas, the see-through is authentic.
 
+
+## Main-menu Load button un-guarded (2026-10-14)
+
+The mcmLoad dispatch (interface.cpp ~6988) sat in the same _WIN32 block as
+mcmExit (SlideShow - battles block, still guarded) and the user-mission
+handling. Guard split so ONLY mcmLoad runs on Linux: processMLoadGame is
+already ported (the F12 Load uses the same function). mcmExit (main-menu
+Exit button -> SlideShow) and the ItemChoose==43 user-mission dispatch
+STAY guarded - the Exit button is the last dead main-menu item.
+Also note: the stats screens' REPLAY button requires PlayGameMode=2
+recorded replay support (recorder.cpp replays) - not related to this.
+
 ## Recurring bug patterns (checklist for any newly enabled file)
 
 1. **`sizeof TypeName` without parens** - legal on MSVC, error on GCC. -> `sizeof(TypeName)`.

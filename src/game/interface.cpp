@@ -6983,14 +6983,16 @@ int processMainMenu()
 
 // Options button: ProcessMenuOptions is fully ported; this dispatch was
 // the only guarded piece, so Options silently did nothing on Linux.
-#ifdef _WIN32
-
+		// Load button: processMLoadGame is fully ported (same screen the
+		// F12 menu uses) - this dispatch was the only guarded piece, so the
+		// main-menu Load button silently did nothing on Linux.
 		if ( ItemChoose == mcmLoad )
 		{
 			SlowUnLoadPalette( "2\\agew_1.pal" );
 			processMLoadGame();
 		}
 
+#ifdef _WIN32
 		if ( ItemChoose == mcmExit )
 		{
 			SlowUnLoadPalette( "2\\agew_1.pal" );
