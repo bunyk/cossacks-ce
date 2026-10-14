@@ -941,6 +941,30 @@ STAY guarded - the Exit button is the last dead main-menu item.
 Also note: the stats screens' REPLAY button requires PlayGameMode=2
 recorded replay support (recorder.cpp replays) - not related to this.
 
+
+## Music exit hang ROUND 3 (2026-10-14) - the real deadlock mechanism
+
+The ROUND-9 g_musicShutdown flag was necessary but not sufficient: the
+audio device thread could be INSIDE CDeviceCD::Play's stb_vorbis decode
+(seconds long) when the main thread's atexit teardown ran. After the
+decode, Play called SDL_ClearAudioStream/PutAudioStreamData/
+SetAudioStreamGetCallback - SDL_DestroyAudioStream (main thread) takes
+the stream lock and closes the device (device-thread JOIN). The audio
+thread blocking on the stream lock + the main thread joining the device
+thread = DEADLOCK; the join never completes (gdb: SDL_SYS_WaitThread
+from ClosePhysicalAudioDevice from ~CDeviceCD at exit).
+DEFINITIVE FIX (two layers):
+- CDeviceCD::Play checks g_musicShutdown at entry AND AGAIN AFTER the
+  decode - if shutdown began meanwhile it frees the buffer and returns
+  WITHOUT touching the stream.
+- CDeviceCD::Close (runs ONLY from ~CDeviceCD at exit): sets the flag,
+  detaches the get-callback, NULLs the pointers - and does NOT destroy
+  or pause the stream at all. No destroy -> no join -> no deadlock; the
+  process is exiting anyway and the OS reclaims the audio device.
+DESIGN NOTE (upstream, kept): the whole-track decode on the audio thread
+is the root flaw - a future rework should decode on a worker thread and
+feed the stream incrementally.
+
 ## Recurring bug patterns (checklist for any newly enabled file)
 
 1. **`sizeof TypeName` without parens** - legal on MSVC, error on GCC. -> `sizeof(TypeName)`.

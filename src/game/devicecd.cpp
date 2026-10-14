@@ -103,14 +103,15 @@ bool CDeviceCD::Close()
 {
 	if (FOpened)
 	{
-		// Teardown: set the shutdown flag FIRST (see g_musicShutdown), then
-		// detach the get-callback and pause before destroying - the global
-		// destructor runs here at exit() and the device-thread join must
-		// not wait on an ogg decode that re-arms itself forever.
+		// Teardown (this runs ONLY from ~CDeviceCD at exit()): set the
+		// shutdown flag FIRST - Play()/MusicStreamCallback become no-ops.
+		// The stream is NOT destroyed/paused here: the audio device thread
+		// may be mid-callback (a multi-second stb_vorbis decode), and
+		// destroy/pause block on the stream lock while the audio thread
+		// queues decoded data -> the device-thread join deadlocks. The
+		// process is exiting anyway - the OS reclaims the device.
 		g_musicShutdown = true;
 		SDL_SetAudioStreamGetCallback(audioStream, nullptr, nullptr);
-		SDL_PauseAudioStreamDevice(audioStream);
-		SDL_DestroyAudioStream(audioStream);
 
 		FOpened = false;
 		audioError = false;
@@ -179,6 +180,10 @@ bool CDeviceCD::SetVolume(DWORD Volume)
 }
 bool CDeviceCD::Play(DWORD Track)
 {
+	// Teardown guard: Play runs on the AUDIO DEVICE THREAD (from the
+	// get-callback); once shutdown begins it must not touch the stream.
+	if (g_musicShutdown) return false;
+
 	if (!FOpened)
 	{
 		// Lazy init (constructor ran too early, before SDL/FilesInit):
@@ -219,6 +224,16 @@ bool CDeviceCD::Play(DWORD Track)
 		dataRead = stb_vorbis_decode_filename(filename, &channels, &sampleRate, &buffer);
 		if (dataRead == -1)
 		{
+			return false;
+		}
+
+		// The decode takes seconds; shutdown may have begun meanwhile
+		// (the main thread's atexit teardown). Do NOT touch the stream
+		// now - its destruction may be in progress on the main thread
+		// and the stream-lock/wait-thread combination deadlocks the join.
+		if (g_musicShutdown)
+		{
+			SDL_free(buffer);
 			return false;
 		}
 
