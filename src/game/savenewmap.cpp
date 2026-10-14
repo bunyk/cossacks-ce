@@ -2247,17 +2247,6 @@ void Load3DMapLandOnly( char* Map )
 		RBlockRead( f1, &sign, 4 );
 		RBlockRead( f1, &size, 4 );
 		posit += 4 + size;
-		{
-			// DBG: chunk-walk trace (strip once save/load is verified)
-			static int dbgChunks = 0;
-			if ( dbgChunks < 60 )
-			{
-				char* s4 = (char*)&sign;
-				fprintf( stderr, "DBG chunk %2d: '%c%c%c%c' size=%d posit=%d\n",
-					dbgChunks, s4[0], s4[1], s4[2], s4[3], size, posit );
-				dbgChunks++;
-			}
-		}
 		switch ( sign )
 		{
 		case 'FRUS':

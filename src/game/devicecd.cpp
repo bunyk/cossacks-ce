@@ -20,8 +20,16 @@ static char THIS_FILE[] = __FILE__;
 
 bool PlayRandomTrack();
 
+// Set when the music device is being torn down (CDeviceCD::Close). The
+// audio device thread may be INSIDE PlayRandomTrack's multi-second ogg
+// decode while the main thread closes the stream; without this flag the
+// decode re-attaches the get-callback at its end and the device thread
+// keeps feeding forever - SDL_CloseAudioDevice's join hung the shutdown.
+static bool g_musicShutdown = false;
+
 static void SDLCALL MusicStreamCallback(void* userdata, SDL_AudioStream* stream, int additionalAmount, int totalAmount)
 {
+	if (g_musicShutdown) return;
 	if (!SDL_GetAudioStreamAvailable(stream))
 	{
 		if (!PlayRandomTrack())
@@ -95,7 +103,13 @@ bool CDeviceCD::Close()
 {
 	if (FOpened)
 	{
+		// Teardown: set the shutdown flag FIRST (see g_musicShutdown), then
+		// detach the get-callback and pause before destroying - the global
+		// destructor runs here at exit() and the device-thread join must
+		// not wait on an ogg decode that re-arms itself forever.
+		g_musicShutdown = true;
 		SDL_SetAudioStreamGetCallback(audioStream, nullptr, nullptr);
+		SDL_PauseAudioStreamDevice(audioStream);
 		SDL_DestroyAudioStream(audioStream);
 
 		FOpened = false;
@@ -280,6 +294,7 @@ CDeviceCD CDPLAY;
 // Returns false when the track file is missing or fails to decode
 // (PlayRandomTrack uses that to fall back to another track).
 bool PlayCDTrack(int Id) {
+	if (g_musicShutdown) return false;
 	return CDPLAY.Play(Id);
 };
 extern int CurrentNation;

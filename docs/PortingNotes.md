@@ -770,6 +770,49 @@ record settings reset every session. Guard boundaries moved:
   ScrollSpeed/PlayMode/RECFILE/RecordMode/InitObjs3/StopPlayCD.
 The "Linux doesn't read mode.dat" gap from the sound rounds is CLOSED.
 
+
+## Save/Load game fixed (2026-10-13)
+
+Load-from-F12 works end-to-end now. Three bugs, found via offline chunk
+walks of the .m3d and the user's gdb backtrace:
+
+- **PEAC (peace-time) chunk size off by 4** (savenewmap.cpp
+  SavePeaceTimeInfo): `sz = 4 + N + 4 + 8 + 3` but SEVEN 1-byte state
+  flags are written - the size field was 4 short, so the m3d chunk walk
+  (stride = signature + 4 + size, verified against every other chunk in
+  the file) landed 4 bytes early on the next chunk, read a garbage
+  signature, fell into the unknown-chunk RSeek(garbage) branch and looped
+  forever (RSeek 4GB -> the "load game froze"). Diagnosed entirely
+  offline by walking the m3d bytes and comparing with the real signature
+  positions.
+- **LoadPeaceTimeInfo used RBlockWrite for the 7 state flags** (upstream
+  bug - writes to the read handle: flags never loaded AND 7-byte stream
+  desync). Fixed to RBlockRead.
+- **NewAnm/HiLayer/LoLayer saved as int(ptr)-offsets** (loadsave.cpp
+  1233/1297, pattern #3): SAVE computed int(NewAnm)-int(newMons) from
+  TRUNCATED pointers, LOAD rebuilt via (NewAnimation*)(int(newMons)+pp) -
+  a 32-bit-truncated base pointer = invalid pointer -> SIGSEGV in
+  BuildObjLink (OBJ->NewAnm->NFrames) on the first frame after load.
+  File format keeps the 4-byte offset field; save computes it in 64-bit
+  ((intptr_t)a-(intptr_t)b), load applies it to (byte*)newMons. NOTE: old
+  Linux saves usually stored CORRECT offsets (same-heap pointers), so
+  they load after just the load-side fix.
+- **EXIT HANG in the audio teardown**: the global CDeviceCD destructor
+  (runs at exit()) closed the music stream, but the audio device thread
+  could be mid-PlayRandomTrack (a multi-second whole-track stb_vorbis
+  decode) whose Play() RE-ATTACHES the get-callback at its end - so the
+  main thread's clear-then-destroy raced against the re-arm and
+  SDL_CloseAudioDevice's thread-join waited forever. Fix: g_musicShutdown
+  flag set FIRST in CDeviceCD::Close, checked in MusicStreamCallback and
+  PlayCDTrack (no decode, no re-arm during teardown); CDirSound's
+  ReleaseAll also detaches its master-stream callback before destroying
+  (defensive).
+The Load3DMapLandOnly chunk-walk DBG probe is STRIPPED (verified clean:
+VIEW SURF TILE SECT TREE UNI3 WAL2 LOC1 SEA2 RESU TOP1 TOPW ZON1 FOR1
+.DLL AIIA PSMS PEAC RIV1 ENDM). Note the map files are written fresh at
+every random-map start; old m3ds written by pre-PEAC-fix builds stay
+unloadable - delete stale RN*.m3d files (EraseRND is still stubbed).
+
 ## Recurring bug patterns (checklist for any newly enabled file)
 
 1. **`sizeof TypeName` without parens** - legal on MSVC, error on GCC. -> `sizeof(TypeName)`.

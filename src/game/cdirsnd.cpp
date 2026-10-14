@@ -172,9 +172,12 @@ void CDirSound::ReleaseAll()
 		m_bufferPointers[x] = NULL;
 	}
 
-	// Release the master stream, then the DirectSound object.
+	// Release the master stream, then the DirectSound object. Detach the
+	// get-callback first so the device thread goes idle during teardown
+	// (see CDeviceCD::Close for the same pattern).
 	if (m_masterStream)
 	{
+		SDL_SetAudioStreamGetCallback(m_masterStream, nullptr, nullptr);
 		SDL_DestroyAudioStream(m_masterStream);
 		m_masterStream = NULL;
 	}
