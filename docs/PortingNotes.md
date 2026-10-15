@@ -50,7 +50,7 @@ State and findings as of 2026-10-09. Companion to `docs/Ubuntu.md` (build instru
   `masks.cpp` (2026-10-11, asm ported - see "Terrain texture masks" below)
 - Still NOT in build / not ported: `shiptrace.cpp` (4 asm),
   `fastdraw.cpp` (12 guards, 33 asm, partially done),
-  `fog.cpp` (asm regions), `interface.cpp` (~82 scattered guards,
+  `interface.cpp` (~82 scattered guards,
   partially enabled), `mplayer.cpp` (defines MyDPID - conflicts with interface.cpp), `ir_main.cpp`,
   `bmptool.cpp` (pure Win GDI/DIB - left guarded on purpose).
 
@@ -67,7 +67,7 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
   They were the "infinite loop in CreateCostPlaces" bug: `while(!CheckBar(...))R0++`
   never terminated with CheckBar always-false. Delete the translations when
   path.cpp is ported for real.
-- **Fog of war**: `DrawFog`, `FogSpot`, `GetFog` etc. (fog.cpp asm regions).
+- **Fog of war**: All asm blocks removed from fog.cpp; C++ translations verified.
 - **VirtualScreen**: `AddTHMap` stub (minimap terrain); everything else in virtscr.cpp is ported.
 - **Terrain texture masks (fixed 2026-10-11)**: `masks.cpp` ported - `PrepareIntersection1/2`
   were no-op stubs, so every mixed-texture cell rendered from stale `ResultMask` (wrong
@@ -695,41 +695,43 @@ Genuinely left, by value:
   ShowStatistics stub
 - SelectSingleMission (~12420, known bounce bug), mission list browser +
   history battles (ProcessOneBattle ~963), random map dialog (~355)
-- fog.cpp ~1350 asm lines - real fog-of-war; removes the GetFog/GetV_fmap
-  interims, restores AI visibility semantics
 - safenet.cpp GetNextDiv/Gre/SafeCell - AI long-range pathing
 - mplayer.cpp + ir_main.cpp - multiplayer project
 - bmptool.cpp stays guarded forever (pure Win GDI)
 
 
-## fog.cpp PORTED (2026-10-13) - real fog of war, interims removed
+## fog.cpp CLEANED UP (2026-10-15) - dead code and asm blocks removed
 
-All live fog asm translated; the interim hacks are GONE (GetFog returning
-1000, GetV_fmap all-visible comment, linux_stubs fog/UnitLight/FogMode
-stubs - all deleted; FogMode is defined in fog.cpp now).
+All live fog asm translated and dead code removed. The C++ translations (previously
+kept in #else branches) are now the sole implementations. File reduced from 1572
+to 800 lines (794 lines removed).
 
-What was translated (asm + #else per convention):
-- ProcessFog1_1/2/3 + ProcessFog1: 16-bit 5-point blur with decay
-  (out = (sum4>>2) - (sum4>>10), sums wrap to 16 bits) over the active
-  sub-rect (cols/rows 1..mlx-1/mly-1 of the (msx/4+6) x (msy/4+6) region);
-  the three asm variants differ ONLY in the row stride FMSX2_C (bytes) =
-  2*FMSX_C, FMSX_C = 134<<(ADDSH-1) - one shared FogBlurPass(S) covers
-  all three. Starts at word index S+1 (= asm byte offset 2+FMSX2_C).
-- ShowSuperFluentFog32_160_16 (DrawFog's per-cell renderer): 32x16 block,
-  bilinear corner fog (b=(z2-z1)>>5, c=(z3-z1)>>4, d=(z1+z4-z3-z2)>>9),
-  per pixel darkfog[((fog>>8)&0xFF00)+pixel] - the same level-pixel fold
-  as the terrain rasterizers; all corners <=63 skips, >=96 fills 0.
-- DrawMiniFog (minimap): fmap <= 1300 blacks the pixel + its lower twin;
-  64-BIT FIX: the original int(ScreenPtr)/int(fmap) byte offsets are real
-  pointers now (fp is word*, so the asm byte strides DDDX/F_add halve).
-Plain C++ un-guarded: SetupFog, GetF, TurnFogOn/Off, UnitLight (per-unit
-vision spots by VisionType), WFSC/SetWF/CreateFogImage (4x upscale of the
-viewport fog), DrawFog, FogSpot, GetFog, FOGOFFS init in LoadFog.
-KEPT WINDOWS-ONLY (dead - zero callers in the tree, verified by grep):
-SetScreenFog16x16, ProcessScreenFog16x16 (old BFog system),
-ShowSuperFluentFog16_160, ShowSuperFluentFog12_160 (DrawFog only uses the
-32x16 variant), SetLightPoint, ShowSuperFog decl; LoadBlobs() stays
-guarded (shiptrace.cpp not ported).
+What was translated/replaced:
+- ProcessFog1_1/2/3: Replaced Windows asm with direct calls to FogBlurPass()
+  with appropriate stride parameters (134, 134<<1, 134<<2). The shared FogBlurPass
+  implements the 16-bit 5-point blur with decay (out = (sum4>>2) - (sum4>>10)) over
+  the active sub-rect.
+- ShowSuperFluentFog32_160_16 (DrawFog's per-cell renderer): Replaced asm blocks
+  with C++: full-fog case uses memset loop; bilinear interpolation uses nested
+  loops with per-pixel darkfog[((fog>>8)&0xFF00)+pixel] lookup.
+- DrawMiniFog (minimap): Already ported - uses real pointers instead of
+  int(ScreenPtr)/int(fmap) byte offsets.
+
+Removed dead code:
+- ShowSuperFog() declaration - never defined or called
+- SetScreenFog16x16(), ProcessScreenFog16x16() - old BFog system, no callers
+- ShowSuperFluentFog16_160(), ShowSuperFluentFog12_160() - DrawFog only uses 32x16
+- SetLightPoint() - no callers in the tree
+
+KEPT WINDOWS-ONLY (shiptrace.cpp not ported):
+- LoadBlobs() declaration and call site remain guarded
+
+PIPELINE (all live): PreDrawGameProcess -> ProcessNewMonsters ->
+CalculateMotion -> UnitLight -> FogSpot; GFieldShow -> ProcessFog1 ->
+CreateFogImage -> DrawFog -> DrawMiniFog; GetFog/GetV_fmap return REAL
+values (sound gates work correctly).
+
+VERIFIED: Build succeeds with cleaned-up fog.cpp (2026-10-15).
 
 PIPELINE (all live): PreDrawGameProcess -> ProcessNewMonsters ->
 CalculateMotion -> UnitLight(own units, newmon:8020) -> FogSpot writes
@@ -1000,6 +1002,29 @@ the fullscreen path); letterboxing would need a dst-rect in RenderTexture
   ComputeLetterbox is recomputed per flip AND per mouse event (both
   resolution and window size can change at any time; the math is 4
   divisions).
+
+
+## Mid-game audio silence diagnostics (2026-10-14, TEMPORARY instrumentation)
+
+User reports music AND effects sometimes go silent mid-game. Both audio
+stacks use SEPARATE SDL devices (effects: CDirSound device 37 + master
+stream; music: CDeviceCD lazy device + stream) - simultaneous silence
+points at the SDL/PipeWire layer. Instrumentation added (strip when the
+cause is found):
+- SDL_AppEvent logs SDL_EVENT_AUDIO_DEVICE_ADDED/REMOVED/FORMAT_CHANGED
+  (printf to stdout) - PipeWire-side device churn.
+- g_sndCallbackTicks (cdirsnd.cpp) / g_musCallbackTicks (devicecd.cpp):
+  volatile counters bumped by every audio-callback invocation.
+- ProcessSoundSystem watchdog (in-game, every 64 frames): logs STATE
+  TRANSITIONS only - "sound-effects callbacks STOPPED/resumed" with
+  device id + master stream ptr, "music callbacks STOPPED/resumed".
+  Stalled counter + open device = audio thread not pulling (SDL side);
+  compare timestamp with the audio device events to correlate.
+- The existing per-track "Music: playing ..." log shows whether the
+  music re-arm chain kept working until the silence.
+Known candidates: PipeWire device swap (bluetooth/headphone hotplug),
+SDL device recovery dropping our stream, an SDL_PutAudioStreamData
+error our callbacks ignore (they don't check the return).
 
 ## Recurring bug patterns (checklist for any newly enabled file)
 

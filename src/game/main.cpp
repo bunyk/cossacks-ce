@@ -757,6 +757,21 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 		break;
 	}
 
+	// Audio device hotplug/format changes (PipeWire-side events that can
+	// silently kill playback) - diagnostic logging for the mid-game silence.
+	case SDL_EVENT_AUDIO_DEVICE_ADDED:
+		printf("AUDIO EVENT: device added id=%u recording=%d\n",
+			(unsigned)event->adevice.which, (int)event->adevice.recording);
+		break;
+	case SDL_EVENT_AUDIO_DEVICE_REMOVED:
+		printf("AUDIO EVENT: device REMOVED id=%u recording=%d\n",
+			(unsigned)event->adevice.which, (int)event->adevice.recording);
+		break;
+	case SDL_EVENT_AUDIO_DEVICE_FORMAT_CHANGED:
+		printf("AUDIO EVENT: device FORMAT CHANGED id=%u recording=%d\n",
+			(unsigned)event->adevice.which, (int)event->adevice.recording);
+		break;
+
 	case SDL_EVENT_WINDOW_MOVED:
 	case SDL_EVENT_WINDOW_RESIZED:
 		//Adjust cursor zone after window was moved

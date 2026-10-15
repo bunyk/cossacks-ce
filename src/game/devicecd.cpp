@@ -27,8 +27,12 @@ bool PlayRandomTrack();
 // keeps feeding forever - SDL_CloseAudioDevice's join hung the shutdown.
 static bool g_musicShutdown = false;
 
+// Watchdog counter (see the stall check in ProcessSoundSystem)
+volatile Uint64 g_musCallbackTicks = 0;
+
 static void SDLCALL MusicStreamCallback(void* userdata, SDL_AudioStream* stream, int additionalAmount, int totalAmount)
 {
+	g_musCallbackTicks++;
 	if (g_musicShutdown) return;
 	if (!SDL_GetAudioStreamAvailable(stream))
 	{
