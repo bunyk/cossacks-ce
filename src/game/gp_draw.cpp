@@ -195,22 +195,6 @@ byte* GP_System::GetCash( int Size )
 	return cps;
 };
 
-#ifdef _WIN32
-bool GP_System::GetGPSize( int i, int n, int* Lx, int* Ly )
-{
-	*Lx = 0;
-	*Ly = 0;
-	if (LoadGP( i ))
-	{
-		if (n >= GPS.GPNFrames[i])return false;
-		*Lx = ImLx[i][n];
-		*Ly = ImLy[i][n];
-		return true;
-	}
-	else return false;
-};
-#endif // _WIN32
-
 int GP_System::PreLoadGPImage( char* Name, bool Shadow )
 {
 	//search for existing name
@@ -1030,6 +1014,13 @@ static void GP_ShowMaskedPict( int x, int y, GP_Header* Pic, byte* CData, byte* 
 //   op 4: dst = Enc[(dst<<8)|src]    (GP_ShowMaskedMultiPalTPict)
 // mirror: the *Inv variants - horizontally flipped sprite; x is the RIGHT edge,
 // hot-point dx is subtracted, segments run right-to-left (see the Inv asm).
+extern byte refl[3072];   // water reflection LUT, loaded from refl.grd (fog.cpp)
+
+// Wobble shift table for the water-mirror op below. The Windows asm got it
+// as a parameter; the generic draw helper does not take one, so the mirror
+// wrappers stash it here right before their call.
+static int* s_MirrorShift = nullptr;
+
 static void GP_ShowMaskedGeneric( int x, int y, GP_Header* Pic, byte* CData,
     byte* Encoder, int op, bool mirror )
 {
@@ -1087,10 +1078,16 @@ static void GP_ShowMaskedGeneric( int x, int y, GP_Header* Pic, byte* CData,
     NLines = (y + NLines - top_skip > WindY1 + 1) ? WindY1 - y + 1 : NLines - top_skip;
 
     int left_edge  = mirror ? (x - Lx + 1) : x;
-    byte* screen_row = (byte*)ScreenPtr + y * ScrWidth + left_edge;
 
-    for (int row = 0; row < NLines; row++, screen_row += ScrWidth)
+    // op 6 (water mirror): per-scanline horizontal wobble. The shift is a
+    // running sum over the drawn rows, same as the Windows asm, which kept
+    // the offset in LineStart across scanlines.
+    int wobble = 0;
+    for (int row = 0; row < NLines; row++)
     {
+        if (op == 6 && s_MirrorShift) wobble += s_MirrorShift[row];
+        int row_edge = left_edge + wobble;
+        byte* screen_row = (byte*)ScreenPtr + (y + row) * ScrWidth + row_edge;
         byte m = *mask++;
         if (!m) continue;
 
@@ -1106,7 +1103,7 @@ static void GP_ShowMaskedGeneric( int x, int y, GP_Header* Pic, byte* CData,
                 for (int p = 0; p < count; p++, col++)
                 {
                     int out = mirror ? (Lx - 1 - col) : col;
-                    int sx = left_edge + out;
+                    int sx = row_edge + out;
                     // Consume the source pixel even when this column is
                     // clipped: the Windows asm advances the source pointer
                     // over off-screen columns too. Skipping the consumption
@@ -1120,6 +1117,18 @@ static void GP_ShowMaskedGeneric( int x, int y, GP_Header* Pic, byte* CData,
                         // Overpoint dither (GP_ShowMaskedPictOverpoint): paint 0
                         // on (y+x) odd cells; reads neither CData nor Encoder
                         if (((OCNTR + sx) & 1)) *d = 0;
+                        continue;
+                    }
+                    if (op == 6)
+                    {
+                        // Water mirror (GP_ShowMaskedMirrorPict/Inv): tint only
+                        // pixels lying on water-colored background (0xB0..0xBB,
+                        // the 12 shades the refl table covers); refl maps
+                        // (water shade, sprite pixel) to the reflected color.
+                        // Everything else is left untouched, so the reflection
+                        // shows up only on the water surface.
+                        int wi = *d - 0xB0;
+                        if (wi >= 0 && wi < 12) *d = refl[(wi << 8) | src];
                         continue;
                     }
                     byte outc;
@@ -1152,7 +1161,7 @@ static void GP_ShowMaskedGeneric( int x, int y, GP_Header* Pic, byte* CData,
                 for (int p = 0; p < count; p++, col++)
                 {
                     int out = mirror ? (Lx - 1 - col) : col;
-                    int sx = left_edge + out;
+                    int sx = row_edge + out;
                     // Consume the source pixel even when this column is
                     // clipped: the Windows asm advances the source pointer
                     // over off-screen columns too. Skipping the consumption
@@ -1166,6 +1175,18 @@ static void GP_ShowMaskedGeneric( int x, int y, GP_Header* Pic, byte* CData,
                         // Overpoint dither (GP_ShowMaskedPictOverpoint): paint 0
                         // on (y+x) odd cells; reads neither CData nor Encoder
                         if (((OCNTR + sx) & 1)) *d = 0;
+                        continue;
+                    }
+                    if (op == 6)
+                    {
+                        // Water mirror (GP_ShowMaskedMirrorPict/Inv): tint only
+                        // pixels lying on water-colored background (0xB0..0xBB,
+                        // the 12 shades the refl table covers); refl maps
+                        // (water shade, sprite pixel) to the reflected color.
+                        // Everything else is left untouched, so the reflection
+                        // shows up only on the water surface.
+                        int wi = *d - 0xB0;
+                        if (wi >= 0 && wi < 12) *d = refl[(wi << 8) | src];
                         continue;
                     }
                     byte outc;
@@ -1245,18 +1266,20 @@ static void GP_ShowMaskedPictInv( int x, int y, GP_Header* Pic, byte* CData, byt
     (void)Encoder;
     GP_ShowMaskedGeneric( x, y, Pic, CData, nullptr, 0, true );
 }
-// Water-reflection variants (Windows: GP_ShowMaskedMirrorPict/Inv, x/y + a
-// per-column vertical wobble from the XShift table). The wobble is cosmetic;
-// Linux draws them as plain/mirrored pictures without it for now.
+// Water-reflection variants (Windows: GP_ShowMaskedMirrorPict/Inv asm).
+// Each scanline is displaced horizontally by a running sum of the XShift
+// wobble table (InitXShift recomputes it from the tmtmt tick in main.cpp,
+// so reflections sway over time), and pixels tint only over water colors
+// via the refl table - see the op-6 branch in GP_ShowMaskedGeneric above.
 static void GP_ShowMaskedMirrorPict( int x, int y, GP_Header* Pic, byte* CData, int* WSHIFT )
 {
-    (void)WSHIFT;
-    GP_ShowMaskedGeneric( x, y, Pic, CData, nullptr, 0, false );
+    s_MirrorShift = WSHIFT;
+    GP_ShowMaskedGeneric( x, y, Pic, CData, nullptr, 6, false );
 }
 static void GP_ShowMaskedMirrorPictInv( int x, int y, GP_Header* Pic, byte* CData, int* WSHIFT )
 {
-    (void)WSHIFT;
-    GP_ShowMaskedGeneric( x, y, Pic, CData, nullptr, 0, true );
+    s_MirrorShift = WSHIFT;
+    GP_ShowMaskedGeneric( x, y, Pic, CData, nullptr, 6, true );
 }
 
 #endif // !_WIN32
