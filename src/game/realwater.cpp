@@ -60,141 +60,6 @@ extern byte WaterCost[65536];
 
 #define WaterLevel 0
 
-void ExtrapolateCell(int x, int y) 
-{
-	int xn, yn;
-	do 
-	{
-		xn = rand() & 63;
-		yn = rand() & 63;
-	} while (!(xn > 1 && yn > 1 && xn < smaplx - 1 && yn < smaply - 1 && x != xn&&y != yn));
-	//copy
-	int xxx = (x + mapx) & 31;
-	int yyy = (y + mapy) & 31;
-	int src = (xxx << 4) + ((yyy << 9));
-	int dst = (8 + (x << 3) + ((y << 3) + 8)*WaveLx) << 1;
-	int DWx = WaveLx - 16;
-#ifdef _WIN32
-	int SW0 = int(ScWave0);
-	int W0 = int(Wave0);
-	int SW1 = int(ScWave1);
-	int W1 = int(Wave1);
-	int SW2 = int(ScWave2);
-	int W2 = int(Wave2);
-	__asm {
-		push	esi
-		push	edi
-		pushf
-		mov		esi, SW0
-		add		esi, src
-		mov		edi, W0
-		add		esi, dst
-		mov		ecx, 8
-		uuu1:
-		mov		eax, [esi]
-			mov		edx, [esi + 4]
-			mov[edi], eax
-			mov[edi + 4], edx
-			mov		eax, [esi + 8]
-			mov		edx, [esi + 12]
-			mov[edi + 8], eax
-			mov[edi + 12], edx
-			add		esi, WaveLx * 2
-			add		edi, 512
-			dec		ecx
-			jnz		uuu1
-
-			mov		esi, SW1
-			add		esi, src
-			mov		edi, W1
-			add		esi, dst
-			mov		ecx, 8
-			uuu2:
-		mov		eax, [esi]
-			mov		edx, [esi + 4]
-			mov[edi], eax
-			mov[edi + 4], edx
-			mov		eax, [esi + 8]
-			mov		edx, [esi + 12]
-			mov[edi + 8], eax
-			mov[edi + 12], edx
-			add		esi, WaveLx * 2
-			add		edi, 512
-			dec		ecx
-			jnz		uuu2
-
-			mov		esi, SW2
-			add		esi, src
-			mov		edi, W2
-			add		esi, dst
-			mov		ecx, 8
-			uuu3:
-		mov		eax, [esi]
-			mov		edx, [esi + 4]
-			mov[edi], eax
-			mov[edi + 4], edx
-			mov		eax, [esi + 8]
-			mov		edx, [esi + 12]
-			mov[edi + 8], eax
-			mov[edi + 12], edx
-			add		esi, WaveLx * 2
-			add		edi, 512
-			dec		ecx
-			jnz		uuu3
-
-			popf
-			pop		edi
-			pop		esi
-
-	};
-#else
-	//Linux translation. NOTE (upstream quirk, preserved as-is): the asm
-	//computes 'dst' but adds it to the SOURCE register (esi) - the destination
-	//stays the plain array base - and the destination stride is 512 bytes,
-	//not WaveLx*2. Copy exactly that.
-	{
-		short* scw[3] = { ScWave0, ScWave1, ScWave2 };
-		short* wav[3] = { Wave0, Wave1, Wave2 };
-		for (int k = 0; k < 3; k++) {
-			byte* sp = (byte*)scw[k] + src + dst;
-			byte* dp = (byte*)wav[k];
-			for (int i = 0; i < 8; i++) {
-				memcpy(dp, sp, 16);
-				sp += WaveLx * 2;
-				dp += 512;
-			}
-		}
-	}
-#endif
-	//for(int i=0;i<8;i++){
-		/*
-		memcpy(Wave0+dst,Wave0+src,16);
-		memcpy(Wave1+dst,Wave1+src,16);
-		memcpy(Wave2+dst,Wave2+src,16);
-		if(i<2||i>5){
-			for(int j=0;j<8;j++){
-				Wave0[dst+j]=(Wave0[dst+j+1]+Wave0[dst+j-1]+Wave0[dst+j-WaveLx]+Wave0[dst+j+WaveLx])>>2;
-				Wave1[dst+j]=(Wave1[dst+j+1]+Wave1[dst+j-1]+Wave1[dst+j-WaveLx]+Wave1[dst+j+WaveLx])>>2;
-				Wave2[dst+j]=(Wave2[dst+j+1]+Wave2[dst+j-1]+Wave2[dst+j-WaveLx]+Wave2[dst+j+WaveLx])>>2;
-			};
-		};
-		Wave0[dst]=(Wave0[dst+1]+Wave0[dst-1])>>1;
-		Wave1[dst]=(Wave1[dst+1]+Wave1[dst-1])>>1;
-		Wave2[dst]=(Wave2[dst+1]+Wave2[dst-1])>>1;
-		Wave0[dst+7]=(Wave0[dst+8]+Wave0[dst+6])>>1;
-		Wave1[dst+7]=(Wave1[dst+8]+Wave1[dst+6])>>1;
-		Wave2[dst+7]=(Wave2[dst+8]+Wave2[dst+6])>>1;
-		*/
-		//src+=WaveLx;
-		//dst+=WaveLx;
-	//};
-};
-void ExtrapolateSurface(int x, int y, int Nx, int Ny) {
-	for (int ix = 0; ix < Nx; ix++)
-		for (int iy = 0; iy < Ny; iy++) {
-			ExtrapolateCell(x + ix, y + iy);
-		};
-};
 void GenerateSurface(int x, int y, int Lx, int Ly) {
 	int pos = x + y*WaveLx;
 	int WaveAdd = WaveLx - Lx;
@@ -325,43 +190,6 @@ void ProcessWaves1(short* wave0, short* wave1, short* wave2, int xx, int yy, int
 	int DWave = (WaveLx - Lx) << 1;
 	int cyc = Ly;
 	int cyc1;
-#ifdef _WIN32
-	__asm {
-		push	esi
-		push	edi
-		mov		esi, wave0
-		mov		edi, wave1
-		mov		ebx, wave2
-		mov		edx, StWave
-
-		lpp1 : mov		ecx, Lx
-			   mov		cyc1, ecx
-			   lpp2 : mov		ax, [edi + edx + 2]
-					  add		ax, [edi + edx - 2]
-					  add		ax, [edi + edx - WaveLx * 2]
-					  add		ax, [edi + edx + WaveLx * 2]
-					  mov		cx, [edi + edx]
-					  sal		cx, 1
-					  sub		ax, cx
-					  sub		ax, cx
-
-					  sar		ax, 3
-					  add		ax, cx
-					  sub		ax, [esi + edx]
-					  mov		cx, ax
-					  sar		cx, 16
-					  sub		ax, cx
-					  mov[ebx + edx], ax
-					  add		edx, 2
-					  dec		cyc1
-					  jnz		lpp2
-					  add		edx, DWave
-					  dec		cyc
-					  jnz		lpp1
-					  pop		edi
-					  pop		esi
-	};
-#else
 	//Linux translation: 2D wave propagation with the original 16-bit
 	//wraparound semantics (every add truncates to short like the ax register):
 	//   new = (short)(((sum4 - 2*cur) >> 3) + cur - prev), then
@@ -389,49 +217,9 @@ void ProcessWaves1(short* wave0, short* wave1, short* wave2, int xx, int yy, int
 			ofs += DWave;
 		}
 	}
-#endif
 };
 void ProcessWaves(short* wave0, short* wave1, short* wave2, int xx, int yy, int Lx, int Ly) {
 	ProcessWaves1(wave0, wave1, wave2, xx, yy, Lx, Ly);
-	return;
-#ifdef _WIN32
-	//dead code below (unreachable, kept from the original source)
-	int StWave = (xx + yy*WaveLx) << 1;
-	int DWave = (WaveLx - Lx) << 1;
-	int cyc = Ly;
-	int cyc1;
-	__asm {
-		push	esi
-		push	edi
-		mov		esi, wave0
-		mov		edi, wave1
-		mov		ebx, wave2
-		mov		edx, StWave
-
-		lpp1 : mov		ecx, Lx
-			   mov		cyc1, ecx
-			   lpp2 : mov		ax, [edi + edx + 2]
-					  add		ax, [edi + edx - 2]
-					  add		ax, [edi + edx - WaveLx * 2]
-					  add		ax, [edi + edx + WaveLx * 2]
-					  mov		cx, [edi + edx]
-					  sal		cx, 1
-					  sub		ax, cx
-					  sub		ax, cx
-					  sar		ax, 4
-					  add		ax, cx
-					  sub		ax, [esi + edx]
-					  mov[ebx + edx], ax
-					  add		edx, 2
-					  dec		cyc1
-					  jnz		lpp2
-					  add		edx, DWave
-					  dec		cyc
-					  jnz		lpp1
-					  pop		edi
-					  pop		esi
-	};
-#endif // _WIN32 dead code
 };
 
 void ProcessWaveFrame(short* Wave, int x, int y, int x1, int y1) {
@@ -727,44 +515,6 @@ void DrawCost(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Msh
 	if (z1 > 143 && z2 > 143 && z3 > 143 && z4 > 143) {
 		//simple copy
 		int ofst = int(ScreenPtr) + x + y*ScrWidth;
-#ifdef _WIN32
-		__asm {
-			push	esi
-			push	edi
-			pushf
-			cld
-			mov		esi, Wave
-			mov		edi, ofst
-			mov		cx, 0x0808
-			mov		edx, ScrWidth
-			lpp2 : xor		ebx, ebx
-				   mov		bx, [esi + WaveLx * 2]
-				   sub		bx, [esi - WaveLx * 2]
-				   test	bx, 0x8000
-				   jz		lpp3
-				   or ebx, 0xFFFF0000
-				   lpp3 : sar		ebx, ashift
-						  //add		ebx,1024
-						  add		ebx, ASHI
-						  mov		eax, [Colors4 + ebx * 4]
-						  stosd
-						  mov[edi + edx - 2], eax
-						  add		esi, 2
-						  dec		cl
-						  jnz		lpp2
-						  add		edi, edx
-						  add		esi, (WaveLx * 2) - 16
-						  add		edi, edx
-						  mov		cl, 8
-
-						  sub		edi, 32
-						  dec		ch
-						  jnz		lpp2
-						  popf
-						  pop		edi
-						  pop		esi
-		};
-#else
 		//Linux translation: one wave sample -> 4 screen pixels; the same
 		//dword is also written one row down at +2 (isometric staircase).
 		//8 wave rows, each on an even screen row.
@@ -784,7 +534,6 @@ void DrawCost(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Msh
 				wv += (WaveLx * 2) - 16;
 			}
 		}
-#endif
 	}
 	else {
 		;
@@ -800,135 +549,6 @@ void DrawCost(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Msh
 		int d = (z1 + z4 - z2 - z3) >> 8;
 		int cyc2 = 8;
 		int cyc1;
-#ifdef _WIN32
-		__asm {
-			//curved clipping
-			push	esi
-			push	edi
-			pushf
-			cld
-			mov		esi, Wave
-			mov		edi, ofst
-			mov		edx, ScrWidth
-			lpp1C : mov		cyc1, 8
-					lpp2C : xor		ebx, ebx
-							mov		bx, [esi + WaveLx * 2]
-							sub		bx, [esi - WaveLx * 2]
-							test	bx, 0x8000
-							jz		lpp3C
-							or ebx, 0xFFFF0000
-							lpp3C : sar		ebx, ashift
-									//add		ebx,1024
-									add		ebx, ASHI
-									mov		eax, [Colors4 + ebx * 4]
-									mov		ecx, eax
-									sub		cl, 0xB0
-									and cl, 0xF
-									//transparency
-									xor eax, eax
-									mov		ebx, a
-									cmp		ebx, 0x00800000
-									jb		lpp4_1
-									cmp		ebx, 0x00900000
-									jae		lpp4_2
-									//transparent
-									mov		eax, ebx
-									sub		eax, 0x00800000
-									sar		eax, 12
-									and eax, 0xF0
-									or al, cl
-									mov		ah, [edi]
-									mov		al, [WaterCost + eax]
-									stosb
-									mov[edi + edx + 1], al
-									jmp		lpp4_3
-									lpp4_2 : mov[edi], ch
-											 mov[edi + edx + 2], ch
-											 lpp4_1 : inc		edi
-													  lpp4_3 : add		ebx, b
-															   add		ebx, 0x10000
-															   cmp		ebx, 0x00800000
-															   jb		lpp5_1
-															   cmp		ebx, 0x00900000
-															   jae		lpp5_2
-															   //transparent
-															   mov		eax, ebx
-															   sub		eax, 0x00800000
-															   sar		eax, 12
-															   and eax, 0xF0
-															   or al, cl
-															   mov		ah, [edi]
-															   mov		al, [WaterCost + eax]
-															   stosb
-															   mov[edi + edx + 1], al
-															   jmp		lpp5_3
-															   lpp5_2 : mov[edi], ch
-																		mov[edi + edx + 2], ch
-																		lpp5_1 : inc		edi
-																				 lpp5_3 : add		ebx, b
-																						  sub		ebx, 0x10000
-																						  cmp		ebx, 0x00800000
-																						  jb		lpp6_1
-																						  cmp		ebx, 0x00900000
-																						  jae		lpp6_2
-																						  //transparent
-																						  mov		eax, ebx
-																						  sub		eax, 0x00800000
-																						  sar		eax, 12
-																						  and eax, 0xF0
-																						  or al, cl
-																						  mov		ah, [edi]
-																						  mov		al, [WaterCost + eax]
-																						  stosb
-																						  mov[edi + edx + 1], al
-																						  jmp		lpp6_3
-																						  lpp6_2 : mov[edi], ch
-																								   mov[edi + edx + 2], ch
-																								   lpp6_1 : inc		edi
-																											lpp6_3 : add		ebx, b
-																													 add		ebx, 0x10000
-																													 cmp		ebx, 0x00800000
-																													 jb		lpp7_1
-																													 cmp		ebx, 0x00900000
-																													 jae		lpp7_2
-																													 //transparent
-																													 mov		eax, ebx
-																													 sub		eax, 0x00800000
-																													 sar		eax, 12
-																													 and eax, 0xF0
-																													 or al, cl
-																													 mov		ah, [edi]
-																													 mov		al, [WaterCost + eax]
-																													 stosb
-																													 mov[edi + edx + 1], al
-																													 jmp		lpp7_3
-																													 lpp7_2 : mov[edi], ch
-																															  mov[edi + edx + 2], ch
-																															  lpp7_1 : inc		edi
-																																	   lpp7_3 : add		ebx, b
-																																				sub		ebx, 0x10000
-																																				mov		a, ebx
-																																				add		esi, 2
-																																				dec		cyc1
-																																				jnz		lpp2C
-																																				add		edi, edx
-																																				add		esi, (WaveLx * 2) - 16
-																																				add		edi, edx
-																																				mov		ebx, a0
-																																				add		ebx, c
-																																				mov		a, ebx
-																																				mov		a0, ebx
-																																				mov		ebx, b
-																																				add		ebx, d
-																																				mov		b, ebx
-																																				sub		edi, 32
-																																				dec		cyc2
-																																				jnz		lpp1C
-																																				popf
-																																				pop		edi
-																																				pop		esi
-		}
-#else
 		//Linux translation of the "curved clipping" shore renderer:
 		//per pixel, z = a + b*x interpolated across the cell (a/b drift
 		//per row by c/d); pixels with z below 0x800000 stay untouched,
@@ -975,7 +595,6 @@ void DrawCost(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Msh
 				b += d;
 			}
 		}
-#endif
 	}
 }
 
@@ -994,85 +613,6 @@ void DrawCost2(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 	{
 		//simple copy
 		int ofst = int(ScreenPtr) + x + y*ScrWidth;
-#ifdef _WIN32
-		__asm {
-			push	esi
-			push	edi
-			pushf
-			cld
-			mov		esi, Wave
-			mov		edi, ofst
-			mov		cx, 0x0408
-			mov		edx, ScrWidth
-			lpp2 : xor		ebx, ebx
-				   mov		bx, [esi + WaveLx * 2]
-				   sub		bx, [esi - WaveLx * 2]
-				   test	bx, 0x8000
-				   jz		lpp3
-				   or ebx, 0xFFFF0000
-				   lpp3 : sar		ebx, ashift
-						  //add		ebx,1024
-						  add		ebx, ASHI
-						  mov		eax, [Colors4 + ebx * 4]
-						  stosd
-						  mov[edi + edx - 2], eax
-						  add		esi, 2
-						  dec		cl
-						  jnz		lpp2
-						  add		edi, edx
-						  add		esi, (WaveLx * 2) - 16
-						  add		edi, edx
-						  mov		cl, 4
-						  sub		edi, 32
-
-						  lpp2_1:		xor		ebx, ebx
-										mov		bx, [esi + WaveLx * 2]
-										sub		bx, [esi - WaveLx * 2]
-										test	bx, 0x8000
-										jz		lpp3_1
-										or ebx, 0xFFFF0000
-										lpp3_1 : sar		ebx, ashift
-												 //add		ebx,1024
-												 add		ebx, ASHI
-												 mov		eax, [Colors4 + ebx * 4]
-												 stosd
-												 mov[edi + edx - 2], eax
-												 add		esi, 2
-												 dec		cl
-												 jnz		lpp2_1
-												 //add		edi,edx
-												 //add		esi,(WaveLx*2)-16
-												 //add		edi,edx
-												 mov		cl, 4
-
-												 lpp2_2:		xor		ebx, ebx
-																mov		bx, [esi + WaveLx * 2]
-																sub		bx, [esi - WaveLx * 2]
-																test	bx, 0x8000
-																jz		lpp3_2
-																or ebx, 0xFFFF0000
-																lpp3_2 : sar		ebx, ashift
-																		 //add		ebx,1024
-																		 add		ebx, ASHI1
-																		 mov		eax, [Colors4 + ebx * 4]
-																		 stosd
-																		 mov[edi + edx - 2], eax
-																		 add		esi, 2
-																		 dec		cl
-																		 jnz		lpp2_2
-																		 add		edi, edx
-																		 add		esi, (WaveLx * 2) - 16
-																		 add		edi, edx
-																		 mov		cl, 8
-																		 sub		edi, 32
-
-																		 dec		ch
-																		 jnz		lpp2
-																		 popf
-																		 pop		edi
-																		 pop		esi
-		}
-#else
 		//Linux translation: row pairs alternate shades - the first pair
 		//of every 4-row band is shade ASHI full-width, the second pair is
 		//half ASHI (cols 0..15) + half ASHI1 (cols 16..31). One wave sample
@@ -1111,7 +651,6 @@ void DrawCost2(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 				wv += (WaveLx * 2) - 16;
 			}
 		}
-#endif
 	}
 	else 
 	{
@@ -1127,136 +666,6 @@ void DrawCost2(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 		int d = (z1 + z4 - z2 - z3) >> 8;
 		int cyc2 = 8;
 		int cyc1;
-#ifdef _WIN32
-		__asm 
-		{
-			//curved clipping
-			push	esi
-			push	edi
-			pushf
-			cld
-			mov		esi, Wave
-			mov		edi, ofst
-			mov		edx, ScrWidth
-			lpp1C : mov		cyc1, 8
-					lpp2C : xor		ebx, ebx
-							mov		bx, [esi + WaveLx * 2]
-							sub		bx, [esi - WaveLx * 2]
-							test	bx, 0x8000
-							jz		lpp3C
-							or ebx, 0xFFFF0000
-							lpp3C : sar		ebx, ashift
-									//add		ebx,1024
-									add		ebx, ASHI
-									mov		eax, [Colors4 + ebx * 4]
-									mov		ecx, eax
-									sub		cl, 0xB0
-									and cl, 0xF
-									//transparency
-									xor eax, eax
-									mov		ebx, a
-									cmp		ebx, 0x00800000
-									jb		lpp4_1
-									cmp		ebx, 0x00900000
-									jae		lpp4_2
-									//transparent
-									mov		eax, ebx
-									sub		eax, 0x00800000
-									sar		eax, 12
-									and eax, 0xF0
-									or al, cl
-									mov		ah, CostCL//[edi]
-									mov		al, [WaterCost + eax]
-									stosb
-									mov[edi + edx + 1], al
-									jmp		lpp4_3
-									lpp4_2 : mov[edi], ch
-											 mov[edi + edx + 2], ch
-											 lpp4_1 : inc		edi
-													  lpp4_3 : add		ebx, b
-															   add		ebx, 0x10000
-															   cmp		ebx, 0x00800000
-															   jb		lpp5_1
-															   cmp		ebx, 0x00900000
-															   jae		lpp5_2
-															   //transparent
-															   mov		eax, ebx
-															   sub		eax, 0x00800000
-															   sar		eax, 12
-															   and eax, 0xF0
-															   or al, cl
-															   mov		ah, CostCL//[edi]
-															   mov		al, [WaterCost + eax]
-															   stosb
-															   mov[edi + edx + 1], al
-															   jmp		lpp5_3
-															   lpp5_2 : mov[edi], ch
-																		mov[edi + edx + 2], ch
-																		lpp5_1 : inc		edi
-																				 lpp5_3 : add		ebx, b
-																						  sub		ebx, 0x10000
-																						  cmp		ebx, 0x00800000
-																						  jb		lpp6_1
-																						  cmp		ebx, 0x00900000
-																						  jae		lpp6_2
-																						  //transparent
-																						  mov		eax, ebx
-																						  sub		eax, 0x00800000
-																						  sar		eax, 12
-																						  and eax, 0xF0
-																						  or al, cl
-																						  mov		ah, CostCL//[edi]
-																						  mov		al, [WaterCost + eax]
-																						  stosb
-																						  mov[edi + edx + 1], al
-																						  jmp		lpp6_3
-																						  lpp6_2 : mov[edi], ch
-																								   mov[edi + edx + 2], ch
-																								   lpp6_1 : inc		edi
-																											lpp6_3 : add		ebx, b
-																													 add		ebx, 0x10000
-																													 cmp		ebx, 0x00800000
-																													 jb		lpp7_1
-																													 cmp		ebx, 0x00900000
-																													 jae		lpp7_2
-																													 //transparent
-																													 mov		eax, ebx
-																													 sub		eax, 0x00800000
-																													 sar		eax, 12
-																													 and eax, 0xF0
-																													 or al, cl
-																													 mov		ah, CostCL//[edi]
-																													 mov		al, [WaterCost + eax]
-																													 stosb
-																													 mov[edi + edx + 1], al
-																													 jmp		lpp7_3
-																													 lpp7_2 : mov[edi], ch
-																															  mov[edi + edx + 2], ch
-																															  lpp7_1 : inc		edi
-																																	   lpp7_3 : add		ebx, b
-																																				sub		ebx, 0x10000
-																																				mov		a, ebx
-																																				add		esi, 2
-																																				dec		cyc1
-																																				jnz		lpp2C
-																																				add		edi, edx
-																																				add		esi, (WaveLx * 2) - 16
-																																				add		edi, edx
-																																				mov		ebx, a0
-																																				add		ebx, c
-																																				mov		a, ebx
-																																				mov		a0, ebx
-																																				mov		ebx, b
-																																				add		ebx, d
-																																				mov		b, ebx
-																																				sub		edi, 32
-																																				dec		cyc2
-																																				jnz		lpp1C
-																																				popf
-																																				pop		edi
-																																				pop		esi
-		}
-#else
 		//Linux translation of the shore renderer with two shades: like the
 		//DrawCost shore path (per-pixel z test with checkerboard dither of
 		//the shore line, WaterCost blend, +2 smear one row down), reading
@@ -1299,7 +708,6 @@ void DrawCost2(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 				b += d;
 			}
 		}
-#endif
 	}
 }
 
@@ -1316,80 +724,6 @@ void DrawCost1(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 	{
 		//simple copy
 		int ofst = int(ScreenPtr) + x + y*ScrWidth;
-#ifdef _WIN32
-		__asm 
-		{
-			push	esi
-			push	edi
-			pushf
-			cld
-			mov		esi, Wave
-			mov		edi, ofst
-			mov		cx, 0x0408
-			mov		edx, ScrWidth
-			lpp2 : xor		ebx, ebx
-				   mov		bx, [esi + WaveLx * 2]
-				   sub		bx, [esi - WaveLx * 2]
-				   test	bx, 0x8000
-				   jz		lpp3
-				   or ebx, 0xFFFF0000
-				   lpp3 : sar		ebx, ashift
-						  add		ebx, ASHI
-						  mov		eax, [Colors4 + ebx * 4]
-						  stosd
-						  mov[edi + edx - 2], eax
-						  add		esi, 2
-						  dec		cl
-						  jnz		lpp2
-						  add		edi, edx
-						  add		esi, (WaveLx * 2) - 16
-						  add		edi, edx
-						  mov		cl, 4
-						  sub		edi, 32
-
-						  lpp2_1:		xor		ebx, ebx
-										mov		bx, [esi + WaveLx * 2]
-										sub		bx, [esi - WaveLx * 2]
-										test	bx, 0x8000
-										jz		lpp3_1
-										or ebx, 0xFFFF0000
-										lpp3_1 : sar		ebx, ashift
-												 add		ebx, ASHI
-												 mov		eax, [Colors4 + ebx * 4]
-												 stosd
-												 mov[edi + edx - 2], eax
-												 add		esi, 2
-												 dec		cl
-												 jnz		lpp2_1
-												 mov		cl, 4
-
-												 lpp2_2:		xor		ebx, ebx
-																mov		bx, [esi + WaveLx * 2]
-																sub		bx, [esi - WaveLx * 2]
-																test	bx, 0x8000
-																jz		lpp3_2
-																or ebx, 0xFFFF0000
-																lpp3_2 : sar		ebx, ashift
-																		 add		ebx, ASHI1
-																		 mov		eax, [Colors4 + ebx * 4]
-																		 stosd
-																		 mov[edi + edx - 2], eax
-																		 add		esi, 2
-																		 dec		cl
-																		 jnz		lpp2_2
-																		 add		edi, edx
-																		 add		esi, (WaveLx * 2) - 16
-																		 add		edi, edx
-																		 mov		cl, 8
-																		 sub		edi, 32
-
-																		 dec		ch
-																		 jnz		lpp2
-																		 popf
-																		 pop		edi
-																		 pop		esi
-		}
-#else
 		//Linux translation: row pairs alternate shades - the first pair
 		//of every 4-row band is shade ASHI full-width, the second pair is
 		//half ASHI (cols 0..15) + half ASHI1 (cols 16..31). One wave sample
@@ -1428,7 +762,6 @@ void DrawCost1(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 				wv += (WaveLx * 2) - 16;
 			}
 		}
-#endif
 	}
 	else 
 	{
@@ -1444,136 +777,6 @@ void DrawCost1(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 		int d = (z1 + z4 - z2 - z3) >> 8;
 		int cyc2 = 8;
 		int cyc1;
-#ifdef _WIN32
-		__asm 
-		{
-			//curved clipping
-			push	esi
-			push	edi
-			pushf
-			cld
-			mov		esi, Wave
-			mov		edi, ofst
-			mov		edx, ScrWidth
-			lpp1C : mov		cyc1, 8
-					lpp2C : xor		ebx, ebx
-							mov		bx, [esi + WaveLx * 2]
-							sub		bx, [esi - WaveLx * 2]
-							test	bx, 0x8000
-							jz		lpp3C
-							or ebx, 0xFFFF0000
-							lpp3C : sar		ebx, ashift
-									//add		ebx,1024
-									add		ebx, ASHI
-									mov		eax, [Colors4 + ebx * 4]
-									mov		ecx, eax
-									sub		cl, 0xB0
-									and cl, 0xF
-									//transparency
-									xor eax, eax
-									mov		ebx, a
-									cmp		ebx, 0x00800000
-									jb		lpp4_1
-									cmp		ebx, 0x00900000
-									jae		lpp4_2
-									//transparent
-									mov		eax, ebx
-									sub		eax, 0x00800000
-									sar		eax, 12
-									and eax, 0xF0
-									or al, cl
-									mov		ah, [edi]
-									mov		al, [WaterCost + eax]
-									stosb
-									mov[edi + edx + 1], al
-									jmp		lpp4_3
-									lpp4_2 : mov[edi], ch
-											 mov[edi + edx + 2], ch
-											 lpp4_1 : inc		edi
-													  lpp4_3 : add		ebx, b
-															   add		ebx, 0x10000
-															   cmp		ebx, 0x00800000
-															   jb		lpp5_1
-															   cmp		ebx, 0x00900000
-															   jae		lpp5_2
-															   //transparent
-															   mov		eax, ebx
-															   sub		eax, 0x00800000
-															   sar		eax, 12
-															   and eax, 0xF0
-															   or al, cl
-															   mov		ah, [edi]
-															   mov		al, [WaterCost + eax]
-															   stosb
-															   mov[edi + edx + 1], al
-															   jmp		lpp5_3
-															   lpp5_2 : mov[edi], ch
-																		mov[edi + edx + 2], ch
-																		lpp5_1 : inc		edi
-																				 lpp5_3 : add		ebx, b
-																						  sub		ebx, 0x10000
-																						  cmp		ebx, 0x00800000
-																						  jb		lpp6_1
-																						  cmp		ebx, 0x00900000
-																						  jae		lpp6_2
-																						  //transparent
-																						  mov		eax, ebx
-																						  sub		eax, 0x00800000
-																						  sar		eax, 12
-																						  and eax, 0xF0
-																						  or al, cl
-																						  mov		ah, [edi]
-																						  mov		al, [WaterCost + eax]
-																						  stosb
-																						  mov[edi + edx + 1], al
-																						  jmp		lpp6_3
-																						  lpp6_2 : mov[edi], ch
-																								   mov[edi + edx + 2], ch
-																								   lpp6_1 : inc		edi
-																											lpp6_3 : add		ebx, b
-																													 add		ebx, 0x10000
-																													 cmp		ebx, 0x00800000
-																													 jb		lpp7_1
-																													 cmp		ebx, 0x00900000
-																													 jae		lpp7_2
-																													 //transparent
-																													 mov		eax, ebx
-																													 sub		eax, 0x00800000
-																													 sar		eax, 12
-																													 and eax, 0xF0
-																													 or al, cl
-																													 mov		ah, [edi]
-																													 mov		al, [WaterCost + eax]
-																													 stosb
-																													 mov[edi + edx + 1], al
-																													 jmp		lpp7_3
-																													 lpp7_2 : mov[edi], ch
-																															  mov[edi + edx + 2], ch
-																															  lpp7_1 : inc		edi
-																																	   lpp7_3 : add		ebx, b
-																																				sub		ebx, 0x10000
-																																				mov		a, ebx
-																																				add		esi, 2
-																																				dec		cyc1
-																																				jnz		lpp2C
-																																				add		edi, edx
-																																				add		esi, (WaveLx * 2) - 16
-																																				add		edi, edx
-																																				mov		ebx, a0
-																																				add		ebx, c
-																																				mov		a, ebx
-																																				mov		a0, ebx
-																																				mov		ebx, b
-																																				add		ebx, d
-																																				mov		b, ebx
-																																				sub		edi, 32
-																																				dec		cyc2
-																																				jnz		lpp1C
-																																				popf
-																																				pop		edi
-																																				pop		esi
-		}
-#else
 		//Linux translation of the shore renderer with two shades: like the
 		//DrawCost shore path (per-pixel z test with checkerboard dither of
 		//the shore line, WaterCost blend, +2 smear one row down), reading
@@ -1616,7 +819,6 @@ void DrawCost1(int x, int y, short* Wave, int z1, int z2, int z3, int z4, int Ms
 				b += d;
 			}
 		}
-#endif
 	}
 }
 
@@ -1727,29 +929,6 @@ void CopyWaves(short* wave, int SrcOfs, int DstOfs, int Lx, int Ly)
 		//direct copy
 		int addo = (WaveLx - Lx) << 1;
 		int Lx1 = Lx >> 1;
-#ifdef _WIN32
-		__asm 
-		{
-			push	esi
-			push	edi
-			pushf
-			cld
-			mov		esi, wave
-			add		esi, SrcOfs
-			mov		edi, wave
-			add		edi, DstOfs
-			mov		edx, Ly
-			ppp1 : mov		ecx, Lx1
-				   rep		movsd
-				   add		esi, addo
-				   add		edi, addo
-				   dec		edx
-				   jnz		ppp1
-				   popf
-				   pop		edi
-				   pop		esi
-		}
-#else
 		//Linux translation: per-row memmove. The asm picks copy direction by
 		//SrcOfs vs DstOfs so overlapping ranges copy without corruption -
 		//memmove per row gives identical results in both directions.
@@ -1762,7 +941,6 @@ void CopyWaves(short* wave, int SrcOfs, int DstOfs, int Lx, int Ly)
 				db += (Lx1 << 2) + addo;
 			}
 		}
-#endif
 	}
 	else
 	{
@@ -1770,32 +948,6 @@ void CopyWaves(short* wave, int SrcOfs, int DstOfs, int Lx, int Ly)
 		int addo = (WaveLx - Lx) << 1;
 		int add1 = (Lx + Ly*WaveLx - 1) << 1;
 		int Lx1 = Lx >> 1;
-#ifdef _WIN32
-		__asm 
-		{
-			push	esi
-			push	edi
-			pushf
-			std
-			mov		esi, wave
-			add		esi, SrcOfs
-			add		esi, add1
-			mov		edi, wave
-			add		edi, DstOfs
-			add		edi, add1
-			mov		edx, Ly
-			ppp2 : mov		ecx, Lx1
-				   rep		movsd
-				   sub		esi, addo
-				   sub		edi, addo
-				   dec		edx
-				   jnz		ppp2
-				   popf
-				   pop		edi
-				   pop		esi
-		}
-
-#else
 		//Linux translation: rows copied in DESCENDING order (the asm runs
 		//rep movsd with std from the end of the block) so that overlapping
 		//source/destination ranges do not corrupt not-yet-copied rows.
@@ -1807,7 +959,6 @@ void CopyWaves(short* wave, int SrcOfs, int DstOfs, int Lx, int Ly)
 				memmove(db + y*R, sb + y*R, Lx1 << 2);
 			}
 		}
-#endif
 	}
 }
 
@@ -1835,40 +986,6 @@ void FastProcess1(short* Wave0, short* Wave1, short* Wave2)
 {
 	int cyc = WaveLy - 2;
 	int	cyc1;
-#ifdef _WIN32
-	__asm 
-	{
-		push	esi
-		push	edi
-		mov		esi, Wave0
-		mov		edi, Wave1
-		mov		ebx, Wave2
-		mov		edx, (WaveLx + 1) * 2
-		lpp1:	mov		cyc1, WaveLx - 2
-				lpp2 : mov		ax, [edi + edx + 2]
-					   add		ax, [edi + edx - 2]
-					   add		ax, [edi + edx - WaveLx * 2]
-					   add		ax, [edi + edx + WaveLx * 2]
-					   mov		cx, [edi + edx]
-					   sal     cx, 1
-					   sub     ax, cx
-					   sub     ax, cx
-					   sar     ax, 6
-					   add     ax, cx
-					   sub     ax, [esi + edx]
-					   mov     cx, ax
-					   sar     cx, 16
-					   mov[ebx + edx], ax
-					   add     edx, 2
-					   dec     cyc1
-					   jnz     lpp2
-					   add		edx, 4
-					   dec		cyc
-					   jnz		lpp1
-					   pop		edi
-					   pop		esi
-	}
-#else
 	//Linux translation: full-buffer pass - same 16-bit wave kernel as ProcessWaves1
 	//but damping 6, this start offset and row count.
 	{
@@ -1893,45 +1010,12 @@ void FastProcess1(short* Wave0, short* Wave1, short* Wave2)
 			ofs += 4;
 		}
 	}
-#endif
 }
 
 void FastProcess1_0(short* Wave0, short* Wave1, short* Wave2) 
 {
 	int cyc = (WaveLy - 2) >> 1;
 	int	cyc1;
-#ifdef _WIN32
-	__asm 
-	{
-		push	esi
-		push	edi
-		mov		esi, Wave0
-		mov		edi, Wave1
-		mov		ebx, Wave2
-		mov		edx, (WaveLx + 1) * 2
-		lpp1:	mov		cyc1, WaveLx - 2
-				lpp2 : mov		ax, [edi + edx + 2]
-					   add		ax, [edi + edx - 2]
-					   add		ax, [edi + edx - WaveLx * 2]
-					   add		ax, [edi + edx + WaveLx * 2]
-					   mov		cx, [edi + edx]
-					   sal     cx, 1
-					   sub     ax, cx
-					   sub     ax, cx
-					   sar     ax, 4
-					   add     ax, cx
-					   sub     ax, [esi + edx]
-					   mov[ebx + edx], ax
-					   add     edx, 2
-					   dec     cyc1
-					   jnz     lpp2
-					   add		edx, 4
-					   dec		cyc
-					   jnz		lpp1
-					   pop		edi
-					   pop		esi
-	}
-#else
 	//Linux translation: first half of the doubled buffer - same 16-bit wave kernel as ProcessWaves1
 	//but damping 4, this start offset and row count.
 	{
@@ -1956,45 +1040,12 @@ void FastProcess1_0(short* Wave0, short* Wave1, short* Wave2)
 			ofs += 4;
 		}
 	}
-#endif
 }
 
 void FastProcess1_1(short* Wave0, short* Wave1, short* Wave2) 
 {
 	int cyc = (WaveLy - 2) >> 1;
 	int	cyc1;
-#ifdef _WIN32
-	__asm 
-	{
-		push	esi
-		push	edi
-		mov		esi, Wave0
-		mov		edi, Wave1
-		mov		ebx, Wave2
-		mov		edx, WaveLx*WaveLy + 2
-		lpp1:	mov		cyc1, WaveLx - 2
-				lpp2 : mov		ax, [edi + edx + 2]
-					   add		ax, [edi + edx - 2]
-					   add		ax, [edi + edx - WaveLx * 2]
-					   add		ax, [edi + edx + WaveLx * 2]
-					   mov		cx, [edi + edx]
-					   sal     cx, 1
-					   sub     ax, cx
-					   sub     ax, cx
-					   sar     ax, 4
-					   add     ax, cx
-					   sub     ax, [esi + edx]
-					   mov[ebx + edx], ax
-					   add     edx, 2
-					   dec     cyc1
-					   jnz     lpp2
-					   add		edx, 4
-					   dec		cyc
-					   jnz		lpp1
-					   pop		edi
-					   pop		esi
-	}
-#else
 	//Linux translation: second half of the doubled buffer (horizontal wrap) - same 16-bit wave kernel as ProcessWaves1
 	//but damping 4, this start offset and row count.
 	{
@@ -2019,7 +1070,6 @@ void FastProcess1_1(short* Wave0, short* Wave1, short* Wave2)
 			ofs += 4;
 		}
 	}
-#endif
 }
 
 static int tttx;

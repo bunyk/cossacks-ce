@@ -94,12 +94,6 @@ word GetNextDivCell( byte NI, int F, int Start ) { (void)NI; (void)F; (void)Star
 word GetNextGreCell( byte NI, int F, int Start ) { (void)NI; (void)F; (void)Start; return 0xFFFF; }
 word GetNextSafeCell( byte NI, int F, int start, int Fin ) { (void)NI; (void)F; (void)start; (void)Fin; return 0xFFFF; }
 
-//-------------- fog.cpp --------------
-// fog.cpp is PORTED (asm translated): the former DrawFog/DrawMiniFog/
-// FogSpot/GetFog/SetupFog/ProcessFog1/TurnFogOff/CreateFogImage/UnitLight
-// stubs are deleted - real definitions compile now. FogMode is defined
-// in fog.cpp as well.
-
 //-------------- virtscr.cpp --------------
 
 //-------------- water / rivers (realwater.cpp, river.cpp asm) --------------
@@ -132,7 +126,6 @@ void SetBrokenState() {}
 void ShowChat() {}
 int  ShowHistryItem( char* Bmp, char* Text ) { (void)Bmp; (void)Text; return 0; }
 void ShowCentralMessage4( char* Message, int GPIDX, int DX ) { (void)Message; (void)GPIDX; (void)DX; }
-// UnitLight: real definition in fog.cpp (ported)
 void UpdateCurGame() {}
 
 //-------------- map editor / random map --------------
