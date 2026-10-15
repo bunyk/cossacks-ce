@@ -7728,7 +7728,6 @@ extern "C" DLLEXPORT void SelChangeNation( byte SrcNat, byte DstNat );
 
 void EnterChat()
 {
-	#ifdef _WIN32
 	if ( NPlayers > 1 )return;
 	Lpressed = false;
 	char passw[128];
@@ -7851,7 +7850,6 @@ void EnterChat()
 				};
 			};
 	};
-	#endif // _WIN32
 };
 
 //In-game "Save" dialog: name box + list of existing *.sav files.

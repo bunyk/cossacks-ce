@@ -136,8 +136,10 @@ void ShowCentralMessage4( char* Message, int GPIDX, int DX ) { (void)Message; (v
 void UpdateCurGame() {}
 
 //-------------- map editor / random map --------------
+// DecodeOptionsFromNumber: real implementation in newcode/mapoptionsencoder.cpp
+// (now compiled) - stub deleted. Without it every additional game option
+// chosen in the random-map UI decoded to 0 (default).
 void CreateNEWMAP() {}
-int  DecodeOptionsFromNumber( const int number, int* result ) { (void)number; (void)result; return 0; }
 bool ReadBMP24( char* Name, BMPformat* BM, byte** data ) { (void)Name; (void)BM; (void)data; return false; }
 void ReadClanData() {}
 
@@ -184,7 +186,8 @@ int  GetMaxRealPing() { return 0; }
 bool SendToAllPlayers( DWORD Size, LPVOID lpData ) { (void)Size; (void)lpData; return false; }
 void CreateDiffStr( char* str ) { if (str) str[0] = 0; }
 int  ProcessInternetConnection( bool Active ) { (void)Active; return 0; }
-int  EncodeOptionsInNumber( int* selected_opt_values ) { (void)selected_opt_values; return 0; }
+// EncodeOptionsInNumber: real implementation in newcode/mapoptionsencoder.cpp
+// (now compiled) - stub deleted.
 void DeepDeletePeer( DWORD ID ) { (void)ID; }
 
 // network globals (mplayer.cpp)

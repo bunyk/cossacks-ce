@@ -792,10 +792,11 @@ void EditorKeyCheck()
 			};
 			break;
 		case SDLK_RETURN:
+			printf( "Enter pressed\n" );
 			if (!( GetSDLKeyState( SDL_SCANCODE_LCTRL ) ))
 			{
-				//MakeMenu=true;
-				//MenuType=3;
+				MakeMenu=true;
+				MenuType=3;
 				EnterChatMode = 1;
 				ClearKeyStack();
 			}
