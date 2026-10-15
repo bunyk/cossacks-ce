@@ -361,7 +361,8 @@ int GP_Header::GetLy()
 	} while (DIFF != -1);
 	return LyMax;
 };
-#ifdef _WIN32
+//GetDx/GetDy un-guarded: pure C++ (original asm already commented out),
+//needed by GetRealGPSize on Linux too
 int GP_Header::GetDx()
 {
 	GP_Header* GPH = this;
@@ -408,7 +409,6 @@ int GP_Header::GetDy()
 }
 
 extern bool ProtectionMode;
-#endif // _WIN32
 
 int GP_System::PreLoadGPImage( char* Name )
 {
@@ -5327,105 +5327,79 @@ UNICODETABLE* UNIFONTS::FindFont( char* Name )
 	return nullptr;
 }
 
-#ifdef _WIN32
+//Tests whether point (x, y) hits an opaque pixel of a packed GP sprite.
+//Portable translation of the original inline x86 asm (line format is
+//identical, see the drawing code in ShowGPTransparent for the encoder side):
+//the pixel data starts at byte offset 23 (right after GP_Header), each line
+//begins with a header byte; simple lines (bit 7 clear) store header pairs of
+//(transparent run, opaque run) as two bytes per segment, complex lines
+//(bit 7 set) pack one segment per byte - low nibble transparent run, high
+//nibble opaque run, with bits 6/5 of the header extending runs past 15.
 bool CheckInsideMask( GP_Header* Pic, int x, int y )
 {
 	x -= Pic->dx;
 	y -= Pic->dy;
 	if (x < 0 || y < 0)return false;
-	int Lx = Pic->Lx;
-	int NLines = Pic->NLines;
 	if (x >= Pic->Lx)return false;
 	if (y >= Pic->Ly)return false;
-	int ofst = int( Pic ) + 23;
-	//skipping lines
-	if (y > 0)
+	//Sprite pixel data starts right after the 23-byte GP_Header
+	const byte* p = (const byte*)Pic + 23;
+
+	//Skip the first y lines to reach the requested row
+	for (int i = 0; i < y; i++)
 	{
-		__asm
+		byte hdr = *p++;
+		if (hdr & 128)
 		{
-			mov  ecx, y
-			mov  ebx, ofst
-			xor  eax, eax
-			START_SKIP_1 :
-			mov  al, [ebx]
-				inc  ebx
-				test al, 128
-				jz   SIMPLE_LINE
-				//complex line
-				and  al, 31
-				add  ebx, eax
-				dec  ecx
-				jnz  START_SKIP_1
-				jmp  END_SKIP
-				SIMPLE_LINE :
-			shl  eax, 1
-				add  ebx, eax
-				dec  ecx
-				jnz  START_SKIP_1
-				END_SKIP :
-			mov  ofst, ebx
+			//complex line: low 5 bits = number of segment bytes
+			p += hdr & 31;
+		}
+		else
+		{
+			//simple line: header = number of (space, data) byte pairs
+			p += word(hdr) * 2;
 		}
 	}
 
-	int SPACE_MASK = 0;
-	int DATA_MASK = 0;
-
-	__asm
+	//Walk this line segment by segment, counting x down through each
+	//transparent run followed by an opaque run; if x expires inside an
+	//opaque run, the point is inside the sprite.
+	byte hdr = *p;
+	if (hdr & 128)
 	{
-		mov  ebx, ofst
-		mov  edx, x
-		xor  eax, eax
-
-		mov  al, [ebx]
-		test al, 128
-		jz   SIMP_L_1
-		mov  SPACE_MASK, 0
-		mov  DATA_MASK, 0
-		test al, 64
-		jz   MSK1
-		mov  SPACE_MASK, 16
-		MSK1:	test al, 32
-				jz   MSK2
-				mov  DATA_MASK, 16
-				MSK2 : and  al, 31
-					   inc  ebx
-					   CHK_1 :
-		mov  cl, [ebx]
-			and ecx, 15
-			or ecx, SPACE_MASK
-			sub  edx, ecx
-			jl   NOT_INSIDE
-			mov  cl, [ebx]
-			shr  ecx, 4
-			or ecx, DATA_MASK
-			sub  edx, ecx
-			jl   IS_INSIDE
-			inc  ebx
-			dec  al
-			jnz  CHK_1
-			NOT_INSIDE :
-		mov  eax, 0
-			jmp  DO_END
-			SIMP_L_1 :
-		or al, al
-			jz   NOT_INSIDE
-			inc  ebx
-			CHK_2 :
-		mov  cl, [ebx]
-			inc  ebx
-			sub  edx, ecx
-			jl   NOT_INSIDE
-			mov  cl, [ebx]
-			inc  ebx
-			sub  edx, ecx
-			jl   IS_INSIDE
-			dec  al
-			jnz  CHK_2
-			mov  eax, 0
-			jmp  DO_END
-			IS_INSIDE :
-		mov  eax, 1
-			DO_END :
+		//complex line: bits 6/5 extend the respective runs to 16..31
+		int spaceExt = (hdr & 64) ? 16 : 0;
+		int dataExt = (hdr & 32) ? 16 : 0;
+		int n = hdr & 31;
+		p++;
+		for (int i = 0; i < n; i++)
+		{
+			byte seg = *p++;
+			int space = (seg & 15) | spaceExt;
+			int data = (seg >> 4) | dataExt;
+			if (x < space)return false;
+			x -= space;
+			if (x < data)return true;
+			x -= data;
+		}
+		return false;
+	}
+	else
+	{
+		//simple line: two bytes per segment - transparent run, opaque run
+		int n = hdr;
+		if (!n)return false;
+		p++;
+		for (int i = 0; i < n; i++)
+		{
+			int space = *p++;
+			int data = *p++;
+			if (x < space)return false;
+			x -= space;
+			if (x < data)return true;
+			x -= data;
+		}
+		return false;
 	}
 }
 
@@ -5479,13 +5453,10 @@ DLLEXPORT bool CheckGP_Inside( int FileIndex, int SprIndex, int dx, int dy )
 		}
 
 		DIFF = lpGPCUR->NextPict;
-		/* __asm
-		{
-			mov		eax, lpGP
-			add		eax, DIFF
-			mov		lpGPCUR, eax
-		}*/
-		lpGPCUR = lpGP + DIFF;
+		//NextPict is a raw byte offset to the next chained picture
+		//(same byte-based advance the drawing code uses; plain pointer
+		//arithmetic would scale by sizeof(GP_Header) and walk into garbage)
+		lpGPCUR = (GP_Header*)( (byte*)lpGP + DIFF );
 
 
 	} while (DIFF != -1);
@@ -5569,4 +5540,3 @@ void GetRealGPSize( int File, int spr, int* dx, int* dy )
 	*dx = GPX( lpGPH, LGPH[spr] )->GetDx();
 	*dy = GPX( lpGPH, LGPH[spr] )->GetDy();
 }
-#endif
