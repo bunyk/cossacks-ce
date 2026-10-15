@@ -30,17 +30,77 @@ static bool g_musicShutdown = false;
 // Watchdog counter (see the stall check in ProcessSoundSystem)
 volatile Uint64 g_musCallbackTicks = 0;
 
+// Music track loader thread. CDeviceCD::Play decodes a whole Ogg Vorbis
+// track (file I/O + multi-second CPU work). It used to run on the audio
+// device thread (PipeWire's real-time thread, via the stream
+// get-callback) when a track ended: the stall froze the whole audio
+// device - music and sound effects share one device thread - and
+// PipeWire then stopped scheduling the node, killing ALL audio
+// permanently mid-game. Now the get-callback only requests the next
+// track; this thread decodes it while the device thread keeps running
+// (short silence between tracks instead of a dead device).
+static SDL_Thread* g_musicLoader = NULL;
+static SDL_Mutex* g_musicLoaderLock = NULL;
+static SDL_Condition* g_musicLoaderCond = NULL;
+enum { MUSIC_LOADER_IDLE, MUSIC_LOADER_REQUESTED, MUSIC_LOADER_LOADING };
+static int g_musicLoaderState = MUSIC_LOADER_IDLE;
+static bool g_musicLoaderQuit = false;
+// Mirror of CDPLAY.audioStream (private member) for the loader thread,
+// set in Open(), cleared in Close().
+static SDL_AudioStream* g_musicStream = NULL;
+
+static int SDLCALL MusicLoaderThread(void* userdata)
+{
+	while (true)
+	{
+		SDL_LockMutex(g_musicLoaderLock);
+		while (g_musicLoaderState == MUSIC_LOADER_IDLE && !g_musicLoaderQuit)
+		{
+			SDL_WaitCondition(g_musicLoaderCond, g_musicLoaderLock);
+		}
+		if (g_musicLoaderQuit)
+		{
+			SDL_UnlockMutex(g_musicLoaderLock);
+			break;
+		}
+		g_musicLoaderState = MUSIC_LOADER_LOADING;
+		SDL_UnlockMutex(g_musicLoaderLock);
+
+		// Decode the next track off the audio thread (the slow part).
+		if (!g_musicShutdown && !PlayRandomTrack())
+		{
+			// Nothing playable (all track files missing) - stop re-arming
+			// instead of spinning (same as the old in-callback behavior).
+			if (g_musicStream)
+			{
+				SDL_SetAudioStreamGetCallback(g_musicStream, nullptr, nullptr);
+			}
+		}
+
+		SDL_LockMutex(g_musicLoaderLock);
+		g_musicLoaderState = MUSIC_LOADER_IDLE;
+		SDL_UnlockMutex(g_musicLoaderLock);
+	}
+	return 0;
+}
+
+// Runs on the real-time audio device thread: must never block. Only
+// signals the loader thread when the current track has fully drained.
 static void SDLCALL MusicStreamCallback(void* userdata, SDL_AudioStream* stream, int additionalAmount, int totalAmount)
 {
 	g_musCallbackTicks++;
 	if (g_musicShutdown) return;
 	if (!SDL_GetAudioStreamAvailable(stream))
 	{
-		if (!PlayRandomTrack())
+		if (g_musicLoaderLock)
 		{
-			// Nothing playable (all track files missing) - stop re-arming
-			// instead of spinning on the audio thread.
-			SDL_SetAudioStreamGetCallback(stream, nullptr, nullptr);
+			SDL_LockMutex(g_musicLoaderLock);
+			if (g_musicLoaderState == MUSIC_LOADER_IDLE)
+			{
+				g_musicLoaderState = MUSIC_LOADER_REQUESTED;
+				SDL_SignalCondition(g_musicLoaderCond);
+			}
+			SDL_UnlockMutex(g_musicLoaderLock);
 		}
 	}
 }
@@ -98,6 +158,19 @@ bool CDeviceCD::Open()
 		return false;
 	}
 
+	// Track loader thread (decodes the next track when one drains - must
+	// not happen on the audio device thread, see MusicLoaderThread).
+	g_musicStream = audioStream;
+	if (!g_musicLoaderLock)
+	{
+		g_musicLoaderLock = SDL_CreateMutex();
+		g_musicLoaderCond = SDL_CreateCondition();
+	}
+	if (g_musicLoaderLock && g_musicLoaderCond && !g_musicLoader)
+	{
+		g_musicLoader = SDL_CreateThread(MusicLoaderThread, "MusicLoader", nullptr);
+	}
+
 	FOpened = true;
 	audioError = false;
 	return true;
@@ -115,6 +188,23 @@ bool CDeviceCD::Close()
 		// queues decoded data -> the device-thread join deadlocks. The
 		// process is exiting anyway - the OS reclaims the device.
 		g_musicShutdown = true;
+
+		// Stop the loader thread first: it may be mid-decode, but it never
+		// waits on the audio device thread, so joining is safe here.
+		if (g_musicLoaderLock)
+		{
+			SDL_LockMutex(g_musicLoaderLock);
+			g_musicLoaderQuit = true;
+			SDL_SignalCondition(g_musicLoaderCond);
+			SDL_UnlockMutex(g_musicLoaderLock);
+		}
+		if (g_musicLoader)
+		{
+			SDL_WaitThread(g_musicLoader, nullptr);
+			g_musicLoader = nullptr;
+		}
+		g_musicStream = nullptr;
+
 		SDL_SetAudioStreamGetCallback(audioStream, nullptr, nullptr);
 
 		FOpened = false;
@@ -223,8 +313,10 @@ bool CDeviceCD::Play(DWORD Track)
 		// Forward slashes: valid on Windows fopen too, required on Linux
 		sprintf(filename, "Tracks/Track_%02d.ogg", Track);
 
-		// TODO: probably need to make this in a separate thread to avoid blocking the main thread with decoding
-		// (if SDL doesn't call this from a separate thread already)
+		// Note: the decode blocks for seconds, so it must never run on the
+		// audio device thread. The get-callback (re-arm path) loads tracks
+		// via the loader thread (MusicLoaderThread). Direct calls from the
+		// main thread (startup, music menu) block it briefly - acceptable.
 		dataRead = stb_vorbis_decode_filename(filename, &channels, &sampleRate, &buffer);
 		if (dataRead == -1)
 		{
