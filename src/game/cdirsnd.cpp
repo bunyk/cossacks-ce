@@ -347,7 +347,7 @@ void CDirSound::ControlPan(UINT bufferNum)
 
 		SetPan(bufferNum, pan);
 
-		if (rand() < 350)
+		if ((rand() & 0x7FFF) < 350)//Windows 15-bit rand range
 		{
 			IsPlaying(bufferNum);
 		}

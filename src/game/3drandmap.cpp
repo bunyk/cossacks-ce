@@ -1098,7 +1098,7 @@ void GenMap::MakeLinearHill( int N1, int N2 )
 	AddPointToCurve(KeyX[idx]<<6,KeyY[idx]<<6,false,0);
 	InterpolateCurve();
 	SurfType=1;
-	if(rand()<16384)SurfType=2;
+	if((rand()&0x7FFF)<16384)SurfType=2;//Windows 15-bit rand range
 	//PlatoHi=128;
 	SetPlatoInCurve(VertHi,VertType,1);
 	ClearCurve();
@@ -2930,7 +2930,7 @@ void SetPieceInPoints( char* Name, int* xi, int* yi, int N, byte* Used, int NATT
 		//int vmax=msx>>1;
 		while ( NAttm < NATT )
 		{
-			int NP = ( int( rand() )*N ) >> 15;
+			int NP = ( int( rand() & 0x7FFF )*N ) >> 15;//Windows 15-bit rand range
 			if ( !Used[NP] )
 			{
 				int x = xi[NP] >> 6;
@@ -3068,7 +3068,7 @@ void GenerateInPoints( char* Piece, int* ObjX, int* ObjY, int NObj, int NATT )
 			memset( Used, 0, sizeof Used );
 			for ( int j = 0; j < NATT; j++ )
 			{
-				SetPieceInPoints( Names[( int( rand() )*NNamesXX ) >> 15], ObjX, ObjY, NObj, Used, 200 );
+				SetPieceInPoints( Names[( int( rand() & 0x7FFF )*NNamesXX ) >> 15], ObjX, ObjY, NObj, Used, 200 );//Windows 15-bit rand range
 			}
 			for ( int j = 0; j < NNamesXX; j++ )
 			{

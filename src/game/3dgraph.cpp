@@ -1967,7 +1967,10 @@ void Init3DMapSystem() {
 	LoadRLC("ms_c.msk", &SimpleMaskC);
 	LoadRLC("ms_d.msk", &SimpleMaskD);
 	Mode3D = true;
-	if (SectMap)for (int i = 0; i < MaxSector*MaxTH * 6; i++)SetSectMap(i, div(rand(), 11000).quot);
+	//rand() must be masked to the Windows 15-bit range here: glibc's rand()
+	//is 31-bit, so div(rand(),11000).quot goes far beyond the intended 0..2
+	//section values, and garbage sects crash the masked triangle drawing
+	if (SectMap)for (int i = 0; i < MaxSector*MaxTH * 6; i++)SetSectMap(i, div(rand() & 0x7FFF, 11000).quot);
 };
 void ClearRender() {
 	SVSC.RefreshScreen();

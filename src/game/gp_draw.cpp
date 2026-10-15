@@ -5022,7 +5022,7 @@ WaterSpot::WaterSpot()
 	{
 		Altitude[i] = rand() & 7;
 
-		if (rand() < 16384)
+		if ((rand() & 0x7FFF) < 16384)//Windows 15-bit rand range
 		{
 			Altitude[i] |= 128;
 		}

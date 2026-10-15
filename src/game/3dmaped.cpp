@@ -178,7 +178,8 @@ void GetDivPoint(int x1, int y1, int x2, int y2, byte* CurDiv, SelectionRequest*
 	int r0 = Norm(x1 - SR->x, y1 - SR->y);
 	int r1 = Norm(x2 - SR->x, y2 - SR->y);
 	if ((r0 > rd&&r1 > rd) || (r0 < rd&&r1 < rd)) {
-		if (r0 < rd&&r1 < rd)*CurDiv = div(rand(), 11000).quot;
+		//keep the Windows 15-bit rand range (see Init3DMapSystem in 3dgraph.cpp)
+		if (r0 < rd&&r1 < rd)*CurDiv = div(rand() & 0x7FFF, 11000).quot;
 		return;
 	};
 	int xp0 = x1 + ((x2 - x1) >> 2);
@@ -1701,7 +1702,7 @@ void SetTextureInCurve() {
 int FUN1(int r) {
 	if (r > 64) {
 		if (r < 128) {
-			return (int(rand())*(128 - r)) >> 16;
+			return (int(rand() & 0x7FFF)*(128 - r)) >> 16;//Windows 15-bit rand range
 		};
 		r = 64;
 	};
@@ -1713,7 +1714,7 @@ int FUN1(int r) {
 int FUN2(int r) {
 	if (r > 64) {
 		if (r < 128) {
-			return (int(rand())*(128 - r)) >> 16;
+			return (int(rand() & 0x7FFF)*(128 - r)) >> 16;//Windows 15-bit rand range
 		};
 		r = 64;
 	};
@@ -2235,7 +2236,7 @@ void PaintAllMap(byte* VertHi, byte* VertType, PaintHills* PHL, int NTypes) {
 						};
 					};
 					if (!UNFND) {
-						int ti = (int(rand())*PH->TexAmount[L]) >> 15;
+						int ti = (int(rand() & 0x7FFF)*PH->TexAmount[L]) >> 15;//Windows 15-bit rand range
 						TexMap[i] = byte(PH->Texs[L][ti]);
 					};
 				};
