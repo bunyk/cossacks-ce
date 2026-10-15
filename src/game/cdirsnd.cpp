@@ -376,44 +376,8 @@ void CDirSound::SetPan(UINT bufferNum, int pan) {
 	pSoundBuffer->pan = pan;
 }
 
-extern volatile Uint64 g_musCallbackTicks;
-
 void CDirSound::ProcessSoundSystem()
 {
-	// AUDIO WATCHDOG (temporary diagnostic for "sounds go silent mid-game"):
-	// both audio devices bump callback counters per invocation. Every ~64
-	// frames (roughly 1-2 s in-game) check them; log STATE TRANSITIONS
-	// only. A stalled counter with an open device = the audio thread is
-	// not pulling (SDL/PipeWire side); a stopped counter with a closed
-	// device = our teardown ran.
-	static Uint64 lastSnd = 0, lastMus = 0;
-	static bool sndWasStalled = false, musWasStalled = false;
-	static int frame = 0;
-	frame++;
-	if ((frame & 63) == 0)
-	{
-		Uint64 snd = g_sndCallbackTicks;
-		Uint64 mus = g_musCallbackTicks;
-		bool sndStalled = (snd == lastSnd);
-		bool musStalled = (mus == lastMus);
-		if (sndStalled != sndWasStalled)
-		{
-			fprintf(stderr, "DBG audio: sound-effects callbacks %s (ticks=%llu device=%u masterStream=%p playing=%d)\n",
-				sndStalled ? "STOPPED" : "resumed",
-				(unsigned long long)snd, (unsigned)m_SDLAudioDeviceID,
-				(void*)m_masterStream, (int)m_currentBufferNum);
-			sndWasStalled = sndStalled;
-		}
-		if (musStalled != musWasStalled)
-		{
-			fprintf(stderr, "DBG audio: music callbacks %s (ticks=%llu)\n",
-				musStalled ? "STOPPED" : "resumed", (unsigned long long)mus);
-			musWasStalled = musStalled;
-		}
-		lastSnd = snd;
-		lastMus = mus;
-	}
-
 	for (int i = 1; i < (MAXSND1 < m_currentBufferNum+1 ? MAXSND1 : m_currentBufferNum+1); i++)
 	{
 		if (m_bufferPointers[i]->playing)

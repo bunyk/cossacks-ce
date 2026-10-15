@@ -13421,6 +13421,7 @@ int ShowStatScreen( bool Next, bool Prev, byte Kind )
 		MaxPop = 5;
 	}
 
+
 	if ( NNAT )
 	{
 		int OneLy = 59 + 4;

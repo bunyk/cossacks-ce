@@ -219,8 +219,6 @@ bool CheckFNSend( int idx )
 	}
 	return false;
 }
-// ShowStatistics: real definition in interface.cpp (ported with the
-// ShowStatScreen/ShowUserStat statistics screens).
 
 // CD-audio/music: real implementations now in devicecd.cpp (SDL3 audio
 // stream + stb_vorbis "Tracks/Track_XX.ogg"); stubs deleted.

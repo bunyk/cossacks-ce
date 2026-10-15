@@ -296,21 +296,42 @@ void DrawRect4( int x0, int y0, int x1, int y1, Corners* CR, int GP_File )
 	PopWindow( &TEMP );
 }
 
+//Draws a UI panel: tiled background + border frame (DrawRect4).
+//
+//   (x0,y0)
+//     +----------------------------+ -+
+//     | 64x64 fill tiles, variant  |  |  interior is covered with a
+//     | picked per cell from       |  |  grid of 64x64 sprites; the
+//     | StartFill..StartFill+NFill-1  |  last tile row/column is
+//     | (pseudo-random pattern,    |  |  clipped to the rectangle
+//     |  see the index formula)    |  |
+//     +----------------------------+ -+
+//      ^ frame tiles from CR are drawn ON and AROUND the edges:
+//        corner tiles at the corners, side tiles repeated along them.
+//        Frame tiles may overhang the rectangle by up to ~32 px (the
+//        shadow part of Border-style tiles sticks outside).
+//
+// Parameters:
+//   x0, y0    - top-left corner (screen coordinates)
+//   x1, y1    - bottom-right corner, INCLUSIVE COORDINATES, not size!
+//               (unlike DrawStatTable, which takes a width/height)
+//   CR        - border tile set (see the Corners struct; -1 = no tile)
+//   GP_File   - GP pack index holding BOTH fill and border tiles
+//               (UI packs, e.g. BordGP = "Border")
+//   StartFill - sprite index of the first background tile
+//   NFill     - number of background tile variants; the per-cell
+//               variant is StartFill + (ix*ix + iy*iy*iy) % NFill, so
+//               the tiled background does not repeat in a flat grid
+//
+// The fill is drawn clipped to the rectangle (PushWindow /
+// IntersectWindows / PopWindow save, narrow and restore the global
+// clipping window). The caller must set the GP_OPT layer bitmask
+// beforehand (1023 or 1023 + 1024 at every call site); it goes to
+// ShowGPLayers together with MyNation.
+//
+// DrawFilledRect3 is the same without the layer/mask path (plain
+// ShowGP) and sets GP_OPT itself.
 void DrawFilledRect( int x0, int y0, int x1, int y1, Corners* CR, int GP_File, int StartFill, int NFill )
-{
-	TempWindow TEMP;
-	PushWindow( &TEMP );
-	IntersectWindows( x0, y0, x1, y1 );
-	int nx = ( x1 - x0 ) >> 6;
-	int ny = ( y1 - y0 ) >> 6;
-	for (int ix = 0; ix <= nx; ix++)
-		for (int iy = 0; iy <= ny; iy++)
-			GPS.ShowGPLayers( x0 + ( ix << 6 ), y0 + ( iy << 6 ), GP_File, StartFill + ( ( ix*ix + iy*iy*iy ) % NFill ), MyNation, GP_OPT );
-	PopWindow( &TEMP );
-	DrawRect4( x0, y0, x1, y1, CR, GP_File );
-}
-
-void DrawFilledRect1( int x0, int y0, int x1, int y1, Corners* CR, int GP_File, int StartFill, int NFill )
 {
 	TempWindow TEMP;
 
@@ -422,7 +443,7 @@ int BordGP2 = -1;
 
 void DrawHdrTable( int x0, int y0, int x1, int y1 )
 {
-	DrawFilledRect1( x0, y0, x1, y1, &HdrTbl, BordGP, 28, 3 );
+	DrawFilledRect( x0, y0, x1, y1, &HdrTbl, BordGP, 28, 3 );
 }
 
 void DrawStdRect2( int x0, int y0, int x1, int y1, int GP )
@@ -434,13 +455,13 @@ void DrawStdRect2( int x0, int y0, int x1, int y1, int GP )
 DLLEXPORT void DrawStdBar2( int x0, int y0, int x1, int y1, int GP )
 {
 	GP_OPT = 1023;
-	DrawFilledRect1( x0, y0, x1, y1, &P2_NORMAL, GP, 11, 3 );
+	DrawFilledRect( x0, y0, x1, y1, &P2_NORMAL, GP, 11, 3 );
 }
 
 void DrawStdBar12( int x0, int y0, int x1, int y1, int GP )
 {
 	GP_OPT = 1023 + 1024;
-	DrawFilledRect1( x0, y0, x1, y1, &P2_NORMAL, GP, 11, 3 );
+	DrawFilledRect( x0, y0, x1, y1, &P2_NORMAL, GP, 11, 3 );
 }
 
 int BordGP = -1;
@@ -460,13 +481,13 @@ void DrawStdRect( int x0, int y0, int x1, int y1 )
 void DrawStdBar( int x0, int y0, int x1, int y1 )
 {
 	GP_OPT = 1023;
-	DrawFilledRect1( x0, y0, x1, y1, &StdRect, BordGP, 28, 3 );
+	DrawFilledRect( x0, y0, x1, y1, &StdRect, BordGP, 28, 3 );
 }
 
 void DrawStdBar1( int x0, int y0, int x1, int y1 )
 {
 	GP_OPT = 1023 + 1024;
-	DrawFilledRect1( x0, y0, x1, y1, &StdRect, BordGP, 28, 3 );
+	DrawFilledRect( x0, y0, x1, y1, &StdRect, BordGP, 28, 3 );
 }
 
 void DrawLeftRect( int x0, int y0, int x1, int y1 )
@@ -496,23 +517,23 @@ void DrawDnRect( int x0, int y0, int x1, int y1 )
 void DrawTable( int x0, int y0, int x1, int y1 )
 {
 	GP_OPT = 1023 + 1024;
-	DrawFilledRect1( x0, y0, x1, y1, &Table, BordGP, 28, 3 );
+	DrawFilledRect( x0, y0, x1, y1, &Table, BordGP, 28, 3 );
 	DrawHeader( ( x0 + x1 ) >> 1, y0, 150, BordGP, 25 );
 }
 
 void DrawDoubleTable( int x0, int y0, int x1, int y1, int ym )
 {
 	GP_OPT = 1023 + 1024;
-	DrawFilledRect1( x0, y0, x1, ym, &UpTable, BordGP, 28, 3 );
-	DrawFilledRect1( x0, ym, x1, y1, &DnTable, BordGP, 28, 3 );
+	DrawFilledRect( x0, y0, x1, ym, &UpTable, BordGP, 28, 3 );
+	DrawFilledRect( x0, ym, x1, y1, &DnTable, BordGP, 28, 3 );
 	//DrawHeader((x0+x1)>>1,y0,150,BordGP,25);
 }
 
 void DrawDoubleTable2( int x0, int y0, int x1, int y1, int ym )
 {
 	GP_OPT = 1023 + 1024;
-	DrawFilledRect1( x0, y0, x1, ym, &UpTable3, BordGP, 28, 3 );
-	DrawFilledRect1( x0, ym, x1, y1, &DnTable3, BordGP, 28, 3 );
+	DrawFilledRect( x0, y0, x1, ym, &UpTable3, BordGP, 28, 3 );
+	DrawFilledRect( x0, ym, x1, y1, &DnTable3, BordGP, 28, 3 );
 	//DrawHeader((x0+x1)>>1,y0,150,BordGP,25);
 }
 
@@ -520,22 +541,22 @@ void DrawScrollDoubleTable( int x0, int y0, int x1, int y1, int ym )
 {
 	GP_OPT = 1023 + 1024;
 	DrawRect4( x0, y0, x1, ym, &UpTable, BordGP );
-	DrawFilledRect1( x0, ym, x1, y1, &DnTable1, BordGP, 28, 3 );
+	DrawFilledRect( x0, ym, x1, y1, &DnTable1, BordGP, 28, 3 );
 	//DrawHeader((x0+x1)>>1,y0,150,BordGP,25);
 }
 
 void DrawScrollDoubleTableF( int x0, int y0, int x1, int y1, int ym )
 {
 	GP_OPT = 1023 + 1024;
-	DrawFilledRect1( x0, y0, x1, ym, &UpTable, BordGP, 28, 3 );
-	DrawFilledRect1( x0, ym, x1, y1, &DnTable1, BordGP, 28, 3 );
+	DrawFilledRect( x0, y0, x1, ym, &UpTable, BordGP, 28, 3 );
+	DrawFilledRect( x0, ym, x1, y1, &DnTable1, BordGP, 28, 3 );
 	//DrawHeader((x0+x1)>>1,y0,150,BordGP,25);
 }
 
 void DrawScrollDoubleTable1( int x0, int y0, int x1, int y1, int ym )
 {
 	GP_OPT = 1023 + 1024;
-	DrawFilledRect1( x0, y0, x1, ym, &UpTable1, BordGP, 28, 3 );
+	DrawFilledRect( x0, y0, x1, ym, &UpTable1, BordGP, 28, 3 );
 	DrawRect4( x0, ym, x1, y1, &DnTable2, BordGP );
 	//DrawHeader((x0+x1)>>1,y0,150,BordGP,25);
 }
@@ -543,7 +564,7 @@ void DrawScrollDoubleTable1( int x0, int y0, int x1, int y1, int ym )
 void DrawPaperPanel( int x0, int y0, int x1, int y1 )
 {
 	GP_OPT = 1023;
-	DrawFilledRect1( x0, y0, x1, y1, &Paper, BordGP, 51, 3 );
+	DrawFilledRect( x0, y0, x1, y1, &Paper, BordGP, 51, 3 );
 }
 
 void DrawPaperPanelShadow( int x0, int y0, int x1, int y1 )
@@ -563,7 +584,40 @@ void DrawHintPattern( int x0, int y0, int x1, int y1 )
 	GPS.ShowGPLayers( ( x0 + x1 ) / 2 - 32, y1 - 32, BordGP, 67, 0, GP_OPT );
 }
 
-//Fills background for pages 1 and 2 of stats screen
+//Fills background for pages 1 and 2 of stats screen (score/population
+//timeline graph + one lane per player for the upgrade timeline).
+//
+// Layout of the whole block (total height = GraphLy + LineLy*NLines):
+//
+//   (x0,y0)
+//     +---------------------------------------+ ---+
+//     | title strip: 18 px, NOT filled here  |    |
+//     | (caller draws the page caption into   |    | GraphLy - graph area
+//     |  it, see "Header" text button in      |    | (CBar starts 18 px
+//     |  ShowStatScreen)                      |    |  lower), framed
+//     |---------------------------------------|    | with ST_Top corners
+//     | graph background, palette color 0x38 |    |
+//     +---------------------------------------+ ---+
+//     | player lane: upgrade timeline         |    |
+//     +---------------------------------------+    | LineLy per lane,
+//     |  ... (ST_Middle-framed lanes)         |    | NLines lanes total
+//     +---------------------------------------+    | (lanes are drawn
+//     | last lane (ST_Bottom corners)         |    |  bottom-up)
+//     +---------------------------------------+ ---+
+//
+// Parameters (as called from ShowStatScreen):
+//   x0, y0   - top-left corner of the block in SCREEN coordinates;
+//              the caller has already added stats_x_off / stats_y_off
+//   Lx       - block width in pixels (ShowStatScreen: 1006)
+//   GraphLy  - height of the graph area INCLUDING the 18 px title strip
+//   LineLy   - height of one per-player lane (ShowStatScreen: OneLy = 63)
+//   NLines   - number of per-player lanes, one per nation being plotted
+//              (ShowStatScreen: NNAT). 0 = draws nothing at all.
+//
+// Border tiles are sprites from the "Border" GP pack (BordGP); the
+// ST_Top/ST_Middle/ST_Bottom Corners pick the tile set per part.
+// GP_OPT = 1023 + 1024 is the layer-selection bitmask passed to
+// ShowGPLayers (1023 = base layers, 1024 = extra top layer).
 void DrawStatTable( int x0, int y0, int Lx, int GraphLy, int LineLy, int NLines )
 {
 	GP_OPT = 1023 + 1024;
@@ -573,11 +627,11 @@ void DrawStatTable( int x0, int y0, int Lx, int GraphLy, int LineLy, int NLines 
 	if (NLines)
 	{
 		//Borders, upgrade timelines backgrounds
-		DrawFilledRect1( x0, y1 - LineLy, x0 + Lx - 1, y1, &ST_Bottom, BordGP, 28, 3 );
+		DrawFilledRect( x0, y1 - LineLy, x0 + Lx - 1, y1, &ST_Bottom, BordGP, 28, 3 );
 		y1 -= LineLy;
 		for (int i = 1; i < NLines; i++)
 		{
-			DrawFilledRect1( x0, y1 - LineLy, x0 + Lx - 1, y1, &ST_Middle, BordGP, 28, 3 );
+			DrawFilledRect( x0, y1 - LineLy, x0 + Lx - 1, y1, &ST_Middle, BordGP, 28, 3 );
 			y1 -= LineLy;
 		}
 
@@ -585,18 +639,21 @@ void DrawStatTable( int x0, int y0, int Lx, int GraphLy, int LineLy, int NLines 
 		CBar( x0, y0 + 18, Lx, y1 - y0 + 1 - 18, 0x38 );
 
 		//Add distortion effect to graph background
-		//DrawFilledRect1( x0, y0, x0 + Lx - 1, y1, &ST_Top, BordGP, 51, 1 );
+		DrawFilledRect( x0, y0, x0 + Lx - 1, y1, &ST_Top, BordGP, 51, 1 );
 
 		//Header caption background
 		DrawRect4( x0, y0, x0 + Lx - 1, y1, &ST_Top, BordGP );
 	}
 }
 
-//Fills background for page 3 of stats screen
+//Fills background for page 3 of stats screen (ShowUserStat): a panel
+//split into left and right halves. x0,y0 - top-left; x1,y1 - bottom-right;
+//xm - x coordinate of the split (left half = x0..xm, right = xm..x1).
+//The halves use the ST_Left / ST_Right border tile sets.
 void DrawStatTable1( int x0, int y0, int x1, int y1, int xm )
 {
-	DrawFilledRect1( x0, y0, xm, y1, &ST_Left, BordGP, 28, 3 );
-	DrawFilledRect1( xm, y0, x1, y1, &ST_Right, BordGP, 28, 3 );
+	DrawFilledRect( x0, y0, xm, y1, &ST_Left, BordGP, 28, 3 );
+	DrawFilledRect( xm, y0, x1, y1, &ST_Right, BordGP, 28, 3 );
 }
 
 void DrawStHeader( int x, int y, int Lx )

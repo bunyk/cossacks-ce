@@ -5,7 +5,7 @@
 // #define TEST
 
 #ifndef TEST
-// There is no main function, instead we have
+// There is no main() function, instead we have
 // SDL_AppInit, SDL_AppEvent, SDL_AppIterate and SDL_AppQuit callbacks.
 // https://wiki.libsdl.org/SDL3/README-main-functions
 #define SDL_MAIN_USE_CALLBACKS
@@ -35,7 +35,7 @@
 //Game version. Must match with other clients
 DLLEXPORT word dwVersion = 100;
 DLLEXPORT char LobbyVersion[32] = "1.00";
-DLLEXPORT char BuildVersion[32] = "V 1.00";
+DLLEXPORT char BuildVersion[32] = "V 1.01";
 
 
 extern bool RUNMAPEDITOR;
@@ -756,21 +756,6 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 		}
 		break;
 	}
-
-	// Audio device hotplug/format changes (PipeWire-side events that can
-	// silently kill playback) - diagnostic logging for the mid-game silence.
-	case SDL_EVENT_AUDIO_DEVICE_ADDED:
-		printf("AUDIO EVENT: device added id=%u recording=%d\n",
-			(unsigned)event->adevice.which, (int)event->adevice.recording);
-		break;
-	case SDL_EVENT_AUDIO_DEVICE_REMOVED:
-		printf("AUDIO EVENT: device REMOVED id=%u recording=%d\n",
-			(unsigned)event->adevice.which, (int)event->adevice.recording);
-		break;
-	case SDL_EVENT_AUDIO_DEVICE_FORMAT_CHANGED:
-		printf("AUDIO EVENT: device FORMAT CHANGED id=%u recording=%d\n",
-			(unsigned)event->adevice.which, (int)event->adevice.recording);
-		break;
 
 	case SDL_EVENT_WINDOW_MOVED:
 	case SDL_EVENT_WINDOW_RESIZED:

@@ -53,7 +53,6 @@ extern Corners RightRect;
 extern Corners UpRect;
 extern Corners DnRect;
 extern int BordGP;
-void DrawFilledRect1( int x0, int y0, int x1, int y1, Corners* CR, int GP_File, int StartFill, int NFill );
 void DrawRect1( int x0, int y0, int x1, int y1, Corners* CR, int GP_File );
 DLLEXPORT
 void DrawFilledRect3( int x0, int y0, int x1, int y1, Corners* CR, int GP_File, int StartFill, int NFill );

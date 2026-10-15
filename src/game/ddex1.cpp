@@ -802,8 +802,8 @@ void EditorKeyCheck()
 			else KeyPressed = true;
 			break;
 		case SDLK_J:
-			//RSCRSizeX++;
-			//ShowStatistics();
+			RSCRSizeX++;
+			ShowStatistics();
 			break;
 		case SDLK_PAUSE:
 			if (!LockPause)SpecCmd = 137;
