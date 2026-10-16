@@ -26,45 +26,6 @@ SortClass::~SortClass() {
 };
 void SortClass::Sort() {
 	if (NUids < 2) return;
-#ifdef _WIN32
-	int uids = int(Uids);
-	int parms = int(Parms);
-	int nuids = NUids - 1;
-	byte fault;
-	__asm {
-		push    esi
-		push    edi
-		mov     esi, uids
-		mov     edi, parms
-		mov     ecx, nuids
-		lpp1 :
-		xor     eax, eax
-			mov     esi, uids
-			mov     edi, parms
-			mov     ecx, nuids
-			mov     ecx, nuids
-			mov     fault, 0
-			lpp3:
-		mov     ebx, [edi]
-			mov     edx, [edi + 4]
-			cmp     ebx, edx
-			jle     lpp2
-			mov[edi], edx
-			mov[edi + 4], ebx
-			mov     bx, [esi]
-			xchg    bx, [esi + 2]
-			mov[esi], bx
-			mov     fault, 1
-			lpp2:   add     esi, 2
-			add     edi, 4
-			dec     ecx
-			jnz     lpp3
-			cmp     fault, 0
-			jnz      lpp1
-			pop     esi
-			pop     edi
-	};
-#else
 	// Bubble sort: sort Parms[] ascending, keeping Uids[] in sync
 	bool swapped;
 	do {
@@ -77,7 +38,6 @@ void SortClass::Sort() {
 			}
 		}
 	} while (swapped);
-#endif
 };
 void SortClass::CheckSize(int Size) {
 	if (!Size)return;
