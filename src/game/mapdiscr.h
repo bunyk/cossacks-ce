@@ -1368,26 +1368,6 @@ public:
 		if (dy < 0) dy = -dy;
 
 		return (dx < dy) ? dx : dy;
-		/* Original implementation:
-		__asm
-		{
-			mov		eax, xx
-			mov		ebx, this
-			mov		edx, [ebx]this.x
-			sub		eax, edx
-			jge		uui
-			neg		eax
-			uui : mov		ecx, yy
-				  mov		edx, [ebx]this.y
-				  sub		ecx, edx
-				  jge		uux
-				  neg		ecx
-				  uux : cmp		ecx, eax
-						jl		uuz
-						mov		eax, ecx
-						uuz :
-		}
-		*/
 	};
 	void CloseObject();
 };

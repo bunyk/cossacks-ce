@@ -6729,40 +6729,6 @@ void Draw1( int x, int y )
 	if ( x<0 || x>RealLx || y<4 || y>RealLy )return;
 	byte* p = (byte*)ScreenPtr + x + y*ScrWidth;
 	byte c = carr[randoma[(int)(((long)p) & 8191)] % 10];
-#ifdef _WIN32
-	int xx1 = int( trans8 );
-	int ofs = int( ScreenPtr ) + x + y*ScrWidth;
-	__asm {
-		mov eax, ofs
-		xor ebx, ebx
-		mov bl, c
-		mov bh, byte ptr[eax]
-		mov dl, [trans8 + ebx]
-		mov[eax], dl
-		add eax, ScrWidth
-		mov bh, byte ptr[eax]
-		mov dl, byte ptr[trans8 + ebx]
-		mov[eax], dl
-		add eax, ScrWidth
-		mov bh, byte ptr[eax]
-		mov dl, byte ptr[trans8 + ebx]
-		mov[eax], dl
-		add eax, ScrWidth
-		mov bh, byte ptr[eax]
-		mov dl, byte ptr[trans8 + ebx]
-		mov[eax], dl
-		mov bh, 0
-		inc eax
-		mov bl, byte ptr[eax]
-		mov dl, byte ptr[trans4 + ebx]
-		mov[eax], dl
-		inc eax
-		sub eax, ScrWidth
-		mov bl, byte ptr[eax]
-		mov dl, byte ptr[trans4 + ebx]
-		mov[eax], dl
-	};
-#else
 	for (int i = 0; i < 4; i++) {
 		byte* q = p + i * ScrWidth;
 		*q = trans8[((*q) << 8) | c];
@@ -6771,7 +6737,6 @@ void Draw1( int x, int y )
 	*q3 = trans4[*q3];
 	byte* q2 = p + 2 * ScrWidth + 1;
 	*q2 = trans4[*q2];
-#endif
 };
 void Draw_GRASS()
 {
@@ -6811,51 +6776,6 @@ void ProlongGrass( int x, int y )
 {
 	if ( x<0 || x>RealLx || y<4 || y>RealLy )return;
 	byte* p = (byte*)ScreenPtr + x + y*ScrWidth;
-#ifdef _WIN32
-	int ofs = int( ScreenPtr ) + x + y*ScrWidth;
-	__asm {
-		push edx
-
-		mov edx, ScrWidth
-		xor eax, eax
-		mov ebx, ofs
-		mov al, [ebx]
-		cmp byte ptr[GrassMask + eax], 0
-		je xsd
-
-		sub ebx, edx
-		mov ah, [ebx];
-		mov cl, [trans8 + eax]
-		mov[ebx], cl
-
-		sub ebx, edx
-		mov al, [ebx];
-		mov cl, [trans8 + eax]
-		mov[ebx], ah
-
-		sub ebx, edx
-		mov ah, [ebx];
-		mov cl, [trans8 + eax]
-		mov[ebx], cl
-
-		sub ebx, edx
-		mov ah, [ebx];
-		mov cl, [trans8 + eax]
-		mov[ebx], cl
-
-		sub ebx, edx
-		mov ah, [ebx];
-		mov cl, [trans8 + eax]
-		mov[ebx], cl
-
-		sub ebx, edx
-		mov ah, [ebx];
-		mov cl, [trans8 + eax]
-		mov[ebx], cl
-		xsd :
-		pop edx
-	};
-#else
 	if (GrassMask[p[0]] == 0) return;
 	byte p0 = p[0];
 	byte* q1 = p - ScrWidth;
@@ -6876,7 +6796,6 @@ void ProlongGrass( int x, int y )
 	byte* q6 = q5 - ScrWidth;
 	byte p6 = *q6;
 	*q6 = trans8[(p6 << 8) | p2];
-#endif
 };
 int dx_p[11] = { -5,-4,-3, 2,-1, 0, 1, 2, 3, 4, 5 };
 int dy_p[11] = { 1, 3, 2, 0, 2, 4, 2, 3, 1, 2, 3 };

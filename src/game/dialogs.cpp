@@ -5224,35 +5224,11 @@ void SQPicture::Draw( int x, int y )
 	int lx4 = lx >> 2;
 	int lx1 = lx & 3;
 	int scradd = ScrWidth - lx;//SizeX-lx;
-	#ifdef _WIN32
-	__asm {
-		push	esi
-		push	edi
-		mov		esi, pofst
-		mov		edi, sofst
-		mov		edx, ly
-		or edx, edx
-		jz		uu3
-		cld
-		lpp1 : mov		ecx, lx4
-			   jcxz	uu1
-			   rep		movsd
-			   uu1 : mov		ecx, lx1
-					 jcxz	uu2
-					 rep		movsb
-					 uu2 : add		edi, scradd
-						   dec		edx
-						   jnz		lpp1
-						   uu3 : pop		edi
-								 pop		esi
-	};
-	#else
 	uint8_t* dst = static_cast<uint8_t*>(ScreenPtr) + x + y * ScrWidth;
 	uint8_t* src = reinterpret_cast<uint8_t*>(PicPtr + 2);
 	for (int row = 0; row < ly; ++row) {
 		std::memcpy(dst + row * ScrWidth, src + row * lx, lx);
 	}
-	#endif
 };
 void SQPicture::DrawTransparent( int x, int y )
 {
@@ -5335,20 +5311,6 @@ void SQPicture::LoadPicture( char* name )
 			PicPtr[1] = Ly;
 			int pptr = int( PicPtr + 2 );
 			int Len = Lx*Ly;
-#ifdef _WIN32
-			__asm {
-				push	esi
-				mov		ecx, Len
-				mov		esi, pptr
-				lll : cmp		byte ptr[esi], 0xFF
-					  jne		uuu
-					  mov		byte ptr[esi], 0xF6
-					  uuu : inc		esi
-							dec		ecx
-							jnz		lll
-							pop		esi
-			};
-#else
 			for (int i = 0; i < Len; i++)
 			{
 				if (PicPtr[i] == 0xFF)
@@ -5356,7 +5318,6 @@ void SQPicture::LoadPicture( char* name )
 					PicPtr[i] = 0xF6;
 				};
 			};
-#endif // _WIN32
 		}
 		else PicPtr = nullptr;
 		RClose( ff1 );

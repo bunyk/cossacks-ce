@@ -345,8 +345,6 @@ int GP_Header::GetLy()
 	} while (DIFF != -1);
 	return LyMax;
 };
-//GetDx/GetDy un-guarded: pure C++ (original asm already commented out),
-//needed by GetRealGPSize on Linux too
 int GP_Header::GetDx()
 {
 	GP_Header* GPH = this;
@@ -358,13 +356,6 @@ int GP_Header::GetDx()
 		DIFF = GPH->NextPict;
 		int Lxx = GPH->dx;
 		if (Lxx < LxMax)LxMax = Lxx;
-		/*
-		__asm {
-			mov	eax, GPS
-			add	eax, DIFF
-			mov	GPH, eax
-		};
-		*/
 		GPH = (GP_Header*)((int)GPS + DIFF);
 	} while (DIFF != -1);
 	return LxMax;
@@ -380,13 +371,6 @@ int GP_Header::GetDy()
 		DIFF = GPH->NextPict;
 		int Lxx = GPH->dy;
 		if (Lxx < LxMax)LxMax = Lxx;
-		/*
-		__asm {
-			mov	eax, GPS
-			add	eax, DIFF
-			mov	GPH, eax
-		};
-		*/
 		GPH = (GP_Header*)((int)GPS + DIFF);
 	} while (DIFF != -1);
 	return LxMax;
@@ -568,13 +552,6 @@ bool GP_System::LoadGP( int i )
 				{
 					DIFF = LGP->NextPict;
 					csz++;
-					/*
-					__asm {
-						mov	eax, LGP0
-						add	eax, DIFF
-						mov	LGP, eax
-					};
-					*/
 					LGP = (GP_Header*)((uintptr_t)LGP0 + DIFF);
 				} while (DIFF != -1);
 			};
@@ -593,13 +570,6 @@ bool GP_System::LoadGP( int i )
 				{
 					DIFF = LGP->NextPict;
 					csz++;
-					/*
-					__asm {
-						mov	eax, LGP0;
-						add	eax, DIFF
-							mov	LGP, eax
-					};
-					*/
 					LGP = (GP_Header*)((uintptr_t)LGP0 + DIFF);
 				} while (DIFF != -1);
 			};

@@ -86,36 +86,6 @@ void GetMData( void* dest, void* src, int x, int y, int SSizeX, int SSizeY )
 	if (x1 + 32 > SSizeX)Lx = SSizeX - x1;
 	if (y1 + 32 > SSizeY)Ly = SSizeY - y1;
 	if (Lx <= 0 || Ly <= 0)return;
-#ifdef _WIN32
-	int sofs = int( src ) + x1 + y1*SSizeX;
-	int dofs = int( dest ) + bx + ( by << 5 );
-	int Lx4 = Lx >> 2;
-	int Lx1 = Lx & 3;
-	int adds = SSizeX - Lx;
-	int addd = 32 - Lx;
-
-	__asm
-	{
-		push	esi
-		push	edi
-		mov		edx, Ly
-		mov		esi, sofs
-		mov		edi, dofs
-		cld
-		lpp1 : mov		ecx, Lx4
-			   jcxz	lpp2
-			   rep		movsd
-			   lpp2 : mov		ecx, Lx1
-					  jcxz	lpp3
-					  rep		movsb
-					  lpp3 : add		esi, adds
-							 add		edi, addd
-							 dec		edx
-							 jnz		lpp1
-							 pop		edi
-							 pop		esi
-	}
-#else
 	uint8_t* source = static_cast<uint8_t*>(src) + x1 + y1 * SSizeX;
 	uint8_t* target = static_cast<uint8_t*>(dest) + bx + by * 32;
 	int adds = SSizeX - Lx;
@@ -126,67 +96,10 @@ void GetMData( void* dest, void* src, int x, int y, int SSizeX, int SSizeY )
 		source += SSizeX;
 		target += 32;
 	}
-#endif // _WIN32
 }
 
 bool CmpMData( void* dest, void* src, int x, int y, int SSizeX, int SSizeY )
 {
-#ifdef _WIN32
-	int Lx = 32;
-	int Ly = 32;
-	int x1 = x;
-	int y1 = y;
-	int bx = 0;//x-coord. on bitbap 32x32
-	int by = 0;
-	if (x1 < 0)
-	{
-		bx = -x1;
-		Lx += x1;
-		x1 = 0;
-	}
-	if (y1 < 0)
-	{
-		by = -y1;
-		Ly += y1;
-		y1 = 0;
-	}
-	if (x1 + 32 > SSizeX)Lx = SSizeX - x1;
-	if (y1 + 32 > SSizeY)Ly = SSizeY - y1;
-	if (Lx <= 0 || Ly <= 0)return false;
-	int sofs = int( src ) + x1 + y1*SSizeX;
-	int dofs = int( dest ) + bx + ( by << 5 );
-	int Lx4 = Lx >> 2;
-	int Lx1 = Lx & 3;
-	int adds = SSizeX - Lx;
-	int addd = 32 - Lx;
-	bool notequal = false;
-	__asm
-	{
-		push	esi
-		push	edi
-		mov		edx, Ly
-		mov		esi, sofs
-		mov		edi, dofs
-		cld
-		lpp1 : mov		ecx, Lx4
-			   jcxz	lpp2
-			   repe	cmpsd
-			   jne		noteq
-			   lpp2 : mov		ecx, Lx1
-					  jcxz	lpp3
-					  repe	cmpsb
-					  jne		noteq
-					  lpp3 : add		esi, adds
-							 add		edi, addd
-							 dec		edx
-							 jnz		lpp1
-							 jmp		lpp4
-							 noteq : mov		notequal, 1
-									 lpp4 : pop		edi
-											pop		esi
-	}
-	return notequal;
-#else 
 	uint8_t* s = static_cast<uint8_t*>(src);
 	uint8_t* d = static_cast<uint8_t*>(dest);
 
@@ -206,7 +119,6 @@ bool CmpMData( void* dest, void* src, int x, int y, int SSizeX, int SSizeY )
 		if (std::memcmp(srow, drow, Lx) != 0) return true;
 	}
 	return false;
-#endif // _WIN32
 }
 
 void RestoreMData( void* scrn, void* buf, void* comp, int x, int y, int SSizeX, int SSizeY )

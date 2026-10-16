@@ -65,28 +65,9 @@ static int OffsetX;
 static int OffsetY;
 bool PrepareToRender(int NLines, int startX, int startY) {
 	word curx;
-#ifdef _WIN32
-	__asm {
-		mov		ax, VertBuf[0]
-		mov		bx, VertBuf[2]
-		cmp		ax, 0xFFFF
-		je		uu1
-		cmp		bx, 0xFFFF
-		je		uu3
-		cmp		ax, bx
-		jb		uu3
-		mov		curx, bx
-		jmp		uu5
-		uu3 : mov		curx, ax
-			  jmp		uu5
-			  uu1 : mov		curx, 0xFFFF
-					uu5 :
-	};
-#else
 	if (VertBuf[0] == 0xFFFF) curx = 0xFFFF;
 	else if (VertBuf[2] == 0xFFFF) curx = VertBuf[0];
 	else curx = VertBuf[0] < VertBuf[2] ? VertBuf[0] : VertBuf[2];
-#endif
 	OffsetX = -curx + startX;
 	OffsetY = -startY;
 	if (curx == 0xFFFF)return false;
@@ -98,71 +79,6 @@ bool PrepareToRender(int NLines, int startX, int startY) {
 	int bmy0 = ((BMxy >> 16) + bmdyx*(curx - startX) - bmdyy*startY) & 16382;
 	int bmstart = bmx0 + (bmy0 << 16);//BMxy-BMdx*(curx-startX)-BMdy*startY;
 	int	fogstart = CurFog + FogDx*(curx - startX) - FogDy*startY;
-#ifdef _WIN32
-	__asm {
-		push	edi
-		push	esi
-		pushf
-		mov		esi, offset VertBuf
-		mov		ecx, NLines
-		mov		bx, curx
-		mov		edi, bmstart
-		per1 : mov		bx, curx
-			   mov		dx, [esi]
-			   mov		ax, [esi + 2]
-			   cmp		ax, 0xFFFF
-			   jne		per2
-			   mov		ax, dx
-			   per2 : cmp		dx, ax
-					  jb		per3
-					  xchg	dx, ax	//now dx<=ax
-					  per3 : sub		ax, dx
-							 mov[esi + 2], ax  //now ax is free
-							 cmp		dx, bx		//dx=x1,bx=curx
-							 je		x1eqCurx
-							 jae		x1moreCurx
-							 //need to move left,x1<curx
-							 mov		ax, bx
-							 sub		ax, dx
-							 mov		ebx, fogstart
-							 per4 : sub		edi, BMdx
-									//and     edi,00111111111111110011111111111111b
-									sub		ebx, FogDx
-									dec		ax
-									jnz		per4
-									mov		fogstart, ebx
-									jmp		PrepareToNextLine
-									x1moreCurx :
-		mov		ax, dx
-			sub		ax, bx
-			mov		ebx, fogstart
-			per5 : add		edi, BMdx
-			//and     edi,00111111111111110011111111111111b
-			add		ebx, FogDx
-			dec		ax
-			jnz		per5
-			mov		fogstart, ebx
-			x1eqCurx :
-	PrepareToNextLine:
-		mov		ebx, fogstart
-			mov[esi + 12], ebx
-			add		ebx, FogDy
-			mov		fogstart, ebx
-			mov		bx, curx
-			mov		curx, dx
-			sub		dx, bx
-			mov[esi], dx
-			mov[esi + 8], edi
-			add		edi, BMdy   //edi=BMxy
-			//and     edi,00111111111111110011111111111111b
-			add		esi, 16
-			dec		ecx
-			jnz		per1
-			popf
-			pop		esi
-			pop		edi
-	};
-#else
 	{
 		byte* vb = (byte*)VertBuf;
 		int bm = bmstart;
@@ -189,7 +105,6 @@ bool PrepareToRender(int NLines, int startX, int startY) {
 			lcx = x1;
 		}
 	}
-#endif
 	//Now we are ready to render trrriangle !!!!!!!!!!!!
 	return true;
 };
@@ -199,51 +114,6 @@ void addLine(int x, int y) {
 	int dy = abs(y - curYT) + 1;
 	if (y < curYT)sdy = -16;
 	if (y != curYT) sdx = div((x - curXT) << 16, abs(y - curYT)).quot;
-#ifdef _WIN32
-	__asm {
-		push	edi
-		push	esi
-		pushf
-		mov		ebx, curYT
-		mov		ecx, dy
-		mov		eax, sdx
-		mov		edi, sdy
-		shl		ebx, 4
-		add		ebx, offset VertBuf
-		mov		esi, curXT
-		shl		esi, 16
-		add		esi, 32768
-		lp1:	mov		edx, esi
-				shr		edx, 16
-				cmp		word ptr[ebx], 0xFFFF
-				jne		lp2
-				mov[ebx], dx
-				lp3 : add		esi, eax
-					  add		ebx, edi
-					  dec		ecx
-					  jnz		lp1
-					  jmp		lp_end
-					  lp7 : cmp		dx, word ptr[ebx]
-							je		lp3
-							cmp		dx, word ptr[ebx + 2]
-							je		lp3
-							mov[ebx + 2], dx
-							add		esi, eax
-							add		ebx, edi
-							dec		ecx
-							jnz		lp1
-							lp2 : cmp		word ptr[ebx + 2], 0xFFFF
-								  jne		lp7
-								  mov[ebx + 2], dx
-								  add		esi, eax
-								  add		ebx, edi
-								  dec		ecx
-								  jnz		lp1
-								  lp_end : popf
-										   pop		esi
-										   pop		edi
-	};
-#else
 	{
 		unsigned sx = ((unsigned)curXT << 16) + 32768;
 		byte* ln = (byte*)VertBuf + ((unsigned)curYT << 4);
@@ -257,7 +127,6 @@ void addLine(int x, int y) {
 			ln += sdy;
 		}
 	}
-#endif
 	curXT = x;
 	curYT = y;
 };
@@ -280,68 +149,6 @@ void RenderTriangle64(int NLines, byte* Dest, byte* Bitmap) {
 	((int*)Dest)[1] = OffsetX;
 	((int*)Dest)[2] = OffsetY;
 	int VBpos = int(VertBuf);
-#ifdef _WIN32
-	__asm {
-		push	esi
-		push	edi
-		pushf
-		mov		esi, Bitmap
-		mov		edi, Dest
-		add		edi, 12
-		mov		ebx, VBpos
-		cld
-		StartLine :
-		//Rendering the linear transformation
-		mov		ecx, [ebx]
-			mov[edi], ecx
-			add		edi, 4     //edi points to Dest
-			shr		ecx, 16    //Length of the scan line
-			mov		ScanSize, ecx
-			mov		Startscan, edi  //Storing for shadowing
-			mov		edx, [ebx + 8]    //BMxy
-			mov		VertPos, ebx
-			mov		ebx, BMdx
-			//and     ebx,0011 1111 1111 1110 0011 1111 1111 1110b
-			jcxz	StartShad
-			StartLinear :
-		mov		eax, edx     //1
-			shr		eax, 16      //1
-			mov		al, dh       //1
-			mov		al, [esi + eax]//?
-			add		edx, ebx     //0
-			dec		cx          //0
-			stosb               //0  could be optimized to stosd
-			jnz		StartLinear //1
-	//Shadow processing
-			StartShad :
-		xchg	edi, Startscan
-			mov		esi, VertPos
-			mov		ecx, ScanSize
-			mov		ebx, [esi + 12]   //fog
-			mov		edx, FogDx
-			//mov		edi,Startscan
-			jcxz	endfog
-			StartFog4 :      //Not optimal now! 32 bit reading coulde performed
-		mov		eax, ebx
-			sar		eax, 8
-			add		ebx, edx
-			mov		al, [edi]
-			mov		al, [darkfog + 16384 + eax]
-			mov[edi], al
-			inc		edi
-			dec		cx
-			jnz		StartFog4
-			endfog : mov		edi, Startscan
-			mov		ebx, esi
-			mov		esi, Bitmap
-			add		ebx, 16
-			dec		NLines
-			jnz		StartLine
-			popf
-			pop		esi
-			pop		edi
-	};
-#else
 	{
 		byte* dst = Dest + 12;
 		byte* vb = (byte*)VertBuf;
@@ -368,7 +175,6 @@ void RenderTriangle64(int NLines, byte* Dest, byte* Bitmap) {
 			dst = line + len;
 		}
 	}
-#endif
 };
 int GetMax(int z1, int z2, int z3) {
 	if (z1 > z2) {
@@ -409,27 +215,8 @@ void PreRenderTri64(int x1, int y1,
 	BMdx = bmdx;
 	BMdy = bmdy;
 	int VBpos = int(VertBuf);
-	//Инициализация VertBuf
-#ifdef _WIN32
-	__asm {
-		push	edi
-		pushf
-		cld
-		mov		edi, VBpos
-		mov		ecx, z2
-		sub		ecx, z1
-		inc		ecx
-		uux1 : mov		dword ptr[edi], 0xFFFFFFFF;
-		add		edi, 16
-			dec		ecx
-			jnz		uux1
-			popf
-			pop		edi
-	};
-#else
 	//VertBuf init: mark all lines as empty (x1 = x2 = 0xFFFF)
 	for (int i = 0; i <= z2 - z1; i++) *(int*)((byte*)VertBuf + i * 16) = -1;
-#endif
 	addLine(x2, y2 - z1);
 	addLine(x3, y3 - z1);
 	addLine(x1, y1 - z1);
@@ -441,44 +228,6 @@ void ShowTriangle(int x, int y, byte* data) {
 	int dy = ((int*)data)[2];
 	int ofst = int(ScreenPtr) + (y + dy)*ScrWidth + x - dx;
 	int dofs = int(data);
-#ifdef _WIN32
-	__asm {
-		push	esi
-		push	edi
-		pushf
-		mov		edi, ofst
-		mov		esi, dofs
-		cld
-		mov		bx, [esi]
-		add		esi, 12
-		xor ecx, ecx
-		xor		eax, eax
-		lpp1 :	//mov		TempDI,edi
-		xor		eax, eax
-			mov		ax, [esi]
-			test	ax, 8000h
-			jz		uu1
-			or eax, 0xFFFF0000
-			uu1 :
-			add		edi, eax
-			mov		cx, [esi + 2]
-			add		esi, 4
-			mov		edx, ecx
-			shr		ecx, 2
-			rep		movsd
-			mov		ecx, edx
-			and		ecx, 3
-			rep		movsb
-			//mov		edi,TempDI
-			sub		edi, edx
-			add		edi, ScrWidth
-			dec		bx
-			jnz		lpp1
-			popf
-			pop		edi
-			pop		esi
-	};
-#else
 	{
 		byte* dst = (byte*)ScreenPtr + (y + dy)*ScrWidth + x - dx;
 		byte* src = data + 12;
@@ -491,7 +240,6 @@ void ShowTriangle(int x, int y, byte* data) {
 			dst += ScrWidth - lx;
 		}
 	}
-#endif
 };
 void ShowClippedTriangle(int x, int y, byte* data) {
 	int dx = ((int*)data)[1];
@@ -507,27 +255,6 @@ void ShowClippedTriangle(int x, int y, byte* data) {
 		if (NY <= rdy)return;
 		NY -= rdy;
 		y1 = WindY;
-#ifdef _WIN32
-		__asm {
-			mov		ecx, rdy
-			mov		ebx, realof
-			mov		edx, DOfst
-			lopp1 : mov		ax, [ebx]
-					movsx	eax, ax
-					add		edx, eax
-					xor		eax, eax
-					mov		ax, [ebx + 2]
-					add		ebx, eax
-					add		ebx, 4
-					dec		ecx
-					jnz		lopp1
-					//test	dx,0x8000
-					//jz		lopp2
-					//or		edx,0xFFFF0000
-					mov		DOfst, edx
-					mov		realof, ebx
-		};
-#else
 		{
 			int dofst = 0;
 			for (int i = 0; i < rdy; i++) {
@@ -536,7 +263,6 @@ void ShowClippedTriangle(int x, int y, byte* data) {
 			}
 			DOfst = dofst;
 		}
-#endif
 	};
 	if (y1 + NY > WindY1)NY = WindY1 - y1 + 1;
 	if (NY <= 0)return;
@@ -647,27 +373,6 @@ void ShowClippedTriangleMMX(int x, int y, byte* data) {
 		if (NY <= rdy)return;
 		NY -= rdy;
 		y1 = WindY;
-#ifdef _WIN32
-		__asm {
-			mov		ecx, rdy
-			mov		ebx, realof
-			mov		edx, DOfst
-			lopp1 : mov		ax, [ebx]
-					movsx	eax, ax
-					add		edx, eax
-					xor		eax, eax
-					mov		ax, [ebx + 2]
-					add		ebx, eax
-					add		ebx, 4
-					dec		ecx
-					jnz		lopp1
-					//test	dx,0x8000
-					//jz		lopp2
-					//or		edx,0xFFFF0000
-					mov		DOfst, edx
-					mov		realof, ebx
-		};
-#else
 		{
 			int dofst = 0;
 			for (int i = 0; i < rdy; i++) {
@@ -676,7 +381,6 @@ void ShowClippedTriangleMMX(int x, int y, byte* data) {
 			}
 			DOfst = dofst;
 		}
-#endif
 	};
 	if (y1 + NY >= WindY1)NY = WindY1 - y1 + 1;
 	if (NY <= 0)return;
@@ -685,81 +389,6 @@ void ShowClippedTriangleMMX(int x, int y, byte* data) {
 	int MinOfst = int(ScreenPtr) + y1*ScrWidth + WindX;
 	int MaxOfst = MinOfst + WindLx;
 	int  FinalESI;
-#ifdef _WIN32
-	__asm {
-		push	esi
-		push	edi
-		pushf
-		mov		edi, ofst
-		add		edi, DOfst
-		mov		esi, dofs
-		cld
-		mov		bx, word ptr NY
-		mov		esi, realof
-		xor		ecx, ecx
-		xor		eax, eax
-		lpp1 :	//mov		TempDI,edi
-		xor		eax, eax
-			mov		ax, [esi]
-			test	ax, 8000h
-			jz		uu1
-			or eax, 0xFFFF0000
-			uu1 :
-			add		edi, eax
-			xor		ecx, ecx
-			mov		cx, [esi + 2]
-			add		esi, 4
-			mov		FinalESI, esi
-			add		FinalESI, ecx
-			mov		edx, ecx
-			add		edx, edi
-			mov		TempDI, edi
-			cmp		edi, MinOfst
-			jae		uuu3
-			sub		edi, MinOfst
-			sub		esi, edi
-			mov		edi, MinOfst
-			uuu3 : cmp		edx, MaxOfst
-			jbe		uuu4
-
-			mov		edx, MaxOfst
-			uuu4 : sub		edx, edi
-			mov		ecx, edx
-			cmp		ecx, 0
-			jle		ttr
-			shr		ecx, 3
-			jcxz	noMMX
-			MMXLoop :
-		movq	mm1, [esi]
-			add		esi, 8
-			movq[edi], mm1
-			add		edi, 8
-			dec		cx
-			jnz		MMXLoop
-			//		rep		movsd
-			noMMX :
-		mov		ecx, edx
-			and		ecx, 7
-			rep		movsb
-			ttr :
-		mov		esi, FinalESI
-			mov		edi, TempDI
-			//sub		edi,edx
-			add		edi, ScrWidth
-			mov		eax, MinOfst
-			add		eax, ScrWidth
-			mov		MinOfst, eax
-			mov		eax, MaxOfst
-			add		eax, ScrWidth
-			mov		MaxOfst, eax
-			dec		bx
-			jnz		lpp1
-			popf
-			pop		edi
-			pop		esi
-			EMMS
-	};
-#else
 	{
 		byte* dst = (byte*)ScreenPtr + y1*ScrWidth + x - dx + DOfst;
 		byte* src = realof;
@@ -781,7 +410,6 @@ void ShowClippedTriangleMMX(int x, int y, byte* data) {
 			maxOf += ScrWidth;
 		}
 	}
-#endif
 };
 //--------------------------------------------------------------
 void RenderSmartTriangle64(int xs1, int ys1,
@@ -844,106 +472,15 @@ static int	fogstart;
 static word curx;
 static int FOG1;
 bool PrecPrepareToRender(int NLines, int startX, int startY) {
-#ifdef _WIN32
-	__asm {
-		mov		ax, VertBuf[0]
-		mov		bx, VertBuf[2]
-		cmp		ax, 0xFFFF
-		je		uu1
-		cmp		bx, 0xFFFF
-		je		uu3
-		cmp		ax, bx
-		jb		uu3
-		mov		curx, bx
-		jmp		uu5
-		uu3 : mov		curx, ax
-			  jmp		uu5
-			  uu1 : mov		curx, 0xFFFF
-					uu5 :
-	};
-#else
 	if (VertBuf[0] == 0xFFFF) curx = 0xFFFF;
 	else if (VertBuf[2] == 0xFFFF) curx = VertBuf[0];
 	else curx = VertBuf[0] < VertBuf[2] ? VertBuf[0] : VertBuf[2];
-#endif
 	OffsetX = -curx + startX;
 	OffsetY = -startY;
 	if (curx == 0xFFFF)return false;
 	BMXStart = BMX + BMDXX*(curx - startX) - BMDXY*startY;
 	BMYStart = BMY + BMDYX*(curx - startX) - BMDYY*startY;
 	fogstart = FOG1 + FogDx*(curx - startX) - FogDy*startY;
-#ifdef _WIN32
-	__asm {
-		push	edi
-		push	esi
-		pushf
-		mov		esi, offset VertBuf
-		mov		ecx, NLines
-		mov		bx, curx
-		mov		edi, BMXStart
-		mov		TempEBP, EBP
-		mov		ebp, BMYStart
-		per1 : mov		bx, curx
-			   mov		dx, [esi]
-			   mov		ax, [esi + 2]
-			   cmp		ax, 0xFFFF
-			   jne		per2
-			   mov		ax, dx
-			   per2 : cmp		dx, ax
-					  jb		per3
-					  xchg	dx, ax	//now dx<=ax
-					  per3 : sub		ax, dx
-							 mov[esi + 2], ax  //now ax is free
-							 cmp		dx, bx		//dx=x1,bx=curx
-							 je		x1eqCurx
-							 jae		x1moreCurx
-							 //need to move left,x1<curx
-							 mov		ax, bx
-							 sub		ax, dx
-							 mov		ebx, fogstart
-							 per4 : sub		edi, BMDXX
-									sub		ebp, BMDYX
-									//and     edi,00111111111111110011111111111111b
-									sub		ebx, FogDx
-									dec		ax
-									jnz		per4
-									mov		fogstart, ebx
-									jmp		PrepareToNextLine
-									x1moreCurx :
-		mov		ax, dx
-			sub		ax, bx
-			mov		ebx, fogstart
-			per5 : add		edi, BMDXX
-			add		ebp, BMDYX
-			//and     edi,00111111111111110011111111111111b
-			add		ebx, FogDx
-			dec		ax
-			jnz		per5
-			mov		fogstart, ebx
-			x1eqCurx :
-	PrepareToNextLine:
-		mov		ebx, fogstart
-			mov[esi + 12], ebx
-			add		ebx, FogDy
-			mov		fogstart, ebx
-			mov		bx, curx
-			mov		curx, dx
-			sub		dx, bx
-			mov[esi], dx
-			mov[esi + 4], edi
-			mov[esi + 8], ebp
-			add		edi, BMDXY   //edi=BMxy
-			add		ebp, BMDYY
-			//and     edi,00111111111111110011111111111111b
-			add		esi, 16
-			dec		ecx
-			jnz		per1
-			mov		EBP, TempEBP
-			popf
-			pop		esi
-			pop		edi
-	};
-#else
 	{
 		byte* vb = (byte*)VertBuf;
 		int bmxs = BMXStart;
@@ -973,7 +510,6 @@ bool PrecPrepareToRender(int NLines, int startX, int startY) {
 			lcx = x1;
 		}
 	}
-#endif
 	//Now we are ready to render trrriangle !!!!!!!!!!!!
 	return true;
 };
@@ -1008,78 +544,6 @@ bool AbsolutePrecPrepareToRender(int NLines, int startX, int startY) {
 	BMXStart = BMX + BMDXX*(curx - startX) - BMDXY*startY;
 	BMYStart = BMY + BMDYX*(curx - startX) - BMDYY*startY;
 	fogstart = FOG1 + FogDx*(curx - startX) - FogDy*startY;
-#ifdef _WIN32
-	__asm {
-		push	edi
-		push	esi
-		pushf
-		mov		esi, offset VertBuf
-		mov		ecx, NLines
-		mov		bx, curx
-		mov		edi, BMXStart
-		mov		TempEBP, EBP
-		mov		ebp, BMYStart
-		per1 : mov		bx, curx
-			   mov		dx, [esi]
-			   mov		ax, [esi + 2]
-			   cmp		ax, 0xFFFF
-			   jne		per2
-			   mov		ax, dx
-			   per2 : cmp		dx, ax
-					  jb		per3
-					  xchg	dx, ax	//now dx<=ax
-					  per3 : sub		ax, dx
-							 mov[esi + 2], ax  //now ax is free
-							 cmp		dx, bx		//dx=x1,bx=curx
-							 je		x1eqCurx
-							 jae		x1moreCurx
-							 //need to move left,x1<curx
-							 mov		ax, bx
-							 sub		ax, dx
-							 mov		ebx, fogstart
-							 per4 : sub		edi, BMDXX
-									sub		ebp, BMDYX
-									//and     edi,00111111111111110011111111111111b
-									sub		ebx, FogDx
-									dec		ax
-									jnz		per4
-									mov		fogstart, ebx
-									jmp		PrepareToNextLine
-									x1moreCurx :
-		mov		ax, dx
-			sub		ax, bx
-			mov		ebx, fogstart
-			per5 : add		edi, BMDXX
-			add		ebp, BMDYX
-			//and     edi,00111111111111110011111111111111b
-			add		ebx, FogDx
-			dec		ax
-			jnz		per5
-			mov		fogstart, ebx
-			x1eqCurx :
-	PrepareToNextLine:
-		mov		ebx, fogstart
-			mov[esi + 12], ebx
-			add		ebx, FogDy
-			mov		fogstart, ebx
-			mov		bx, curx
-			mov		curx, dx
-			sub		dx, STRTX
-			mov[esi], dx
-			mov[esi + 4], edi
-			mov[esi + 8], ebp
-			add		edi, BMDXY   //edi=BMxy
-			add		ebp, BMDYY
-			//and     edi,00111111111111110011111111111111b
-			add		esi, 16
-			dec		ecx
-			jnz		per1
-			mov		EBP, TempEBP
-			popf
-			pop		esi
-			pop		edi
-	};
-#else
 	{
 		byte* vb = (byte*)VertBuf;
 		int bmxs = BMXStart;
@@ -1109,7 +573,6 @@ bool AbsolutePrecPrepareToRender(int NLines, int startX, int startY) {
 			lcx = x1;
 		}
 	}
-#endif
 	//Now we are ready to render trrriangle !!!!!!!!!!!!
 	return true;
 };
