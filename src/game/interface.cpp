@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <math.h>
 #include <time.h>
+#include <SDL3/SDL.h>
 
 #include "dialogs.h"
 #include "ddini.h"
@@ -353,9 +354,9 @@ extern tpStartDownloadInternetFile* StartDownloadInternetFile;
 extern tpProcessDownloadInternetFiles* ProcessDownloadInternetFiles;
 extern tpSendRecBuffer* SendRecBuffer;
 //-----------------------------------------------------------//
+#endif // _WIN32
 
 extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
-#endif // _WIN32
 
 extern uint64_t GetSDLTickCount();
 
@@ -581,7 +582,6 @@ DLLEXPORT bool ProcessMessages()
 #endif // _WIN32
 }
 
-#ifdef _WIN32
 extern bool EnterChatMode;
 
 void ProcessChatKeys();
@@ -595,6 +595,7 @@ bool ProcessMessagesEx()
 		LastCTRLPressTime = GetSDLTickCount();
 	}
 
+#ifdef _WIN32
 	ProcessVotingKeys();
 
 	if ( EnterChatMode )
@@ -616,8 +617,9 @@ bool ProcessMessagesEx()
 		MSR = 1;
 	}
 	return MSR;
-}
 #endif // _WIN32
+	return 0;
+}
 
 void normstr( char* str );
 char PlName[64];
@@ -12200,6 +12202,8 @@ void EnterRandomParams()
 
 	UnPress();
 }
+#endif // _WIN32 (RandomMapDialog/EnterRandomParams above have no callers;
+//the single-mission starter below is portable - dialog system + PrepareGameMedia)
 bool ProcessSingleMission( int n, int Diff )
 {
 	MaxPingTime = 0;
@@ -12371,8 +12375,8 @@ bool ProcessSingleMission( int n, int Diff )
 
 	return true;
 }
-
-#endif // _WIN32 (rest of the game-start machinery below stays Windows-only)
+// (the _WIN32 region that used to cover the battles screens machinery was
+// closed above ProcessSingleMission; mission/campaign code below is portable)
 bool ProcessSingleCampagin( int n )
 {
 	KeyPressed = 0;
@@ -12557,7 +12561,9 @@ HHH1:
 	SlowUnLoadPalette( "2\\agew_1.pal" );
 	return false;
 };
-#ifdef _WIN32
+// OneAddMission/AddMissionsPack: extra user missions from UserMissions\*.add
+// (uses the FindFirstFile shims defined near the load-game dialog above)
+bool ReadWinString( GFILE* F, char* STR, int Max );//real definition in activescenary.cpp
 struct OneAddMission
 {
 	char Title[128];
@@ -12590,7 +12596,7 @@ AddMissionsPack::AddMissionsPack()
 			if ( F )
 			{
 				Pack = (OneAddMission*) realloc( Pack, sizeof( OneAddMission )*( NMiss + 1 ) );
-				memset( Pack + NMiss, 0, sizeof OneAddMission );
+				memset( Pack + NMiss, 0, sizeof( OneAddMission ) );
 				ReadWinString( F, Pack[NMiss].Title, 127 );
 				ReadWinString( F, Pack[NMiss].Map, 127 );
 				ReadWinString( F, ccc, 127 );
@@ -12619,12 +12625,10 @@ AddMissionsPack::AddMissionsPack()
 AddMissionsPack::~AddMissionsPack()
 {
 	if ( Pack )free( Pack );
-	memset( this, 0, sizeof AddMissionsPack );
+	memset( this, 0, sizeof( AddMissionsPack ) );
 };
-#endif // _WIN32
 bool SelectSingleMission()
 {
-#ifdef _WIN32
 	if ( !MISSLIST.MSMiss )return false;
 	KeyPressed = 0;
 	LastKey = SDLK_UNKNOWN;
@@ -12850,9 +12854,6 @@ HHH1:
 		CurrentMission = -1;
 	};
 	SlowUnLoadPalette( "2\\agew_1.pal" );
-#else
-	printf("TODO: ProcessSingleMission not implemented for this platform\n");
-#endif // _WIN32
 	return false;
 };
 

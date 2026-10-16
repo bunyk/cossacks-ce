@@ -168,10 +168,8 @@ void ReceiveAll() {}
 bool CheckPlayerToExit() { return false; }
 bool RejectThisPlayer = false;
 
-// Starting an actual mission is not ported yet (StartIGame / ProcessSingleMission
-// live in the still-Windows-only game-start block of interface.cpp ~9487-12419).
-// Returning false keeps the player in the campaign mission list.
-bool ProcessSingleMission( int n, int Diff ) { (void)n; (void)Diff; return false; }
+// ProcessSingleMission: real implementation now in interface.cpp (single
+// missions + campaigns un-guarded) - stub deleted.
 
 // lobby helpers used by the shared MPL_WaitingGame event loop
 void SendChat( char* str, bool toall ) { (void)str; (void)toall; }
