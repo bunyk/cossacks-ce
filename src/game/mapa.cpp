@@ -563,23 +563,9 @@ void LoadLock()
 	RBlockRead( f, Locking, RFileSize( f ) );
 	RClose( f );
 };
-void ShowFon()
-{
-	return;
-
-};
-void ShowBorder()
-{
-	return;
-
-};
 int mul3( int x )
 {
 	return x + x;//x+x+x;
-};
-void LoadTiles()
-{
-
 };
 void SaveWalls( ResFile ff1 );
 //void LoadWalls(ResFile ff1);

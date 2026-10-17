@@ -3143,15 +3143,6 @@ void City::TakeNewMine()
 	TDA->NAttempts = 0;
 }
 
-void City::UpgradeSomeMine()
-{
-}
-void City::CreateWallNearMine()
-{
-}
-void City::BuildTower()
-{
-}
 //------------------------------Upgrade mines------------------------//
 class UM_Data :public Inform
 {
@@ -3666,9 +3657,6 @@ void CreateWallBar( int tx, int ty, int r, City* CT )
 {
 }
 
-void City::BuildWallsNearMines()
-{
-}
 
 void FogSpot( int x, int y );
 extern int minix;

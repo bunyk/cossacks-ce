@@ -2583,7 +2583,6 @@ bool Loading()
 
 	Loadtextures();
 	LoadFog( 1 );
-	LoadTiles();
 	LoadLock();
 	LoadNewAimations();
 	LoadWeapon();

@@ -584,13 +584,9 @@ public:
 
 	//--------------Ideas----------------
 	void TakeNewMine();
-	void UpgradeSomeMine();
-	void CreateWallNearMine();
-	void BuildTower();
 	void UpgradeMines();
 	void SendAgressors();
 	void ProtectMine();
-	void BuildWallsNearMines();
 	//----------------defending--------------//
 	void HandleDefending();
 	int  CheckDefending( byte x, byte y );
