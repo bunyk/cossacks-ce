@@ -244,9 +244,6 @@ void CloseMPL() {} // dummy function until MPL is implemented
 void LBEnumerateSessions( ListBox* LB, int );
 void AnalyseMessages();
 bool CreateNamedSession( char* Name, DWORD User2, int Max );
-#ifndef NODPLAY
-bool JoinNameToSession( int ns, char* Name );
-#endif // NODPLAY
 bool StartIGame( bool );
 #ifdef _WIN32
 extern bool GameInProgress;
@@ -254,10 +251,6 @@ extern bool GameInProgress;
 bool GameInProgress = false;
 #endif // _WIN32
 byte MyRace;
-#ifndef NODPLAY
-// TODO: remove all refs to this from Interface
-extern LPDIRECTPLAY3A		lpDirectPlay3A;
-#endif // NODPLAY
 #ifdef _WIN32
 extern word PlayerMenuMode;
 #else 
@@ -1022,19 +1015,6 @@ StartJoin:;
 					goto StartJoin;
 				}
 			}
-#ifndef NODPLAY
-			if ( JoinNameToSession( LB->CurItem, PlName ) )
-			{
-				if ( WaitingJoinGame( LB->GetItem( LB->CurItem )->Param1 >> 16 ) )
-				{
-					return true;
-				}
-				else
-				{
-					ItemChoose = mcmCancel;
-				}
-			}
-#endif
 		}
 	} while ( ItemChoose != mcmCancel );
 	SlowUnLoadPalette( "2\\agew_1.pal" );
@@ -1130,46 +1110,12 @@ RetryConn:
 		}
 	}
 
-#ifndef NODPLAY
-	DoNewInet = 0;
-	if ( selected_network_protocol > 2 )//Not TCP/IP
-	{
-		DoNewInet = 1;
-	}
-#else
-	// TODO: test this
 	DoNewInet = 1;
-#endif
 
 	if ( !DoNewInet )
 	{
-#ifndef NODPLAY
-		if ( !lpDirectPlay3A )
-		{
-			CreateMultiplaterInterface();
-			if ( !lpDirectPlay3A )
-			{
-				return 0;
-			}
-		}
-
-		if (!MLP_CreateCompoundAddress(selected_network_protocol, AddrBuf))
-		{
-			return 0;
-		}
-
-		CloseMPL();
-		CreateMultiplaterInterface();
-
-		HRESULT HR = lpDirectPlay3A->InitializeConnection( AddrBuf, 0 );
-		if ( FAILED( HR ) )
-		{
-			goto RetryConn;
-		}
-#else
 		CreateMultiplaterInterface();
 		return 0;
-#endif
 	}
 	else
 	{
@@ -1346,44 +1292,7 @@ TryConnection:
 		goto TryConnection;
 	}
 
-#ifndef NODPLAY
-	if ( !lpDirectPlay3A )
-	{
-		CreateMultiplaterInterface();
-
-		if ( !lpDirectPlay3A )
-		{
-			return;
-		}
-
-		if (!MLP_CreateBattleCompoundAddress(selected_network_protocol, AddrBuf))
-		{
-			return;
-		}
-
-		if FAILED( lpDirectPlay3A->InitializeConnection( AddrBuf, 0 ) )
-		{
-			return;
-		}
-	}
-#else
 	CreateMultiplaterInterface();
-	return;
-#endif
-
-	switch ( connection_menu_result )
-	{
-	case mcmHost:
-		if ( CreateNamedSession( PlName, BTLID + 1, 2 ) )
-		{
-			WaitingHostGame( BTLID + 1 );
-		}
-		break;
-
-	case mcmJoin:
-		MPL_JoinGame( BTLID + 1 );
-		break;
-	}
 }
 
 //--------------------MULTIPLAYER GAME---------------------//
@@ -11495,15 +11404,6 @@ bool WaitingGame( bool Host )
 				{
 					PINFO[i].NationID = MNATION[i]->CurLine;
 					PINFO[i].ColorID = MCOLOR[i]->color - 0x80;
-#ifndef NODPLAY
-					lpDirectPlay3A->SetPlayerData( MyDPID, (void*) &PINFO[i].NationID, 4, DPSET_REMOTE );
-					DPNAME dpName;
-					ZeroMemory( &dpName, sizeof( DPNAME ) );
-					dpName.dwSize = sizeof( DPNAME );
-					dpName.lpszShortNameA = MNAME[i]->Str;
-					dpName.lpszLongNameA = nullptr;
-					lpDirectPlay3A->SetPlayerName( MyDPID, &dpName, DPSET_REMOTE );
-#endif
 					MNATION[i]->Enabled = true;
 					MCOLOR[i]->Enabled = true;
 					MGRP[i]->Enabled = true;

@@ -1,9 +1,5 @@
 #include "newcode/os.h"
 
-#ifndef NODPLAY
-#include "dplay.h"
-#endif
-
 #define MaxPL 8
 
 struct EXBUFFER
@@ -133,30 +129,6 @@ DLLIMPORT void ReportAliveState( int NPlayers, int* Profiles );
 
 void SETPLAYERNAME(char* name, bool);
 
-#ifndef NODPLAY
-bool MLP_CreateCompoundAddress(int selected_network_protocol, byte* AddrBuf);
-bool MLP_CreateBattleCompoundAddress(int selected_network_protocol, byte* AddrBuf);
-#endif
-
-#ifndef NODPLAY
-BOOL FAR PASCAL EnumAddressCallback1(
-	REFGUID guidDataType,
-	DWORD dwDataSize,
-	LPCVOID lpData,
-	LPVOID lpContext
-);
-#endif
-
-// Custom DPID and two message types from dplay.h
-// TODO: remove or make light structures
-#ifndef NODPLAY
-typedef DPID CDPID;
-
-typedef LPDPMSG_CREATEPLAYERORGROUP CLPDPMSG_CREATEPLAYERORGROUP;
-typedef LPDPMSG_DESTROYPLAYERORGROUP CLPDPMSG_DESTROYPLAYERORGROUP;
-
-#else
-
 typedef unsigned long CDPID;
 
 typedef struct
@@ -206,7 +178,6 @@ typedef struct
 	CDPID	    dpIdParent;     // id of parent group
 	DWORD		dwFlags;		// player or group flags
 } * CLPDPMSG_DESTROYPLAYERORGROUP;
-#endif
 
 #ifdef _WIN32
 extern CDPID MyDPID;

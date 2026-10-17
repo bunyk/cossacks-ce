@@ -2112,14 +2112,6 @@ extern byte NatRefTBL[8];
 #define GM(x) (1<<x)
 #define INITBEST 0x0FFFFFFF
 
-/* FTW?
-#define DeleteLastOrder() DeleteLastOrder();
-#define CreatePath(x1,y1) CreatePath(x1,y1);
-#define NewMonsterSendTo(x,y,Prio,OrdType) NewMonsterSendTo(x,y,Prio,OrdType);
-#define NewMonsterPreciseSendTo(x,y,Prio,OrdType) NewMonsterPreciseSendTo(x,y,Prio,OrdType);
-#define NewMonsterSmartSendTo(x,y,dx,dy,Prio,OrdType) NewMonsterSmartSendTo(x,y,dx,dy,Prio,OrdType);
-*/
-
 extern word* TopRef;
 extern int TopLx;
 

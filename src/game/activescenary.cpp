@@ -5855,16 +5855,9 @@ void LoadAIFromDLL( byte Nat, char* Name )
 	}
 	else
 	{
-#ifndef STARFORCE
 		char cc[128];
 		sprintf( cc, "Could not load %s", Name );
-#ifdef _WIN32
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "AI loadind from DLL", cc, sdlWindow);
-		assert( 0 );
-#else
 		fprintf( stderr, "LoadAIFromDLL: %s\n", cc );
-#endif
-#endif
 	}
 }
 

@@ -17,14 +17,11 @@ The list is not exhaustive and will be updated as the project progresses.
 
 | Description | Status | Comments |
 |-------------|--------|----------|
-| Remove DirectPlay | ✅ Done | Hidden under the `NODPLAY` definition (lobby works, but the gameplay was not tested) |
-| Migrate Music system (MCI CD audio) to SDL | ✅ Done ||
 | Remove Windows-specific symbols and types | ⏳ In Progress | Things left to be migrated: DLL loading, FS management, registry management, misc. |
-| Migrate window management from Win32 to SDL | ✅ Done | DirectPlay still seems to need an HWND pointer |
 | Migrate from Winsock to cross-platform sockets | 🚧 Not Started ||
-| Remove or replace binary dependencies | 🚧 Not Started | Known so far: `Pinger.lib`, `unrar.dll`, `gw_server.dll`, `dplayx.lib` (when `NODPLAY` is not defined) |
+| Remove or replace binary dependencies | 🚧 Not Started | Known so far: `Pinger.lib`, `unrar.dll`, `gw_server.dll` |
 | Recreate the AI | ⏳ In Progress ||
-| Rewrite assembler code to C++ | 🚧 Not Started | Over 200 places with inline assembly 😢, related mostly to rendering |
+| Rewrite assembler code to C++ | 🚧 In progress | Over 200 places with inline assembly 😢, related mostly to rendering |
 
 ## Building
 

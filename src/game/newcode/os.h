@@ -10,8 +10,6 @@
 
 #else
 
-#define NODPLAY // Linux has no DirectPlay
-
 #define DLLEXPORT // Nothing
 #define DLLIMPORT // Nothing
 #define CDECL // Nothing

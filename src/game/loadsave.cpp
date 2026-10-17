@@ -1143,27 +1143,8 @@ ReportFn* ORDLIST[OrdCount] = {
 	&NewAttackPointLink,
 	&MakeOneShotLink
 };
-#ifdef STARFORCE
-ReportFn** PTR_LAND = NULL;
-void DLLEXPORT SFINIT2_InitLAND()
-{
-	PTR_LAND = (ReportFn**) GlobalAlloc( GMEM_FIXED, OrdCount * sizeof(ReportFn*) );
-	memcpy( PTR_LAND, ORDLIST, OrdCount * sizeof(ReportFn*) );
-};
-void FREELAND()
-{
-	if (PTR_LAND)GlobalFree( PTR_LAND );
-};
-#endif
 int GetOrderKind( ReportFn* RF )
 {
-#ifdef STARFORCE
-	if (PTR_LAND)
-	{
-		for (int i = 0; i < OrdCount; i++)if (RF == PTR_LAND[i])return i;
-	};
-	return -1;
-#endif
 	for (int i = 0; i < OrdCount; i++)if (RF == ORDLIST[i])return i;
 	return -1;
 };

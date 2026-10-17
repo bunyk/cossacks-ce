@@ -7,7 +7,6 @@
  ***************************************************************************/
 
 #define NAME "CEW_KERNEL"
-#define NODPLAY
 
 #include "ddini.h"
 #include "gfile.h"
@@ -185,11 +184,6 @@ int processMainMenu();
 
 
 int GetResID( char* );
-
-#ifndef NODPLAY
-HWND hwnd;
-#endif
-
 
 void ShowFon1();
 void WaterCorrection();
@@ -1571,38 +1565,6 @@ void EraseRND()
 bool PlayCDTrack( int Id );
 bool PlayRandomTrack();
 extern int PlayMode;
-
-#ifndef NODPLAY
-//Create "Cossacks.reg" with Microsoft DirectPlay key
-void CreateReg()
-{
-	char path[300];
-	char path1[350];
-	GetCurrentDirectory( 300, path );
-	int ps1 = 0;
-	int ps = 0;
-	char c;
-	do
-	{
-		c = path[ps];
-		if (c == '\\')
-		{
-			path1[ps1] = '\\';
-			path1[ps1 + 1] = '\\';
-			ps1 += 2;
-		}
-		else
-		{
-			path1[ps1] = c;
-			ps1++;
-		};
-		ps++;
-	} while (c);
-	GFILE* f = Gopen( "Cossacks.reg", "w" );
-	Gprintf( f, "REGEDIT4\n[HKEY_LOCAL_MACHINE\\Software\\Microsoft\\DirectPlay]\n[HKEY_LOCAL_MACHINE\\Software\\Microsoft\\DirectPlay\\Applications]\n[HKEY_LOCAL_MACHINE\\Software\\Microsoft\\DirectPlay\\Applications\\Cossacks]\n\"CommandLine\"=\"\"\n\"CurrentDirectory\"=\"%s\"\n\"File\"=\"dmcr.exe\"\n\"Guid\"=\"{5BFDB060-06A4-11d0-9C4F-00A0C705475f}\"\n\"Path\"=\"%s\"\n", path1, path1 );
-	Gclose( f );
-}
-#endif
 
 typedef bool tpShowDialog( int NModes, int* Sizex, int* Sizey, int* Current );
 tpShowDialog* lpShowDialog;

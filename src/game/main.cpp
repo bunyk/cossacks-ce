@@ -280,11 +280,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	//Init DirectDraw and find possible resolutions
 	EnumModesOnly();
 
-#ifndef NODPLAY
-	//Create "Cossacks.reg" with Microsoft DirectPlay key
-	CreateReg();
-#endif
-
 	//Load unrar.dll, call CGSCset::gOpen() to load archives
 	if (!FilesInit())
 	{
@@ -1688,9 +1683,6 @@ static BOOL doInit()
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Loading error", "Unable to create SDL window", nullptr);
 		return false;
 	}
-#ifndef NODPLAY
-	hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(sdlWindow), SDL_PROP_WINDOW_WIN32_HWND_POINTER, NULL);
-#endif
 	SDL_HideCursor();
 	if (window_mode)
 	{
