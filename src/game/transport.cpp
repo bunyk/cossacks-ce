@@ -777,11 +777,16 @@ void AbsorbObjectLink(OneObject* OB) {
 	OneObject* Absorber = Group[AbIndex];
 	if (Absorber) {
 		NewMonster* ANM = Absorber->newMons;
-		if (Absorber->NInside < ANM->MaxInside) {
+		// Absorber->Serial check: Group index may be reused by a new unit
+		// after the original ship died.
+		if (Absorber->NInside < ANM->MaxInside && Absorber->Serial == SN) {
 			Absorber->Inside = (word*)realloc(Absorber->Inside, (Absorber->NInside + 1) << 1);
 			Absorber->Inside[Absorber->NInside] = OB->Index;
 			Absorber->NInside++;
 			OB->GlobUnlock();
+			// HideMe clears all orders; also drop unlimited motion so the
+			// unit is selectable again when it leaves the ship.
+			OB->UnlimitedMotion = false;
 			OB->HideMe();
 			OB->GlobLock();
 		}
@@ -923,6 +928,10 @@ void TransProcess::Process()
 							//sending to transport
 							OnTheWay[MUIndex] = 1;
 							NEA->GlobUnlock();
+							// CreateOrder returns NULL for units with
+							// UnlimitedMotion set, such a unit would stay
+							// unselectable and never board.
+							NEA->UnlimitedMotion = false;
 							NEA->NewMonsterSendTo(MidPX << 8, MidPY << 8, 0, 0);
 							NEA->SetOrderedUnlimitedMotion(2);
 							NEA->NewMonsterSendTo(TRA->RealX, TRA->RealY, 0, 2);
@@ -1199,7 +1208,23 @@ void GoToTransportLink(OneObject* OBJ) {
 		OBJ->DeleteLastOrder();
 		if (OBJ->UnlimitedMotion) 
 		{
-			OBJ->Die();
+			// The unit was walking to the transport over water with
+			// unlimited motion. A land unit can not stay on water: if
+			// the transport leaves while the unit is still over water,
+			// it drowns. (CheckBar is true when any cell under the unit
+			// is impassable terrain for it, e.g. water for a land unit.)
+			// Units that are still on solid ground only lose unlimited
+			// motion, so they become selectable again, and walk to the
+			// nearest free ground cell.
+			if (MFIELDS[OBJ->LockType].CheckBar(OBJ->x, OBJ->y, OBJ->Lx, OBJ->Lx)) 
+			{
+				OBJ->Die();
+			}
+			else 
+			{
+				OBJ->UnlimitedMotion = false;
+				OBJ->ClearOrderedUnlimitedMotion(2);
+			}
 		}
 		return;
 	}
@@ -1222,20 +1247,34 @@ void GoToTransportLink(OneObject* OBJ) {
 			};
 			OB->Inside = Ins;
 			Ins[OB->NInside] = OBJ->Index;
+			// HideMe clears all orders; also drop unlimited motion so the
+			// unit is selectable again when it leaves the ship.
+			OBJ->UnlimitedMotion = false;
 			OBJ->HideMe();
-			OBJ->ClearOrders();
 			OB->NInside++;
 			return;
 		};
-		if (dst < 4 * 16 * 16) {
-
-			OBJ->UnlimitedMotion = false;
-			OBJ->NewMonsterSendTo(OB->RealX, OB->RealY, 16, 1);
-			OBJ->NewMonsterSendTo((OB->RealX * 3 + xx) >> 2, (OB->RealY * 3 + yy) >> 2, 16, 1);
-			OBJ->NewMonsterSendTo((OB->RealX + xx) >> 1, (OB->RealY + yy) >> 1, 16, 1);
-			OBJ->NewMonsterSendTo((OB->RealX + xx * 3) >> 2, (OB->RealY + yy * 3) >> 2, 16, 1);
-
+		// Near phase, STICKY: once a unit has been within 4 cells of the
+		// landing point (flagged via OrderTime, which nothing else uses
+		// for this order type), it keeps walking straight to the hull
+		// until it boards. The landing point is on the beach, 10+ cells
+		// away from the hull, which is on water and unreachable by
+		// ground pathfinding, so walk there with unlimited motion (with
+		// UnlimitedMotion set CreatePath only stores a beeline
+		// destination, refreshed here every frame). Without the
+		// stickiness the crowd pushed units back and forth across the
+		// dst < 1024 boundary, flipping the target between the landing
+		// point and the hull every few frames - units circled at the
+		// boarding point forever. Unlimited motion also zeroes push
+		// forces, so the crowd can not deflect a boarding unit. Keep
+		// THIS order active: the boarding check above runs every frame
+		// while it is current and hides the unit as soon as it is
+		// within 768 of the ship.
+		if (dst < 4 * 16 * 16 || OBJ->LocalOrder->OrderTime) {
+			OBJ->LocalOrder->OrderTime = 1;
+			OBJ->DeletePath();
 			OBJ->UnlimitedMotion = true;
+			OBJ->CreatePath(OB->RealX >> 8, OB->RealY >> 8);
 			return;
 		}
 		else OBJ->CreatePath(xx >> 8, yy >> 8);

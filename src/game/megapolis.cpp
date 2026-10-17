@@ -3692,28 +3692,12 @@ void HandleGeology()
 				if ( x > 0 && x < MiniLx&&y>0 && y < MiniLy )
 				{
 					byte* ofst = (byte*)ScreenPtr + x + minix + ( miniy + y )*ScrWidth;
-#ifdef _WIN32
-					__asm {
-						push	edi
-						mov		edi, ofst
-						mov		edx, ScrWidth
-						mov		al, 0xFB
-						mov[edi], al
-						mov[edi + 1], al
-						mov[edi - 1], al
-						mov[edi + edx], al
-						neg     edx
-						mov[edi + edx], al
-						pop		edi
-					};
-#else
 					// draw a cross mark on the minimap
 					ofst[0] = 0xFB;
 					ofst[1] = 0xFB;
 					ofst[-1] = 0xFB;
 					ofst[ScrWidth] = 0xFB;
 					ofst[-ScrWidth] = 0xFB;
-#endif
 				};
 			};
 		};

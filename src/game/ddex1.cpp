@@ -1074,9 +1074,3 @@ extern int PlayMode;
 
 typedef bool tpShowDialog( int NModes, int* Sizex, int* Sizey, int* Current );
 tpShowDialog* lpShowDialog;
-
-int ROLL = 1;
-void NRFUNC()
-{
-	ROLL = 0;
-}

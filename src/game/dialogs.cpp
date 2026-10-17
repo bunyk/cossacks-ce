@@ -5363,7 +5363,6 @@ void DrawSD( SimpleDialog* SD )
 	SD->y1 += DY;
 };
 
-void NRFUNC();
 typedef void vfn();
 int mrand();
 
