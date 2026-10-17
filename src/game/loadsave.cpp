@@ -829,7 +829,7 @@ void SaveNations( SaveBuf* SB )
 		SAVMES1( SB, " MONSAMOUNT :", NT->NMon );
 		xBlockWrite( SB, &NT->NMon, 4 );
 		xBlockWrite( SB, &NT->Harch, 2 );
-		xBlockWrite( SB, &NT->SharStage, int( &NT->UID_PEASANT ) - int( &NT->SharStage ) );
+		xBlockWrite( SB, &NT->BalloonStage, int( &NT->UID_PEASANT ) - int( &NT->BalloonStage ) );
 		//Informtion about monsters(GeneralObject)
 		word NMON = 0;
 		for (int i = 0; i < NT->NMon; i++)
@@ -963,7 +963,7 @@ bool LoadNations( SaveBuf* SB )
 		LOADMES( SB );
 		xBlockRead( SB, &NT->NMon, 4 );
 		xBlockRead( SB, &NT->Harch, 2 );
-		xBlockRead( SB, &NT->SharStage, int( &NT->UID_PEASANT ) - int( &NT->SharStage ) );
+		xBlockRead( SB, &NT->BalloonStage, int( &NT->UID_PEASANT ) - int( &NT->BalloonStage ) );
 		//Informtion about monsters(GeneralObject)
 		int NMON = 0;
 		xBlockRead( SB, &NMON, 2 );

@@ -65,8 +65,8 @@ extern bool FastMode;
 void GotoFinePosition( OneObject* OB );
 extern bool AllowPathDelay;
 extern byte   WeaponFlags[32];
-NewAnimation* Shar;
-NewAnimation* SharBuild;
+NewAnimation* Balloon;
+NewAnimation* BalloonBuild;
 
 int SearchStr( char** Res, char* s, int count );
 NewAnimation* GetNewAnimationByName( char* Name );
@@ -553,7 +553,7 @@ void ReadKeyCodes()
 	};
 };
 //-----------Loading additional New animations----------
-extern NewAnimation* Shar;
+extern NewAnimation* Balloon;
 void LoadNewAimations()
 {
 	GFILE* f1 = Gopen( "weapon.ads", "r" );
@@ -880,13 +880,13 @@ void LoadNewAimations()
 			};
 		} while ( ( !finish ) && z != -1 );
 		Gclose( f1 );
-		Shar = GetNewAnimationByName( "#SHAR" );
-		if ( !Shar )
+		Balloon = GetNewAnimationByName( "#SHAR" );
+		if ( !Balloon )
 		{
 			//ErrM("Could not find special animation:#SHAR");
 		};
-		SharBuild = GetNewAnimationByName( "#SHARBUILD" );
-		if ( !SharBuild )
+		BalloonBuild = GetNewAnimationByName( "#SHARBUILD" );
+		if ( !BalloonBuild )
 		{
 			//ErrM("Could not find special animation:#SHARBUILD");
 		};
@@ -15188,7 +15188,7 @@ void PlayAnimation( NewAnimation* NA, int Frame, int x, int y )
 	AddEffect( x, y, NA->SoundID );
 
 };
-bool CheckPlaceForShar( int x, int y )
+bool CheckPlaceForBalloon( int x, int y )
 {
 	if ( CheckBar( ( x >> 4 ) - 8, ( y >> 4 ) - 8, 17, 17 ) )return false;
 	int h = GetHeight( x, y );
@@ -15198,18 +15198,18 @@ bool CheckPlaceForShar( int x, int y )
 }
 
 //Place observation balloon
-void HandleShar( Nation* NT )
+void HandleBalloon( Nation* NT )
 {
-	if ( NT->SharAllowed )
+	if ( NT->BalloonAllowed )
 	{
-		if ( NT->SharPlaceFound )
+		if ( NT->BalloonPlaceFound )
 		{
-			if ( NT->SharStage == 0xFF )
+			if ( NT->BalloonStage == 0xFF )
 			{
 				//processing and drawing <shar> in motion.
 				//1.processing
-				int x = NT->SharX >> 4;
-				int y = NT->SharY >> 4;
+				int x = NT->BalloonX >> 4;
+				int y = NT->BalloonY >> 4;
 				if ( y > ( msy * 128 ) )
 				{
 					y = msy * 128;
@@ -15217,42 +15217,42 @@ void HandleShar( Nation* NT )
 
 				int z = GetHeight( x, y );
 
-				int dz = ( NT->SharZ >> 4 ) - z;
+				int dz = ( NT->BalloonZ >> 4 ) - z;
 
 				bool AllowClip = false;
 				if ( dz < 100 )
 				{
-					NT->SharAx = 0;
-					NT->SharAy = 0;
-					NT->SharAz = 64;
+					NT->BalloonAx = 0;
+					NT->BalloonAy = 0;
+					NT->BalloonAz = 64;
 				}
 				else
 				{
 					NT->Vision = true;
-					NT->SharAz = ( 250 - dz ) >> 5;
-					if ( NT->SharAz > 64 )
-						NT->SharAz = 64;
-					if ( NT->SharAz < -64 )
-						NT->SharAz = -64;
+					NT->BalloonAz = ( 250 - dz ) >> 5;
+					if ( NT->BalloonAz > 64 )
+						NT->BalloonAz = 64;
+					if ( NT->BalloonAz < -64 )
+						NT->BalloonAz = -64;
 					//free motion;
 					if ( rando() < 60 )
 					{
 						do
 						{
-							NT->SharAx = ( rando() & 64 ) - 32;
-						} while ( abs( NT->SharAx ) < 16 );
+							NT->BalloonAx = ( rando() & 64 ) - 32;
+						} while ( abs( NT->BalloonAx ) < 16 );
 						do
 						{
-							NT->SharAy = ( rando() & 64 ) - 32;
-						} while ( abs( NT->SharAy ) < 16 );
+							NT->BalloonAy = ( rando() & 64 ) - 32;
+						} while ( abs( NT->BalloonAy ) < 16 );
 					};
 					AllowClip = true;
 				}
 
 				//Friction
-				int fx = -NT->SharVx / 128;
-				int fy = -NT->SharVy / 128;
-				int fz = -NT->SharVz / 128;
+				int fx = -NT->BalloonVx / 128;
+				int fy = -NT->BalloonVy / 128;
+				int fz = -NT->BalloonVz / 128;
 				if ( AllowClip )
 				{
 					if ( x < 1200 )
@@ -15264,49 +15264,49 @@ void HandleShar( Nation* NT )
 					if ( y > ( msy * 32 ) - 1200 )
 						fy -= 64;
 				}
-				NT->SharVx += NT->SharAx + fx;
-				NT->SharVy += NT->SharAy + fy;
-				NT->SharVz += NT->SharAz + fz;
-				NT->SharX += NT->SharVx / 128;
-				NT->SharY += NT->SharVy / 128;
-				NT->SharZ += NT->SharVz / 128;
+				NT->BalloonVx += NT->BalloonAx + fx;
+				NT->BalloonVy += NT->BalloonAy + fy;
+				NT->BalloonVz += NT->BalloonAz + fz;
+				NT->BalloonX += NT->BalloonVx / 128;
+				NT->BalloonY += NT->BalloonVy / 128;
+				NT->BalloonZ += NT->BalloonVz / 128;
 			}
 			else
 			{
 				int frm = 0;
-				if ( NT->SharStage > 180 )
-					frm = ( NT->SharStage - 180 ) >> 1;
-				NT->SharStage++;
+				if ( NT->BalloonStage > 180 )
+					frm = ( NT->BalloonStage - 180 ) >> 1;
+				NT->BalloonStage++;
 				int dx = mapx << 5;
 				int dy = mapy << 4;
-				int x = NT->SharX >> 4;
-				int y = NT->SharY >> 4;
+				int x = NT->BalloonX >> 4;
+				int y = NT->BalloonY >> 4;
 				int z = GetHeight( x, y );
-				if ( frm >= SharBuild->NFrames - FrmDec )
+				if ( frm >= BalloonBuild->NFrames - FrmDec )
 				{
-					BClrBar( ( NT->SharX >> 8 ) - 3, ( NT->SharY >> 8 ) - 3, 7 );
-					NT->SharStage = 0xFF;
-					NT->SharZ = z << 4;
-					NT->SharVx = 0;
-					NT->SharVy = 0;
-					NT->SharVz = 0;
-					NT->SharAx = 0;
-					NT->SharAy = 0;
-					NT->SharAz = 0;
+					BClrBar( ( NT->BalloonX >> 8 ) - 3, ( NT->BalloonY >> 8 ) - 3, 7 );
+					NT->BalloonStage = 0xFF;
+					NT->BalloonZ = z << 4;
+					NT->BalloonVx = 0;
+					NT->BalloonVy = 0;
+					NT->BalloonVz = 0;
+					NT->BalloonAx = 0;
+					NT->BalloonAy = 0;
+					NT->BalloonAz = 0;
 				}
 			}
 		}
 		else
 		{
-			int xx = ( NT->SharX >> 4 ) + ( ( int( rando() )*NT->SearchRadius ) >> 15 );
-			int yy = ( NT->SharY >> 4 ) + ( ( int( rando() )*NT->SearchRadius ) >> 15 );
-			if ( CheckPlaceForShar( xx, yy ) )
+			int xx = ( NT->BalloonX >> 4 ) + ( ( int( rando() )*NT->SearchRadius ) >> 15 );
+			int yy = ( NT->BalloonY >> 4 ) + ( ( int( rando() )*NT->SearchRadius ) >> 15 );
+			if ( CheckPlaceForBalloon( xx, yy ) )
 			{
-				NT->SharPlaceFound = true;
-				NT->SharStage = 0;
-				NT->SharX = xx << 4;
-				NT->SharY = yy << 4;
-				BSetBar( ( NT->SharX >> 8 ) - 3, ( NT->SharY >> 8 ) - 3, 7 );
+				NT->BalloonPlaceFound = true;
+				NT->BalloonStage = 0;
+				NT->BalloonX = xx << 4;
+				NT->BalloonY = yy << 4;
+				BSetBar( ( NT->BalloonX >> 8 ) - 3, ( NT->BalloonY >> 8 ) - 3, 7 );
 			}
 			else
 			{
@@ -15316,33 +15316,33 @@ void HandleShar( Nation* NT )
 	}
 }
 
-void DrawShar( Nation* NT )
+void DrawBalloon( Nation* NT )
 {
-	if ( NT->SharAllowed )
+	if ( NT->BalloonAllowed )
 	{
-		if ( NT->SharPlaceFound )
+		if ( NT->BalloonPlaceFound )
 		{
-			if ( NT->SharStage == 0xFF )
+			if ( NT->BalloonStage == 0xFF )
 			{
 				//processing and drawing <shar> in motion.
 				//1.processing
-				int x = NT->SharX >> 4;
-				int y = NT->SharY >> 4;
+				int x = NT->BalloonX >> 4;
+				int y = NT->BalloonY >> 4;
 				if ( y > ( msy << 5 ) )y = msy << 5;
 				int z = GetHeight( x, y );
-				int dz = ( NT->SharZ >> 4 ) - z;
+				int dz = ( NT->BalloonZ >> 4 ) - z;
 				bool AllowClip = false;
 
 				//2.drawing
-				if ( Shar )
+				if ( Balloon )
 				{
 					int dx = mapx << 5;
 					int dy = mapy << 4;
-					int x = NT->SharX >> 4;
-					int y = NT->SharY >> 4;
-					int z = NT->SharZ >> 4;
-					int vx = NT->SharVx >> 5;
-					int vy = NT->SharVy >> 5;
+					int x = NT->BalloonX >> 4;
+					int y = NT->BalloonY >> 4;
+					int z = NT->BalloonZ >> 4;
+					int vx = NT->BalloonVx >> 5;
+					int vy = NT->BalloonVy >> 5;
 					z += int( sqrt( vx*vx + vy*vy ) );
 					int z0 = GetHeight( x, y );
 					int dz = ( z - z0 ) >> 1;
@@ -15353,18 +15353,18 @@ void DrawShar( Nation* NT )
 					CurDrawNation = NT->NNUM;
 					if ( x > -128 && y > -160 && x < maxxx + 128 && y < maxyy + 160 )
 					{
-						NewFrame* NF = &Shar->Frames[0];
+						NewFrame* NF = &Balloon->Frames[0];
 						AddPoint( x, y + z, x + NF->dx, y + NF->dy, nullptr, NF->FileID, NF->SpriteID, 0, 0 );
 					}
 					//shadow drawing
-					x = ( NT->SharX >> 4 ) - dz;
-					y = ( NT->SharY >> 4 ) - ( dz >> 1 );
+					x = ( NT->BalloonX >> 4 ) - dz;
+					y = ( NT->BalloonY >> 4 ) - ( dz >> 1 );
 					z = GetHeight( x, y );
 					x -= dx;
 					y = ( y >> 1 ) - dy - z;
 					if ( x > -128 && y > -160 && x < maxxx + 128 && y < maxyy + 160 )
 					{
-						NewFrame* NF = &Shar->Frames[1];
+						NewFrame* NF = &Balloon->Frames[1];
 						CurDrawNation = NT->NNUM;
 						AddPoint( x, y + z, x + NF->dx, y + NF->dy, nullptr, NF->FileID, NF->SpriteID, 0, 0 );
 					}
@@ -15373,11 +15373,11 @@ void DrawShar( Nation* NT )
 			else
 			{
 				int frm = 0;
-				if ( NT->SharStage > 180 )frm = ( NT->SharStage - 180 ) >> 1;
+				if ( NT->BalloonStage > 180 )frm = ( NT->BalloonStage - 180 ) >> 1;
 				int dx = mapx << 5;
 				int dy = mapy << 4;
-				int x = NT->SharX >> 4;
-				int y = NT->SharY >> 4;
+				int x = NT->BalloonX >> 4;
+				int y = NT->BalloonY >> 4;
 				int z = GetHeight( x, y );
 				x -= dx;
 				y = ( y >> 1 ) - dy - z;
@@ -15385,7 +15385,7 @@ void DrawShar( Nation* NT )
 				int maxyy = smaply << 4;
 				if ( x > -128 && y > -160 && x < maxxx + 128 && y < maxyy + 160 )
 				{
-					NewFrame* NF = &SharBuild->Frames[frm];
+					NewFrame* NF = &BalloonBuild->Frames[frm];
 					CurDrawNation = NT->NNUM;
 					AddPoint( x, y, x + NF->dx, y + NF->dy, nullptr, NF->FileID, NF->SpriteID, 0, 0 );
 				}

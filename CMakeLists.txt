@@ -99,7 +99,6 @@ add_executable(cossacks
 	src/game/onwater.cpp
 	src/game/transport.cpp
 	src/game/mine.cpp
-	src/game/ddex1.cpp
 	src/game/3dmaped.cpp
 	src/game/3dsurf.cpp
 	src/game/megapolis.cpp

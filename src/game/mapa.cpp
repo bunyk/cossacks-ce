@@ -65,7 +65,7 @@ void ShowShipsDest( Brigade* BR );
 
 word GetDir( int, int );
 void HandleGeology();
-void HandleShar( Nation* NT );
+void HandleBalloon( Nation* NT );
 word CurZone;
 int MRealX, MRealY;
 void TestBlob();
@@ -563,17 +563,9 @@ void LoadLock()
 	RBlockRead( f, Locking, RFileSize( f ) );
 	RClose( f );
 };
-void LoadFon()
-{
-
-};
 void ShowFon()
 {
 	return;
-
-};
-void ShowFon1()
-{
 
 };
 void ShowBorder()
@@ -1450,7 +1442,7 @@ void ShowExpl();
 extern int BrigPnX;
 extern int BrigPnY;
 void ShowAbout();
-void DrawShar( Nation* NT );
+void DrawBalloon( Nation* NT );
 int GetMaxRealPing();
 int GetAveragePing();
 void CreateDiffStr( char* str );
@@ -1558,7 +1550,7 @@ void GFieldShow()
 	ShowExpl();
 
 	for (int v = 0; v < 8; v++)
-		DrawShar( NATIONS + v );
+		DrawBalloon( NATIONS + v );
 
 	if (SHOWSLIDE)
 	{

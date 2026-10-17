@@ -1146,11 +1146,11 @@ void UpgradeRazbros( GeneralObject* GO, word CtgValue, byte ValueType, int Value
 	AC->Changed = true;
 }
 
-void UpgradeShar( GeneralObject* GO, word CtgValue, byte ValueType, int Value, OneObject* OB )
+void UpgradeBalloon( GeneralObject* GO, word CtgValue, byte ValueType, int Value, OneObject* OB )
 {
-	NATIONS[OB->NNUM].SharAllowed = true;
-	NATIONS[OB->NNUM].SharX = OB->RealX;
-	NATIONS[OB->NNUM].SharY = OB->RealY;
+	NATIONS[OB->NNUM].BalloonAllowed = true;
+	NATIONS[OB->NNUM].BalloonX = OB->RealX;
+	NATIONS[OB->NNUM].BalloonY = OB->RealY;
 	NATIONS[OB->NNUM].SearchRadius = 180;
 }
 
@@ -1374,13 +1374,13 @@ void PerformNewUpgrade( Nation* NT, int UIndex, OneObject* OB )
 	case 17://RAZBROS
 		ApplyToUnits( NT, NU, &UpgradeRazbros, OB );
 		break;
-	case 18://SHAR
+	case 18: // Balloon
 	{
 		if (MyNation == NT->CITY->NI)
 		{//Prevent from firing when other players do their upgrades
 			TurnFogOff();//BUGFIX: Set FogMode = 0 as soon as the update is through
 		}
-		ApplyToUnits( NT, NU, &UpgradeShar, OB );
+		ApplyToUnits( NT, NU, &UpgradeBalloon, OB );
 	}
 	break;
 	case 19://EFFECT_FOOD

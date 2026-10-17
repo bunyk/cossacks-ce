@@ -1,6 +1,7 @@
 ﻿#include <stdio.h>
 #include <boost/coroutine2/all.hpp>
 #include <boost/context/fixedsize_stack.hpp>
+#include <dirent.h>
 
 // There is no main() function, instead we have
 // SDL_AppInit, SDL_AppEvent, SDL_AppIterate and SDL_AppQuit callbacks.
@@ -10,28 +11,112 @@
 
 #include "ddini.h"
 #include "fastdraw.h"
+#include "mgraph.h"
 #include "gsound.h"
 #include "cdirsnd.h"
 #include "recorder.h"
 #include "resfile.h"
 #include "mapdiscr.h"
+#include "walls.h"
+#include "nature.h"
 #include "megapolis.h"
+#include "dialogs.h"
 #include "mapsprites.h"
 #include "safety.h"
 #include "strategyresearch.h"
 #include "einfoclass.h"
 #include "mouse.h"
 #include "gp_draw.h"
-#include "fonts.h"
 #include "dialogs/initfonts.h"
+#include "fonts.h"
 #include "interface.h"
 #include "fog.h"
 #include "interface.h"
+#include "nucl.h"
+#include "menu.h"
+#include "topograf.h"
+#include "3dmaped.h"
+#include "mplayer.h"
 
 //Game version. Must match with other clients
 DLLEXPORT word dwVersion = 100;
 DLLEXPORT char LobbyVersion[32] = "1.00";
 DLLEXPORT char BuildVersion[32] = "V 1.01";
+
+bool AttackMode;
+bool ChoosePosition;
+bool DeathMode;
+bool EgoFlag;
+bool FASTMODE;
+bool FastMode = false;
+bool FullMini = true;
+bool HealthMode;
+bool HelpMode;
+bool InfoMode;
+bool MUSTDRAW;
+
+//Unknown mode classification
+bool MiniMode;
+
+bool PeaceMode;
+bool TransMode;
+bool VHMode = 0;
+
+int StoneID;
+int TreeID;
+
+
+extern bool AttGrMode;
+extern bool CINFMOD;
+extern bool ChangeNation;
+extern bool CheapMode;
+extern bool FullScreenMode;
+extern bool GameInProgress;
+extern bool GameNeedToDraw;
+extern bool GoAndAttackMode;
+extern bool LockPause;
+extern bool MakeMenu;
+extern bool MiniActive;
+extern bool MultiTvar;
+extern bool Recreate;
+extern bool SetDestMode;
+
+extern int FogMode;
+extern int Inform;
+extern int MaxAllowedComputerAI;
+extern int MenuType;
+extern int MidiSound;
+extern int NMyUnits;
+extern int NThemUnits;
+extern int OrderSound;
+extern int RealPause;
+extern int ShowGameScreen;
+extern int WarSound;
+extern int WorkSound;
+extern int sfVersion;
+
+static int Light = 0;
+
+char* FormationStr = nullptr;
+
+CDirSound CDIRSND;
+City CITY[8];
+HugeExplosion HE;
+Menu About;
+Menu LoadFile;
+Menu MainMenu;
+Menu Options;
+Nation WEP;
+Weapon Arrow;
+Weapon Fire1;
+Weapon FlyFire1;
+Weapon Flystar;
+Weapon Lasso;
+Weapon Magvib;
+Weapon Molnia;
+Weapon MolniaVibux;
+Weapon Sphere;
+Weapon Vibux1;
 
 
 extern bool RUNMAPEDITOR;
@@ -56,6 +141,10 @@ bool MEditMode;
 int WaterEditMode;
 extern bool BuildMode; // owned by mapa.cpp WHY? 
 extern bool TexPieceMode; // owned by 3drandmap.cpp
+
+//Multiplier, depends on MiniMode
+//MiniMode ? 4 : 5
+int Shifter;
 
 
 extern bool GetCoord; // owned by selprop.cpp
@@ -139,6 +228,8 @@ int RealGameLength = 0;
 int CurrentStepTime = 80;
 int NeedCurrentTime = 0;
 
+bool NOPAUSE = 1;
+
 extern int PeaceTimeLeft;
 extern int PeaceTimeStage;
 void CmdChangePeaceTimeStage( int Stage );
@@ -147,6 +238,10 @@ void OnMouseMoveRedraw();
 
 short WheelDelta = 0;
 
+
+extern char CurrentMap[64];
+extern byte XVIIIState;
+extern char RECFILE[128];
 
 //Timer Callback
 int cadr;
@@ -202,6 +297,55 @@ byte LastAsciiKey = 0;
 // Defined here below
 void AddMouseEvent( int x, int y, bool L, bool R );
 void AddKey( SDL_Keycode Key, byte Ascii );
+
+
+void LoadEconomy();
+void LoadNations();
+void LoadWeapon();
+void LoadNation( char* fn, byte msk, byte NIndex );
+void LoadAllNewMonsters();
+void InitNewMonstersSystem();
+void LoadWaveAnimations();
+extern NewAnimation* Balloon;
+void DoGen();
+void InitDeathList();
+char* GetTextByID( char* ID );
+void LoadBorders();
+
+void SetupArrays();
+extern byte* RivDir;
+void Init_GP_IMG();
+void ReadClanData();
+
+void LoadMessages();
+void Loadtextures();
+
+void CheckGP();
+void ClearMaps();
+void CmdChangeSpeed();
+void CreateRandomHMap();
+void CreateTotalLocking();
+void CreateUnitsLocking();
+void EraseAreas();
+void GSSetup800();
+void GetForces();
+void Init3DMapSystem();
+void InitDestn();
+void InitFishMap();
+void LoadNewAimations();
+void MFix();
+void ProcessFishing();
+void ProcessSprites();
+void ProcessUFO();
+void RenderAllMap();
+void Reset3D();
+
+int GetResID( char* );
+
+extern word NPlayers;
+void CmdSaveNetworkGame( byte NI, int ID, char* Name );
+extern char SaveFileName[128];
+void ProcessNature();
 
 //For parallel processable tasks
 #define maxTask 32
@@ -291,8 +435,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	}
 	printf("Files initialized.\n");
 
-	//Delete random generated *.m3d map files (keeps the 3 newest; now
-	//ported on Linux too - the call was the usual guarded-call-site trap)
 	void EraseRND();
 	EraseRND();
 
@@ -1083,7 +1225,7 @@ void HandleTransport();
 void HandleMission();
 void ProcessNewMonsters();
 void ProcessExpl();
-void HandleShar( Nation* NT );
+void HandleBalloon( Nation* NT );
 void ProcessDynamicalTopology();
 void InitXShift();
 void WaitToTime( int t );
@@ -1320,10 +1462,8 @@ void PreDrawGameProcess()
 	//Autosave in map editor every 5 min
 	ProcessMapAutosave();
 
-#ifdef _WIN32
-	//Something about ship traces? (shiptrace.cpp not ported)
+	//Something about ship traces?
 	AddRandomBlobs();
-#endif
 
 	//DirectX related sound procedures
 	CDS->ProcessSoundSystem();
@@ -1640,14 +1780,13 @@ void PreDrawGameProcess()
 	for (int i = 0; i < 8; i++)
 	{
 		//Place observation balloon
-		HandleShar( NATIONS + i );
+		HandleBalloon( NATIONS + i );
 	}
 
 	//Something about area linking?
 	ProcessDynamicalTopology();
 }
 
-//Register winapi window class, init DirectDraw, sounds and cursor
 /*
  * doInit - do work required for every instance of the application:
  *                create the window, initialize data
@@ -1827,6 +1966,8 @@ extern bool CheckFlagsNeed();
 extern bool ChangeNation;   // hotkeys switch this nation flag
 extern void ClearKeyStack();
 extern void ClearMStack();
+
+bool EnterChatMode = 0;
 
 //Many diffirent key checks for various game modes
 void GameKeyCheck()
@@ -2319,4 +2460,304 @@ void AddKey( SDL_Keycode Key, byte Ascii )
 void ClearKeyStack()
 {
 	NKeys = 0;
+}
+
+//Delete random generated *.m3d map files
+void EraseRND()
+{
+	// Delete stale random-map files, keeping the 3 NEWEST (the Windows
+	// version collects "RN? *.m3d", sorts by creation time and deletes
+	// all but the last 3; here: dirent scan + mtime sort, same behavior).
+	struct RNFile { char name[300]; time_t mtime; };
+	RNFile files[512];
+	int n = 0;
+
+	DIR* dir = opendir( "." );
+	if ( dir )
+	{
+		struct dirent* de;
+		while ( ( de = readdir( dir ) ) && n < 512 )
+		{
+			const char* nm = de->d_name;
+			size_t len = strlen( nm );
+			// Pattern "RN? *.m3d": "RN" + one char + ' ' + ... + ".m3d"
+			if ( len < 8 ) continue;
+			if ( strncmp( nm, "RN", 2 ) != 0 ) continue;
+			if ( nm[3] != ' ' ) continue;
+			if ( strcmp( nm + len - 4, ".m3d" ) != 0 ) continue;
+
+			struct stat st;
+			if ( stat( nm, &st ) == 0 )
+			{
+				strncpy( files[n].name, nm, 299 );
+				files[n].name[299] = 0;
+				files[n].mtime = st.st_mtime;
+				n++;
+			}
+		}
+		closedir( dir );
+	}
+
+	if ( n > 3 )
+	{
+		// Oldest first, delete all but the 3 newest
+		for ( int i = 0; i < n; i++ )
+		{
+			for ( int j = i + 1; j < n; j++ )
+			{
+				if ( files[j].mtime < files[i].mtime )
+				{
+					RNFile t = files[i];
+					files[i] = files[j];
+					files[j] = t;
+				}
+			}
+		}
+		for ( int i = 0; i < n - 3; i++ )
+		{
+			remove( files[i].name );
+		}
+	}
+}
+
+void ClearMStack()
+{
+	NInStack = 0;
+}
+
+
+int SUBTIME = 0;
+void ProcessScreen();
+void GSYSDRAW();
+extern int StepX;
+extern int StepY;
+int TAverage = 50;
+
+void WaitToTime( int Time )
+{
+	int dt0 = Time - GetSDLTickCount();
+	bool DoDraw = dt0 > ( TAverage >> 2 );
+	do
+	{
+		if (DoDraw)
+		{
+			int T0 = GetSDLTickCount();
+			if (T0 - Time < 0)
+			{
+				int tt = T0;
+				ProcessScreen();
+				GSYSDRAW();
+				int dt = GetSDLTickCount() - tt;
+				TAverage = ( TAverage + TAverage + TAverage + dt ) >> 2;
+				SUBTIME += GetSDLTickCount() - T0;
+			}
+		}
+		ProcessMessages();
+	} while ( Time - GetSDLTickCount() > 0);
+	//SUBTIME=0;
+}
+
+//Calculates window coordinates and locks cursor inside client area
+//Load ids, textures etc
+bool Loading()
+{
+	ReadClanData();
+	RivDir = NULL;
+
+	Init_GP_IMG();
+	InitDeathList();
+	InitNewMonstersSystem();
+	InitFonts();
+	LoadBorders();
+	LoadMessages();
+	LoadNations();
+	LoadRDS();
+
+	GoldID = GetResID( "GOLD" );
+	FoodID = GetResID( "FOOD" );
+	StoneID = GetResID( "STONE" );
+	TreeID = GetResID( "WOOD" );
+	CoalID = GetResID( "COAL" );
+	IronID = GetResID( "IRON" );
+	LoadEconomy();
+
+	Loadtextures();
+	LoadFog( 1 );
+	LoadTiles();
+	LoadLock();
+	LoadNewAimations();
+	LoadWeapon();
+	InitExplosions();
+	InitSprites();
+	LoadAllWalls();
+	LoadAllNewMonsters();
+	LoadWaveAnimations();
+
+	LoadAllNations( 0 );
+	LoadAllNations( 1 );
+	LoadAllNations( 2 );
+	LoadAllNations( 3 );
+	LoadAllNations( 4 );
+	LoadAllNations( 5 );
+	LoadAllNations( 6 );
+	LoadAllNations( 7 );
+
+	CITY[0].CreateCity( 0 );
+	CITY[1].CreateCity( 1 );
+	CITY[2].CreateCity( 2 );
+	CITY[3].CreateCity( 3 );
+	CITY[4].CreateCity( 4 );
+	CITY[5].CreateCity( 5 );
+	CITY[6].CreateCity( 6 );
+	CITY[7].CreateCity( 7 );
+
+	InitTopChange();
+	LoadPalettes();
+	InitPrpBar();
+
+	SetMyNation( 0 );
+
+	FormationStr = GetTextByID( "FORMATION" );
+
+	return 1;
+}
+
+extern byte MI_Mode;
+extern int RES[8][8];
+extern int TIMECHANGE[8];
+bool IsGameActive();
+void InitWaves();
+extern int NeedAddTime;
+extern int AddTime;
+extern BlockBars LockBars;
+extern BlockBars UnLockBars;
+
+void PrepareToEdit()
+{
+	ClearMStack();
+	MI_Mode = 1;
+	ReliefBrush = 3;
+	TerrBrush = 2;
+	EditMedia = 0;
+	HeightEditMode = false;
+	MEditMode = false;
+	EditMapMode = true;
+	FogMode = 0;
+	HelpMode = true;
+	ChoosePosition = false;
+	CheapMode = false;
+	NMyUnits = 1;
+	NThemUnits = 1;
+	AutoTime = GetSDLTickCount() + 180000;
+	ObjTimer.~TimeReq();
+	InitWaves();
+	PeaceMode = false;
+	LockMode = 0;
+	SaveFileName[0] = 0;
+	LockBars.Clear();
+	UnLockBars.Clear();
+	for (int i = 0; i < 8; i++)
+	{
+		for (int j = 0; j < 8; j++)
+		{
+			RES[i][j] = 50000;
+		}
+	}
+}
+
+
+void PrepareToGame()
+{
+	if (!PlayGameMode)
+	{
+		if (NPlayers > 1 && ( IsGameActive() || use_gsc_network_protocol ) && !RecordMode)
+		{
+			RecordMode = true;
+			sprintf( RECFILE, "Autorecord\\%s", CurrentMap );
+		}
+	}
+
+	RecordMode = true;//BUGFIX: always turn on recording
+	if (RecordMode && !PlayGameMode)
+	{
+		RGAME.StartRecord( CurrentMap );
+	}
+
+	MI_Mode = 1;
+	memset( TIMECHANGE, 0, sizeof(TIMECHANGE) );
+	AddTime = 0;
+	NeedAddTime = 0;
+
+	ClearMStack();
+
+	ReliefBrush = 3;
+	TerrBrush = 2;
+	EditMedia = 0;
+	HeightEditMode = false;
+	MEditMode = false;
+	EditMapMode = false;
+	FogMode = 1;
+	HelpMode = false;
+	ChoosePosition = false;
+	CheapMode = false;
+	NMyUnits = 1;
+	NThemUnits = 1;
+
+	AutoTime = GetSDLTickCount();
+	ObjTimer.~TimeReq();
+
+	InitWaves();
+
+	PeaceMode = false;
+	LockMode = 0;
+	SaveFileName[0] = 0;
+
+	/*
+	//BUGFIX: Do not default to fast mode when starting a game
+	FrmDec = 2;
+	SpeedSh = 1;
+	exFMode = 1;
+	*/
+
+	CurrentStepTime = 80;
+}
+
+MouseStack CURMS;
+
+MouseStack* ReadMEvent()
+{
+	if (NInStack)
+	{
+		CURMS = MSTC[0];
+		if (NInStack > 1)
+		{
+			memcpy( MSTC, MSTC + 1, ( NInStack - 1 ) * sizeof(MouseStack) );
+		}
+		NInStack--;
+		return &CURMS;
+	}
+	return nullptr;
+}
+
+// This is used only in ProcessChatKeys()
+byte LastAscii = 0;
+wchar_t last_unicode = 0;
+SDL_Keycode ReadKey()
+{//Called only for chat input and resource transfer
+	if (NKeys)
+	{
+		SDL_Keycode c = KeyStack[0];
+		LastAscii = AsciiStack[0];
+		if (NKeys)
+		{
+			memcpy( &KeyStack[0], &KeyStack[1], sizeof(SDL_Keycode) * (NKeys - 1) );
+			memcpy( AsciiStack, AsciiStack + 1, NKeys - 1 );
+		}
+		NKeys--;
+		return c;
+	}
+	else
+	{
+		return SDLK_UNKNOWN;
+	}
 }

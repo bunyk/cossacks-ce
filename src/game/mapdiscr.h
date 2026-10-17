@@ -1612,21 +1612,21 @@ public:
 	VoidProc* ProcessAIinDLL;
 	HINSTANCE hLibAI;
 
-	//------------------SHAR----------------//StartSave
-	byte SharStage;
+	//------------------ BALLOON ----------------//StartSave
+	byte BalloonStage;
 	int SearchRadius;
-	int SharX;
-	int SharY;
-	int SharZ;
-	int SharVx;
-	int SharVy;
-	int SharVz;
-	int SharAx;
-	int SharAy;
-	int SharAz;
+	int BalloonX;
+	int BalloonY;
+	int BalloonZ;
+	int BalloonVx;
+	int BalloonVy;
+	int BalloonVz;
+	int BalloonAx;
+	int BalloonAy;
+	int BalloonAz;
 	bool Vision : 1;
-	bool SharAllowed : 1;
-	bool SharPlaceFound : 1;
+	bool BalloonAllowed : 1;
+	bool BalloonPlaceFound : 1;
 	bool AI_Enabled : 1;
 	//---------Upgradable properties--------//
 	word FoodEff;

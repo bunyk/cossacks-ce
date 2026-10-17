@@ -402,9 +402,11 @@ int srando();
 extern int RealLx;
 extern int RealLy;
 int GetRiverDir(int x, int y);
+#endif // _WIN32
 
 void AddRandomBlobs()
 {
+#ifdef _WIN32
 	int x0 = (mapx << 5);
 	int y0 = (mapy << 5);
 	for (int i = 0; i < 80; i++)
@@ -418,8 +420,10 @@ void AddRandomBlobs()
 			AddBlob(x << 4, y << 4, dir, 1);
 		}
 	}
+#endif // _WIN32
 }
 
+#ifdef _WIN32
 extern int tmtmt;
 
 void AddTrace(int x, int y, byte Dir)
