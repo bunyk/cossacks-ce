@@ -97,6 +97,10 @@ word GetNextSafeCell( byte NI, int F, int start, int Fin ) { (void)NI; (void)F; 
 //-------------- virtscr.cpp --------------
 
 //-------------- water / rivers (realwater.cpp, river.cpp asm) --------------
+// Blob/wake system (shiptrace.cpp): LoadBlobs is now the real one (un-
+//guarded there), but InitBlobs/TestBlob (blob animation) and CreateTrace
+//(ship wakes) live in _WIN32 asm blocks in shiptrace.cpp - stubs stay
+// until the asm is translated. See the Blob class comment in shiptrace.cpp.
 void InitBlobs() {}
 void TestBlob() {}
 

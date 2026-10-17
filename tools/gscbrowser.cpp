@@ -69,6 +69,10 @@ int tmtmt = 0;                      // main.cpp: frame counter (InitXShift refs 
 short TSin[257], TCos[257];         // weapon.cpp: sine tables (read-only here)
 void ErrM( char* s ) { fprintf( stderr, "ErrM: %s\n", s ); }  // newmon/gtext versions not linked
 
+// shiptrace.cpp (blob/wake system for the water surface) is not linked into
+// the tool; LoadFog calls this at startup and the tool never draws water.
+void LoadBlobs() {}
+
 // bmptool.cpp's memory wrappers (guarded on Linux) - plain malloc/free
 void* _ExMalloc( int Size ) { return malloc( Size ); }
 void _ExFree( void* ptr ) { free( ptr ); }

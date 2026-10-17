@@ -19,7 +19,20 @@
 #include "realwater.h"
 #include "newupgrade.h"
 #include "zbuffer.h"
+
 void ProcessBlobs();
+//Blobs are the animated water-surface effects: the foam wakes that moving
+//ships leave behind (CreateTrace, called from motion.cpp for every object
+//whose NewMonster has NWaves/WavePoints) and the random ripples sparkling
+//on rivers (AddRandomBlobs - only placed on cells where GetRiverDir finds
+//water). Each blob is a point that drifts with a velocity and a time-to-
+//live (ProcessBlobs moves the BlobX/Y arrays and picks a frame), drawn as
+//one frame of the Wave1.pix animation stack. wave.grd (TraceGrd) is the
+//4096-byte blend table that maps (water pixel, blob pixel) to a water-
+//palette shade, so foam melts into the water instead of covering it.
+//The blob/drawing code below still sits in _WIN32 asm blocks; on Linux
+//the stubs in linux_stubs.cpp keep TestBlob/InitBlobs/CreateTrace inert,
+//so ships produce no wakes until that asm is translated.
 class Blob {
 public:
 	short Lx;
@@ -40,6 +53,7 @@ Blob::Blob() {
 Blob::~Blob() {
 	if (Data)free(Data);
 };
+
 void ErrM(char*);
 void Blob::Load(char* Name) {
 	ResFile f = RReset(Name);
@@ -58,6 +72,7 @@ void Blob::Load(char* Name) {
 	RClose(f);
 };
 byte TraceGrd[4096];
+#ifdef _WIN32
 void ShowBlob(int x, int y, byte* Blob, int Lx, int Ly) {
 	if (x > WindX1 || y > WindY1)return;
 	byte* bof = Blob;
@@ -180,7 +195,14 @@ void Blob::Show(int x, int y, int m) {
 };
 //------------------------LOADING&TEST-----------------
 
+#endif // _WIN32
 Blob Blob1;
+//Loaded as part of the water-and-fog visual set by LoadFog (fog.cpp):
+//fog.cpp owns all fog/water shading tables (fog palettes, darkfog, refl,
+//water cost/alpha tables), and the blob/wake layer belongs to the same
+//water rendering stack - both blend through the shared water palette
+//tables. Hence the call at the end of LoadFog. Fog-of-war dims what is
+//unexplored; blobs decorate the water that fog has already revealed.
 void LoadBlobs()
 {
 	ResFile f = RReset("wave.grd");
@@ -189,6 +211,7 @@ void LoadBlobs()
 	Blob1.Load("Wave1.pix");
 }
 
+#ifdef _WIN32
 extern int tmtmt;
 void TestBlob() {
 	ProcessBlobs();
@@ -436,3 +459,4 @@ void CreateTrace(OneObject* OB)
 		}
 	}
 }
+#endif // _WIN32

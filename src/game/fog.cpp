@@ -149,9 +149,7 @@ void ProcessFog1()
 }
 
 int FOGOFFS[1024];
-#ifdef _WIN32
-void LoadBlobs(); // shiptrace.cpp (not ported)
-#endif
+void LoadBlobs();
 
 DLLEXPORT int CurPalette = 0;
 extern int CurrentCursorGP;
@@ -222,9 +220,10 @@ DLLEXPORT void LoadFog( int set )
 	{
 		FOGOFFS[i] = i*FMSX;
 	}
-#ifdef _WIN32
-	LoadBlobs(); // shiptrace.cpp (not ported)
-#endif
+	//Blob/wake data (shiptrace.cpp) - part of the same water visual set:
+	//Wave1.pix frames + the wave.grd blend table used to melt foam wakes
+	//into the water palette. See the comment above the Blob class there.
+	LoadBlobs();
 }
 
 void SetupFog()

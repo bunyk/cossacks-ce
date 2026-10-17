@@ -108,6 +108,7 @@ add_executable(cossacks
 	src/game/strategyresearch.cpp
 	src/game/einfoclass.cpp
 	src/game/3dgraph.cpp
+	src/game/shiptrace.cpp
 )
 
 # Link to the actual SDL3 libraries.
