@@ -119,16 +119,32 @@ target_link_libraries(cossacks PRIVATE SDL3_image::SDL3_image SDL3::SDL3)
 # GetProcAddress on the game executable.
 target_link_options(cossacks PRIVATE "-rdynamic")
 
+###################################################
+#         Nation AI modules                       #
+###################################################
 
-# Nation AI module (Algeria.dll on Windows). The game dlopen()s it via
+# The game dlopen()s it via
 # LoadAIFromDLL; on failure-free data the name comes from the text tables
-# (e.g. "AI\Algeria.dll"). Drop the built Algeria.so next to the game data.
+# (e.g. "AI\Algeria.dll").
+# The game is run from the repo root (which doubles as the game data
+# directory) and dlopen()s the module as a loose file "AI/<Nation>.so" -
+# dlopen cannot read files packed inside all.gsc (see docs/PortingNotes.md).
+# So emit the modules straight into the game dir's AI/ folder, next to the
+# original Windows AI/<Nation>.dll set, instead of the build tree.
+set(AI_MODULES_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/AI")
+
 add_library(Algeria MODULE src/ai/Algeria/dllmain.cpp)
-set_target_properties(Algeria PROPERTIES PREFIX "" OUTPUT_NAME "Algeria")
+set_target_properties(Algeria PROPERTIES PREFIX "" OUTPUT_NAME "Algeria"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
 # Hidden by default: keeps the module's same-named function-pointer globals
 # (typedefs.h) from being interposed by the game's exported symbols. The three
 # game-facing exports (InitAI/ProcessAI/OnInit) override this explicitly.
 target_compile_options(Algeria PRIVATE "-fvisibility=hidden")
+
+add_library(Turkey MODULE src/ai/Turkey/dllmain.cpp)
+set_target_properties(Turkey PROPERTIES PREFIX "" OUTPUT_NAME "Turcia"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Turkey PRIVATE "-fvisibility=hidden")
 
 
 # And Boost
