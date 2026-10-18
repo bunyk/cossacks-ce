@@ -146,6 +146,11 @@ set_target_properties(Turkey PROPERTIES PREFIX "" OUTPUT_NAME "Turcia"
     LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
 target_compile_options(Turkey PRIVATE "-fvisibility=hidden")
 
+add_library(Russia MODULE src/ai/Russia/dllmain.cpp)
+set_target_properties(Russia PROPERTIES PREFIX "" OUTPUT_NAME "Russia"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Russia PRIVATE "-fvisibility=hidden")
+
 
 # And Boost
 find_package(Boost REQUIRED COMPONENTS context filesystem iostreams)
