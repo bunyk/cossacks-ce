@@ -53,130 +53,151 @@ void* LoadFunction(const char* Name)
 };
 
 
-// Registers Turkey's units/upgrades with the game. Names must match the
-// per-nation script TURKISH.NDS (listed in Nations.lst, packed in all.gsc):
-// every object is "<base>(<NatCharHi>)" - for Turkey the suffix is (TU).
-// Cross-checked against the strings of the original AI/Turcia.dll.
-// Ported from Algeria by role mapping:
-//   Strelec_Algir -> Ianithar          (shooter)
-//   Mameluk       -> TUrkey_pikiner    (melee with ATTACK/SHIELD 3..7 chain)
-//   Center_Algir  -> Center_Turki, Dom_Algir -> Dom_Turki
-// Not yet ported from Turcia.dll (it registers more than Algeria does):
-//   Bashnia_3 + PAUSE3..7 tower upgrades, Dragun_18_DIP, Strelec_Algir_DIP,
-//   Ianithar ATTACK/SHIELD upgrades, AKA11..15, AKA31, AKA33.
-void RegisterTurkey()
+// Registers Russia's units/upgrades with the game. Names must match the
+// per-nation script RUSSIA.NDS (listed in Nations.lst, packed in all.gsc):
+// every object is "<base>(<NatCharHi>)" - for Russia the suffix is (RU).
+// Cross-checked against the strings of the original AI/Russia.dll.
+// Ported from the Turkey module (Algeria lineage) by role mapping:
+//   Pikiner_turki -> Pik_rus        (pike,   ATTACK/SHIELD 3..6 chain)
+//   Pehota_turki  -> Strelec        (17th c. musketeer)
+//   Ianithar      -> Mushketer      (18th c. musketeer)
+//   TUrkey_pikiner-> Kirasir        (18th c. melee, ATTACK/SHIELD 3..7 chain)
+//   Oficer_turki  -> Russki_Komandir, Barabanshik_Turki -> Barabanshik_1
+//   Center_Turki  -> Russki_Center, Barack_Turki -> Rus_Strel_Dom
+//     (NOT Kazarma: RUSSIA.NDS gates Kazarma behind the MAINRU "XVIII
+//     century" research - "ENABLE UNITS GRP 4 Kazarma Dragun_18 Gusar_evro
+//     Kirasir". Rus_Strel_Dom is the 17th c. barracks producing Pik_rus/
+//     Strelec; Kazarma is registered separately and built after MAIN.)
+//   Minaret       -> akademia_RU (academy), Mechet_Turki -> Cerkov_RU
+//   Kuznia_Turki  -> Kuznica, Konushnia_Turki -> konushnia
+//   Diplomatic_Turki -> Dip_korpus_RU, Art_Depo_Turki -> artileri_depo
+//   Rinok_Turki   -> Rinok, Sclad4 -> Sclad3, Melnica_tu -> Melnica_rus
+//   Dom_Turki     -> ruskaia_izba, Krestian_Turki -> Kreposnoi (peasant)
+//   Port          -> PorR, Shebeka -> Fregat (mid-tier warship)
+// AKA16/AKA17/AKA27 were dropped: registered by the Algeria/Turkey AIs but
+// NOT by Russia.dll (its academy set is AKA01..15, 20, 23, 24, 28..36).
+// Not yet ported from Russia.dll (it registers more than Turkey does):
+//   KUZ04/KUZ06, AKA11..15,31..36, WALL_KR, Bashnia_2 + PAUSE3..7 tower
+//   upgrades, Dragun/Dragun_18 + their ATTACK/SHIELD chains, Grenader(RU),
+//   Tiagoli_koval_rus, Tiagoli_kozak, Sveshenik_ukr, Strelec_Algir_DIP,
+//   Dragun_18_DIP, Mushketer upgrades, Melnica_rus GETRES2, Yahta,
+//   Pushka_mnogostvolka.
+void RegisterRussia()
 {
-	RegisterUnitType(&pikiner, "Pikiner_turki(TU)");
-	RegisterUnitType(&krestian, "Krestian_Turki(TU)");
-	RegisterUnitType(&pehota, "Pehota_turki(TU)");
-	RegisterUnitType(&grenader, "Grenader_DIP(TU)");
-	RegisterUnitType(&strelec, "Ianithar(TU)");
-	RegisterUnitType(&mameluk, "TUrkey_pikiner(TU)");
-	RegisterUnitType(&pushka, "Pushka(TU)");
-	RegisterUnitType(&mortira, "Mortira(TU)");
-	RegisterUnitType(&mortira_b, "Mortira_b(TU)");
-	RegisterUnitType(&lodka, "Lodka(TU)");
-	AssignFormUnit("Pikiner_turki(TU)");
-	RegisterUnitType(&strelec, "Ianithar(TU)");
-	RegisterUnitType(&kozak, "Kozak_loshad_DIP(TU)");
-	RegisterUnitType(&oficer, "Oficer_turki(TU)");
-	RegisterUnitType(&barabanshik, "Barabanshik_Turki(TU)");
-	RegisterUpgrade(&officer_ATTACK, "Oficer_turki(TU)ATTACK");
-	RegisterUpgrade(&officer_SHIELD, "Oficer_turki(TU)SHIELD");
-	RegisterUnitType(&center, "Center_Turki(TU)");
-	RegisterUnitType(&melnica, "Melnica_tu(TU)");
-	RegisterUnitType(&barack, "Barack_Turki(TU)");
-	RegisterUnitType(&sclad, "Sclad4(TU)");
-	RegisterUnitType(&minaret, "Minaret(TU)");
-	RegisterUnitType(&konushnia, "Konushnia_Turki(TU)");
-	RegisterUnitType(&diplomatic, "Diplomatic_Turki(TU)");
-	RegisterUnitType(&art_depo, "Art_Depo_Turki(TU)");
-	RegisterUnitType(&rinok, "Rinok_Turki(TU)");
-	RegisterUnitType(&kuznia, "Kuznia_Turki(TU)");
-	RegisterUnitType(&mechet, "Mechet_Turki(TU)");
-	RegisterUnitType(&port, "Port(TU)");
-	RegisterUnitType(&galera, "GALERA(TU)");
-	RegisterUnitType(&peres_kor, "PERES_KOR(TU)");
-	RegisterUnitType(&shebeka, "Shebeka(TU)");
-	RegisterUnitType(&linkor, "Linkor(TU)");
-	RegisterUpgrade(&AKA29, "AKA29TU");
-	RegisterUpgrade(&AKA06, "AKA06TU");
-	RegisterUpgrade(&Melnica_tuGETRES, "Melnica_tu(TU)GETRES");
-	RegisterUpgrade(&KUZ01, "KUZ01TU");
-	RegisterUpgrade(&pikiner_ATTACK, "Pikiner_turki(TU)ATTACK");
-	RegisterUpgrade(&pikiner_ATTACK3, "Pikiner_turki(TU)ATTACK3");
-	RegisterUpgrade(&pikiner_ATTACK4, "Pikiner_turki(TU)ATTACK4");
-	RegisterUpgrade(&pikiner_ATTACK5, "Pikiner_turki(TU)ATTACK5");
-	RegisterUpgrade(&pikiner_ATTACK6, "Pikiner_turki(TU)ATTACK6");
-	RegisterUpgrade(&pikiner_SHIELD, "Pikiner_turki(TU)SHIELD");
-	RegisterUpgrade(&pikiner_SHIELD3, "Pikiner_turki(TU)SHIELD3");
-	RegisterUpgrade(&pikiner_SHIELD4, "Pikiner_turki(TU)SHIELD4");
-	RegisterUpgrade(&pikiner_SHIELD5, "Pikiner_turki(TU)SHIELD5");
-	RegisterUpgrade(&pikiner_SHIELD6, "Pikiner_turki(TU)SHIELD6");
-	RegisterUpgrade(&pehota_ATTACK, "Pehota_turki(TU)ATTACK");
-	RegisterUpgrade(&pehota_ATTACK3, "Pehota_turki(TU)ATTACK3");
-	RegisterUpgrade(&pehota_ATTACK4, "Pehota_turki(TU)ATTACK4");
-	RegisterUpgrade(&pehota_SHIELD, "Pehota_turki(TU)SHIELD");
-	RegisterUpgrade(&pehota_SHIELD3, "Pehota_turki(TU)SHIELD3");
-	RegisterUpgrade(&pehota_SHIELD4, "Pehota_turki(TU)SHIELD4");
-	RegisterUpgrade(&mameluk_ATTACK, "TUrkey_pikiner(TU)ATTACK");
-	RegisterUpgrade(&mameluk_ATTACK3, "TUrkey_pikiner(TU)ATTACK3");
-	RegisterUpgrade(&mameluk_ATTACK4, "TUrkey_pikiner(TU)ATTACK4");
-	RegisterUpgrade(&mameluk_ATTACK5, "TUrkey_pikiner(TU)ATTACK5");
-	RegisterUpgrade(&mameluk_ATTACK6, "TUrkey_pikiner(TU)ATTACK6");
-	RegisterUpgrade(&mameluk_ATTACK7, "TUrkey_pikiner(TU)ATTACK7");
-	RegisterUpgrade(&mameluk_SHIELD, "TUrkey_pikiner(TU)SHIELD");
-	RegisterUpgrade(&mameluk_SHIELD3, "TUrkey_pikiner(TU)SHIELD3");
-	RegisterUpgrade(&mameluk_SHIELD4, "TUrkey_pikiner(TU)SHIELD4");
-	RegisterUpgrade(&mameluk_SHIELD5, "TUrkey_pikiner(TU)SHIELD5");
-	RegisterUpgrade(&mameluk_SHIELD6, "TUrkey_pikiner(TU)SHIELD6");
-	RegisterUpgrade(&mameluk_SHIELD7, "TUrkey_pikiner(TU)SHIELD7");
-	RegisterUpgrade(&pushka_BUILD, "Pushka(TU)BUILD");
-	RegisterUpgrade(&pushka_BUILD3, "Pushka(TU)BUILD3");
-	RegisterUpgrade(&pushka_BUILD4, "Pushka(TU)BUILD4");
-	RegisterUpgrade(&pushka_BUILD5, "Pushka(TU)BUILD5");
-	RegisterUpgrade(&pushka_BUILD6, "Pushka(TU)BUILD6");
-	RegisterUpgrade(&mortira_BUILD, "Mortira(TU)BUILD");
-	RegisterUpgrade(&mortira_BUILD3, "Mortira(TU)BUILD3");
-	RegisterUpgrade(&mortira_BUILD4, "Mortira(TU)BUILD4");
-	RegisterUpgrade(&mortira_BUILD5, "Mortira(TU)BUILD5");
-	RegisterUpgrade(&KUZ03, "KUZ03TU");
-	RegisterUpgrade(&AKA01, "AKA01TU");
-	RegisterUpgrade(&AKA02, "AKA02TU");
-	RegisterUpgrade(&AKA03, "AKA03TU");
-	RegisterUpgrade(&AKA04, "AKA04TU");
-	RegisterUpgrade(&AKA08, "AKA08TU");
-	RegisterUpgrade(&AKA23, "AKA23TU");
-	RegisterUpgrade(&AKA24, "AKA24TU");
-	RegisterUpgrade(&AKA10, "AKA10TU");
-	RegisterUpgrade(&AKA30, "AKA30TU");
-	RegisterUpgrade(&AKA07, "AKA07TU");
-	RegisterUpgrade(&AKA20, "AKA20TU");
-	RegisterUpgrade(&KUZ02, "KUZ02TU");
-	RegisterUpgrade(&AKA09, "AKA09TU");
-	RegisterUpgrade(&AKA05, "AKA05TU");
-	RegisterUpgrade(&AKA28, "AKA28TU");
-	RegisterUpgrade(&KUZ05, "KUZ05TU");
-	RegisterUpgrade(&AKA16, "AKA16TU");
-	RegisterUpgrade(&AKA17, "AKA17TU");
-	RegisterUpgrade(&AKA27, "AKA27TU");
+	RegisterUnitType(&pikiner, "Pik_rus(RU)");
+	RegisterUnitType(&krestian, "Kreposnoi(RU)");
+	RegisterUnitType(&pehota, "Strelec(RU)");
+	RegisterUnitType(&grenader, "Grenader_DIP(RU)");
+	RegisterUnitType(&strelec, "Mushketer(RU)");
+	RegisterUnitType(&mameluk, "Kirasir(RU)");
+	RegisterUnitType(&pushka, "Pushka(RU)");
+	RegisterUnitType(&mortira, "Mortira(RU)");
+	RegisterUnitType(&mortira_b, "Mortira_b(RU)");
+	RegisterUnitType(&lodka, "Lodka(RU)");
+	// Russia's 18th-century barracks. Enabled only by the MAINRU (XVIII
+	// century) research - built in ProcessAI once MAIN is done.
+	RegisterUnitType(&kazarma, "Kazarma(RU)");
+	AssignFormUnit("Pik_rus(RU)");
+	RegisterUnitType(&strelec, "Mushketer(RU)");
+	RegisterUnitType(&kozak, "Kozak_loshad_DIP(RU)");
+	RegisterUnitType(&oficer, "Russki_Komandir(RU)");
+	RegisterUnitType(&barabanshik, "Barabanshik_1(RU)");
+	RegisterUpgrade(&officer_ATTACK, "Russki_Komandir(RU)ATTACK");
+	RegisterUpgrade(&officer_SHIELD, "Russki_Komandir(RU)SHIELD");
+	RegisterUnitType(&center, "Russki_Center(RU)");
+	RegisterUnitType(&melnica, "Melnica_rus(RU)");
+	RegisterUnitType(&barack, "Rus_Strel_Dom(RU)");
+	RegisterUnitType(&sclad, "Sclad3(RU)");
+	RegisterUnitType(&minaret, "akademia_RU(RU)");
+	RegisterUnitType(&konushnia, "konushnia(RU)");
+	RegisterUnitType(&diplomatic, "Dip_korpus_RU(RU)");
+	RegisterUnitType(&art_depo, "artileri_depo(RU)");
+	RegisterUnitType(&rinok, "Rinok(RU)");
+	RegisterUnitType(&kuznia, "Kuznica(RU)");
+	RegisterUnitType(&mechet, "Cerkov_RU(RU)");
+	RegisterUnitType(&port, "PorR(RU)");
+	RegisterUnitType(&galera, "GALERA(RU)");
+	RegisterUnitType(&peres_kor, "PERES_KOR(RU)");
+	RegisterUnitType(&shebeka, "Fregat(RU)");
+	RegisterUnitType(&linkor, "Linkor(RU)");
+	RegisterUpgrade(&AKA29, "AKA29RU");
+	RegisterUpgrade(&AKA06, "AKA06RU");
+	RegisterUpgrade(&Melnica_tuGETRES, "Melnica_rus(RU)GETRES");
+	RegisterUpgrade(&KUZ01, "KUZ01RU");
+	RegisterUpgrade(&pikiner_ATTACK, "Pik_rus(RU)ATTACK");
+	RegisterUpgrade(&pikiner_ATTACK3, "Pik_rus(RU)ATTACK3");
+	RegisterUpgrade(&pikiner_ATTACK4, "Pik_rus(RU)ATTACK4");
+	RegisterUpgrade(&pikiner_ATTACK5, "Pik_rus(RU)ATTACK5");
+	RegisterUpgrade(&pikiner_ATTACK6, "Pik_rus(RU)ATTACK6");
+	RegisterUpgrade(&pikiner_SHIELD, "Pik_rus(RU)SHIELD");
+	RegisterUpgrade(&pikiner_SHIELD3, "Pik_rus(RU)SHIELD3");
+	RegisterUpgrade(&pikiner_SHIELD4, "Pik_rus(RU)SHIELD4");
+	RegisterUpgrade(&pikiner_SHIELD5, "Pik_rus(RU)SHIELD5");
+	RegisterUpgrade(&pikiner_SHIELD6, "Pik_rus(RU)SHIELD6");
+	RegisterUpgrade(&pehota_ATTACK, "Strelec(RU)ATTACK");
+	RegisterUpgrade(&pehota_ATTACK3, "Strelec(RU)ATTACK3");
+	RegisterUpgrade(&pehota_ATTACK4, "Strelec(RU)ATTACK4");
+	RegisterUpgrade(&pehota_SHIELD, "Strelec(RU)SHIELD");
+	RegisterUpgrade(&pehota_SHIELD3, "Strelec(RU)SHIELD3");
+	RegisterUpgrade(&pehota_SHIELD4, "Strelec(RU)SHIELD4");
+	RegisterUpgrade(&mameluk_ATTACK, "Kirasir(RU)ATTACK");
+	RegisterUpgrade(&mameluk_ATTACK3, "Kirasir(RU)ATTACK3");
+	RegisterUpgrade(&mameluk_ATTACK4, "Kirasir(RU)ATTACK4");
+	RegisterUpgrade(&mameluk_ATTACK5, "Kirasir(RU)ATTACK5");
+	RegisterUpgrade(&mameluk_ATTACK6, "Kirasir(RU)ATTACK6");
+	RegisterUpgrade(&mameluk_ATTACK7, "Kirasir(RU)ATTACK7");
+	RegisterUpgrade(&mameluk_SHIELD, "Kirasir(RU)SHIELD");
+	RegisterUpgrade(&mameluk_SHIELD3, "Kirasir(RU)SHIELD3");
+	RegisterUpgrade(&mameluk_SHIELD4, "Kirasir(RU)SHIELD4");
+	RegisterUpgrade(&mameluk_SHIELD5, "Kirasir(RU)SHIELD5");
+	RegisterUpgrade(&mameluk_SHIELD6, "Kirasir(RU)SHIELD6");
+	RegisterUpgrade(&mameluk_SHIELD7, "Kirasir(RU)SHIELD7");
+	RegisterUpgrade(&pushka_BUILD, "Pushka(RU)BUILD");
+	RegisterUpgrade(&pushka_BUILD3, "Pushka(RU)BUILD3");
+	RegisterUpgrade(&pushka_BUILD4, "Pushka(RU)BUILD4");
+	RegisterUpgrade(&pushka_BUILD5, "Pushka(RU)BUILD5");
+	RegisterUpgrade(&pushka_BUILD6, "Pushka(RU)BUILD6");
+	RegisterUpgrade(&mortira_BUILD, "Mortira(RU)BUILD");
+	RegisterUpgrade(&mortira_BUILD3, "Mortira(RU)BUILD3");
+	RegisterUpgrade(&mortira_BUILD4, "Mortira(RU)BUILD4");
+	RegisterUpgrade(&mortira_BUILD5, "Mortira(RU)BUILD5");
+	RegisterUpgrade(&KUZ03, "KUZ03RU");
+	RegisterUpgrade(&AKA01, "AKA01RU");
+	RegisterUpgrade(&AKA02, "AKA02RU");
+	RegisterUpgrade(&AKA03, "AKA03RU");
+	RegisterUpgrade(&AKA04, "AKA04RU");
+	RegisterUpgrade(&AKA08, "AKA08RU");
+	RegisterUpgrade(&AKA23, "AKA23RU");
+	RegisterUpgrade(&AKA24, "AKA24RU");
+	RegisterUpgrade(&AKA10, "AKA10RU");
+	RegisterUpgrade(&AKA30, "AKA30RU");
+	RegisterUpgrade(&AKA07, "AKA07RU");
+	RegisterUpgrade(&AKA20, "AKA20RU");
+	RegisterUpgrade(&KUZ02, "KUZ02RU");
+	RegisterUpgrade(&AKA09, "AKA09RU");
+	RegisterUpgrade(&AKA05, "AKA05RU");
+	RegisterUpgrade(&AKA28, "AKA28RU");
+	RegisterUpgrade(&KUZ05, "KUZ05RU");
+	// XVIII century: unlocks Kazarma + the 18th c. units (Mushketer,
+	// Kirasir, Grenader, Dragun_18, Gusar_evro).
+	RegisterUpgrade(&MAIN, "MAINRU");
 
 	SetPDistribution(9, 4, 4);
 	AssignAmountOfMineUpgrades(6);
-	AssignMineUpgrade(0, "shahta(TU)INSIDE", 90);
-	AssignMineUpgrade(1, "shahta(TU)INSIDE3", 50);
-	AssignMineUpgrade(2, "shahta(TU)INSIDE4", 50);
-	AssignMineUpgrade(3, "shahta(TU)INSIDE5", 50);
-	AssignMineUpgrade(4, "shahta(TU)INSIDE6", 50);
-	AssignMineUpgrade(5, "shahta(TU)INSIDE7", 50);
-	AssignPeasant("Krestian_Turki(TU)");
-	AssignMine("shahta(TU)");
-	AssignHouse("Dom_Turki(TU)");
+	AssignMineUpgrade(0, "shahta(RU)INSIDE", 90);
+	AssignMineUpgrade(1, "shahta(RU)INSIDE3", 50);
+	AssignMineUpgrade(2, "shahta(RU)INSIDE4", 50);
+	AssignMineUpgrade(3, "shahta(RU)INSIDE5", 50);
+	AssignMineUpgrade(4, "shahta(RU)INSIDE6", 50);
+	AssignMineUpgrade(5, "shahta(RU)INSIDE7", 50);
+	AssignPeasant("Kreposnoi(RU)");
+	AssignMine("shahta(RU)");
+	AssignHouse("ruskaia_izba(RU)");
 }
 
 extern "C" __declspec(dllexport) void InitAI()
 {
-	RegisterTurkey();
+	RegisterRussia();
 	SET_MINE_CAPTURE_RADIUS(290);
 	SET_MINE_UPGRADE1_RADIUS(260);
 	SET_MINE_UPGRADE2_RADIUS(130);
@@ -460,9 +481,6 @@ void ProcessNonLandAI(int landType)
 		if (UpgIsDone(&AKA20))
 		{
 			TryUpgrade(&AKA28, 90, 100);
-			TryUpgrade(&AKA27, 90, 100);
-			TryUpgrade(&AKA16, 90, 100);
-			TryUpgrade(&AKA17, 90, 100);
 		}
 	}
 	else
@@ -750,6 +768,14 @@ extern "C" __declspec(dllexport) void ProcessAI()
 
 	if (land == 0 || land == 1)
 	{
+		// Russia: research XVIII century once the late-game academy
+		// chain is underway, then build the 18th c. barracks so the
+		// 18th c. units (Mushketer, Kirasir) become trainable.
+		TryUpgrade(&MAIN, 100, 100);
+		if (UpgIsDone(&MAIN))
+		{
+			TryUnit(&kazarma, 1, 100, 100);
+		}
 		int units = GetUnits(&pikiner);
 		if (units / 36 > 0)
 		{

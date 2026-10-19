@@ -145,6 +145,29 @@ extern word NSounds;` were also _WIN32-only.
   now ALSO go through the real dlopen path - they will fail gracefully
   until someone ports/ships them as .so.
 
+UPDATE 2026-10-18 (option b is working, see docs/AI.md - now the full
+porting handbook):
+
+- Turkey (AI/Turcia.so) and Russia (AI/Russia.so) are ported from the
+  Algeria template by role-mapping every registered name to the target
+  nation, validated against the original DLL's string table (the .so
+  output name must match the DLL name the text tables resolve, e.g.
+  Turcia for Turkey).
+- CMake now emits all nation AI MODULEs straight into the game dir's
+  AI/ folder (LIBRARY_OUTPUT_DIRECTORY).
+- Biggest lesson: a name can register fine and still never be built -
+  RUSSIA.NDS gates Kazarma behind the MAINRU "XVIII century" research
+  (ENABLE UNITS GRP), and TryUnit fails SILENTLY. Check the .NDS
+  [ACCESSCONTROL]/ENABLE-GRP before mapping buildings. Russia also
+  needed MAINRU registered + researched (Turkey/Algeria have no XVIII
+  century at all).
+- tools/gsc_extract.py extracts any file from all.gsc (negated offsets,
+  0x87 byte cipher) - use it to pull <NATION>.NDS.
+- The 20 original DLLs cluster by size (16 x 94208 European incl.
+  Russia; Turcia 69632; Algeria 57344; Ukraine 53248; Denmark 49152):
+  one Ghidra/BinDiff pass over the 94208 cluster likely covers 16
+  nations' real ProcessAI.
+
 
 
 

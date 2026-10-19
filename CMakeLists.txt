@@ -141,6 +141,11 @@ set_target_properties(Algeria PROPERTIES PREFIX "" OUTPUT_NAME "Algeria"
 # game-facing exports (InitAI/ProcessAI/OnInit) override this explicitly.
 target_compile_options(Algeria PRIVATE "-fvisibility=hidden")
 
+# add_library(Austria MODULE src/ai/Austria/dllmain.cpp)
+# set_target_properties(Austria PROPERTIES PREFIX "" OUTPUT_NAME "Turcia"
+#     LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+# target_compile_options(Austria PRIVATE "-fvisibility=hidden")
+
 add_library(Turkey MODULE src/ai/Turkey/dllmain.cpp)
 set_target_properties(Turkey PROPERTIES PREFIX "" OUTPUT_NAME "Turcia"
     LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
