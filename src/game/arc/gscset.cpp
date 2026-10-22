@@ -1,0 +1,636 @@
+// GSCset.cpp: implementation of the CGSCset class.
+
+#include <stdio.h>
+#include <cstring>
+#include <cstdlib>
+
+#include "gsctypes.h"
+#include "gscarch.h"
+#include "gscset.h"
+#ifndef _WIN32
+#include <unistd.h>
+#endif
+
+#ifndef _WIN32
+#include <string>
+#include <dirent.h>
+#include <ctype.h>
+// Convert Windows backslash paths to forward slashes for Linux.
+static std::string toLinuxPath( LPCSTR path )
+{
+    std::string s( path );
+    for (char& c : s) if (c == '\\') c = '/';
+    return s;
+}
+// Case-insensitive wildcard match ('*' and '?'), mirroring what FindFirstFile
+// does with the up-cased mask on Windows (used by gFindFirst's disk scan).
+static bool WildMatchCI( const char* pat, const char* name )
+{
+    const char *p = pat, *s = name, *star = NULL, *ss = NULL;
+    while (*s)
+    {
+        if (*p == '?' || tolower( (unsigned char)*p ) == tolower( (unsigned char)*s ))
+        { p++; s++; }
+        else if (*p == '*') { star = p++; ss = s; }
+        else if (star) { p = star + 1; s = ++ss; }
+        else return false;
+    }
+    while (*p == '*') p++;
+    return *p == 0;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////
+// Construction/Destruction
+//////////////////////////////////////////////////////////////////////
+
+CGSCset::CGSCset()
+{
+
+}
+
+CGSCset::~CGSCset()
+{
+
+}
+
+LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool onlyInArchive )
+{
+	// Debug trace, opt-in via GSC_SHOW_OPEN=1 (it prints for EVERY file open)
+	if (getenv("GSC_SHOW_OPEN"))
+	{
+		printf("gOpenFile: %s\n", lpcsFileName);
+	}
+	LPGSCfile		gFile = NULL;
+	bool			inArchive = true;
+
+	if (!onlyInArchive)
+	{
+#ifdef _WIN32
+		HANDLE			hFindFile;
+		WIN32_FIND_DATA	FindData;
+		hFindFile = FindFirstFile( lpcsFileName, &FindData );
+		if (hFindFile != INVALID_HANDLE_VALUE)
+		{
+			inArchive = false;
+		}
+		FindClose( hFindFile );
+#else
+		// LOOSE FILES TAKE PRIORITY over archive entries, matching the
+		// Windows FindFirstFile check. Without this the game read the mod
+		// archive's stale MODE.DAT (WarSound=0) while the settings write
+		// went to the loose mode.dat next to the executable - the settings
+		// never loaded back.
+		if (access(lpcsFileName, F_OK) == 0)
+		{
+			inArchive = false;
+		}
+#endif
+	}
+
+	if (inArchive)
+	{
+		LPGSCArchList	pArchList = m_ArchList;
+
+		while (pArchList)
+		{
+			gFile = pArchList->m_Arch->GetFileHandle( lpcsFileName );
+			if (gFile)
+			{
+				gFile->m_Arch = pArchList->m_Arch;
+				gFile->m_Flags = 1;
+				gFile->m_Position = 0;
+				return gFile;
+			}
+			pArchList = pArchList->m_NextArch;
+		}
+	}
+#ifdef _WIN32
+	else
+	{
+		gFile = new TGSCfile;
+		gFile->m_Flags = 0;
+		gFile->m_Position = 0;
+		gFile->m_Arch = NULL;
+
+		gFile->m_FileHandle = DWORD( CreateFile( lpcsFileName,
+			GENERIC_READ | GENERIC_WRITE,
+			FILE_SHARE_READ | FILE_SHARE_WRITE,
+			NULL,
+			OPEN_EXISTING,
+			FILE_ATTRIBUTE_NORMAL,
+			0 ) );
+
+		if (gFile->m_FileHandle == (DWORD) INVALID_HANDLE_VALUE)  // На всякий случай
+		{
+			delete gFile;
+			return NULL;
+		}
+	}
+#else
+	// Linux: fall back to plain stdio if not found in archive
+	{
+		std::string path = toLinuxPath( lpcsFileName );
+		FILE* fp = fopen( path.c_str(), "rb" );
+		if (!fp) return nullptr;
+		gFile = new TGSCfile;
+		gFile->m_Flags = 0;
+		gFile->m_Position = 0;
+		gFile->m_Arch = nullptr;
+		gFile->m_fp = fp;
+	}
+#endif
+
+	return gFile;
+}
+
+VOID CGSCset::gCloseFile( LPGSCfile gFile )
+{
+	if (nullptr == gFile)
+	{
+		return;
+	}
+
+	if (gFile->m_Flags)
+	{
+		gFile->m_Arch->CloseFileHandle( gFile );
+	}
+#ifdef _WIN32
+	else
+	{
+		CloseHandle( HANDLE( gFile->m_FileHandle ) );
+	}
+#else
+	else
+	{
+		fclose( gFile->m_fp );
+		delete gFile;
+	}
+#endif
+}
+
+VOID CGSCset::gReadFile( LPGSCfile gFile, LPBYTE lpbBuffer, DWORD dwSize )
+{
+	DWORD	dwBytesRead = 0;
+
+	if (gFile->m_Flags)
+	{
+		gFile->m_Arch->ReadFile( gFile, lpbBuffer, dwSize );
+	}
+	else
+	{
+#ifdef _WIN32
+		ReadFile( HANDLE( gFile->m_FileHandle ), lpbBuffer, dwSize, &dwBytesRead, NULL );
+#else
+		fread( lpbBuffer, 1, dwSize, gFile->m_fp );
+#endif
+	};
+}
+
+VOID CGSCset::gSeekFile( LPGSCfile gFile, DWORD dwPosition )
+{
+	if (gFile->m_Flags)
+	{
+		gFile->m_Position = dwPosition;
+	}
+#ifdef _WIN32
+	else
+	{
+		SetFilePointer( HANDLE( gFile->m_FileHandle ), dwPosition, NULL, FILE_BEGIN );
+	}
+#else
+	else
+	{
+		fseek( gFile->m_fp, dwPosition, SEEK_SET );
+	}
+#endif
+}
+
+DWORD CGSCset::gFilePos( LPGSCfile gFile )
+{
+	if (gFile->m_Flags)
+	{
+		return gFile->m_Position;
+	}
+#ifdef _WIN32
+	else
+	{
+		return SetFilePointer( HANDLE( gFile->m_FileHandle ), 0, NULL, FILE_BEGIN );
+	};
+#else
+	else
+	{
+		return (DWORD)ftell( gFile->m_fp );
+	}
+#endif
+	return 0;
+}
+
+VOID AddItem( LPGSCFileList pFileList, LPCSTR lpcsFileName )
+{
+	LPGSCFileList	pList = pFileList, pItem;
+	BOOL	Exists = FALSE;
+
+	while (pList)
+	{
+		if (!strcmp( pList->m_FileName, lpcsFileName ))
+		{
+			Exists = TRUE;
+			break;
+		};
+		pList = pList->m_NextEntry;
+	};
+
+	if (!Exists)
+	{
+		pList = pFileList;
+
+		while (pList->m_NextEntry)
+			pList = pList->m_NextEntry;
+
+		pItem = new TGSCFileList;
+		pItem->m_NextEntry = NULL;
+		strcpy( pItem->m_FileName, lpcsFileName );
+
+		pList->m_NextEntry = pItem;
+
+	};
+}
+
+LPGSCFindInfo CGSCset::gFindFirst( LPCSTR lpcsMask )
+{
+	LPGSCFindInfo lpFindInfo = NULL;
+	LPGSCFileList	lpFileList = NULL;
+
+	CHAR	sUpMask[64];
+	ZeroMemory( sUpMask, 64 );
+	strcpy( sUpMask, lpcsMask );
+	_strupr( sUpMask );
+
+#ifdef _WIN32
+	WIN32_FIND_DATA	FindData;
+	HANDLE	hFindFile;
+
+	hFindFile = FindFirstFile( sUpMask, &FindData );
+
+	if (hFindFile != INVALID_HANDLE_VALUE)
+	{
+		lpFindInfo = new TGSCFindInfo;
+		lpFindInfo->m_Pos = NULL;
+		lpFindInfo->m_FileList = NULL;
+
+		lpFileList = new TGSCFileList;
+		lpFindInfo->m_FileList = lpFileList;
+		lpFindInfo->m_Pos = lpFileList;
+		lpFileList->m_NextEntry = NULL;
+		strcpy( lpFileList->m_FileName, FindData.cFileName );
+		_strupr( FindData.cFileName );
+
+		while (FindNextFile( hFindFile, &FindData ))
+		{
+			lpFileList->m_NextEntry = new TGSCFileList;
+			lpFileList = lpFileList->m_NextEntry;
+			lpFileList->m_NextEntry = NULL;
+			strcpy( lpFileList->m_FileName, FindData.cFileName );
+			_strupr( FindData.cFileName );
+		};
+	};
+
+	FindClose( hFindFile );
+#else
+	// POSIX disk enumeration, mirroring the FindFirstFile block above:
+	// scan the mask's own directory and keep the entries whose name matches
+	// the up-cased mask (wildcards '*' and '?', case-insensitive). Without
+	// this, files that only exist on disk (e.g. generated *.m3d maps) are
+	// never listed on Linux.
+	{
+		std::string maskPath = toLinuxPath( sUpMask );
+		size_t slash = maskPath.rfind( '/' );
+		std::string dir = (slash == std::string::npos) ? "." : maskPath.substr( 0, slash );
+		std::string pat = (slash == std::string::npos) ? maskPath : maskPath.substr( slash + 1 );
+
+		DIR* dirp = opendir( dir.c_str() );
+		if (dirp)
+		{
+			struct dirent* de;
+			while ((de = readdir( dirp )) != NULL)
+			{
+				if (!WildMatchCI( pat.c_str(), de->d_name )) continue;
+				if (!lpFindInfo)
+				{
+					lpFindInfo = new TGSCFindInfo;
+					lpFindInfo->m_Pos = NULL;
+					lpFindInfo->m_FileList = NULL;
+
+					lpFileList = new TGSCFileList;
+					lpFindInfo->m_FileList = lpFileList;
+					lpFindInfo->m_Pos = lpFileList;
+					lpFileList->m_NextEntry = NULL;
+					strncpy( lpFileList->m_FileName, de->d_name, sizeof( lpFileList->m_FileName ) - 1 );
+					lpFileList->m_FileName[sizeof( lpFileList->m_FileName ) - 1] = 0;
+				}
+				else
+					AddItem( lpFindInfo->m_FileList, de->d_name );
+			}
+			closedir( dirp );
+		}
+	}
+#endif // _WIN32 (disk enumeration; archives below are portable)
+
+	LPGSCArchList	pArchList = m_ArchList;
+	LPGSCFindData	pFindData;
+
+	while (pArchList)
+	{
+		pFindData = pArchList->m_Arch->FindFile( sUpMask );
+
+		if (pFindData)
+		{
+			if (!lpFindInfo)
+			{
+				lpFindInfo = new TGSCFindInfo;
+				lpFindInfo->m_Pos = NULL;
+				lpFindInfo->m_FileList = NULL;
+
+				lpFileList = new TGSCFileList;
+				lpFindInfo->m_FileList = lpFileList;
+				lpFindInfo->m_Pos = lpFileList;
+				lpFileList->m_NextEntry = NULL;
+				strcpy( lpFileList->m_FileName, pFindData->m_FileName );
+			}
+			else
+				AddItem( lpFindInfo->m_FileList, pFindData->m_FileName );
+
+			while (pArchList->m_Arch->NextFile( pFindData ))
+			{
+				AddItem( lpFindInfo->m_FileList, pFindData->m_FileName );
+			};
+		};
+
+		pArchList = pArchList->m_NextArch;
+	};
+
+	if (lpFindInfo)
+	{
+		strcpy( lpFindInfo->m_FileName, lpFindInfo->m_Pos->m_FileName );
+		return lpFindInfo;
+	}
+	else
+		return NULL;
+}
+
+BOOL CGSCset::gFindNext( LPGSCFindInfo gFindInfo )
+{
+	gFindInfo->m_Pos = gFindInfo->m_Pos->m_NextEntry;
+
+	if (gFindInfo->m_Pos)
+	{
+		strcpy( gFindInfo->m_FileName, gFindInfo->m_Pos->m_FileName );
+		return TRUE;
+	}
+	else
+	{
+		LPGSCFileList	lpFileList1, lpFileList2;
+
+		lpFileList2 = gFindInfo->m_FileList;
+
+		while (lpFileList2)
+		{
+			lpFileList1 = lpFileList2;
+			lpFileList2 = lpFileList1->m_NextEntry;
+
+			delete lpFileList1;
+		}
+
+		delete gFindInfo;
+
+		return FALSE;
+	}
+
+}
+void GSC_OpenError();
+
+//Loads specified *.gs1 and *.gsc archives
+//Priority order
+//1) mods02.gs1, mods01.gs1, mods.gs1
+//2) cossacks_revamp.gs1
+//3) patch02.gs1, patch01.gs1
+//4) A*.gsc
+
+// BUT why I see only override.gsc and resources.gsc being searched?
+
+#ifdef _WIN32
+BOOL CGSCset::gOpen()
+{
+	BOOL retval = TRUE;
+	printf("gOpen()\n");
+	HANDLE hFindFile;
+	WIN32_FIND_DATA FindData;
+	LPGSCArchList pArchList = nullptr;
+
+	m_ArchList = nullptr;
+
+	hFindFile = FindFirstFile( "override.gsc", &FindData );
+	if (INVALID_HANDLE_VALUE != hFindFile)
+	{
+		pArchList = new TGSCArchList;
+		m_ArchList = pArchList;
+		pArchList->m_NextArch = nullptr;
+		pArchList->m_Arch = new CGSCarch;
+		pArchList->m_Arch->Open( FindData.cFileName );
+
+		while (FindNextFile( hFindFile, &FindData ))
+		{
+			pArchList->m_NextArch = new TGSCArchList;
+			pArchList = pArchList->m_NextArch;
+
+			pArchList->m_Arch = new CGSCarch;
+			pArchList->m_NextArch = nullptr;
+			pArchList->m_Arch->Open( FindData.cFileName );
+		}
+	}
+	FindClose( hFindFile );
+
+	hFindFile = FindFirstFile( "resources.gsc", &FindData );
+	if (INVALID_HANDLE_VALUE != hFindFile)
+	{
+		if (nullptr == m_ArchList)
+		{
+			pArchList = new TGSCArchList;
+			m_ArchList = pArchList;
+		}
+		else
+		{
+			pArchList->m_NextArch = new TGSCArchList;
+			pArchList = pArchList->m_NextArch;
+		}
+
+		pArchList->m_NextArch = nullptr;
+		pArchList->m_Arch = new CGSCarch;
+		pArchList->m_Arch->Open( FindData.cFileName );
+
+		while (FindNextFile( hFindFile, &FindData ))
+		{
+			pArchList->m_NextArch = new TGSCArchList;
+			pArchList = pArchList->m_NextArch;
+			pArchList->m_Arch = new CGSCarch;
+			pArchList->m_NextArch = nullptr;
+			pArchList->m_Arch->Open( FindData.cFileName );
+		}
+	}
+	else
+	{
+		retval = FALSE;
+	}
+
+	FindClose( hFindFile );
+
+	return retval;
+}
+#else
+
+#include <filesystem>
+#include <iostream>
+
+namespace fs = std::filesystem;
+
+BOOL CGSCset::gOpen() {
+    BOOL retval = TRUE;
+
+    m_ArchList = nullptr;
+    TGSCArchList** nextPtr = &m_ArchList;
+
+    auto loadGSCs = [&](const std::string& pattern) {
+        for (const auto& entry : fs::directory_iterator(".")) {
+            if (entry.is_regular_file() && entry.path().extension() == ".gsc" && entry.path().filename().string().find(pattern) != std::string::npos) {
+                *nextPtr = new TGSCArchList;
+                (*nextPtr)->m_Arch = new CGSCarch;
+                (*nextPtr)->m_Arch->Open(entry.path().string().c_str());
+                (*nextPtr)->m_NextArch = nullptr;
+                nextPtr = &((*nextPtr)->m_NextArch);
+            }
+        }
+    };
+
+    // Load override.gsc files first
+    loadGSCs("override");
+
+    // Then load resources.gsc files
+    size_t before = reinterpret_cast<size_t>(nextPtr);
+    loadGSCs("resources");
+
+    loadGSCs("all"); // Added this so the only GSC file coming with GOG version loads.
+
+    // Check if anything was loaded in "resources"
+    if (reinterpret_cast<size_t>(nextPtr) == before) {
+        retval = FALSE;
+    }
+
+    return retval;
+}
+#endif // _WIN32
+
+VOID CGSCset::gClose()
+{
+	LPGSCArchList	lpArchList1, lpArchList2;
+
+	lpArchList2 = m_ArchList;
+
+	while (lpArchList2)
+	{
+		lpArchList1 = lpArchList2;
+		lpArchList2 = lpArchList1->m_NextArch;
+
+		lpArchList1->m_Arch->Close();
+		delete lpArchList1->m_Arch;
+
+		delete lpArchList1;
+	};
+
+}
+
+DWORD CGSCset::gFileSize( LPGSCfile gFile )
+{
+	if (gFile->m_Flags)//m_Flags = 1 means it's in an archive
+	{
+		return gFile->m_Arch->GetFileSize( gFile );
+	}
+	else
+	{
+#ifdef _WIN32
+		return GetFileSize( HANDLE( gFile->m_FileHandle ), NULL );
+#else
+		long cur = ftell( gFile->m_fp );
+		fseek( gFile->m_fp, 0, SEEK_END );
+		long size = ftell( gFile->m_fp );
+		fseek( gFile->m_fp, cur, SEEK_SET );
+		return (DWORD)size;
+#endif
+	};
+}
+
+LPBYTE CGSCset::gMapFile( LPGSCfile gFile )
+{
+	if (gFile->m_Flags)
+	{
+		return gFile->m_Arch->GetFileData( gFile );
+	}
+	else
+	{
+		return NULL;
+	};
+}
+
+BOOL CGSCset::gWriteFile( LPGSCfile gFile, LPBYTE lpbBuffer, DWORD dwSize )
+{
+	if (gFile->m_Flags)
+	{
+		return FALSE;
+	}
+	else
+	{
+#ifdef _WIN32
+		DWORD dwBytesWritten;
+		WriteFile( HANDLE( gFile->m_FileHandle ), lpbBuffer, dwSize, &dwBytesWritten, NULL );
+		return TRUE;
+#else
+		fwrite( lpbBuffer, 1, dwSize, gFile->m_fp );
+		return TRUE;
+#endif
+	};
+}
+
+LPGSCfile CGSCset::gWriteOpen( LPCSTR lpcsFileName )
+{
+	LPGSCfile gFile;
+#ifdef _WIN32
+	gFile = new TGSCfile;
+	gFile->m_Flags = 0;
+	gFile->m_Position = 0;
+	gFile->m_Arch = NULL;
+
+	gFile->m_FileHandle = DWORD( CreateFile( lpcsFileName,
+		GENERIC_READ | GENERIC_WRITE,
+		FILE_SHARE_READ,
+		NULL,
+		CREATE_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL,
+		0 ) );
+	if (gFile->m_FileHandle == (DWORD) INVALID_HANDLE_VALUE)
+	{
+		delete gFile;
+		return NULL;
+	};
+#else
+	// Linux: plain stdio like gOpenFile's loose-file fallback (CREATE_ALWAYS -> "wb")
+	std::string path = toLinuxPath( lpcsFileName );
+	FILE* fp = fopen( path.c_str(), "wb" );
+	if (!fp) return NULL;
+	gFile = new TGSCfile;
+	gFile->m_Flags = 0;
+	gFile->m_Position = 0;
+	gFile->m_Arch = nullptr;
+	gFile->m_fp = fp;
+#endif
+	return gFile;
+}

@@ -1,0 +1,181 @@
+cmake_minimum_required(VERSION 3.16)
+project(cossacks)
+
+# set the output directory for built objects.
+# This makes sure that the dynamic library goes into the build directory automatically.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
+
+# This assumes the SDL source is available in vendored/SDL
+# and SDL_image in vendored/SDL_image
+add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
+add_subdirectory(vendored/SDL_image EXCLUDE_FROM_ALL)
+
+add_compile_options(-Wno-write-strings) # Turn off warnings about string literals for now
+add_compile_options(-fpermissive) # Allow more casts for now
+add_compile_options(-w) # Inhibit all warnings for now 
+
+add_executable(cossacks
+    src/game/main.cpp
+    src/game/ddini.cpp
+    src/game/activescenary.cpp
+    src/game/interface.cpp
+    src/game/bmptool.cpp
+    src/game/timing.cpp
+	src/game/selprop.cpp
+	src/game/fastdraw.cpp
+	src/game/resfile.cpp
+	src/game/arc/gscset.cpp
+	src/game/arc/gscarch.cpp
+	src/game/gp_draw.cpp
+	src/game/virtscr.cpp
+	src/game/gamesound.cpp
+	src/game/loadsave.cpp
+	src/game/3drandmap.cpp
+	src/game/multi.cpp
+	src/game/mouse_x.cpp
+	src/game/newcode/securedivision.cpp
+	src/game/newcode/os.cpp
+	src/game/newcode/queuemanagement.cpp
+	src/game/newcode/mapoptionsencoder.cpp
+	src/game/mapa.cpp
+	src/game/select.cpp
+	src/game/dialogs.cpp
+	src/game/newmon.cpp
+	src/game/arc/isimasks.cpp
+	src/game/mouszone.cpp
+	src/game/exconst.cpp
+	src/game/gtext.cpp
+	src/game/strecog.cpp
+	src/game/fog.cpp
+	src/game/masks.cpp
+	src/game/drawforms.cpp
+	src/game/weapon.cpp
+	src/game/3dbars.cpp
+	src/game/lines.cpp
+	src/game/nature.cpp
+	src/game/cdirsnd.cpp
+	src/game/cwave.cpp
+	src/game/devicecd.cpp
+	src/game/newcode/stb_vorbis.c
+	src/game/gamesound.cpp
+	src/game/multi.cpp
+	src/game/unsyncro.cpp
+	src/game/recorder.cpp
+	src/game/realwater.cpp
+	src/game/river.cpp
+	src/game/savenewmap.cpp
+	src/game/gvclass.cpp
+	src/game/report.cpp
+	src/game/linux_stubs.cpp
+
+	src/game/conststr.cpp
+
+	src/game/antibug.cpp
+	src/game/stringshash.cpp
+	src/game/graphs.cpp
+	src/game/fractal.cpp
+	src/game/archtool.cpp
+	src/game/nation.cpp
+	src/game/mapsprites.cpp
+	src/game/menu.cpp
+	src/game/walls.cpp
+	src/game/waves.cpp
+	src/game/hint.cpp
+	src/game/economy.cpp
+	src/game/groups.cpp
+	src/game/motion.cpp
+	src/game/path.cpp
+	src/game/navorots.cpp
+	src/game/newai.cpp
+	src/game/zbuffer.cpp
+	src/game/brigade.cpp
+	src/game/build.cpp
+	src/game/danger.cpp
+	src/game/activezone.cpp
+	src/game/upgrade.cpp
+	src/game/newupgrade.cpp
+	src/game/nuclear.cpp
+	src/game/onwater.cpp
+	src/game/transport.cpp
+	src/game/mine.cpp
+	src/game/3dmaped.cpp
+	src/game/3dsurf.cpp
+	src/game/megapolis.cpp
+	src/game/icontool.cpp
+	src/game/topograf.cpp
+	src/game/strategyresearch.cpp
+	src/game/einfoclass.cpp
+	src/game/3dgraph.cpp
+	src/game/shiptrace.cpp
+)
+
+# Link to the actual SDL3 libraries.
+target_link_libraries(cossacks PRIVATE SDL3_image::SDL3_image SDL3::SDL3)
+
+# Export the game's extern "C" AI-API functions (activescenary.cpp) into the
+# dynamic symbol table, so AI modules loaded with dlopen can resolve them
+# via dlsym(RTLD_DEFAULT) - the Linux equivalent of the AI DLLs calling
+# GetProcAddress on the game executable.
+target_link_options(cossacks PRIVATE "-rdynamic")
+
+###################################################
+#         Nation AI modules                       #
+###################################################
+
+# The game dlopen()s it via
+# LoadAIFromDLL; on failure-free data the name comes from the text tables
+# (e.g. "AI\Algeria.dll").
+# The game is run from the repo root (which doubles as the game data
+# directory) and dlopen()s the module as a loose file "AI/<Nation>.so" -
+# dlopen cannot read files packed inside all.gsc (see docs/PortingNotes.md).
+# So emit the modules straight into the game dir's AI/ folder, next to the
+# original Windows AI/<Nation>.dll set, instead of the build tree.
+set(AI_MODULES_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/AI")
+
+add_library(Algeria MODULE src/ai/Algeria/dllmain.cpp)
+set_target_properties(Algeria PROPERTIES PREFIX "" OUTPUT_NAME "Algeria"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+# Hidden by default: keeps the module's same-named function-pointer globals
+# (typedefs.h) from being interposed by the game's exported symbols. The three
+# game-facing exports (InitAI/ProcessAI/OnInit) override this explicitly.
+target_compile_options(Algeria PRIVATE "-fvisibility=hidden")
+
+# add_library(Austria MODULE src/ai/Austria/dllmain.cpp)
+# set_target_properties(Austria PROPERTIES PREFIX "" OUTPUT_NAME "Turcia"
+#     LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+# target_compile_options(Austria PRIVATE "-fvisibility=hidden")
+
+add_library(Turkey MODULE src/ai/Turkey/dllmain.cpp)
+set_target_properties(Turkey PROPERTIES PREFIX "" OUTPUT_NAME "Turcia"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Turkey PRIVATE "-fvisibility=hidden")
+
+add_library(Russia MODULE src/ai/Russia/dllmain.cpp)
+set_target_properties(Russia PROPERTIES PREFIX "" OUTPUT_NAME "Russia"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Russia PRIVATE "-fvisibility=hidden")
+
+
+# And Boost
+find_package(Boost REQUIRED COMPONENTS context filesystem iostreams)
+target_link_libraries(cossacks PRIVATE Boost::context Boost::filesystem Boost::iostreams)
+
+# Small SDL3 utility to browse GSC resource archives.
+# Links the real game sprite renderer (gp_draw/fastdraw/fog/resfile) so GP
+# previews are produced by the exact code paths the game uses on Linux.
+add_executable(gscbrowser
+    tools/gscbrowser.cpp
+    src/game/arc/gscarch.cpp
+    src/game/arc/gscset.cpp
+    src/game/arc/isimasks.cpp
+    src/game/newcode/os.cpp
+    src/game/resfile.cpp
+    src/game/gtext.cpp
+    src/game/exconst.cpp
+    src/game/gp_draw.cpp
+    src/game/fastdraw.cpp
+    src/game/fog.cpp
+    src/game/newcode/securedivision.cpp
+)
+target_link_libraries(gscbrowser PRIVATE SDL3::SDL3 Boost::iostreams Boost::filesystem)

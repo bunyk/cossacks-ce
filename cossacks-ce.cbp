@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="cossacks-ce" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/cossacks-ce" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+				<Linker>
+					<Add library="SDL3_image" />
+					<Add library="SDL3" />
+				</Linker>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/cossacks-ce" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-w" />
+			<Add option="-Wall" />
+			<Add option="-Wno-write-strings" />
+			<Add option="-fpermissive" />
+			<Add directory="vendored/SDL/include" />
+			<Add directory="vendored/SDL_image/include" />
+		</Compiler>
+		<Linker>
+			<Add library="boost_context" />
+			<Add library="SDL3" />
+			<Add library="SDL3_image" />
+			<Add directory="vendored/SDL/build" />
+			<Add directory="vendored/SDL3_image/build" />
+		</Linker>
+		<Unit filename="src/game/3drandmap.cpp" />
+		<Unit filename="src/game/activescenary.cpp" />
+		<Unit filename="src/game/arc/gscarch.cpp" />
+		<Unit filename="src/game/arc/gscset.cpp" />
+		<Unit filename="src/game/bmptool.cpp" />
+		<Unit filename="src/game/ddini.cpp" />
+		<Unit filename="src/game/fastdraw.cpp" />
+		<Unit filename="src/game/gamesound.cpp" />
+		<Unit filename="src/game/gp_draw.cpp" />
+		<Unit filename="src/game/interface.cpp" />
+		<Unit filename="src/game/loadsave.cpp" />
+		<Unit filename="src/game/main.cpp" />
+		<Unit filename="src/game/mapa.cpp" />
+		<Unit filename="src/game/mouse_x.cpp" />
+		<Unit filename="src/game/multi.cpp" />
+		<Unit filename="src/game/newcode/os.cpp" />
+		<Unit filename="src/game/newcode/securedivision.cpp" />
+		<Unit filename="src/game/resfile.cpp" />
+		<Unit filename="src/game/select.cpp" />
+		<Unit filename="src/game/selprop.cpp" />
+		<Unit filename="src/game/timing.cpp" />
+		<Unit filename="src/game/virtscr.cpp" />
+		<Unit filename="src/game/dialogs.cpp" />
+		<Unit filename="src/game/newmon.cpp" />
+		<Extensions />
+	</Project>
+</CodeBlocks_project_file>

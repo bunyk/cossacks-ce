@@ -1,0 +1,279 @@
+// GSCarch.cpp: implementation of the CGSCarch class.
+
+#include <SDL3/SDL.h>
+#include <stdio.h>
+#include "gsctypes.h"
+#include "gscarch.h"
+#include "gscset.h"
+#include "isimasks.h"
+#include "../newcode/os.h"
+
+//////////////////////////////////////////////////////////////////////
+// Construction/Destruction
+//////////////////////////////////////////////////////////////////////
+CGSCarch::CGSCarch()
+{}
+
+GFILE_API CGSCarch::~CGSCarch()
+{}
+
+extern SDL_Window* sdlWindow;
+
+void GSC_OpenError(std::string msg = "")
+{
+	std::string fullMsg = "Unable to map files into memory. " + msg;
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Loading error...", fullMsg.c_str(), sdlWindow);
+}
+
+BOOL CGSCarch::Open( LPCSTR lpcsArchFileName )
+{
+	printf("Opening archive file: %s\n", lpcsArchFileName );
+	strcpy( m_ArchName, lpcsArchFileName );
+
+#ifdef _WIN32
+	m_hMapFile = CreateFile( m_ArchName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, 0 );
+	if (INVALID_HANDLE_VALUE == m_hMapFile)
+	{
+		GSC_OpenError();
+		return FALSE;
+	}
+
+	m_hMapping = CreateFileMapping( m_hMapFile, NULL, PAGE_READONLY, 0, 0, NULL );
+	if (!m_hMapping)
+	{
+		GSC_OpenError();
+		return FALSE;
+	}
+
+
+	m_pViewOfFile = (LPBYTE) MapViewOfFile( m_hMapping, FILE_MAP_READ, 0, 0, 0 );
+	if (!m_pViewOfFile)
+	{
+		GSC_OpenError();
+		return FALSE;
+	}
+
+	m_Header = (TGSCarchHDR*) ( m_pViewOfFile );
+	m_FAT = (TGSCarchFAT*) ( LPBYTE( m_pViewOfFile ) + sizeof( TGSCarchHDR ) );
+	m_Data = LPBYTE( m_pViewOfFile ) + sizeof( TGSCarchHDR )
+		+ ( m_Header->m_Entries * sizeof( TGSCarchFAT ) );
+#else
+
+    m_MappedFile.open(lpcsArchFileName);
+    if (!m_MappedFile.is_open()) {
+        GSC_OpenError("mapped file could not be opened");
+        return false;
+    }
+
+    const char* data = m_MappedFile.data();
+    std::size_t size = m_MappedFile.size();
+
+    if (size < sizeof(TGSCarchHDR)) {
+        GSC_OpenError("file is too small to contain a valid header");
+        return false;
+    }
+
+    m_Header = reinterpret_cast<const TGSCarchHDR*>(data);
+	printf("Archive '%s' has %u entries.\n", lpcsArchFileName, m_Header->m_Entries);
+    m_FAT = reinterpret_cast<const TGSCarchFAT*>(data + sizeof(TGSCarchHDR));
+    m_Data = reinterpret_cast<const uint8_t*>(
+        data + sizeof(TGSCarchHDR) + m_Header->m_Entries * sizeof(TGSCarchFAT)
+    );
+
+#endif
+    return true;
+}
+
+BOOL CGSCarch::Close()
+{
+#ifdef _WIN32
+	if (m_pViewOfFile)
+	{
+		UnmapViewOfFile( m_pViewOfFile );
+	}
+
+	if (m_hMapFile != INVALID_HANDLE_VALUE)
+	{
+		CloseHandle( m_hMapFile );
+	}
+
+#endif
+	return TRUE;
+}
+
+LPGSCfile CGSCarch::GetFileHandle( LPCSTR lpcsFileName )
+{
+	DWORD			i = 0;
+	LPGSCfile		lpFileHandle = NULL;
+	LPGSCarchFAT	pFAT = NULL;
+	CHAR			sUpFileName[64];
+
+	ZeroMemory( sUpFileName, 64 );
+	strcpy( sUpFileName, lpcsFileName );
+	_strupr( sUpFileName );
+
+	DWORD HASH = isiCalcHash( sUpFileName );
+
+	for (i = 0; i <= m_Header->m_Entries - 1; i++)
+	{
+		pFAT = (TGSCarchFAT*) ( LPBYTE( m_FAT ) + i * sizeof( TGSCarchFAT ) );
+		if (pFAT->m_Hash == HASH)
+			if (!strcmp( LPCSTR( pFAT->m_FileName ), sUpFileName ))
+			{
+				lpFileHandle = new TGSCfile;
+				lpFileHandle->m_FileHandle = i;
+				lpFileHandle->m_Flags = 1;	// archieve file
+				lpFileHandle->m_Position = 0;
+				return lpFileHandle;
+			}
+	}
+
+	return NULL;
+}
+
+VOID CGSCarch::CloseFileHandle( LPGSCfile lpFileHandle )
+{
+	if (lpFileHandle)
+		delete lpFileHandle;
+}
+
+VOID CGSCarch::MemDecrypt( LPBYTE lpbDestination, DWORD dwSize )
+{
+	BYTE Key = (BYTE) ~( HIBYTE( _CRYPT_KEY_ ) );
+
+	isiDecryptMem( lpbDestination, dwSize, Key );
+}
+
+DWORD CGSCarch::GetFileSize( LPGSCfile lpFileHandle )
+{
+	LPGSCarchFAT pFAT;
+
+	pFAT = (TGSCarchFAT*) ( LPBYTE( m_FAT ) + lpFileHandle->m_FileHandle * sizeof( TGSCarchFAT ) );
+
+	return pFAT->m_Size;
+}
+
+
+DWORD CGSCarch::GetFilePos( LPGSCfile lpFileHandle )
+{
+	return lpFileHandle->m_Position;
+}
+
+VOID CGSCarch::SetFilePos( LPGSCfile lpFileHandle, DWORD dwPosition )
+{
+	lpFileHandle->m_Position = dwPosition;
+}
+
+VOID CGSCarch::ReadFile( LPGSCfile lpFileHandle, LPBYTE lpbBuffer, DWORD dwSize )
+{
+	LPGSCarchFAT pFAT;
+
+	pFAT = (TGSCarchFAT*) ( LPBYTE( m_FAT ) + lpFileHandle->m_FileHandle * sizeof( TGSCarchFAT ) );
+
+	memcpy( lpbBuffer, ( m_Data + ~pFAT->m_Offset + lpFileHandle->m_Position ), dwSize );
+
+	if (pFAT->m_Flags)
+		MemDecrypt( lpbBuffer, dwSize );
+
+	lpFileHandle->m_Position += dwSize;
+}
+
+LPBYTE CGSCarch::GetFileData( LPGSCfile lpFileHandle )
+{
+	LPGSCarchFAT pFAT;
+
+	pFAT = (TGSCarchFAT*) ( LPBYTE( m_FAT ) + lpFileHandle->m_FileHandle * sizeof( TGSCarchFAT ) );
+
+	return m_Data + ~pFAT->m_Offset;
+}
+
+/*
+DWORD CGSCarch::CalcHash(LPCSTR lpcsFileName)
+{
+	DWORD HASH=0;
+	DWORD D=0;
+
+	CHAR sUpFileName[64];
+
+	ZeroMemory(sUpFileName,64);
+
+	strcpy(sUpFileName,lpcsFileName);
+	_strupr(sUpFileName);
+
+	for(int k=0;k<=15;k++)
+	{
+		D=(DWORD(CHAR(sUpFileName[k*4]))   << 24)+
+		  (DWORD(CHAR(sUpFileName[k*4+1])) << 16)+
+		  (DWORD(CHAR(sUpFileName[k*4+2])) << 8 )+
+		  (DWORD(CHAR(sUpFileName[k*4+3]))      );
+
+		HASH+=D;
+	};
+
+	return HASH;
+}
+*/
+
+LPGSCFindData CGSCarch::FindFile( LPCSTR lpcsMask )
+{
+	LPGSCarchFAT pFAT;
+	LPGSCFindData pFindData;
+	LPSTR	lpsDelim;
+	CHAR	sUpMask[64];
+
+	ZeroMemory( sUpMask, 64 );
+	strcpy( sUpMask, lpcsMask );
+	_strupr( sUpMask );
+
+	DWORD i;
+
+	pFindData = new TGSCFindData;
+
+	strcpy( pFindData->m_Mask, sUpMask );
+	pFindData->m_Found = -1;
+
+	for (i = 0; i <= m_Header->m_Entries - 1; i++)
+	{
+		pFAT = (TGSCarchFAT*) ( LPBYTE( m_FAT ) + i * sizeof( TGSCarchFAT ) );
+		if (isiMatchesMask( LPSTR( pFAT->m_FileName ), sUpMask ))
+		{
+			lpsDelim = strrchr( LPSTR( pFAT->m_FileName ), '\\' );
+			if (lpsDelim)
+				strcpy( LPSTR( pFindData->m_FileName ), LPSTR( lpsDelim + 1 ) );
+			else
+				strcpy( LPSTR( pFindData->m_FileName ), LPSTR( pFAT->m_FileName ) );
+
+			pFindData->m_Found = i;
+			return pFindData;
+		};
+	};
+
+	delete pFindData;
+	return NULL;
+};
+
+BOOL CGSCarch::NextFile( LPGSCFindData gFindData )
+{
+	LPGSCarchFAT pFAT;
+	LPSTR lpsDelim;
+
+	DWORD i;
+
+	for (i = gFindData->m_Found + 1; i <= m_Header->m_Entries - 1; i++)
+	{
+		pFAT = (TGSCarchFAT*) ( LPBYTE( m_FAT ) + i * sizeof( TGSCarchFAT ) );
+		if (isiMatchesMask( LPSTR( pFAT->m_FileName ), LPSTR( gFindData->m_Mask ) ))
+		{
+			lpsDelim = strrchr( LPSTR( pFAT->m_FileName ), '\\' );
+			if (lpsDelim)
+				strcpy( LPSTR( gFindData->m_FileName ), LPSTR( lpsDelim + 1 ) );
+			else
+				strcpy( LPSTR( gFindData->m_FileName ), LPSTR( pFAT->m_FileName ) );
+			gFindData->m_Found = i;
+			return TRUE;
+		};
+	};
+
+	delete gFindData;
+	return FALSE;
+}
