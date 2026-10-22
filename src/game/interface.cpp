@@ -6675,10 +6675,14 @@ int processMainMenu()
 
 	SetRLCWindow( 0, 0, RealLx, RSCRSizeY, SCRSizeX );
 
-#ifdef _WIN32 // No multiplayer yet
-	NPlayers = 1; 
+	// Reset to single player at every main menu entry. On Windows NPlayers
+	// comes from mplayer.cpp; on Linux it is a plain global defined above.
+	// Without this reset, games started by loading a save (which skip
+	// MPL_WaitingGame, the other place that sets NPlayers = 1) run with
+	// NPlayers == 0, which disables the in-game fast/slow mode switch:
+	// ProcessGameOptions and SetGSpeed only apply the mode when NPlayers == 1.
+	NPlayers = 1;
 	MultiplayerStart = false;
-#endif // _WIN32
 	ItemChoose = -1;
 	CBar( 0, 0, RealLx, RSCRSizeY, 0 );
 

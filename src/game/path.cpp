@@ -1,3 +1,26 @@
+// Unit motion/pathfinding engine.
+//
+// Movement is planned on two coarse grids ("motion fields", MFIELDS):
+//   MFIELDS[0] = land, MFIELDS[1] = water (a unit picks its field via
+//   OneObject::LockType: 0 = land, 1 = water).
+// A MotionField is a bit-per-cell occupancy matrix (MapV): 1 = the cell is
+// blocked. The map editor / random map generator marks terrain, buildings
+// and walls into it (3dmaped.cpp, 3drandmap.cpp); moving units with
+// OneObject::GLock set temporarily mark their own footprint while they
+// stand or walk, so other units path around them.
+//
+// This is NOT an A*-style pathfinder. The algorithm (CreateFullPath +
+// OneObject::CreatePrePath) is: draw a straight Bresenham line to the
+// target; walk it until the first blocked cell; then wall-follow around
+// the obstacle on both sides at once (right/clockwise and left/counter-
+// clockwise contours) and keep whichever contour rejoins the line or
+// regains direct sight of the target first; append those waypoints and
+// repeat, up to four obstacle hops per move order.
+//
+// Coordinates everywhere are motion cells, not pixels: the map is
+// MAPSX x MAPSY cells (512 << ADDSH); one cell is 256 game units, a cell
+// (x,y) maps to pixel (x << 8, y << 8) and an Lx-wide footprint is centered
+// with (Lx << 7). See OneObject::CreatePath for the conversion.
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
@@ -11,8 +34,17 @@
 #include "path.h"
 #include "topograf.h"
 
+// Set by CreatePrePath when the planner wants the caller to throttle the
+// next attempt (throttles crowd congestion); CreateFullPath converts it
+// into a small random OB->PathDelay.
 bool AllowPathDelay;
 
+// DEAD CODE: MotionBrush and its two factories are implemented here and
+// declared in path.h, but nothing in the game ever constructs a MotionBrush.
+// They are leftovers of an older brush-based pathfinder (see the commented-
+// out MotionField methods in path.h: DrawBrush/CheckBrush/FindWay - none of
+// them exist anymore). The little-endian row masks (1 bit per x cell) would
+// be used to stamp arbitrary shapes into MapV. No need to port or test.
 MotionBrush::MotionBrush()
 {
 	Data = nullptr;
@@ -75,6 +107,13 @@ void MotionBrush::CreateSquareBrush(int d)
 //                    ОБХОД ПРЕПЯТСТВИЙ                  //
 //                                                       //
 //-------------------------------------------------------//
+// MotionField = the occupancy ("what is blocked") matrix itself.
+// MapV is a bit matrix, 1 bit per motion cell, stored column-major:
+//   byte index = (x << (6 + ADDSH)) + (y >> 3), bit = 1 << (y & 7)
+// (the original Windows build had hand-written asm versions of the
+// primitives below, specialized per map size ADDSH = 1/2/3; they were
+// removed in favor of this single portable implementation).
+// B* methods write occupancy, Check* methods read it.
 
 //Zero out MapV
 void MotionField::ClearMaps()
@@ -82,213 +121,24 @@ void MotionField::ClearMaps()
 	memset(MapV, 0, MAPSY*BMSX);//1024*128
 }
 
+// Mark motion cell (x,y) as blocked. Out-of-bounds cells are ignored.
 void MotionField::BSetPt(int x, int y)
 {
-	int MAPV = int(MapV);
 	if (x >= 0 && x < MAPSX&&y >= 0 && y < MAPSY) {
-#ifdef _WIN32
-		switch (ADDSH) {
-		case 1:
-			__asm {
-				//Horisontal
-				/*
-				mov		eax,x
-				mov		ecx,eax
-				and		ecx,7
-				shr		eax,3
-				mov		ebx,y
-				shl		ebx,7//MAPSHF
-				add		ebx,eax
-				mov		al,1
-				shl		al,cl
-				add		ebx,MAPH
-				or		[ebx],al
-				*/
-				//Vertical
-				mov		eax, y
-				mov		ecx, eax
-				and		ecx, 7
-				shr		eax, 3
-				mov		ebx, x
-				shl		ebx, 7//MAPSHF
-				add		ebx, eax
-				mov		al, 1
-				shl		al, cl
-				add		ebx, MAPV
-				or [ebx], al
-			};
-			break;
-		case 2:
-			__asm {
-				//Horisontal
-				/*
-				mov		eax,x
-				mov		ecx,eax
-				and		ecx,7
-				shr		eax,3
-				mov		ebx,y
-				shl		ebx,8//MAPSHF
-				add		ebx,eax
-				mov		al,1
-				shl		al,cl
-				add		ebx,MAPH
-				or		[ebx],al
-				*/
-				//Vertical
-				mov		eax, y
-				mov		ecx, eax
-				and		ecx, 7
-				shr		eax, 3
-				mov		ebx, x
-				shl		ebx, 8//MAPSHF
-				add		ebx, eax
-				mov		al, 1
-				shl		al, cl
-				add		ebx, MAPV
-				or [ebx], al
-			};
-			break;
-		case 3:
-			__asm {
-				//Horisontal
-				/*
-				mov		eax,x
-				mov		ecx,eax
-				and		ecx,7
-				shr		eax,3
-				mov		ebx,y
-				shl		ebx,9//MAPSHF
-				add		ebx,eax
-				mov		al,1
-				shl		al,cl
-				add		ebx,MAPH
-				or		[ebx],al
-				*/
-				//Vertical
-				mov		eax, y
-				mov		ecx, eax
-				and		ecx, 7
-				shr		eax, 3
-				mov		ebx, x
-				shl		ebx, 9//MAPSHF
-				add		ebx, eax
-				mov		al, 1
-				shl		al, cl
-				add		ebx, MAPV
-				or [ebx], al
-			};
-			break;
-		};
-#else
 		MapV[( x << ( 6 + ADDSH ) ) + ( y >> 3 )] |= 1 << ( y & 7 );
-#endif
 	};
 }
 
+// Mark motion cell (x,y) as free. Out-of-bounds cells are ignored.
 void MotionField::BClrPt(int x, int y)
 {
-	int MAPV = int(MapV);
 	if (x >= 0 && x < MAPSX&&y >= 0 && y < MAPSY) {
-#ifdef _WIN32
-		switch (ADDSH) {
-		case 1:
-			__asm {
-				//Horisontal
-				/*
-				mov		eax,x
-				mov		ecx,eax
-				and		ecx,7
-				shr		eax,3
-				mov		ebx,y
-				shl		ebx,7//MAPSHF
-				add		ebx,eax
-				mov		al,254
-				rol		al,cl
-				add		ebx,MAPH
-				and		[ebx],al
-				*/
-				//Vertical
-				mov		eax, y
-				mov		ecx, eax
-				and		ecx, 7
-				shr		eax, 3
-				mov		ebx, x
-				shl		ebx, 7//MAPSHF
-				add		ebx, eax
-				mov		al, 254
-				rol		al, cl
-				add		ebx, MAPV
-				and[ebx], al
-			};
-			break;
-		case 2:
-			__asm {
-				//Horisontal
-				/*
-				mov		eax,x
-				mov		ecx,eax
-				and		ecx,7
-				shr		eax,3
-				mov		ebx,y
-				shl		ebx,8//MAPSHF
-				add		ebx,eax
-				mov		al,254
-				rol		al,cl
-				add		ebx,MAPH
-				and		[ebx],al
-				*/
-				//Vertical
-				mov		eax, y
-				mov		ecx, eax
-				and		ecx, 7
-				shr		eax, 3
-				mov		ebx, x
-				shl		ebx, 8//MAPSHF
-				add		ebx, eax
-				mov		al, 254
-				rol		al, cl
-				add		ebx, MAPV
-				and[ebx], al
-			};
-			break;
-		case 3:
-			__asm {
-				//Horisontal
-				/*
-				mov		eax,x
-				mov		ecx,eax
-				and		ecx,7
-				shr		eax,3
-				mov		ebx,y
-				shl		ebx,9//MAPSHF
-				add		ebx,eax
-				mov		al,254
-				rol		al,cl
-				add		ebx,MAPH
-				and		[ebx],al
-				*/
-				//Vertical
-				mov		eax, y
-				mov		ecx, eax
-				and		ecx, 7
-				shr		eax, 3
-				mov		ebx, x
-				shl		ebx, 9//MAPSHF
-				add		ebx, eax
-				mov		al, 254
-				rol		al, cl
-				add		ebx, MAPV
-				and[ebx], al
-			};
-			break;
-		};
-#else
 		MapV[( x << ( 6 + ADDSH ) ) + ( y >> 3 )] &= ~( 1 << ( y & 7 ) );
-#endif
-
 	};
 }
 
+// Mark an Lx x Lx square as blocked - used for unit footprints
+// (all units occupy square Lx x Lx cells).
 void MotionField::BSetBar(int x, int y, int Lx) {
 	for (int ix = x; ix < x + Lx; ix++)
 	{
@@ -299,6 +149,7 @@ void MotionField::BSetBar(int x, int y, int Lx) {
 	}
 }
 
+// Mark an Lx x Lx square as free (see BSetBar).
 void MotionField::BClrBar(int x, int y, int Lx) {
 	for (int ix = x; ix < x + Lx; ix++)
 	{
@@ -309,6 +160,8 @@ void MotionField::BClrBar(int x, int y, int Lx) {
 	}
 }
 
+// Mark an Lx x Ly rectangle as blocked - used by the map generator/editor
+// for terrain, buildings, walls and the map border (3dmaped.cpp).
 void MotionField::BSetSQ(int x, int y, int Lx, int Ly) {
 	for (int ix = x; ix < x + Lx; ix++)
 	{
@@ -319,6 +172,7 @@ void MotionField::BSetSQ(int x, int y, int Lx, int Ly) {
 	}
 }
 
+// Mark an Lx x Ly rectangle as free (see BSetSQ).
 void MotionField::BClrSQ(int x, int y, int Lx, int Ly) {
 	for (int ix = x; ix < x + Lx; ix++)
 	{
@@ -331,75 +185,14 @@ void MotionField::BClrSQ(int x, int y, int Lx, int Ly) {
 
 //Checks coordinates against MotionField::MapV
 //Possible return values: 0, 1, 2, 4, 8, 16, 32, 64, 128
+// 0 = cell is free, nonzero = cell is blocked.
+// Cells outside the map count as blocked (the world edge is a wall).
 int MotionField::CheckPt(int x, int y)
 {
 	int retval = 0;
-	int MAPV = int(MapV);
 	if (x >= 0 && x < MAPSX&&y >= 0 && y < MAPSY) 
 	{
-#ifdef _WIN32
-		switch (ADDSH) 
-		{
-		case 1:
-			__asm 
-			{
-				mov		eax, y
-				mov		ecx, eax
-				and		ecx, 7
-				shr		eax, 3
-				mov		ebx, x
-				shl		ebx, 7//MAPSHF
-				add		ebx, eax
-				mov		al, 1
-				shl		al, cl
-				add		ebx, MAPV
-				and		al, [ebx]
-				and eax, 0xFF
-				mov		retval, eax
-			}
-			break;
-
-		case 2:
-			__asm 
-			{
-				mov		eax, y
-				mov		ecx, eax
-				and		ecx, 7
-				shr		eax, 3
-				mov		ebx, x
-				shl		ebx, 8//MAPSHF
-				add		ebx, eax
-				mov		al, 1
-				shl		al, cl
-				add		ebx, MAPV
-				and		al, [ebx]
-				and eax, 0xFF
-				mov		retval, eax
-			}
-			break;
-
-		case 3:
-			__asm 
-			{
-				mov		eax, y
-				mov		ecx, eax
-				and		ecx, 7
-				shr		eax, 3
-				mov		ebx, x
-				shl		ebx, 9//MAPSHF
-				add		ebx, eax
-				mov		al, 1
-				shl		al, cl
-				add		ebx, MAPV
-				and		al, [ebx]
-				and eax, 0xFF
-				mov		retval, eax
-			}
-			break;
-		}
-#else
 		retval = MapV[( x << ( 6 + ADDSH ) ) + ( y >> 3 )] & ( 1 << ( y & 7 ) );
-#endif
 		return retval;
 	}
 	else
@@ -408,6 +201,8 @@ int MotionField::CheckPt(int x, int y)
 	}
 }
 
+// 1 if any of the Lx cells of the horizontal run starting at (x,y) is
+// blocked, 0 if the whole run is free.
 int MotionField::CheckHLine(int x, int y, int Lx)
 {
 	for (int i = 0; i < Lx; i++)
@@ -420,88 +215,20 @@ int MotionField::CheckHLine(int x, int y, int Lx)
 	return 0;
 }
 
+// Same as CheckHLine for a vertical run of Lx cells downward from (x,y).
+// Fast path: the whole run fits in one 32-bit word (hence Lx <= 24 and the
+// little-endian byte gather in the portable branch). Outside the map or
+// with Lx > 24 it conservatively reports blocked.
 int MotionField::CheckVLine(int x, int y, int Lx)
 {
 	int retval = 0;
-	int MAPV = int(MapV);
 	if (x > 0 && y > 0 && y + Lx - 1 < MAPSY && x < MAPSX && Lx <= 24)
 	{
-#ifdef _WIN32
-		switch (ADDSH)
-		{
-		case 1:
-			__asm
-			{
-				mov		eax, y
-				mov		edx, eax
-				and		edx, 7
-				shr		eax, 3
-				mov		ebx, x
-				shl		ebx, 7//MAPSHF
-				add		ebx, eax
-				mov		ecx, Lx
-				mov		eax, 1
-				shl		eax, cl
-				dec		eax
-				mov		cl, dl
-				rol		eax, cl
-				add		ebx, MAPV
-				and		eax, dword ptr[ebx]
-				mov		retval, eax
-			}
-			break;
-
-		case 2:
-			__asm
-			{
-				mov		eax, y
-				mov		edx, eax
-				and		edx, 7
-				shr		eax, 3
-				mov		ebx, x
-				shl		ebx, 8//MAPSHF
-				add		ebx, eax
-				mov		ecx, Lx
-				mov		eax, 1
-				shl		eax, cl
-				dec		eax
-				mov		cl, dl
-				rol		eax, cl
-				add		ebx, MAPV
-				and		eax, dword ptr[ebx]
-				mov		retval, eax
-			}
-			break;
-
-		case 3:
-			__asm
-			{
-				mov		eax, y
-				mov		edx, eax
-				and		edx, 7
-				shr		eax, 3
-				mov		ebx, x
-				shl		ebx, 9//MAPSHF
-				add		ebx, eax
-				mov		ecx, Lx
-				mov		eax, 1
-				shl		eax, cl
-				dec		eax
-				mov		cl, dl
-				rol		eax, cl
-				add		ebx, MAPV
-				and		eax, dword ptr[ebx]
-				mov		retval, eax
-			}
-			break;
-		}
-#else
 		// one little-endian 32-bit load; (1<<Lx)-1 shifted left by (y&7),
 		// no wraparound since (y&7)+Lx <= 31
 		const byte* p = MapV + ( x << ( 6 + ADDSH ) ) + ( y >> 3 );
 		DWORD v = p[0] | ( p[1] << 8 ) | ( p[2] << 16 ) | ( p[3] << 24 );
 		retval = v & ( ( ( 1 << Lx ) - 1 ) << ( y & 7 ) );
-#endif
 		return retval;
 	}
 	else
@@ -510,6 +237,8 @@ int MotionField::CheckVLine(int x, int y, int Lx)
 	}
 }
 
+// true if any cell of the Lx x Ly rectangle at (x,y) is blocked.
+// This is the main "can a unit of this size stand here?" test.
 bool MotionField::CheckBar(int x, int y, int Lx, int Ly)
 {
 	for (int ix = 0; ix < Lx; ix++)
@@ -522,8 +251,20 @@ bool MotionField::CheckBar(int x, int y, int Lx, int Ly)
 	return false;
 }
 
-extern byte NewCirc[16];
+extern byte NewCirc[16];// defined in newmon.cpp
 
+// Fill NewCirc[0..7] with the blocked/free state of the eight cells
+// surrounding the Lx x Ly rectangle at (x,y) - the input for the
+// wall-follower in CreatePrePath. Direction numbering (clockwise from
+// north, matching ndrr/nidrx below):
+//   0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW
+// i.e. NewCirc[i] = 1 when the neighbor strip in direction i is blocked.
+// The strip tests (HLine/VLine) cover the sides; for low rectangles the
+// diagonals need a single CheckPt, for high ones a corner diagonal can be
+// blocked along either adjoining side, hence the Ly cases.
+// At the end NewCirc[8..15] is set as a mirror of NewCirc[0..7]
+// (xx[2]=xx[0], xx[3]=xx[1]), so the caller can index directions as
+// (8 + d) without a modulo when scanning backwards.
 void MotionField::FillNewCirc(int x, int y, int Lx, int Ly)
 {
 	int* xx = (int*)NewCirc;
@@ -601,18 +342,29 @@ void MotionField::FillNewCirc(int x, int y, int Lx, int Ly)
 //            Search for the best way             //
 //------------------------------------------------//
 #define MaxP (4096)
-extern word pxx[MaxP + 160];
+extern word pxx[MaxP + 160];// scratch: Bresenham line points, newmon.cpp
 extern word pyy[MaxP + 160];
-extern word RVIS[MaxP + 160];
-extern word LVIS[MaxP + 160];
+extern word RVIS[MaxP + 160];// scratch: contour indices with direct sight
+extern word LVIS[MaxP + 160];// of the target (CreatePrePath only)
 int GetLAngle(int dx, int dy, int Angle);
 int GetRAngle(int dx, int dy, int Angle);
+// ndrr: step delta (dx,dy in {-1,0,1}) -> compass direction 0..7,
+// indexed as ndrr[(dx+1)*3 + (dy+1)]:
+//   0=N(0,-1) 1=NE(1,-1) 2=E(1,0) 3=SE(1,1)
+//   4=S(0,1)  5=SW(-1,1) 6=W(-1,0) 7=NW(-1,-1)
 const int ndrr[9] = { 7,6,5,0,0,4,1,2,3 };
+// nidrx/nidry: direction 0..7 -> step delta (matching the list above).
 const int nidrx[8] = { 0,1,1,1,0,-1,-1,-1 };
 const int nidry[8] = { -1,-1,0,1,1,1,0,-1 };
 
 MotionField MFIELDS[2];//0-Land,1-Water
 
+// Spiral search for a free spot near a desired destination: scan the
+// square ring at growing Chebyshev distance from (*xd,*yd) (R0 rings max)
+// for a position where OB's footprint (Lx + 2 margin) is unblocked, taking
+// the candidate closest to the unit's current cell. Adjusts *xd/*yd in
+// place; returns true on success. Used to snap move targets that would
+// otherwise land inside an obstacle or a crowd.
 bool FindBestPosition(OneObject* OB, int* xd, int* yd, int R0)
 {
 	MotionField* MFI = &MFIELDS[OB->LockType];
@@ -689,6 +441,12 @@ bool FindBestPosition(OneObject* OB, int* xd, int* yd, int R0)
 	return false;
 }
 
+// Build the full path of OB to cell (x1,y1): drop any old path, snap the
+// target to a reachable cell (FindBestPosition), then call CreatePrePath
+// repeatedly (max 4 segments). Each CreatePrePath call walks around ONE
+// obstacle and ends at a cell from which the target is directly visible,
+// so the loop chains segments across several obstacles until the target
+// is reached or an attempt fails.
 void CreateFullPath(int x1, int y1, OneObject* OB)
 {
 	OB->DeletePath();
@@ -720,7 +478,41 @@ void CreateFullPath(int x1, int y1, OneObject* OB)
 	}
 }
 
+// sssh = subsampling shift for stored waypoints of the bypass segment:
+// only every (1 << sssh)-th contour point is appended to PathX/PathY
+// (smoother paths store more points). CreatePrePath: 1 (every 2nd),
+// CreatePrePath2: 2 (every 4th), CreatePrePath4: 3 (every 8th).
 #define sssh 1
+// One step of the path search (land variant): try to advance OB toward
+// cell (x1,y1) and append waypoints for the FIRST obstacle on the way.
+// Returns false when no new segment is needed - either the straight line
+// is already clear (uu == Pps check below), the unit is already there
+// (<2 cells), or planning failed (sets PathDelay, a random retry timeout
+// in frames decremented in newmon.cpp, to spread crowd congestion:
+// 200+ for land, 64+ for water).
+//
+// Algorithm (this and the two *2/*4 copies below share it):
+//  1. Bresenham-line the unit's cell to (x1,y1) into the global pxx/pyy.
+//  2. If the unit's own cell is blocked (InLocked, e.g. it stands inside
+//     a crowd), make a one-point path to the first free cell on the line.
+//  3. Otherwise walk the line to the first blocked cell and wall-follow
+//     the obstacle with two contours in lockstep: R = clockwise ("right")
+//     and L = counterclockwise ("left"), one step of each per iteration,
+//     guided by FillNewCirc. Track per contour:
+//       - Rppm/Lppm: the point of maximum angular deviation from the
+//         start->target line (GetLAngle/GetRAngle) - the best exit point,
+//       - RVIS/LVIS (this variant) or Rvp/Lvp (*2): contour points from
+//         which the target is directly visible again,
+//       - RDoing/LDoing: whether the contour has re-crossed the straight
+//         line yet (Rcum/Lcum are cross products of the contour step
+//         against the line direction, sign change = crossing).
+//  4. Prefer the contour that re-crossed first (RightPrefer); truncate it
+//     at the max-deviation point, extend to the first direct-sight point,
+//     subsample by sssh and append to PathX/PathY (NeedPath = true tells
+//     the movement code in newmon.cpp a fresh path exists).
+// If OB->GLock is set the unit owns its occupancy bits: they are cleared
+// while planning (so the unit does not path around itself) and restored
+// on every exit path. The stack arrays Rpx/Rpy/Lpx/Lpy are 2 KB each.
 bool OneObject::CreatePrePath(int x1, int y1)
 {
 	AllowPathDelay = false;
@@ -1119,6 +911,10 @@ bool OneObject::CreatePrePath(int x1, int y1)
 };
 #undef sssh
 #define sssh 2
+// Water variant: CreatePrePath forwards here for LockType == 1 (ships).
+// Same wall-follow algorithm as CreatePrePath, but keeps the direct-sight
+// points (Rvp/Lvp) on the fly instead of in the RVIS/LVIS lists, and uses
+// a shorter retry PathDelay (64+ vs 200+).
 bool OneObject::CreatePrePath2(int x1, int y1) {
 	if (PathDelay)return false;
 	if (abs(x - x1) < 2 && abs(y - y1) < 2)return false;
@@ -1495,6 +1291,10 @@ bool OneObject::CreatePrePath2(int x1, int y1) {
 };
 #undef sssh
 #define sssh 3
+// DEAD CODE: CreatePrePath4 has no callers anywhere (only declared in
+// mapdiscr.h). It is a copy of CreatePrePath2 with coarser waypoint
+// subsampling (every 8th point, sssh = 3). Leftover experiment; safe to
+// ignore when porting.
 bool OneObject::CreatePrePath4(int x1, int y1) {
 	if (PathDelay)return false;
 	if (abs(x - x1) < 2 && abs(y - y1) < 2)return false;
@@ -1870,6 +1670,11 @@ bool OneObject::CreatePrePath4(int x1, int y1) {
 	if (GLock)MFI->BSetBar(x, y, Lx);
 	return false;
 };
+// Push a unit that ended up standing INSIDE a blocked area (e.g. a wall
+// was completed on top of it) back out: scan rings of precomputed offsets
+// (Rarr, topograf.h) at growing distance from its current cell for the
+// first unblocked position for its footprint and teleport it there
+// (updates x/y and the pixel RealX/RealY). Called from newmon.cpp.
 void CorrectLockPosition(OneObject* OB) {
 	MotionField* MFI = MFIELDS + OB->LockType;
 	int x0 = OB->x;
@@ -1893,6 +1698,18 @@ void CorrectLockPosition(OneObject* OB) {
 	};
 };
 #undef CreatePath
+// Main entry point of the pathfinder, called by all movement/order code
+// (newmon.cpp, transport.cpp) with a target motion cell. CPdestX/CPdestY
+// cache the destination of the current path:
+//  - same destination again: reuse the existing path, just consuming the
+//    remaining waypoints (and re-planning via CreateFullPath only if the
+//    next waypoint has meanwhile become blocked);
+//  - new destination: free the old path and plan a fresh one.
+// OneObject::PathX/PathY hold the waypoints in cell coordinates; the
+// walker in newmon.cpp consumes them from the end (NIPoints--) and heads
+// for PathX[NIPoints-1] via DestX/DestY (cell << 8 + centering Lx << 7).
+// UnlimitedMotion units (projectiles/birds) skip all planning and just
+// get DestX/DestY set.
 void OneObject::CreatePath(int x1, int y1) {
 
 
