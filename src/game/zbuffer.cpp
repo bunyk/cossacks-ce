@@ -479,37 +479,6 @@ void AddLine( short X1, short Y1, short X2, short Y2, short x, short y, OneObjec
 void SortWords( int NWords, word* Data, short* Factor )
 {
 	if (NWords < 2) return;
-#ifdef _WIN32
-	__asm
-	{
-		push	esi
-		push	edi
-		SW0 : mov		edi, Data
-			  mov		esi, Factor
-			  mov		ebx, 1
-			  mov		ecx, NWords;
-		dec		ecx
-			SW1 : mov		ax, [esi + 2]
-			cmp		ax, [esi]
-			jge		SW3
-			mov		dx, [esi]
-			mov[esi + 2], dx
-			mov[esi], ax
-			mov		ax, [edi]
-			mov		dx, [edi + 2]
-			mov[edi], dx
-			mov[edi + 2], ax
-			xor		ebx, ebx
-			SW3 : add		esi, 2
-			add		edi, 2
-			dec		ecx
-			jnz		SW1
-			or ebx, ebx
-			jz		SW0
-			pop		edi
-			pop		esi
-	}
-#else
 	// Bubble sort Factor[] ascending, keeping Data[] in sync
 	bool swapped;
 	do {
@@ -522,7 +491,6 @@ void SortWords( int NWords, word* Data, short* Factor )
 			}
 		}
 	} while (swapped);
-#endif
 }
 
 void SortZBuffer()

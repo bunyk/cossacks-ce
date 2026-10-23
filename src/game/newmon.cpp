@@ -4412,7 +4412,6 @@ void AddToVisual( short uy, short x, short y, OneObject* OB, word FileID, word S
 		} while ( true );
 	};
 };
-void ShowRLCItemTrans8( int x, int y, lpRLCTable lprt, int n );
 void ShowVisual()
 {
 	if ( !NVUnits )return;
