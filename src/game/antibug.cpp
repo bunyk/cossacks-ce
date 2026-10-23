@@ -11,16 +11,6 @@
 #include "nature.h"
 #include <assert.h>
 #define CHECKMODE
-struct AskMove{
-	word ReqID;//индекс перемещаемого
-	word PreID;//индекс жаждущего дорваться в эту клетку
-	byte x;
-	byte y;
-	char dx;
-	char dy;
-};
-extern int NAsk;//Количество запросов
-extern AskMove Ask[8192];//Массив запросов
 
 class CSum{
 	int* lpInt;
@@ -68,14 +58,6 @@ void GETALL(){
 #ifdef CHECKMODE
 	for(int i=0;i<NSum;i++)	SMS[i].GetSum();
 #endif
-};
-//Asks array integrity checking
-void CheckAsks(){
-	for(int i=0;i<NAsk;i++){
-		word ID=Ask[i].ReqID;
-		OneObject* OB=Group[ID];
-		//assert(OB&&OB->x==Ask[i].x&&Ask[i].y==OB->y);
-	};
 };
 static int dd=0;
 int CheckSum;
@@ -126,7 +108,6 @@ void CHKALL(){
 //	for(int i=0;i<NSum;i++) assert(SMS[i].ChkSum());
 //	if(!_CrtCheckMemory())
 //		assert(0);
-//	CheckAsks();
 	/*for(int i=1;i<msx;i++)
 		for(int j=1;j<msy;j++){
 			word MID=Mops[j][i];

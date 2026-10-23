@@ -158,7 +158,6 @@ byte blx;
 byte bly;
 word BuildingID;
 Nation* BNat;
-extern int NAsk;
 extern int mousePointerType;
 int	smapx;
 int	smapy;
