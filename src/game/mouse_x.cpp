@@ -158,42 +158,6 @@ void RestoreMData( void* scrn, void* buf, void* comp, int x, int y, int SSizeX, 
 		return;
 	}
 
-#ifdef _WIN32
-	// x << 5 is equivalent to multiplying by 32.
-	int src1 = int( buf ) + bx + ( by << 5 ); // source buffer address
-	int srcom = int( comp ) + bx + ( by << 5 ); // comparison buffer
-	int scrof = int( scrn ) + x1 + y1*SSizeX; // screen buffer address
-	int addscr = SSizeX - Lx; // additional bytes to skip in the screen buffer, when moving to the next row
-	int add32 = 32 - Lx; // additional bytes to skip in the 32x32 buffer
-
-	__asm
-	{
-		push	esi
-		push	edi
-		mov		edx, Ly
-		mov		esi, src1
-		mov		ebx, srcom
-		mov		edi, scrof
-		cld
-		lpp0 : mov		ecx, Lx
-			   lpp1 : lodsb
-					  mov		ah, [edi]
-					  cmp		ah, [ebx]
-					  jnz		lpp2
-					  mov[edi], al
-					  lpp2 : inc		edi
-							 inc		ebx
-							 dec		ecx
-							 jnz		lpp1
-							 add		edi, addscr
-							 add		ebx, add32
-							 add		esi, add32
-							 dec		edx
-							 jnz		lpp0
-							 pop		edi
-							 pop		esi
-	}
-#else
 	uint8_t* src1 = reinterpret_cast<uint8_t*>(buf);
 	uint8_t* srcom = reinterpret_cast<uint8_t*>(comp);
 	uint8_t* scrof = reinterpret_cast<uint8_t*>(scrn);
@@ -212,7 +176,6 @@ void RestoreMData( void* scrn, void* buf, void* comp, int x, int y, int SSizeX, 
 			}
 		}
 	}
-#endif // _WIN32
 }
 
 //Sets mouse[X|Y] & real[L|R]pressed variables according to mouse state

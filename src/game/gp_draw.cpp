@@ -1942,14 +1942,6 @@ void GP_System::FreeRefs( int FileIndex )
 			*PAK = 0xFFFFFFFF;
 			DIFF = lpGPCUR->NextPict;
 
-			/*
-			__asm
-			{
-				mov		eax, lpGP
-				add		eax, DIFF
-				mov		lpGPCUR, eax
-			}
-			*/
 			lpGPCUR = (GP_Header*)( (byte*) lpGP + DIFF );
 
 			UnpackLen = lpGPCUR->CData >> 14;

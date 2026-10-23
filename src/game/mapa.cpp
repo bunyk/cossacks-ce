@@ -2378,28 +2378,6 @@ void GMiniShow()
 	minix = RealLx - MiniLx - 12;
 	miniy = RealLy - MiniLy - 16;
 
-	//TESTING: display color palette instead of minimap
-	//Dimensions of minimap : MiniLx * MiniLy
-	//? ? ? : MiniX = MiniY = -1
-	//Position ? : minix = 772; miniy = 512
-	/*
-	char colorbyte = 0x00;
-	for (int row = 0; row < 16; row++)
-	{
-		for (int col = 0; col < 16; col++)
-		{
-			for (int cell_x = 0; cell_x < 15; cell_x++)
-			{
-				for (int cell_y = 0; cell_y < 15; cell_y++)
-				{
-					minimap[15 * row + cell_x][15 * col + cell_y] = colorbyte;
-				}
-			}
-			colorbyte++;
-		}
-	}
-	*/
-
 	//Copy data from minimap buffer into the screen buffer
 	// (original used 32-bit int pointer arithmetic - fixed for 64-bit)
 	byte* scr = (byte*) ScreenPtr + minix + ( (intptr_t) miniy ) * SCRSizeX;
