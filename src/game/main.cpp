@@ -388,7 +388,6 @@ DLLEXPORT SDL_Keycode LastKey;
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 {
-	printf("SDL_AppInit\n");
 	for (int i = 0; i < argc; i++)
 	{
 		if (strcmp(argv[i], "/MAPEDITOR") == 0)
@@ -419,7 +418,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	}
 
 	InitSDL();
-	printf("SDL initialized.\n");
 
 	//Init DirectDraw and find possible resolutions
 	EnumModesOnly();
@@ -712,7 +710,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	// Fine on desktop, but not on mobile
 	SDL_StartTextInput(sdlWindow);
 
-	printf(">>> SDL_AppInit done. Starting AllGameCoroutine\n");
 	AllGameCoroutine = new boost::coroutines2::coroutine<void>::pull_type(
 		boost::context::fixedsize_stack(8 * 1024 * 1024), AllGame);
 
@@ -2003,6 +2000,7 @@ void GameKeyCheck()
 	{
 		KeyPressed = false;
 		SDL_Keycode wParam = LastKey;
+
 		switch (wParam)
 		{
 		case SDLK_ESCAPE:
@@ -2112,7 +2110,9 @@ void GameKeyCheck()
 			}
 			break;
 		case SDLK_TILDE:
+		case SDLK_GRAVE:
 			HealthMode = !HealthMode;
+			printf("HealthMode: %d\n", HealthMode);
 			break;
 		case SDLK_DELETE:
 			SpecCmd = 200;
