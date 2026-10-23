@@ -2369,11 +2369,16 @@ void GMiniShow()
 	if (MiniY < 0)
 		MiniY = 0;
 
-	if (MiniX + MiniLx >= MaxMLX)
-		MiniX = MaxMLX - MiniLx - 1;
+	// Clamp the window inside the map. The original used
+	// "MaxMLX - MiniLx - 1", which becomes -1 when the whole map fits in
+	// the window (MiniLx == MaxMLX, e.g. the fullscreen minimap); the
+	// copy below then read one row before the minimap buffer and showed
+	// a line of random pixels at the top of the minimap.
+	if (MiniX + MiniLx > MaxMLX)
+		MiniX = MaxMLX - MiniLx;
 
-	if (MiniY + MiniLy >= MaxMLY)
-		MiniY = MaxMLY - MiniLy - 1;
+	if (MiniY + MiniLy > MaxMLY)
+		MiniY = MaxMLY - MiniLy;
 
 	minix = RealLx - MiniLx - 12;
 	miniy = RealLy - MiniLy - 16;
