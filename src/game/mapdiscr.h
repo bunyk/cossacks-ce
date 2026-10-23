@@ -1903,8 +1903,6 @@ typedef void UniqMethood( int x, int y );
 
 void HandleSW();
 void CreateStrangeObject( int i, byte NI, int x, int y, word ID );
-void ShowRLCItemMutno( int x, int y, lpRLCTable lprt, int n );
-void ShowRLCItemFired( int x, int y, lpRLCTable lprt, int n );
 bool CheckAttAbility( OneObject* OB, word Patient );
 void PrepareToEdit();
 void PrepareToGame();

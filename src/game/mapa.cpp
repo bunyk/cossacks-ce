@@ -79,7 +79,6 @@ extern int LOADED;
 extern bool SHOWSLIDE;
 extern bool CINFMOD;
 void ShowMines( NewMonster* NM );
-void ShowRLCItemDarkN( int x, int y, lpRLCTable lprt, int n, int Ints );
 void ShowRLCItemRedN( int x, int y, lpRLCTable lprt, int n, int Ints );
 int CheckCreationAbility( byte NI, NewMonster* NM, int* x2i, int* y2i, word* BLD, int NBLD );
 void CmdGoToTransport( byte NI, word ID );

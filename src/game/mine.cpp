@@ -1093,8 +1093,6 @@ char* GetSprResourceName( OneObject* OB )
 	return nullptr;
 }
 
-void ShowRLCItemTrans8( int x, int y, lpRLCTable lprt, int n );
-
 extern uint64_t GetSDLTickCount();
 
 void ShowBuilding( NewMonster* NM, int x, int y, byte kind )
