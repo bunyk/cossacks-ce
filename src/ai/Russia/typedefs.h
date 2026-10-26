@@ -87,32 +87,3 @@ tpSetAIRegister* SetAIRegister = nullptr;
 
 typedef int tpGetAIRegister(int Reg);
 tpGetAIRegister* GetAIRegister = nullptr;
-
-typedef void tpSetDefSettings(int MaxGuards, int AbsMaxGuards);
-tpSetDefSettings* SetDefSettings = nullptr;
-
-typedef void tpSetDefenseState(unsigned char State);
-tpSetDefenseState* SetDefenseState = nullptr;
-
-// Res: 0=wood 1=gold 2=stone 3=food 4=iron 5=coal; Val: 1=forbid upgrades costing that resource
-typedef void tpSetUpgradeLock(unsigned char Res, unsigned char Val);
-tpSetUpgradeLock* SetUpgradeLock = nullptr;
-
-typedef void tpSetMinesBuildingRules(int* Table, int NElm);
-tpSetMinesBuildingRules* SetMinesBuildingRules = nullptr;
-
-// 27 ints: MU1{G,I,C}% x3, MU2{G,I,C}% x3, MU3{G,I,C}% x3
-typedef void tpSetMinesUpgradeRules(int* Table);
-tpSetMinesUpgradeRules* SetMinesUpgradeRules = nullptr;
-
-typedef int tpGetMaxPeasantsInMines();
-tpGetMaxPeasantsInMines* GetMaxPeasantsInMines = nullptr;
-
-typedef int tpGetUnitsByUsage(unsigned char Nat, unsigned char Usage);
-tpGetUnitsByUsage* GetUnitsByUsage = nullptr;
-
-typedef int tpGetRandomIndex();
-tpGetRandomIndex* GetRandomIndex = nullptr;
-
-typedef void tpAssignWall(const char* Name);
-tpAssignWall* AssignWall = nullptr;
