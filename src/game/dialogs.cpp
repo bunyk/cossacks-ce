@@ -5866,6 +5866,7 @@ void FreeTransBuffer()
 	TransLy = 0;
 };
 
+// TODO: from here down to the end of file code seems to be unused, double check, remove?
 #ifdef _WIN32
 void EncodeLine( byte* src, byte* dst, byte* scr, byte* tbl, byte* oddtbl )
 {

@@ -36,19 +36,26 @@ HINSTANCE hLib = nullptr;
 
 // Mine balance tables of the original Russia.dll (extracted from its .data
 // with Ghidra; SetMineBalanse(19, ...) is called with these every AI tick).
-// Per-resource desired mine counts as the game progresses.
-unsigned short LAND_MINE_BALANCE[19] = {
-	0, 0, 0x0F, 0x0F, 0x14, 0x0F, 0x19, 0x0F, 0x1E, 0x0F, 0x32, 0x1E, 0x37, 0x23, 0x41, 0x28, 0x46, 0x28, 0x50
+// 19 pairs {total peasants, peasants wanted on food+wood+stone}; the engine
+// interpolates between pairs and the rest go to mines. The scan in
+// megapolis.cpp has no bound check, so the 4000 terminator must stay.
+unsigned short LAND_MINE_BALANCE[38] = {
+	0, 0, 15, 15, 20, 15, 25, 15, 30, 15, 50, 30, 55, 35, 65, 40, 70, 40, 80, 50,
+	105, 60, 125, 65, 150, 70, 175, 75, 200, 80, 225, 90, 250, 100, 500, 200, 4000, 400
 };
-unsigned short WATER_MINE_BALANCE[19] = {
-	0, 0, 0x13, 0x13, 0x19, 0x14, 0x21, 0x14, 0x2B, 0x17, 0x30, 0x1C, 0x35, 0x21, 0x3A, 0x23, 0x41, 0x28, 0x50
+unsigned short WATER_MINE_BALANCE[38] = {
+	0, 0, 19, 19, 25, 20, 33, 20, 43, 23, 48, 28, 53, 33, 58, 35, 65, 40, 80, 50,
+	105, 55, 125, 60, 150, 75, 175, 90, 200, 100, 225, 100, 250, 120, 500, 140, 4000, 300
 };
 
-// SetMinesBuildingRules table (original DAT_1000f244). Rule [1] is raised
-// from 1 to 4 every tick while the game uses the lowest start resources.
-int MINES_BUILD_RULES[27] = {
-	0, 1, 256, 1, 65536, 1, 65792, 1, 512, 1, 131072, 1, 66048, 1, 131328, 1,
-	131584, 1, 1, 1, 257, 1, 65537, 1, 65793, 1, 513
+// SetMinesBuildingRules table (original DAT_1000f244), 27 pairs
+// {RSM = gold + (iron << 8) + (coal << 16) mine counts, ResID of the next
+// mine to build: 1=gold 4=iron}. The last matching pair wins. Rule [1] is
+// raised from 1 to 4 every tick while the game uses the lowest start resources.
+int MINES_BUILD_RULES[54] = {
+	0, 1, 256, 1, 65536, 1, 65792, 1, 512, 1, 131072, 1, 66048, 1, 131328, 1, 131584, 1,
+	1, 1, 257, 1, 65537, 1, 65793, 1, 513, 1, 131073, 1, 66049, 1, 131329, 1, 131585, 1,
+	2, 4, 258, 1, 65538, 4, 65794, 1, 514, 1, 131074, 4, 66050, 1, 131330, 1, 131586, 1
 };
 
 // SetMinesUpgradeRules tables (27 ints: MU1{G,I,C}% MU2{G,I,C}% MU3{G,I,C}%,

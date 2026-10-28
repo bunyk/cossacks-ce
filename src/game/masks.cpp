@@ -21,7 +21,7 @@
 byte ResultMask[MaskLx*256];
 extern byte trans4[65536];
 extern byte trans8[65536];
-#ifndef _WIN32
+
 //Linux translation of the four CopyMasked* routines below (RLE masked copy
 //into ResultMask). Mask format: byte 2 = number of strings; then per string a
 //segment count followed by (skip,count) byte pairs. Source bitmap is 64x64 in
@@ -54,216 +54,17 @@ static void CopyMaskedRLE64Lin(byte* Bits,int x,int y,void* Mask,byte* Trans,int
 		};
 	};
 };
-#endif
 void CopyMaskedBitmap64(byte* Bits,int x,int y,void* Mask){
-#ifdef _WIN32
-	__asm{
-		push	esi
-		push	edi
-		pushf
-		mov		esi,Mask
-		mov		edi,Bits
-		xor		ebx,ebx
-		mov		bl,byte ptr x
-		mov		bh,byte ptr y
-		mov		cl,[esi+2]    //Number of strings
-		add		esi,4
-		xor		edx,edx     //ResulMask offset
-rlclop1:
-		mov		ch,[esi]    //number of RLE segments
-		inc		esi
-		or		ch,ch
-		jz		endrlclop
-rllpstrt:
-		mov		ax,[esi]
-		add		bl,al
-		add		dl,al
-lpp1:	and		bx,0011111100111111b
-		mov		al,[edi+ebx]
-		inc		ebx
-		mov		[ResultMask+edx],al
-		inc		edx
-		dec		ah
-		jnz		lpp1
-		add		esi,2
-		dec		ch
-		jnz		rllpstrt
-endrlclop:
-		xor		dl,dl
-		inc		bh
-		inc		dh
-		mov		bl,byte ptr x
-		dec		cl
-		jnz		rlclop1
-		popf
-		pop		edi
-		pop		esi
-	};
-#else
 	CopyMaskedRLE64Lin(Bits,x,y,Mask,0,0);
-#endif
 };
 void CopyMaskedTransparentBitmap_8(byte* Bits,int x,int y,void* Mask){
-#ifdef _WIN32
-	byte nstr;
-	__asm{
-		push	esi
-		push	edi
-		pushf
-		mov		esi,Mask
-		mov		edi,Bits
-		xor		ebx,ebx
-		mov		bl,byte ptr x
-		mov		bh,byte ptr y
-		mov		cl,[esi+2]    //Number of strings
-		mov		nstr,cl
-		add		esi,4
-		xor		eax,eax
-		xor		edx,edx     //ResulMask offset
-rlclop1:
-		mov		ch,[esi]    //number of RLE segments
-		inc		esi
-		or		ch,ch
-		jz		endrlclop
-rllpstrt:
-		mov		ax,[esi]
-		add		bl,al
-		add		dl,al
-		mov		cl,ah
-lpp1:	and		bx,0011111100111111b
-		mov		ah,[edi+ebx]
-		mov		al,[ResultMask+edx]
-		mov		al,[trans8+eax]
-		inc		ebx
-		mov		[ResultMask+edx],al
-		inc		edx
-		dec		cl
-		jnz		lpp1
-		add		esi,2
-		dec		ch
-		jnz		rllpstrt
-endrlclop:
-		xor		dl,dl
-		inc		bh
-		inc		dh
-		mov		bl,byte ptr x
-		dec		nstr
-		jnz		rlclop1
-		popf
-		pop		edi
-		pop		esi
-	};
-#else
 	CopyMaskedRLE64Lin(Bits,x,y,Mask,trans8,0);
-#endif
 };
 void CopyMaskedTransparentBitmap_4(byte* Bits,int x,int y,void* Mask){
-#ifdef _WIN32
-	byte nstr;
-	__asm{
-		push	esi
-		push	edi
-		pushf
-		mov		esi,Mask
-		mov		edi,Bits
-		xor		ebx,ebx
-		mov		bl,byte ptr x
-		mov		bh,byte ptr y
-		mov		cl,[esi+2]    //Number of strings
-		mov		nstr,cl
-		add		esi,4
-		xor		eax,eax
-		xor		edx,edx     //ResulMask offset
-rlclop1:
-		mov		ch,[esi]    //number of RLE segments
-		inc		esi
-		or		ch,ch
-		jz		endrlclop
-rllpstrt:
-		mov		ax,[esi]
-		add		bl,al
-		add		dl,al
-		mov		cl,ah
-lpp1:	and		bx,0011111100111111b
-		mov		ah,[edi+ebx]
-		mov		al,[ResultMask+edx]
-		mov		al,[trans4+eax]
-		inc		ebx
-		mov		[ResultMask+edx],al
-		inc		edx
-		dec		cl
-		jnz		lpp1
-		add		esi,2
-		dec		ch
-		jnz		rllpstrt
-endrlclop:
-		xor		dl,dl
-		inc		bh
-		inc		dh
-		mov		bl,byte ptr x
-		dec		nstr
-		jnz		rlclop1
-		popf
-		pop		edi
-		pop		esi
-	};
-#else
 	CopyMaskedRLE64Lin(Bits,x,y,Mask,trans4,0);
-#endif
 };
 void CopyMaskedTransparentBitmap_12(byte* Bits,int x,int y,void* Mask){
-#ifdef _WIN32
-	byte nstr;
-	__asm{
-		push	esi
-		push	edi
-		pushf
-		mov		esi,Mask
-		mov		edi,Bits
-		xor		ebx,ebx
-		mov		bl,byte ptr x
-		mov		bh,byte ptr y
-		mov		cl,[esi+2]    //Number of strings
-		mov		nstr,cl
-		add		esi,4
-		xor		eax,eax
-		xor		edx,edx     //ResulMask offset
-rlclop1:
-		mov		ch,[esi]    //number of RLE segments
-		inc		esi
-		or		ch,ch
-		jz		endrlclop
-rllpstrt:
-		mov		ax,[esi]
-		add		bl,al
-		add		dl,al
-		mov		cl,ah
-lpp1:	and		bx,0011111100111111b
-		mov		al,[edi+ebx]
-		mov		ah,[ResultMask+edx]
-		mov		al,[trans4+eax]
-		inc		ebx
-		mov		[ResultMask+edx],al
-		inc		edx
-		dec		cl
-		jnz		lpp1
-		add		esi,2
-		dec		ch
-		jnz		rllpstrt
-endrlclop:
-		xor		dl,dl
-		inc		bh
-		inc		dh
-		mov		bl,byte ptr x
-		dec		nstr
-		jnz		rlclop1
-		popf
-		pop		edi
-		pop		esi
-	};
-#else
 	CopyMaskedRLE64Lin(Bits,x,y,Mask,trans4,1);
-#endif
 };
 extern RLCTable SimpleMaskA;
 extern RLCTable SimpleMaskB;
@@ -935,27 +736,6 @@ void ClearIntersectionBuffer(){
 };
 void ShowIntersectionBuffer(){
 	if(!bActive)return;
-#ifdef _WIN32
-	int SCROF=int(ScreenPtr)+256*ScrWidth+256;
-	__asm{
-		push	esi
-		push	edi
-		pushf
-		mov		esi,offset ResultMask
-		mov		edi,SCROF
-		mov		edx,64
-		cld
-lpp1:	mov		ecx,64
-		rep		movsd
-		add		edi,ScrWidth
-		sub		edi,256
-		dec		edx
-		jnz		lpp1
-		popf
-		pop		edi
-		pop		esi
-	};
-#else
 	byte* src=ResultMask;
 	byte* dst=(byte*)ScreenPtr+256*ScrWidth+256;
 	for(int i=0;i<64;i++){
@@ -963,6 +743,5 @@ lpp1:	mov		ecx,64
 		src+=256;
 		dst+=ScrWidth;
 	};
-#endif
 	//memset(ResultMask,0,sizeof ResultMask);
 };

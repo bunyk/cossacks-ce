@@ -2389,7 +2389,7 @@ void GMiniShow()
 	byte* til = (byte*) &minimap + MiniX + ( (intptr_t) MiniY ) * maxmap;
 	for (int i = 0; i < MiniLy; i++)
 	{
-		memcpy( scr, til, MiniLx );//REFACTORED: __asm
+		memcpy( scr, til, MiniLx );
 		scr += SCRSizeX;
 		til += maxmap;
 	}
@@ -2446,7 +2446,7 @@ void GMiniShow()
 				}
 
 				//Place a colored 2x2 square tag
-				memset( scr, val, 2 );//REFACTORED: __asm
+				memset( scr, val, 2 );
 				memset( scr + SCRSizeX, val, 2 );
 			}
 		}

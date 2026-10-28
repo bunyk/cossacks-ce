@@ -128,38 +128,6 @@ void VirtualScreen::CopyVSPart( int vx, int vy, int sx, int sy, int SizeX, int S
 	{
 		return;
 	}
-#ifdef _WIN32
-	//debugging control
-	//assert(sx>=0&&sy>=0&&sx+SizeX<=SCRSizeX&&sy+SizeY<=SCRSizeY);
-	//-----------------
-	int vsofs = int( VirtualScreenPointer ) + vx + vy*RealVLx;
-	int scofs = int( ScreenPtr ) + sx + sy*SCRSizeX;
-	int szx4 = SizeX >> 2;
-	int szx1 = SizeX & 3;
-	int addvs = RealVLx - SizeX;
-	int addsc = SCRSizeX - SizeX;
-	__asm 
-	{
-		push	esi
-		push	edi
-		pushf
-		cld
-		mov		edi, scofs
-		mov		esi, vsofs
-		mov		edx, SizeY
-		lpp1 : mov		ecx, szx4
-			   rep		movsd
-			   mov		ecx, szx1
-			   rep		movsb
-			   add		esi, addvs
-			   add		edi, addsc
-			   dec		edx
-			   jnz		lpp1
-			   popf
-			   pop		edi
-			   pop		esi
-	}
-#else
 	// Linux translation of the rep movsd/movsb loop: row-wise copy VS -> screen
 	byte* vs = VirtualScreenPointer + vx + ( (intptr_t) vy ) * RealVLx;
 	byte* sc = (byte*) ScreenPtr + sx + ( (intptr_t) sy ) * SCRSizeX;
@@ -169,7 +137,6 @@ void VirtualScreen::CopyVSPart( int vx, int vy, int sx, int sy, int SizeX, int S
 		vs += RealVLx;
 		sc += SCRSizeX;
 	};
-#endif
 }
 
 void VirtualScreen::CopyVSPartMMX( int vx, int vy, int sx, int sy, int SizeX, int SizeY )
@@ -177,42 +144,6 @@ void VirtualScreen::CopyVSPartMMX( int vx, int vy, int sx, int sy, int SizeX, in
 	if (!( SizeY&&SizeY ))return;
 	//debugging control
 	//assert(sx>=0&&sy>=0&&sx+SizeX<=SCRSizeX&&sy+SizeY<=SCRSizeY);
-#ifdef _WIN32
-	int vsofs = int( VirtualScreenPointer ) + vx + vy*RealVLx;
-	int scofs = int( ScreenPtr ) + sx + sy*SCRSizeX;
-	int szx4 = SizeX >> 3;
-	int szx1 = SizeX & 7;
-	int addvs = RealVLx - SizeX;
-	int addsc = SCRSizeX - SizeX;
-	__asm {
-		push	esi
-		push	edi
-		pushf
-		cld
-		mov		edi, scofs
-		mov		esi, vsofs
-		mov		edx, SizeY
-		lpp1 : mov		ecx, szx4
-			   jcxz	lpp3
-			   lpp2 : movq	mm0, [esi]
-					  add		esi, 8;
-		movq[edi], mm0
-			add		edi, 8
-			dec		cx
-			jnz		lpp2
-			lpp3 : mov		ecx, szx1
-			rep		movsb
-			add		esi, addvs
-			add		edi, addsc
-			dec		edx
-			jnz		lpp1
-			popf
-			pop		edi
-			pop		esi
-			emms
-	};
-#else
-	// Linux translation (plain row-wise copy; the MMX loop bought nothing)
 	byte* vs = VirtualScreenPointer + vx + ( (intptr_t) vy ) * RealVLx;
 	byte* sc = (byte*) ScreenPtr + sx + ( (intptr_t) sy ) * SCRSizeX;
 	for ( int i = 0; i < SizeY; i++ )
@@ -221,7 +152,6 @@ void VirtualScreen::CopyVSPartMMX( int vx, int vy, int sx, int sy, int SizeX, in
 		vs += RealVLx;
 		sc += SCRSizeX;
 	};
-#endif
 };
 
 void VirtualScreen::CopyVSToScreen()
