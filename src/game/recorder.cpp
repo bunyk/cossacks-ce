@@ -575,6 +575,7 @@ void RecordGame::ReadStream( char* Name )
 
 		if ( STREAM.Error() )
 		{
+			printf( "Error reading record file %s\n", Name );
 			STREAM.Close();
 			return;
 		}

@@ -4965,34 +4965,6 @@ void CopyToScreen( int zx, int zy, int zLx, int zLy )
 	int radd = RSCRSizeX - Lx;
 	int Lx4 = Lx >> 2;
 	int Lx1 = Lx & 3;
-#ifdef _WIN32
-	__asm
-	{
-		push	esi
-		push	edi
-		mov		edx, Ly
-		or edx, edx
-		jz		lpp4
-		mov		esi, scof
-		mov		edi, reof
-		cld
-		lpp1 : mov		ecx, Lx4
-			   jcxz	lpp2
-			   //		cli
-			   rep		movsd
-			   lpp2 : mov		ecx, Lx1
-					  jcxz	lpp3
-					  rep		movsb
-					  lpp3 :	//sti
-		add		esi, sadd
-			add		edi, radd
-			dec		edx
-			jnz		lpp1
-			lpp4 : pop		edi
-			pop		esi
-	}
-#else
-	// TODO: check if this matches assmebly 100%
 	uint8_t* src = static_cast<uint8_t*>(ScreenPtr) + x + y * SCRSizeX;
 	uint8_t* dest = static_cast<uint8_t*>(RealScreenPtr) + x + y * RSCRSizeX;
 	for (int i = 0; i < Ly; ++i)
@@ -5010,7 +4982,6 @@ void CopyToScreen( int zx, int zy, int zLx, int zLy )
 		src += sadd;
 		dest += radd;
 	}
-#endif // _WIN32
 
 	SDL_Surface* srcSurface;
 	SDL_Surface* targetSurface;
@@ -5840,6 +5811,7 @@ DialogsSystem::~DialogsSystem()
 	UnPress();
 };
 
+// TODO: from here down to the end of file code seems to be unused, double check, remove?
 #ifdef _WIN32
 //transparency effect
 byte* TransPtr = nullptr;
@@ -5866,7 +5838,6 @@ void FreeTransBuffer()
 	TransLy = 0;
 };
 
-// TODO: from here down to the end of file code seems to be unused, double check, remove?
 #ifdef _WIN32
 void EncodeLine( byte* src, byte* dst, byte* scr, byte* tbl, byte* oddtbl )
 {

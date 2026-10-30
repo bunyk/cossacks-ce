@@ -2015,26 +2015,6 @@ char* GetPlNameByID( DWORD ID )
 	return UNKN;
 }
 
-void ControlLingvo( char* str )
-{
-	char* c1 = strstr( str, "fuck" );
-	if ( c1 )
-	{
-		c1[0] = '?';
-		c1[1] = '?';
-		c1[2] = '?';
-		c1[3] = '?';
-	};
-	c1 = strstr( str, "FUCK" );
-	if ( c1 )
-	{
-		c1[0] = '?';
-		c1[1] = '?';
-		c1[2] = '?';
-		c1[3] = '?';
-	};
-}
-
 void StopConnectionToSession();
 
 extern int GLOBALTIME;
@@ -3582,7 +3562,6 @@ ffe2:
 			{
 				if ( CHATBOX->Active&&CHATMESSAGE[0] )
 				{
-					ControlLingvo( CHATMESSAGE );
 					if ( use_gsc_network_protocol && strstr( CHATMESSAGE, "-->" ) )
 					{
 						CheckForPersonalChat( CHATMESSAGE );
@@ -5586,7 +5565,6 @@ bool MPL_WaitingBattleGame( bool Host, int BattleID )
 		{
 			if ( CHATBOX->Active&&CHATMESSAGE[0] )
 			{
-				ControlLingvo( CHATMESSAGE );
 				SendChat( CHATMESSAGE, 0 );
 				AddChatString(
 					GetPlNameByID( MyDPID ),
@@ -6781,7 +6759,6 @@ int processMainMenu()
 		// Main menu loop
 		do
 		{
-			#ifdef _WIN32 // TODO: uncomment later
 			//Check conditions and roll credits
 			if ( ADDSH == 1 && bActive
 				&& ( GetSDLTickCount() - StTime > kCreditsDemoDelay || RetryVideo )
@@ -6801,6 +6778,7 @@ int processMainMenu()
 							Gscanf( f, "%s", NAME );
 						}
 						Gscanf( f, "%s", NAME );
+						printf( "Playing demo: %s\n", NAME );
 						RGAME.ReadStream( NAME );
 						if ( RGAME.Size )
 						{
@@ -6813,9 +6791,10 @@ int processMainMenu()
 					}
 					Gclose( f );
 					StTime = GetSDLTickCount();
+				} else {
+					printf("Failed to open demo.run\n");
 				}
 			}
-			#endif // _WIN32
 
 			InMainMenuLoop = 1;
 
@@ -9415,6 +9394,7 @@ void ShowFailure( int CreateGame )
 	LoadPalette( "2\\agew_1.pal" );
 };
 void WaitWithMessage( char* Message );
+#endif // _WIN32
 
 int prevVid = -1;
 int prevVid1 = -1;
@@ -9492,7 +9472,6 @@ int GetRndVid( int N )
 	return cv;
 }
 
-#endif // _WIN32
 
 //Main game loop function
 void AllGame(boost::coroutines2::coroutine<void>::push_type& yield)

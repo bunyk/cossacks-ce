@@ -11007,7 +11007,7 @@ bool OneObject::NewAttackPoint( int px, int py, int Prio1, byte OrdType, word NT
 		return false;
 	}
 	Or1->PrioryLevel = Prio & 127;
-	Or1->OrderType = 76;//ГЂГІГ ГЄГ 
+	Or1->OrderType = 76;// Attack
 	Or1->OrderTime = 0;
 	Or1->DoLink = &NewAttackPointLink;
 

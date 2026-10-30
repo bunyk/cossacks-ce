@@ -463,7 +463,7 @@ the fullscreen path); letterboxing would need a dst-rect in RenderTexture
   freezes (100% CPU, unresponsive). The MPL_WaitingGame main loop is now ONE cross-platform
   loop: the full body is shared; only the GameSpy/GSC chat block at the top stays
   `#ifdef _WIN32`. Pure helpers were un-guarded so the real implementations run on Linux:
-  Decode/GetPlNameByID/ControlLingvo, SendPings area, LimitString, WaitWithMessage,
+  Decode/GetPlNameByID, SendPings area, LimitString, WaitWithMessage,
   ShowCentralMessage, AddPrimitiveChat/AddChatString, CheckForPersonalChat, DarkScreen,
   ShowLoading (interface.cpp); GP_ScrollBar class, addCustomBox, ListBox::ClearItems,
   DialogsSystem::MarkToDraw (dialogs.cpp).

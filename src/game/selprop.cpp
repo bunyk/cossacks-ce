@@ -1107,7 +1107,7 @@ extern word BuildingID;
 extern Nation* BNat;
 void CmdUnProduceObj( byte NI, word Type );
 
-//Decreases procudtion order corresponding to specified tile number
+// Decreases production order corresponding to specified tile number
 void RHPR( int n )
 {
 	AblInf* AI = &AList[n];

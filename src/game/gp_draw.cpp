@@ -1249,7 +1249,6 @@ static void GP_ShowMaskedMirrorPictInv( int x, int y, GP_Header* Pic, byte* CDat
 
 
 
-//Moved out of the _WIN32 block: pure data, needed by the Linux draw variants
 extern byte Bright[8192];
 
 //Used for color masking of interface elements. Color offset = Nation byte * 4
