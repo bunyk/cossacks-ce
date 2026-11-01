@@ -647,9 +647,6 @@ void RecordGame::ReadStream( char* Name )
 		memcpy( Stream, BUFF + BFPOS, BFSZ - BFPOS );
 		Size = BFSZ - BFPOS;//sz;
 		Pos = 0;
-		//TODO(debug): trace the idle-demo replay path
-		printf( "ReadStream: map='%s' RunMethod=%08X RecFormatID=%d Size=%d\n",
-			CurrentMap, RunMethod, RecFormatID, Size );
 		//A recording whose map file is missing would silently replay on an
 		//empty map (black screen, no units) - Load3DMap/CreateNationalMask
 		//ForMap just return on a failed RReset. Warn so it is diagnosable.
@@ -688,8 +685,6 @@ void RecordGame::ReadStream( char* Name )
 			CreateNationalMaskForMap( CurrentMap );
 			PrepareGameMedia( 0, 0 );
 			InitGame();
-			//TODO(debug): trace the idle-demo replay path
-			printf( "ReadStream: media prepared, game initialized\n" );
 		}
 		else
 		{

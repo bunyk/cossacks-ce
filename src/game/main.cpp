@@ -185,7 +185,13 @@ int exFMode = 1;
 int SpeedSh = 1;
 
 //Minimal delay between two PostDrawGameProcess() returns, in ms
-const unsigned int kPostDrawInterval = 16;//~60 Hz
+const unsigned int kPostDrawInterval = 16;//~60 Hz (live multiplayer only)
+
+//The original game tick: 80ms per sim tick (12.5 ticks/s) - the step
+//multiplayer locks to (CurrentStepTime) and the pace the original game
+//ran at. Single player and replays are paced to this (see the frame
+//limiter at the end of PostDrawGameProcess).
+const unsigned int kSimTickInterval = 80;
 
 //Timespan in ms after last LastCTRLPressTime which allows setting unit control groups
 const int kCtrlStickyTime = 50;
@@ -1336,20 +1342,15 @@ void PostDrawGameProcess()
 		}
 		else
 		{
+			//Live multiplayer is paced through WaitToTime/NeedCurrentTime;
+			//single player keeps the original free-run loop and replays
+			//are paced by the frame limiter (kSimTickInterval).
 			PitchTicks = 0;
 		}
 	}
 
 	if (PlayGameMode)
 	{
-		//TODO(debug): trace the idle-demo replay path
-		static int NDbgTicks = 0;
-		if (NDbgTicks < 5)
-		{
-			NDbgTicks++;
-			printf("PostDraw: GLOBALTIME=%d PGLOBALTIME=%d PitchTicks=%d\n",
-				GLOBALTIME, PGLOBALTIME, PitchTicks);
-		}
 		ReadPichTicks();
 		if (PitchTicks)
 		{
@@ -1377,7 +1378,11 @@ void PostDrawGameProcess()
 
 	if (GLOBALTIME - PGLOBALTIME > PitchTicks)
 	{
-		CurrentStepTime -= CurrentStepTime >> 5;
+		//The step decay is multiplayer lag recovery (paired with
+		//DoItSlow's regrow in multi.cpp). Nothing regrows it in single
+		//player or in replays, where it would erode the 80ms pace within
+		//minutes - so only decay in live multiplayer games.
+		if ( MaxPingTime && !PlayGameMode )CurrentStepTime -= CurrentStepTime >> 5;
 		RealGameLength = GetSDLTickCount() - RealStTime;
 
 #ifdef _WIN32
@@ -1539,6 +1544,17 @@ void PostDrawGameProcess()
 		prev_postdraw_time = GetSDLTickCount();
 	}
 
+	//Tick pacing: replays (PlayGameMode!=0) are paced here to the
+	//original 80ms sim tick (kSimTickInterval, 12.5 ticks/s) - the pace
+	//the recording was made at (recordings carry no timing of their own:
+	//single-player streams store all-zero PitchTicks bytes, so an
+	//original recording replayed at the free-run loop rate zips through
+	//several times too fast). Waiting here keeps the render path
+	//untouched - one render per tick, no render-inside-wait judder.
+	//Live multiplayer is paced by WaitToTime above and single player
+	//keeps the free-run loop (the fast feel this port has always had);
+	//both get only the render cap.
+	unsigned int tick_interval = PlayGameMode ? kSimTickInterval : kPostDrawInterval;
 	unsigned long time_since_last_call = 0;
 	do
 	{
@@ -1548,7 +1564,7 @@ void PostDrawGameProcess()
 			GameKeyCheck();
 		}
 		time_since_last_call = GetSDLTickCount() - prev_postdraw_time;
-	} while (PauseMode || time_since_last_call < kPostDrawInterval);
+	} while (PauseMode || time_since_last_call < tick_interval);
 
 	prev_postdraw_time = GetSDLTickCount();
 }
@@ -2634,13 +2650,19 @@ int TAverage = 50;
 
 void WaitToTime( int Time )
 {
-	int dt0 = Time - GetSDLTickCount();
+	//All tick values fit int for sessions under 24 days (see GetSDLTickCount).
+	//Keep every comparison SIGNED: the original exit condition
+	//'Time - ticks > 0' evaluated in unsigned arithmetic and wrapped to a
+	//huge value once the counter overshot the target - and it always
+	//overshoots, each loop iteration renders for >1ms - so the wait spun
+	//forever. That froze the paced game on the very first wait.
+	int dt0 = Time - (int) GetSDLTickCount();
 	bool DoDraw = dt0 > ( TAverage >> 2 );
 	do
 	{
 		if (DoDraw)
 		{
-			int T0 = GetSDLTickCount();
+			int T0 = (int) GetSDLTickCount();
 			if (T0 - Time < 0)
 			{
 				int tt = T0;
@@ -2652,7 +2674,7 @@ void WaitToTime( int Time )
 			}
 		}
 		ProcessMessages();
-	} while ( Time - GetSDLTickCount() > 0);
+	} while ( (int) GetSDLTickCount() < Time );
 	//SUBTIME=0;
 }
 

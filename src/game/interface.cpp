@@ -6782,8 +6782,6 @@ int processMainMenu()
 						RGAME.ReadStream( NAME );
 						if ( RGAME.Size )
 						{
-							//TODO(debug): trace the idle-demo replay path
-							printf( "Demo: stream loaded, entering game (Size=%d)\n", RGAME.Size );
 							PlayGameMode = 1;
 							RecordMode = 0;
 							ItemChoose = 43;
@@ -8959,9 +8957,6 @@ void PlayGame()
 {
 	InGame = true;
 
-	//TODO(debug): trace the idle-demo replay path
-	printf( "PlayGame: enter, PlayGameMode=%d RecordMode=%d\n", PlayGameMode, RecordMode );
-
 	if ( window_mode )
 	{//Explicit call in case if game starts at 1024x768
 		ResizeAndCenterWindow();
@@ -8992,7 +8987,6 @@ void PlayGame()
 	}
 
 StartPlay://IMPORTANT: Main game loop
-	printf( "PlayGame: main loop start, GameExit=%d\n", GameExit );
 	do
 	{
 		if ( RUNMAPEDITOR || RUNUSERMISSION )

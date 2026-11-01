@@ -4709,22 +4709,11 @@ void ExecuteBuffer()
 {
 	if ( PlayGameMode )
 	{//A recording is beeing played
-		bool ExtractOK = RGAME.Extract();
-		//TODO(debug): trace the idle-demo replay path
-		static int NDbgExtracts = 0;
-		if ( !ExtractOK )
+		if ( !RGAME.Extract() )
 		{
-			printf( "ExecuteBuffer: Extract failed (Pos=%d Size=%d), exiting demo\n",
-				RGAME.Pos, RGAME.Size );
 			GameExit = true;
 			ShowStat = 0;
 			EBPos = 0;
-		}
-		else if ( NDbgExtracts < 10 )
-		{
-			NDbgExtracts++;
-			printf( "ExecuteBuffer: Extract ok #%d (Pos=%d Size=%d EBPos=%d)\n",
-				NDbgExtracts, RGAME.Pos, RGAME.Size, EBPos );
 		}
 	}
 	else
@@ -5244,7 +5233,16 @@ void ExecuteBuffer()
 		}
 	}
 
-	NeedCurrentTime += MaxDCT;
+	//Command 81 (DoTimeStep) is multiplayer stall compensation: extend
+	//the pacing target by the stall so live clients hold instead of
+	//racing ahead. In single player / replays - which PostDrawGameProcess
+	//now paces through the same target - a single recorded stall (the GOG
+	//demo opens with a 6.1s load gap) would push the target that far ahead
+	//and freeze the replay for the same time on every hit. The rando()
+	//calls below stay unconditional: the recording's RNG stream consumed
+	//exactly that many values at this point, dropping them would desync
+	//the replay from the recorded game.
+	if ( MaxPingTime && !PlayGameMode )NeedCurrentTime += MaxDCT;
 
 	for ( int i = 0; i < MaxDCT; i++ )
 	{
