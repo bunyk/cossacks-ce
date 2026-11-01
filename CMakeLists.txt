@@ -146,6 +146,11 @@ set_target_properties(Austria PROPERTIES PREFIX "" OUTPUT_NAME "Austria"
     LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
 target_compile_options(Austria PRIVATE "-fvisibility=hidden")
 
+add_library(Bavaria MODULE src/ai/Bavaria/dllmain.cpp)
+set_target_properties(Bavaria PROPERTIES PREFIX "" OUTPUT_NAME "Bavaria"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Bavaria PRIVATE "-fvisibility=hidden")
+
 add_library(Turkey MODULE src/ai/Turkey/dllmain.cpp)
 set_target_properties(Turkey PROPERTIES PREFIX "" OUTPUT_NAME "Turcia"
     LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")

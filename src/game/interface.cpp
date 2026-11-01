@@ -6641,7 +6641,7 @@ int processMainMenu()
 	}
 
 	//Time of inactivity in ms which triggers the credits
-	const int kCreditsDemoDelay = 300000;
+	const int kCreditsDemoDelay = 300;
 
 	int StTime = GetSDLTickCount();
 
@@ -6886,17 +6886,21 @@ int processMainMenu()
 			processMLoadGame();
 		}
 
+// ItemChoose == 43: a demo recording was loaded by the idle-demo code
+// above (or a battle intro). Remap to mcmSingle so AllGame runs PlayGame()
+// with PlayGameMode = 1. This was the only guarded piece, so on Linux the
+// demo loaded but nothing was played.
+		if ( ItemChoose == 43 )
+		{
+			EditMapMode = 0;
+			ItemChoose = mcmSingle;
+		}
+
 #ifdef _WIN32
 		if ( ItemChoose == mcmExit )
 		{
 			SlowUnLoadPalette( "2\\agew_1.pal" );
 			SlideShow();
-		}
-
-		if ( ItemChoose == 43 )
-		{
-			EditMapMode = 0;
-			ItemChoose = mcmSingle;
 		}
 
 		if ( ItemChoose == 111 )

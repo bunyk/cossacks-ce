@@ -97,12 +97,8 @@ word GetNextSafeCell( byte NI, int F, int start, int Fin ) { (void)NI; (void)F; 
 //-------------- virtscr.cpp --------------
 
 //-------------- water / rivers (realwater.cpp, river.cpp asm) --------------
-// Blob/wake system (shiptrace.cpp): LoadBlobs is now the real one (un-
-//guarded there), but InitBlobs/TestBlob (blob animation) and CreateTrace
-//(ship wakes) live in _WIN32 asm blocks in shiptrace.cpp - stubs stay
-// until the asm is translated. See the Blob class comment in shiptrace.cpp.
-void InitBlobs() {}
-void TestBlob() {}
+// Blob/wake system (shiptrace.cpp) fully ported: InitBlobs/TestBlob/
+// CreateTrace asm translated to portable C++ there - stubs deleted.
 
 //-------------- interface.cpp / gp_draw.cpp guarded regions --------------
 // CheckCoorInGP, Clean_GP_IMG, Init_GP_IMG, RegisterVisibleGP: real
@@ -111,7 +107,6 @@ void TestBlob() {}
 bool AskMissionQuestion( char* Bmp, char* Text ) { (void)Bmp; (void)Text; return false; }
 bool CheckFlagsNeed() { return false; }
 bool CheckGameTime() { return false; }
-void CreateTrace( OneObject* OB ) { (void)OB; }
 void DontMakeRaiting() {}
 void ExplorerOpenRef( int Index, char* ref ) { (void)Index; (void)ref; }
 int  GetCurGamePtr( byte** Ptr ) { if (Ptr) *Ptr = NULL; return 0; }
