@@ -25,8 +25,6 @@
 void EconomyInterface( IconSet* ISET );
 void ClearEconomy();
 void LeaveTransportLink( OneObject* OB );
-void ShowRLCItemDarkN( int x, int y, lpRLCTable lprt, int n, int Ints );
-void ShowRLCItemRedN( int x, int y, lpRLCTable lprt, int n, int Ints );
 //extern int RESRC[8][8];
 extern int ATTGR_ICON;
 extern int AttGrPos;

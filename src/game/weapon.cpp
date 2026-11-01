@@ -224,7 +224,6 @@ void ExplodeAnmObject( AnmObject* AO )
 	};
 };
 int ConvScrY( int x, int y );
-void ShowRLCItemDark( int x, int y, lpRLCTable lprt, int n );
 extern bool NOPAUSE;
 void ShowExpl()
 {

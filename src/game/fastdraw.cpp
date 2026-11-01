@@ -227,9 +227,6 @@ void ShowRLCpal( int x, int y, void* PicPtr, byte* pal ) { ShowRLCGen( x, y, Pic
 
 void ShowRLCipal( int x, int y, void* PicPtr, byte* pal ) { ShowRLCGen( x, y, PicPtr, pal, 1, true ); }
 
-void ShowRLCfonpal( int x, int y, void* PicPtr, byte* pal ) { ShowRLCGen( x, y, PicPtr, pal, 2, false ); }
-
-void ShowRLCifonpal( int x, int y, void* PicPtr, byte* pal ) { ShowRLCGen( x, y, PicPtr, pal, 2, true ); }
 
 //End of RLC with clipping & with palette(half-transparent fog)
 void ShowRLChtpal( int x, int y, void* PicPtr, byte* pal ) { ShowRLCGen( x, y, PicPtr, pal, 3, false ); }
@@ -237,111 +234,7 @@ void ShowRLChtpal( int x, int y, void* PicPtr, byte* pal ) { ShowRLCGen( x, y, P
 //Showing inverse RLC image with clipping & encodint(half-transparent fog)
 void ShowRLCihtpal( int x, int y, void* PicPtr, byte* pal ) { ShowRLCGen( x, y, PicPtr, pal, 3, true ); }
 
-void ShowRLCp1( int x, int y, void* PicPtr )
-{
-	ShowRLCpal( x, y, PicPtr, PAL1 );
-}
-void ShowRLCp2( int x, int y, void* PicPtr )
-{
-	ShowRLCpal( x, y, PicPtr, PAL2 );
-}
-void ShowRLCp3( int x, int y, void* PicPtr )
-{
-	ShowRLCpal( x, y, PicPtr, PAL3 );
-}
-void ShowRLCp4( int x, int y, void* PicPtr )
-{
-	ShowRLCpal( x, y, PicPtr, PAL4 );
-}
-void ShowRLCp5( int x, int y, void* PicPtr )
-{
-	ShowRLCpal( x, y, PicPtr, PAL5 );
-}
-void ShowRLCp6( int x, int y, void* PicPtr )
-{
-	ShowRLCpal( x, y, PicPtr, PAL6 );
-}
-void ShowRLCp7( int x, int y, void* PicPtr )
-{
-	ShowRLCpal( x, y, PicPtr, PAL7 );
-}
-void ShowRLCip1( int x, int y, void* PicPtr )
-{
-	ShowRLCipal( x, y, PicPtr, PAL1 );
-}
-void ShowRLCip2( int x, int y, void* PicPtr )
-{
-	ShowRLCipal( x, y, PicPtr, PAL2 );
-}
-void ShowRLCip3( int x, int y, void* PicPtr )
-{
-	ShowRLCipal( x, y, PicPtr, PAL3 );
-}
-void ShowRLCip4( int x, int y, void* PicPtr )
-{
-	ShowRLCipal( x, y, PicPtr, PAL4 );
-}
-void ShowRLCip5( int x, int y, void* PicPtr )
-{
-	ShowRLCipal( x, y, PicPtr, PAL5 );
-}
-void ShowRLCip6( int x, int y, void* PicPtr )
-{
-	ShowRLCipal( x, y, PicPtr, PAL6 );
-}
-void ShowRLCip7( int x, int y, void* PicPtr )
-{
-	ShowRLCipal( x, y, PicPtr, PAL7 );
-}
 
-extern byte fog[8192 + 1024];
-extern byte wfog[8192];
-extern byte yfog[8192];
-extern byte rfog[8192];
-extern byte trans8[65536];
-
-void ShowRLCShadow( int x, int y, void* PicPtr )
-{
-	ShowRLCfonpal( x, y, PicPtr, fog + 4096 );
-}
-void ShowRLCiShadow( int x, int y, void* PicPtr )
-{
-	ShowRLCifonpal( x, y, PicPtr, fog + 4096 );
-}
-void ShowRLCWhite( int x, int y, void* PicPtr )
-{
-	ShowRLCfonpal( x, y, PicPtr, wfog + 1024 );
-}
-void ShowRLCDarkN( int x, int y, void* PicPtr, int N )
-{
-	ShowRLCpal( x, y, PicPtr, wfog + ( N << 8 ) );
-};
-void ShowRLCiDarkN( int x, int y, void* PicPtr, int N )
-{
-	ShowRLCipal( x, y, PicPtr, wfog + ( N << 8 ) );
-};
-void ShowRLCRedN( int x, int y, void* PicPtr, int N )
-{
-	ShowRLCpal( x, y, PicPtr, yfog + ( N << 8 ) );
-};
-void ShowRLCiRedN( int x, int y, void* PicPtr, int N )
-{
-	ShowRLCipal( x, y, PicPtr, yfog + ( N << 8 ) );
-};
-
-// TODO: check if this is needed.
-void ShowRLCItemDarkN( int x, int y, lpRLCTable lprt, int n, int Ints )
-{
-	// Linux: OfsTable holds unrebased offsets (see LoadRLC)
-	if (n < 4096)
-	{
-		ShowRLCDarkN( x, y, (void*) ( (byte*)( *lprt ) + 4 + ( *lprt )->OfsTable[n] ), Ints );
-	}
-	else
-	{
-		ShowRLCiDarkN( x, y, (void*) ( (byte*)( *lprt ) + 4 + ( *lprt )->OfsTable[n - 4096] ), Ints );
-	};
-};
 void ShowRLCItemPal( int x, int y, lpRLCTable lprt, int n, byte* Pal )
 {
 	// Linux: OfsTable holds unrebased offsets (see LoadRLC)
@@ -366,62 +259,6 @@ void ShowRLCItemGrad( int x, int y, lpRLCTable lprt, int n, byte* Pal )
 		ShowRLCihtpal( x, y, (void*) ( (byte*)( *lprt ) + 4 + ( *lprt )->OfsTable[n - 4096] ), Pal );
 	};
 };
-void ShowRLCItemRedN( int x, int y, lpRLCTable lprt, int n, int Ints )
-{
-	// Linux: OfsTable holds unrebased offsets (see LoadRLC)
-	if (n < 4096)
-	{
-		ShowRLCRedN( x, y, (void*) ( (byte*)( *lprt ) + 4 + ( *lprt )->OfsTable[n] ), Ints );
-	}
-	else
-	{
-		ShowRLCiRedN( x, y, (void*) ( (byte*)( *lprt ) + 4 + ( *lprt )->OfsTable[n - 4096] ), Ints );
-	};
-};
-void ShowRLCWFog( int x, int y, void* PicPtr )
-{
-	ShowRLChtpal( x, y, PicPtr, wfog + 1024 );
-}
-void ShowRLCiWhite( int x, int y, void* PicPtr )
-{
-	ShowRLCifonpal( x, y, PicPtr, wfog + 1024 );
-}
-void ShowRLCiWFog( int x, int y, void* PicPtr )
-{
-	ShowRLCihtpal( x, y, PicPtr, wfog + 1024 );
-}
-void ShowRLCiTrans8( int x, int y, void* PicPtr )
-{
-	ShowRLCihtpal( x, y, PicPtr, trans8 );
-}
-void ShowRLCTrans8( int x, int y, void* PicPtr )
-{
-	ShowRLChtpal( x, y, PicPtr, trans8 );
-}
-void ShowRLCDark( int x, int y, void* PicPtr )
-{
-	ShowRLChtpal( x, y, PicPtr, fog + 1024 );
-}
-void ShowRLCiDark( int x, int y, void* PicPtr )
-{
-	ShowRLCihtpal( x, y, PicPtr, fog + 1024 );
-}
-void ShowRLCBlue( int x, int y, void* PicPtr )
-{
-	ShowRLChtpal( x, y, PicPtr, rfog + 2048 );
-}
-void ShowRLCiBlue( int x, int y, void* PicPtr )
-{
-	ShowRLCihtpal( x, y, PicPtr, rfog + 2048 );
-}
-void ShowRLCFire( int x, int y, void* PicPtr )
-{
-	ShowRLChtpal( x, y, PicPtr, yfog );
-}
-void ShowRLCiFire( int x, int y, void* PicPtr )
-{
-	ShowRLCihtpal( x, y, PicPtr, yfog );
-}
 
 //Load rlc file, allocate and fill provided RLCTable
 bool LoadRLC( LPCSTR lpFileName, RLCTable *RLCtbl )
@@ -450,70 +287,6 @@ bool LoadRLC( LPCSTR lpFileName, RLCTable *RLCtbl )
 	return false;
 }
 
-// TODO: check if this is needed.
-void ShowRLCItemTrans8( int x, int y, lpRLCTable lprt, int n )
-{
-	if (n < 4096)
-	{
-		ShowRLCTrans8( x, y, (void*) ( ( *lprt )->OfsTable[n] ) );
-	}
-	else
-	{
-		ShowRLCiTrans8( x, y, (void*) ( ( *lprt )->OfsTable[n - 4096] ) );
-	};
-};
-
-// TODO: check if this is needed.
-void ShowRLCItemMutno( int x, int y, lpRLCTable lprt, int n )
-{
-	if (n < 4096)
-	{
-		ShowRLCWFog( x, y, (void*) ( ( *lprt )->OfsTable[n] ) );
-	}
-	else
-	{
-		ShowRLCiWFog( x, y, (void*) ( ( *lprt )->OfsTable[n - 4096] ) );
-	};
-};
-
-// TODO: check if this is needed.
-void ShowRLCItemDark( int x, int y, lpRLCTable lprt, int n )
-{
-	if (n < 4096)
-	{
-		ShowRLCDark( x, y, (void*) ( ( *lprt )->OfsTable[n] ) );
-	}
-	else
-	{
-		ShowRLCiDark( x, y, (void*) ( ( *lprt )->OfsTable[n - 4096] ) );
-	};
-};
-
-// TODO: check if this is needed. Is used in waves commented code
-void ShowRLCItemBlue( int x, int y, lpRLCTable lprt, int n )
-{
-	if (n < 4096)
-	{
-		ShowRLCBlue( x, y, (void*) ( ( *lprt )->OfsTable[n] ) );
-	}
-	else
-	{
-		ShowRLCiBlue( x, y, (void*) ( ( *lprt )->OfsTable[n - 4096] ) );
-	};
-};
-
-// TODO: check if this is needed.
-void ShowRLCItemFired( int x, int y, lpRLCTable lprt, int n )
-{
-	if (n < 4096)
-	{
-		ShowRLCFire( x, y, (void*) ( ( *lprt )->OfsTable[n] ) );
-	}
-	else
-	{
-		ShowRLCiFire( x, y, (void*) ( ( *lprt )->OfsTable[n - 4096] ) );
-	};
-};
 
 void ShowRLCItem( int x, int y, lpRLCTable lprt, int n, byte nt )
 {
@@ -815,24 +588,6 @@ void LoadPalettes()//IMPORTANT: load color palettes for color masking
 	RClose( f1 );
 }
 #ifdef _WIN32
-void ShowShadString( int x, int y, LPCSTR lps, lpRLCFont lpf )
-{
-	if (lps == nullptr) return;
-	byte	ch;
-	int		i = 0;
-	do
-	{
-		ch = lps[i];
-		if (ch != 0)
-		{
-			ShowRLCItem( x, y, &( lpf->RLC ), lpf->FirstSymbol + ch, 0 );
-			int LL = 1;
-			x += GetRLCWidthUNICODE( lpf->RLC, (byte*) ( lps + i ), &LL );
-			i += LL - 1;
-		}
-		i++;
-	} while (ch - 0);
-}
 
 RLCFont::RLCFont( char* Name )
 {
