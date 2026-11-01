@@ -1368,7 +1368,7 @@ extern "C" __declspec(dllexport) void ProcessAI()
 		if (units / 36 > 0)
 		{
 			TryUnit(&oficer, units / 36, 50, 50);
-			TryUnit(&barabanshik, units / 36, 10, 50);
+			TryUnit(&barabanshik, units / 36, 20, 50);
 		}
 	}
 

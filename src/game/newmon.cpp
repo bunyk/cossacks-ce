@@ -14049,6 +14049,9 @@ void OneObject::SearchVictim()
 
 	NewMonster* NM = newMons;
 
+	// AI ranged units (ARCHER token, e.g. Strelec_Algir_DIP) never do the
+	// passive victim search: if their brigade never orders them anywhere
+	// they just stand, even with enemies walking by.
 	if ( NM->Archer && Nat->AI_Enabled )
 	{
 		return;
