@@ -1,55 +1,34 @@
 #include <cstdio>
-
-// Linux port: the game dlopen()s this module; game functions are resolved
-// from the main executable (linked with -rdynamic) via dlsym(RTLD_DEFAULT).
-// The module itself is compiled with -fvisibility=hidden so its own
-// same-named globals (the function pointers in typedefs.h) are NOT
-// interposed by the game's exported functions.
-#include <dlfcn.h>
-#include <unistd.h>
-typedef void* HINSTANCE;
-#define __declspec(x) __attribute__((visibility("default")))
+#include "../common/ai_common.h"
 
 #include "objects.h"
-#include "typedefs.h"
-
-#define LOAD_FUNCTION(x) x=(tp##x*)LoadFunction(#x)
-
-#define WOOD  0
-#define GOLD  1
-#define STONE 2
-#define FOOD  3
-#define IRON  4
-#define COAL  5
-
-
-#define LT_LAND				0
-#define LT_MEDITERRANEAN	1
-#define LT_PENINSULAS		2
-#define LT_ISLANDS			3
-#define LT_CONTINENTS		4
-#define LT_CONTINENT		5
-
-struct GAMEOBJ;
-
-HINSTANCE hLib = nullptr;
-
 unsigned short LAND_BALANCE[38] = {
 	0, 0, 0x13, 0x13, 0x19, 0x14, 0x21, 0x14, 0x2B, 0x14, 0x30, 0x1E, 0x35, 0x20, 0x3A, 0x23, 0x41, 0x23, 0x50,
 	0x23, 0x69, 0x28, 0x7D, 0x32, 0x96, 0x3C, 0x0AF, 0x46, 0x0C8, 0x50, 0x0E1, 0x50, 0x0FA, 0x50, 0x1F4, 0x64, 0x0FA0,
 	0x12C
 };
 
-void* LoadFunction(const char* Name)
-{
-	// The main executable exports its extern "C" AI-API functions
-	// (activescenary.cpp) into the global symbol scope.
-	void* fn = dlsym(RTLD_DEFAULT, Name);
-	if (!fn)
-	{
-		fprintf(stderr, "AI module: game does not export function: %s\n", Name);
-	};
-	return fn;
+// SetMinesBuildingRules table of the original Turcia.dll (DAT_1000c1ec),
+// 27 pairs {RSM = gold + (iron << 8) + (coal << 16) mine counts, ResID of
+// the next mine to build: 1=gold 4=iron}. The last matching pair wins.
+// Rule [1] is raised from 1 to 4 every tick while the game uses the lowest
+// start resources (Turcia prologue, same as the European AIs).
+// (Values are identical to the European AIs' table.)
+int MINES_BUILD_RULES[54] = {
+	0, 1, 256, 1, 65536, 1, 65792, 1, 512, 1, 131072, 1, 66048, 1, 131328, 1, 131584, 1,
+	1, 1, 257, 1, 65537, 1, 65793, 1, 513, 1, 131073, 1, 66049, 1, 131329, 1, 131585, 1,
+	2, 4, 258, 1, 65538, 4, 65794, 1, 514, 1, 131074, 4, 66050, 1, 131330, 1, 131586, 1
+};
+
+// SetMinesUpgradeRules table (DAT_1000c180): the share (percent) of
+// gold/iron/coal mines to keep at upgrade tiers 1/2/3. Turcia's prologue
+// first installs a zero table (uninitialized .data), then ProcessAI
+// immediately switches to THIS table every tick - so the net per-tick
+// rules are these values (identical to the European "C" table).
+int MINE_UPG_RULES_C[27] = {
+	90, 80, 70, 25, 20, 15, 25, 20, 15,
+	90, 50, 30, 25, 20, 15, 25, 20, 15,
+	90, 90, 90, 30, 30, 30, 30, 30, 30
 };
 
 
@@ -733,6 +712,19 @@ extern "C" __declspec(dllexport) void ProcessAI()
 	int land = GetLandType();
 	int diff = GetDifficulty();
 	int startRes = GetStartRes();
+
+	// Per-tick mine economy (original: the FUN_10001060 prologue plus the
+	// SetMinesUpgradeRules call that follows it). Turcia installs a zero
+	// upgrade-rules table in its prologue and immediately overrides it
+	// with the "C" table, so only the net effect is reproduced here.
+	// With the lowest start resources the second mines-building rule is
+	// raised to 4, as in the original.
+	if (startRes == 0)
+	{
+		MINES_BUILD_RULES[1] = 4;
+	}
+	SetMinesUpgradeRules(MINE_UPG_RULES_C);
+	SetMinesBuildingRules(MINES_BUILD_RULES, 27);
 	switch (land)
 	{
 	case LT_LAND:
@@ -768,6 +760,8 @@ __attribute__((constructor)) void AI_OnLoad()
 	LOAD_FUNCTION(TryUnit);
 	LOAD_FUNCTION(TryUpgrade);
 	LOAD_FUNCTION(SetMineBalanse);
+	LOAD_FUNCTION(SetMinesBuildingRules);
+	LOAD_FUNCTION(SetMinesUpgradeRules);
 	LOAD_FUNCTION(SetPDistribution);
 	LOAD_FUNCTION(AssignAmountOfMineUpgrades);
 	LOAD_FUNCTION(AssignMineUpgrade);

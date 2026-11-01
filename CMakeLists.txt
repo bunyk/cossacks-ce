@@ -126,12 +126,13 @@ target_link_options(cossacks PRIVATE "-rdynamic")
 # The game dlopen()s it via
 # LoadAIFromDLL; on failure-free data the name comes from the text tables
 # (e.g. "AI\Algeria.dll").
-# The game is run from the repo root (which doubles as the game data
-# directory) and dlopen()s the module as a loose file "AI/<Nation>.so" -
-# dlopen cannot read files packed inside all.gsc (see docs/PortingNotes.md).
-# So emit the modules straight into the game dir's AI/ folder, next to the
-# original Windows AI/<Nation>.dll set, instead of the build tree.
-set(AI_MODULES_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/AI")
+# The game data lives in ./gamedata (main.cpp chdir()s there at startup,
+# see the --gamedata option) and dlopen()s the module as a loose file
+# "AI/<Nation>.so" - dlopen cannot read files packed inside all.gsc
+# (see docs/PortingNotes.md).
+# So emit the modules straight into the game data dir's AI/ folder, next
+# to the original Windows AI/<Nation>.dll set, instead of the build tree.
+set(AI_MODULES_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/gamedata/AI")
 
 add_library(Algeria MODULE src/ai/Algeria/dllmain.cpp)
 set_target_properties(Algeria PROPERTIES PREFIX "" OUTPUT_NAME "Algeria"

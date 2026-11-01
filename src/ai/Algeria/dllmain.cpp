@@ -1,70 +1,11 @@
 #include <cstdio>
-
-#ifdef _WIN32
-#include <wtypes.h>
-#else
-// Linux port: the game dlopen()s this module; game functions are resolved
-// from the main executable (linked with -rdynamic) via dlsym(RTLD_DEFAULT).
-// The module itself is compiled with -fvisibility=hidden so its own
-// same-named globals (the function pointers in typedefs.h) are NOT
-// interposed by the game's exported functions.
-#include <dlfcn.h>
-#include <unistd.h>
-typedef void* HINSTANCE;
-#define __declspec(x) __attribute__((visibility("default")))
-#endif
+#include "../common/ai_common.h"
 
 #include "objects.h"
-#include "typedefs.h"
-
-#define LOAD_FUNCTION(x) x=(tp##x*)LoadFunction(#x)
-
-#define WOOD  0
-#define GOLD  1
-#define STONE 2
-#define FOOD  3
-#define IRON  4
-#define COAL  5
-
-
-#define LT_LAND				0
-#define LT_MEDITERRANEAN	1
-#define LT_PENINSULAS		2
-#define LT_ISLANDS			3
-#define LT_CONTINENTS		4
-#define LT_CONTINENT		5
-
-struct GAMEOBJ;
-
-HINSTANCE hLib = nullptr;
-
 unsigned short LAND_BALANCE[38] = {
 	0, 0, 0x13, 0x13, 0x19, 0x14, 0x21, 0x14, 0x2B, 0x14, 0x30, 0x1E, 0x35, 0x20, 0x3A, 0x23, 0x41, 0x23, 0x50,
 	0x23, 0x69, 0x28, 0x7D, 0x32, 0x96, 0x3C, 0x0AF, 0x46, 0x0C8, 0x50, 0x0E1, 0x50, 0x0FA, 0x50, 0x1F4, 0x64, 0x0FA0,
 	0x12C
-};
-
-void* LoadFunction(const char* Name)
-{
-#ifdef _WIN32
-	void* fn = GetProcAddress(hLib, Name);
-	if (!fn)
-	{
-		char ccc[256];
-		sprintf_s(ccc, "DMCR.EXE does not contain function: %s", Name);
-		MessageBoxA(NULL, ccc, "DLL init error.", 0);
-	};
-	return fn;
-#else
-	// The main executable exports its extern "C" AI-API functions
-	// (activescenary.cpp) into the global symbol scope.
-	void* fn = dlsym(RTLD_DEFAULT, Name);
-	if (!fn)
-	{
-		fprintf(stderr, "AI module: game does not export function: %s\n", Name);
-	};
-	return fn;
-#endif
 };
 
 

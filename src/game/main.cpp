@@ -2,6 +2,9 @@
 #include <boost/coroutine2/all.hpp>
 #include <boost/context/fixedsize_stack.hpp>
 #include <dirent.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
 
 // There is no main() function, instead we have
 // SDL_AppInit, SDL_AppEvent, SDL_AppIterate and SDL_AppQuit callbacks.
@@ -386,8 +389,96 @@ DLLEXPORT bool KeyPressed;
 DLLEXPORT SDL_Keycode LastKey;
 
 
+//Pick and enter the game data directory. The original game runs from its
+//data directory: every resource path is relative to the current directory
+//(loose files, .gsc archive discovery, settings and saves). To keep the
+//source checkout clean, the data can live in a subdirectory instead:
+//pass --gamedata <dir> (or --gamedata=<dir>), or just create ./gamedata
+//where you run the game from - it is picked up automatically. We chdir()
+//there before any file is opened, so reads, writes and archive discovery
+//all follow. Idempotent: only the first call acts.
+static void EnterGameDataDir( int argc, char* argv[] )
+{
+	static bool Done = false;
+	if (Done)return;
+	Done = true;
+
+	const char* GameDataDir = nullptr;
+	for (int i = 1; i < argc; i++)
+	{
+		if (strcmp( argv[i], "--gamedata" ) == 0 && i + 1 < argc)
+		{
+			GameDataDir = argv[++i];
+		}
+		else if (strncmp( argv[i], "--gamedata=", 11 ) == 0)
+		{
+			GameDataDir = argv[i] + 11;
+		}
+	}
+	if (!GameDataDir && access( "gamedata", F_OK ) == 0)
+	{
+		GameDataDir = "gamedata";
+	}
+	if (GameDataDir)
+	{
+		if (chdir( GameDataDir ) == 0)
+		{
+			char CWD[1024];
+			if (getcwd( CWD, sizeof CWD ))printf( "Game data directory: %s\n", CWD );
+		}
+		else
+		{
+			printf( "Could not enter game data directory '%s': %s\n",
+				GameDataDir, strerror( errno ) );
+		}
+	}
+}
+
+#ifndef _WIN32
+//MissPack MISSLIST (activescenary.cpp) and other global objects open
+//resource files from their constructors. Those constructors run during
+//static initialization - BEFORE SDL_AppInit, so before its chdir() - and
+//with the data files moved out of the current directory they would find
+//nothing (worse: FilesInit() would then cache an empty archive list for
+//the whole run). So enter the data directory even earlier, from a
+//prioritized constructor: it runs before the unprioritized static
+//constructors of the other translation units. argc/argv do not exist yet
+//at this point, so read the command line from /proc/self/cmdline
+//(arguments are NUL-separated there).
+__attribute__( ( constructor( 101 ) ) )
+static void EnterGameDataDirEarly()
+{
+	char CmdLine[4096];
+	FILE* ProcFile = fopen( "/proc/self/cmdline", "rb" );
+	if (!ProcFile)return;
+	size_t N = fread( CmdLine, 1, sizeof CmdLine - 1, ProcFile );
+	fclose( ProcFile );
+	if (!N)return;
+	CmdLine[N] = 0;
+
+	char* Args[256];
+	int Argc = 0;
+	char* p = CmdLine;
+	char* End = CmdLine + N;
+	while (p < End && Argc < 255)
+	{
+		Args[Argc++] = p;
+		while (p < End && *p)p++;
+		p++;//skip the NUL separator
+	}
+	Args[Argc] = nullptr;
+
+	EnterGameDataDir( Argc, Args );
+}
+#endif //_WIN32
+
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 {
+	//Game data directory: normally already entered by the early static
+	//constructor above; this is a no-op then. Kept here for the case where
+	//the early lookup could not run (no /proc).
+	EnterGameDataDir( argc, argv );
+
 	for (int i = 0; i < argc; i++)
 	{
 		if (strcmp(argv[i], "/MAPEDITOR") == 0)
@@ -1251,6 +1342,14 @@ void PostDrawGameProcess()
 
 	if (PlayGameMode)
 	{
+		//TODO(debug): trace the idle-demo replay path
+		static int NDbgTicks = 0;
+		if (NDbgTicks < 5)
+		{
+			NDbgTicks++;
+			printf("PostDraw: GLOBALTIME=%d PGLOBALTIME=%d PitchTicks=%d\n",
+				GLOBALTIME, PGLOBALTIME, PitchTicks);
+		}
 		ReadPichTicks();
 		if (PitchTicks)
 		{

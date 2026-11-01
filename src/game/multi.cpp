@@ -4709,11 +4709,22 @@ void ExecuteBuffer()
 {
 	if ( PlayGameMode )
 	{//A recording is beeing played
-		if ( !RGAME.Extract() )
+		bool ExtractOK = RGAME.Extract();
+		//TODO(debug): trace the idle-demo replay path
+		static int NDbgExtracts = 0;
+		if ( !ExtractOK )
 		{
+			printf( "ExecuteBuffer: Extract failed (Pos=%d Size=%d), exiting demo\n",
+				RGAME.Pos, RGAME.Size );
 			GameExit = true;
 			ShowStat = 0;
 			EBPos = 0;
+		}
+		else if ( NDbgExtracts < 10 )
+		{
+			NDbgExtracts++;
+			printf( "ExecuteBuffer: Extract ok #%d (Pos=%d Size=%d EBPos=%d)\n",
+				NDbgExtracts, RGAME.Pos, RGAME.Size, EBPos );
 		}
 	}
 	else

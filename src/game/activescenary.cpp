@@ -5704,10 +5704,14 @@ bool ReadWinString( GFILE* F, char* STR, int Max )
 extern int CurPalette;
 void ErrM( char* s, char* s1 )
 {
-	if ( CurPalette == 2 )LoadPalette( "2\\agew_1.pal" );
-	else LoadPalette( "0\\agew_1.pal" );
 	char cc2[200];
 	sprintf( cc2, s, s1 );
+	//Also log to the console: the message box is gone once dismissed, and
+	//carries no context when reading a captured log afterwards.
+	printf( "ErrM: %s\n", cc2 );
+	fflush( stdout );
+	if ( CurPalette == 2 )LoadPalette( "2\\agew_1.pal" );
+	else LoadPalette( "0\\agew_1.pal" );
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "LOADING FAILED...", cc2, sdlWindow);
 	assert( false );
 }
@@ -5773,6 +5777,10 @@ void MissPack::LoadMissions()
 	}
 	else
 	{
+		//TODO(debug): log to console as well (these can fire during static
+		//init, where ErrM's palette handling is not safe)
+		printf( "Missions loading failed...: Could not open Missions\\Missions.txt\n" );
+		fflush( stdout );
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Missions loading failed...", "Could not open Missions\\Missions.txt", sdlWindow);
 	}
 
@@ -5804,6 +5812,8 @@ void MissPack::LoadMissions()
 	}
 	else
 	{
+		printf( "Missions loading failed...: Could not open Missions\\SingleMiss.txt\n" );
+		fflush( stdout );
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Missions loading failed...", "Could not open Missions\\SingleMiss.txt", sdlWindow);
 	}
 }

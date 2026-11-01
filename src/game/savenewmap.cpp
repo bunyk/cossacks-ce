@@ -1108,6 +1108,115 @@ void LoadRES( ResFile f1 )
 	};
 };
 void EraseAreas();
+//-----------------------------------------------------------------------------
+// The .m3d map files store structs in the raw 32-bit Windows layout: pack(1)
+// with 4-byte pointer placeholders (MinesIdx/Link/Name/Units/Serials - the
+// loader re-creates those, the stored values are meaningless). On 64-bit the
+// in-memory structs have 8-byte pointers and different sizes, so a raw
+// sizeof(struct) read desyncs the block stream: scene1.m3d stores 85-byte
+// Area records while sizeof(Area) is 93 on x64, which yielded garbage
+// NLinks/MaxLink and overflowed the Link buffer (heap corruption in
+// LoadTopology1). Serialize the on-disk layout explicitly instead.
+// Layouts verified byte-exact against GOG maps (scene1.m3d, MyFirst.m3d).
+
+static void ReadAreaFromMapFile( ResFile f1, Area* Ar1 )
+{
+	byte Buf[85];
+	RBlockRead( f1, Buf, 85 );
+	Ar1->x = *(short*) ( Buf + 0 );
+	Ar1->y = *(short*) ( Buf + 2 );
+	Ar1->Importance = Buf[4];
+	Ar1->NTrees = Buf[5];
+	Ar1->NStones = Buf[6];
+	Ar1->NMines = *( (word*) ( Buf + 7 ) );
+	//Buf+9: MinesIdx placeholder (4 bytes in the file layout)
+	Ar1->NLinks = *( (word*) ( Buf + 13 ) );
+	//Buf+15: Link placeholder (4 bytes in the file layout)
+	Ar1->MaxLink = *( (word*) ( Buf + 19 ) );
+	memcpy( Ar1->SINF, Buf + 21, sizeof Ar1->SINF );
+}
+
+static void WriteAreaToMapFile( ResFile f1, Area* Ar1 )
+{
+	byte Buf[85];
+	memset( Buf, 0, sizeof Buf );
+	*(short*) ( Buf + 0 ) = Ar1->x;
+	*(short*) ( Buf + 2 ) = Ar1->y;
+	Buf[4] = Ar1->Importance;
+	Buf[5] = Ar1->NTrees;
+	Buf[6] = Ar1->NStones;
+	*( (word*) ( Buf + 7 ) ) = Ar1->NMines;
+	//Buf+9: MinesIdx placeholder (4 bytes in the file layout)
+	*( (word*) ( Buf + 13 ) ) = Ar1->NLinks;
+	//Buf+15: Link placeholder (4 bytes in the file layout)
+	*( (word*) ( Buf + 19 ) ) = Ar1->MaxLink;
+	memcpy( Buf + 21, Ar1->SINF, sizeof Ar1->SINF );
+	RBlockWrite( f1, Buf, 85 );
+}
+
+//ActiveZone on disk (32-bit pack(1)): int x, y, R; char* Name; byte Dir - 17 bytes
+static void ReadActiveZoneFromMapFile( ResFile f1, ActiveZone* AZ )
+{
+	byte Buf[17];
+	RBlockRead( f1, Buf, 17 );
+	AZ->x = *(int*) ( Buf + 0 );
+	AZ->y = *(int*) ( Buf + 4 );
+	AZ->R = *(int*) ( Buf + 8 );
+	//Buf+12: Name placeholder (4 bytes in the file layout)
+	AZ->Dir = Buf[16];
+}
+
+static void WriteActiveZoneToMapFile( ResFile f1, ActiveZone* AZ )
+{
+	byte Buf[17];
+	memset( Buf, 0, sizeof Buf );
+	*(int*) ( Buf + 0 ) = AZ->x;
+	*(int*) ( Buf + 4 ) = AZ->y;
+	*(int*) ( Buf + 8 ) = AZ->R;
+	//Buf+12: Name placeholder (4 bytes in the file layout)
+	Buf[16] = AZ->Dir;
+	RBlockWrite( f1, Buf, 17 );
+}
+
+//ActiveGroup on disk (32-bit pack(1)): word *Units, *Serials; int N; char*
+//Name; int MinX..AmaxY; bool Visible - 49 bytes
+static void ReadActiveGroupFromMapFile( ResFile f1, ActiveGroup* AG )
+{
+	byte Buf[49];
+	RBlockRead( f1, Buf, 49 );
+	//Buf+0: Units, Buf+4: Serials placeholders (4 bytes each in the file layout)
+	AG->N = *(int*) ( Buf + 8 );
+	//Buf+12: Name placeholder (4 bytes in the file layout)
+	AG->MinX = *(int*) ( Buf + 16 );
+	AG->MinY = *(int*) ( Buf + 20 );
+	AG->MaxX = *(int*) ( Buf + 24 );
+	AG->MaxY = *(int*) ( Buf + 28 );
+	AG->AminX = *(int*) ( Buf + 32 );
+	AG->AminY = *(int*) ( Buf + 36 );
+	AG->AmaxX = *(int*) ( Buf + 40 );
+	AG->AmaxY = *(int*) ( Buf + 44 );
+	AG->Visible = 0 != Buf[48];
+}
+
+static void WriteActiveGroupToMapFile( ResFile f1, ActiveGroup* AG )
+{
+	byte Buf[49];
+	memset( Buf, 0, sizeof Buf );
+	//Buf+0: Units, Buf+4: Serials placeholders (4 bytes each in the file layout)
+	*(int*) ( Buf + 8 ) = AG->N;
+	//Buf+12: Name placeholder (4 bytes in the file layout)
+	*(int*) ( Buf + 16 ) = AG->MinX;
+	*(int*) ( Buf + 20 ) = AG->MinY;
+	*(int*) ( Buf + 24 ) = AG->MaxX;
+	*(int*) ( Buf + 28 ) = AG->MaxY;
+	*(int*) ( Buf + 32 ) = AG->AminX;
+	*(int*) ( Buf + 36 ) = AG->AminY;
+	*(int*) ( Buf + 40 ) = AG->AmaxX;
+	*(int*) ( Buf + 44 ) = AG->AmaxY;
+	Buf[48] = 0 != AG->Visible;
+	RBlockWrite( f1, Buf, 49 );
+}
+//-----------------------------------------------------------------------------
 void SaveTopology( ResFile f1 )
 {
 	EraseAreas();
@@ -1115,7 +1224,7 @@ void SaveTopology( ResFile f1 )
 	CreateTotalLocking();
 	int i = '1POT';
 	RBlockWrite( f1, &i, 4 );
-	i = 4 + 4 + NAreas * sizeof( Area ) + 4 * NAreas*NAreas + 2 * TopLx*TopLy;
+	i = 4 + 4 + NAreas * 85 + 4 * NAreas*NAreas + 2 * TopLx*TopLy;//85: on-disk Area size, see WriteAreaToMapFile
 	for ( int j = 0; j < NAreas; j++ )
 	{
 		Area* Ar1 = TopMap + j;
@@ -1126,7 +1235,7 @@ void SaveTopology( ResFile f1 )
 	for ( int j = 0; j < NAreas; j++ )
 	{
 		Area Ar1 = TopMap[j];
-		RBlockWrite( f1, &Ar1, sizeof(Area) );
+		WriteAreaToMapFile( f1, &Ar1 );
 		Ar1.MaxLink = Ar1.NLinks;
 		if ( Ar1.NMines )RBlockWrite( f1, Ar1.MinesIdx, Ar1.NMines << 1 );
 		if ( Ar1.NLinks )RBlockWrite( f1, Ar1.Link, Ar1.NLinks << 2 );
@@ -1147,7 +1256,7 @@ void LoadTopology( ResFile f1 )
 	for ( int j = 0; j < NAreas; j++ )
 	{
 		Area* Ar1 = TopMap + j;
-		RBlockRead( f1, Ar1, sizeof(Area) );
+		ReadAreaFromMapFile( f1, Ar1 );
 		if ( Ar1->NMines )Ar1->MinesIdx = new word[Ar1->NMines];
 		else Ar1->MinesIdx = NULL;
 		if ( Ar1->NLinks )Ar1->Link = new word[Ar1->NLinks];
@@ -1165,7 +1274,7 @@ void SaveWTopology( ResFile f1 )
 {
 	int i = 'WPOT';
 	RBlockWrite( f1, &i, 4 );
-	i = 4 + 4 + WNAreas * sizeof( Area ) + 4 * WNAreas*WNAreas + 2 * TopLx*TopLy;
+	i = 4 + 4 + WNAreas * 85 + 4 * WNAreas*WNAreas + 2 * TopLx*TopLy;//85: on-disk Area size, see WriteAreaToMapFile
 	for ( int j = 0; j < WNAreas; j++ )
 	{
 		Area* Ar1 = WTopMap + j;
@@ -1176,7 +1285,7 @@ void SaveWTopology( ResFile f1 )
 	for ( int j = 0; j < WNAreas; j++ )
 	{
 		Area Ar1 = WTopMap[j];
-		RBlockWrite( f1, &Ar1, sizeof(Area) );
+		WriteAreaToMapFile( f1, &Ar1 );
 		Ar1.MaxLink = Ar1.NLinks;
 		if ( Ar1.NMines )RBlockWrite( f1, Ar1.MinesIdx, Ar1.NMines << 1 );
 		if ( Ar1.NLinks )RBlockWrite( f1, Ar1.Link, Ar1.NLinks << 2 );
@@ -1196,7 +1305,7 @@ void LoadTopology1( ResFile f1 )
 	for ( int j = 0; j < NAreas; j++ )
 	{
 		Area* Ar1 = TopMap + j;
-		RBlockRead( f1, Ar1, sizeof(Area) );
+		ReadAreaFromMapFile( f1, Ar1 );
 		if ( Ar1->NMines )Ar1->MinesIdx = new word[Ar1->NMines];
 		else Ar1->MinesIdx = NULL;
 		if ( Ar1->NLinks )Ar1->Link = new word[Ar1->MaxLink << 1];
@@ -1219,7 +1328,7 @@ void LoadWTopology1( ResFile f1 )
 	for ( int j = 0; j < WNAreas; j++ )
 	{
 		Area* Ar1 = WTopMap + j;
-		RBlockRead( f1, Ar1, sizeof(Area) );
+		ReadAreaFromMapFile( f1, Ar1 );
 		if ( Ar1->NMines )Ar1->MinesIdx = new word[Ar1->NMines];
 		else Ar1->MinesIdx = NULL;
 		if ( Ar1->NLinks )Ar1->Link = new word[Ar1->MaxLink << 1];
@@ -1241,7 +1350,8 @@ void SaveZonesAndGroups( ResFile f1 )
 {
 	int i = '1NOZ';
 	RBlockWrite( f1, &i, 4 );
-	int sz = 4 + 8 + NAZones*( sizeof(ActiveZone) ) + NAGroups*( sizeof(ActiveGroup) );
+	//17/49: on-disk ActiveZone/ActiveGroup sizes, see WriteActiveZoneToMapFile
+	int sz = 4 + 8 + NAZones * 17 + NAGroups * 49;
 	for ( int i = 0; i < NAZones; i++ )
 	{
 		ActiveZone* AZ = AZones + i;
@@ -1259,7 +1369,7 @@ void SaveZonesAndGroups( ResFile f1 )
 	for ( int i = 0; i < NAZones; i++ )
 	{
 		ActiveZone* AZ = AZones + i;
-		RBlockWrite( f1, AZ, sizeof(ActiveZone) );
+		WriteActiveZoneToMapFile( f1, AZ );
 		sz = strlen( AZ->Name ) + 1;
 		RBlockWrite( f1, &sz, 1 );
 		RBlockWrite( f1, AZ->Name, sz );
@@ -1267,7 +1377,7 @@ void SaveZonesAndGroups( ResFile f1 )
 	for ( int i = 0; i < NAGroups; i++ )
 	{
 		ActiveGroup* AG = AGroups + i;
-		RBlockWrite( f1, AG, sizeof(ActiveGroup) );
+		WriteActiveGroupToMapFile( f1, AG );
 		sz = strlen( AG->Name ) + 1;
 		RBlockWrite( f1, &sz, 1 );
 		RBlockWrite( f1, AG->Name, sz );
@@ -1309,7 +1419,7 @@ void LoadZonesAndGroups( ResFile f1 )
 	for ( int i = 0; i < NAZones; i++ )
 	{
 		ActiveZone* AZ = AZones + i;
-		RBlockRead( f1, AZ, sizeof(ActiveZone) );
+		ReadActiveZoneFromMapFile( f1, AZ );
 		byte L;
 		RBlockRead( f1, &L, 1 );
 		AZ->Name = new char[L];
@@ -1318,7 +1428,7 @@ void LoadZonesAndGroups( ResFile f1 )
 	for ( int q = 0; q < NAGroups; q++ )
 	{
 		ActiveGroup* AG = AGroups + q;
-		RBlockRead( f1, AG, sizeof(ActiveGroup) );
+		ReadActiveGroupFromMapFile( f1, AG );
 		byte L;
 		RBlockRead( f1, &L, 1 );
 		AG->Name = new char[L];
