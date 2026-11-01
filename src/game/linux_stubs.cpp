@@ -101,10 +101,12 @@ word GetNextSafeCell( byte NI, int F, int start, int Fin ) { (void)NI; (void)F; 
 // CreateTrace asm translated to portable C++ there - stubs deleted.
 
 //-------------- interface.cpp / gp_draw.cpp guarded regions --------------
+// Mission dialogs (AskMissionQuestion, ProcessComplex/MultilineQuestion,
+// ProcessMissionText, ShowHistryItem): real implementations un-guarded in
+// interface.cpp 2026-11-01 - stubs deleted.
 // CheckCoorInGP, Clean_GP_IMG, Init_GP_IMG, RegisterVisibleGP: real
 // implementations now in gp_draw.cpp (CheckInsideMask asm translated to
 // portable C++; GP registry code was plain C++ already) - stubs deleted.
-bool AskMissionQuestion( char* Bmp, char* Text ) { (void)Bmp; (void)Text; return false; }
 bool CheckFlagsNeed() { return false; }
 bool CheckGameTime() { return false; }
 void DontMakeRaiting() {}
@@ -118,12 +120,8 @@ bool IsGameActive() { return false; }
 void LoadMapInterface() {}
 void LoadSaveFile() {}
 void ProcessMapInterface() {}
-int  ProcessComplexQuestion( int Nx, char* Bmp1, byte or1, char* Text1, char* Bmp2, byte or2, char* Text2, char* Quest ) { (void)Nx; (void)Bmp1; (void)or1; (void)Text1; (void)Bmp2; (void)or2; (void)Text2; (void)Quest; return 0; }
-void ProcessMissionText( char* Bmp, char* Text ) { (void)Bmp; (void)Text; }
-int  ProcessMultilineQuestion( int Nx, char* Bmp1, byte or1, char* Text1, char* Quest ) { (void)Nx; (void)Bmp1; (void)or1; (void)Text1; (void)Quest; return 0; }
 void SetBrokenState() {}
 void ShowChat() {}
-int  ShowHistryItem( char* Bmp, char* Text ) { (void)Bmp; (void)Text; return 0; }
 void ShowCentralMessage4( char* Message, int GPIDX, int DX ) { (void)Message; (void)GPIDX; (void)DX; }
 void UpdateCurGame() {}
 

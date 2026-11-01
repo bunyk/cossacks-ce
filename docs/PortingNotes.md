@@ -13,8 +13,12 @@ No-op stubs with exact header signatures so it links. Each stub is a TODO:
 
 - **Water**: `SetWaterSpot`, `InitBlobs` etc.; `WaterDeep`/`WaterBright` point at a static
   1MB zero buffer instead of real map data.
-- **In-game UI**: `LoadMapInterface`, `ProcessMapInterface`, `DrawZones`, chat, mission
-  questions (interface.cpp guarded regions).
+- **In-game UI**: `LoadMapInterface`, `ProcessMapInterface`, `DrawZones`, chat
+  (interface.cpp guarded regions). Mission dialogs are DONE: `ProcessMissionText`,
+  `ProcessComplexQuestion`, `ProcessMultilineQuestion`, `AskMissionQuestion`,
+  `ShowHistryItem` were un-guarded from interface.cpp's Win32 region 2026-11-01
+  (bodies use only the ported dialog machinery) and their linux_stubs.cpp no-ops
+  deleted - without them, tutorial pages/questions were silently invisible.
 - **Network**: `mplayer.cpp`/`ir_main.cpp` (GetPing, PSUMM/PBACK/RETRANS ctors, WINIGAME...).
   Note `SetupEBufs` and `PLNAT[8]` are REAL implementations here (not stubs); when
   mplayer.cpp gets ported, delete them along with the rest.

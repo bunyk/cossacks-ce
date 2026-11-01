@@ -9641,8 +9641,14 @@ void ProcessHelp()
 	#endif // _WIN32
 };
 
-#ifdef _WIN32
+// Mission dialogs (page text viewer + the question variants). Un-guarded
+// from the Win32 region 2026-11-01: the bodies use only the ported
+// dialog/drawing machinery (DialogsSystem, GPS, RLCFont, ProcessMessages),
+// and on Linux they replace the linux_stubs.cpp no-ops that made mission
+// pages and questions silently invisible (tutorial started with "no
+// messages" because ShowPage -> ProcessMissionText hit the stub).
 extern bool ProtectionMode;
+extern int CurrentAnswer; // defined in recorder.cpp (decl was in a Win32 block)
 int ProcessComplexQuestion( int Nx, char* Bmp1, byte or1, char* Text1, char* Bmp2, byte or2, char* Text2, char* Quest )
 {
 	int Lx = Nx << 6;
@@ -10287,6 +10293,9 @@ bool AskMissionQuestion( char* Bmp, char* Text )
 	if ( ItemChoose == mcmOk )return true;
 	else return false;
 };
+
+// (the minimap-editor machinery below is still Windows-only)
+#ifdef _WIN32
 //----------------------MiniMap editor interface------------------
 SQPicture trans1u;
 SQPicture trans1p;
