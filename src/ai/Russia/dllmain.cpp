@@ -1022,205 +1022,209 @@ void ProcessWaterAI()
 			{
 				WaterPikeUpgrades();
 			}
-			// Galleys: grow the fleet slowly from what is already afloat
-			int galTarget = galeras < 5 ? 5 : galeras + 2;
-			TryUnit(&galera, galTarget, 70, 50);
-			if (fleet < 5)
-			{
-				TryUnit(&shebeka, 12, 70, 50);
-			}
-			else
-			{
-				TryUnit(&shebeka, fleet + 6, 30, 50);
-				TryUnit(&shebeka, fleet + 9, 15, 50);
-				TryUnit(&shebeka, fleet + 10, 10, 50);
-			}
-			if (GetUnitsByUsage(0, USAGE_PAROM) != 0)
-			{
-				// Has ferries: upgrade the towers
-				TryUpgrade(&bashnia_PAUSE, 50, 50);
-				TryUpgrade(&bashnia_PAUSE3, 50, 50);
-				TryUpgrade(&bashnia_PAUSE4, 50, 50);
-				TryUpgrade(&bashnia_PAUSE5, 50, 50);
-				TryUpgrade(&bashnia_PAUSE6, 50, 50);
-				TryUpgrade(&bashnia_PAUSE7, 50, 50);
-			}
-			TryUnit(&peres_kor, 3, 90, 10);
-			TryUnit(&center, 1, 100, 100);
-			TryUnit(&center, 2, 95, 5);
-			if (building == 0)
-			{
-				TryUnit(&center, 3, 95, 5);
-			}
-			TryUnit(&kuznia, 1, 100, 100);
-			TryUnit(&barack, 1, 100, 100);
-			TryUnit(&sclad, 1, 50, 50);
-			TryUnit(&kuznia, 2, 10, 5);
-			TryUnit(&konushnia, 1, 99, 90);
-			TryUpgrade(&KUZ01, 80, 100);
-			if (GetUnits(&minaret) != 0)
-			{
-				TryUnit(&rinok, 1, 90, 25);
-				TryUnit(&mechet, 1, 5, 3);
-			}
-			TryUnit(&minaret, 1, 90, 90);
-			if (building == 0)
-			{
-				TryUnit(&diplomatic, 1, 99, 10);
-			}
-			TryUnit(&art_depo, 1, 90, 90);
-			if (peasants > 25)
-			{
-				TryUnit(&melnica, 2, 30, 30);
-			}
-			TryUnit(&kazarma, 1, 90, 20);
-			TryUnit(&kazarma, 2, 50, 5);
-			TryUpgrade(&AKA01, 90, 99);
-			TryUpgrade(&AKA02, 90, 99);
-			TryUpgrade(&AKA03, 90, 99);
-			TryUpgrade(&AKA04, 90, 99);
-			TryUpgrade(&AKA08, 95, 100);
-			TryUpgrade(&KUZ03, 99, 100);
-			// Ports: up to five, no gate (the old konushnia requirement was
-			// a Turkey-lineage artifact of this port)
-			TryUnit(&port, 1, 80, 20);
-			TryUnit(&port, 2, 50, 5);
-			TryUnit(&port, 3, 30, 5);
-			TryUnit(&port, 5, 20, 5);
-			TryUpgrade(&AKA06, 95, 100);
-			int mineCap = GetMaxPeasantsInMines();
-			if (UpgIsRun(&AKA08))
-			{
-				TryUpgrade(&AKA06, 90, 90);
-				TryUpgrade(&AKA05, 99, 100);
-			}
-			if (UpgIsRun(&AKA06))
-			{
-				TryUpgrade(&AKA20, 90, 90);
-				TryUpgrade(&AKA28, 70, 10);
-				WaterMortiraUpgrades();
-			}
-			if (UpgIsDone(&mortira_BUILD5))
-			{
-				TryUnit(&mortira, 10, 10, 90);
-				TryUnit(&mortira, 15, 3, 10);
-			}
-			// Gold-upgrade lock: forbid gold-costly upgrades while saving
-			// up for the XVIII-century research
-			SetUpgradeLock(GOLD, 0);
-			if (GetMoney(WOOD) > 14000 && UpgIsRun(&AKA30) && GetMoney(GOLD) < 7500
-				&& !UpgIsRun(&AKA06))
+		}
+		// The rest of the tick runs regardless of FieldExist(): a
+		// fresh town without fields still builds its hall, store,
+		// barracks and ports (only the peasant distribution differs).
+
+		// Galleys: grow the fleet slowly from what is already afloat
+		int galTarget = galeras < 5 ? 5 : galeras + 2;
+		TryUnit(&galera, galTarget, 70, 50);
+		if (fleet < 5)
+		{
+			TryUnit(&shebeka, 12, 70, 50);
+		}
+		else
+		{
+			TryUnit(&shebeka, fleet + 6, 30, 50);
+			TryUnit(&shebeka, fleet + 9, 15, 50);
+			TryUnit(&shebeka, fleet + 10, 10, 50);
+		}
+		if (GetUnitsByUsage(0, USAGE_PAROM) != 0)
+		{
+			// Has ferries: upgrade the towers
+			TryUpgrade(&bashnia_PAUSE, 50, 50);
+			TryUpgrade(&bashnia_PAUSE3, 50, 50);
+			TryUpgrade(&bashnia_PAUSE4, 50, 50);
+			TryUpgrade(&bashnia_PAUSE5, 50, 50);
+			TryUpgrade(&bashnia_PAUSE6, 50, 50);
+			TryUpgrade(&bashnia_PAUSE7, 50, 50);
+		}
+		TryUnit(&peres_kor, 3, 90, 10);
+		TryUnit(&center, 1, 100, 100);
+		TryUnit(&center, 2, 95, 5);
+		if (building == 0)
+		{
+			TryUnit(&center, 3, 95, 5);
+		}
+		TryUnit(&kuznia, 1, 100, 100);
+		TryUnit(&barack, 1, 100, 100);
+		TryUnit(&sclad, 1, 50, 50);
+		TryUnit(&kuznia, 2, 10, 5);
+		TryUnit(&konushnia, 1, 99, 90);
+		TryUpgrade(&KUZ01, 80, 100);
+		if (GetUnits(&minaret) != 0)
+		{
+			TryUnit(&rinok, 1, 90, 25);
+			TryUnit(&mechet, 1, 5, 3);
+		}
+		TryUnit(&minaret, 1, 90, 90);
+		if (building == 0)
+		{
+			TryUnit(&diplomatic, 1, 99, 10);
+		}
+		TryUnit(&art_depo, 1, 90, 90);
+		if (peasants > 25)
+		{
+			TryUnit(&melnica, 2, 30, 30);
+		}
+		TryUnit(&kazarma, 1, 90, 20);
+		TryUnit(&kazarma, 2, 50, 5);
+		TryUpgrade(&AKA01, 90, 99);
+		TryUpgrade(&AKA02, 90, 99);
+		TryUpgrade(&AKA03, 90, 99);
+		TryUpgrade(&AKA04, 90, 99);
+		TryUpgrade(&AKA08, 95, 100);
+		TryUpgrade(&KUZ03, 99, 100);
+		// Ports: up to five, no gate (the old konushnia requirement was
+		// a Turkey-lineage artifact of this port)
+		TryUnit(&port, 1, 80, 20);
+		TryUnit(&port, 2, 50, 5);
+		TryUnit(&port, 3, 30, 5);
+		TryUnit(&port, 5, 20, 5);
+		TryUpgrade(&AKA06, 95, 100);
+		int mineCap = GetMaxPeasantsInMines();
+		if (UpgIsRun(&AKA08))
+		{
+			TryUpgrade(&AKA06, 90, 90);
+			TryUpgrade(&AKA05, 99, 100);
+		}
+		if (UpgIsRun(&AKA06))
+		{
+			TryUpgrade(&AKA20, 90, 90);
+			TryUpgrade(&AKA28, 70, 10);
+			WaterMortiraUpgrades();
+		}
+		if (UpgIsDone(&mortira_BUILD5))
+		{
+			TryUnit(&mortira, 10, 10, 90);
+			TryUnit(&mortira, 15, 3, 10);
+		}
+		// Gold-upgrade lock: forbid gold-costly upgrades while saving
+		// up for the XVIII-century research
+		SetUpgradeLock(GOLD, 0);
+		if (GetMoney(WOOD) > 14000 && UpgIsRun(&AKA30) && GetMoney(GOLD) < 7500
+			&& !UpgIsRun(&AKA06))
+		{
+			SetUpgradeLock(GOLD, 1);
+		}
+		if (UpgIsRun(&AKA06) && UpgIsRun(&AKA07) && UpgIsDone(&KUZ03))
+		{
+			// mineCap values are the max workers per (upgraded) mine
+			if ((mineCap == 10 || mineCap == 18) && food > 50000
+				&& GetMoney(GOLD) < 8200)
 			{
 				SetUpgradeLock(GOLD, 1);
 			}
-			if (UpgIsRun(&AKA06) && UpgIsRun(&AKA07) && UpgIsDone(&KUZ03))
+			if (!UpgIsRun(&MAIN) && food > 60000 && GetMoney(GOLD) < 11000)
 			{
-				// mineCap values are the max workers per (upgraded) mine
-				if ((mineCap == 10 || mineCap == 18) && food > 50000
-					&& GetMoney(GOLD) < 8200)
+				SetUpgradeLock(GOLD, 1);
+			}
+			if (UpgIsDone(&MAIN))
+			{
+				if (mineCap == 28)
 				{
-					SetUpgradeLock(GOLD, 1);
-				}
-				if (!UpgIsRun(&MAIN) && food > 60000 && GetMoney(GOLD) < 11000)
-				{
-					SetUpgradeLock(GOLD, 1);
-				}
-				if (UpgIsDone(&MAIN))
-				{
-					if (mineCap == 28)
+					if (food > 50000 && GetMoney(COAL) > 7300
+						&& GetMoney(GOLD) < 20000)
 					{
-						if (food > 50000 && GetMoney(COAL) > 7300
-							&& GetMoney(GOLD) < 20000)
-						{
-							SetUpgradeLock(GOLD, 1);
-						}
+						SetUpgradeLock(GOLD, 1);
 					}
-					else if (mineCap == 40)
+				}
+				else if (mineCap == 40)
+				{
+					if (food > 50000 && GetMoney(COAL) > 9800
+						&& GetMoney(GOLD) < 24000)
 					{
-						if (food > 50000 && GetMoney(COAL) > 9800
-							&& GetMoney(GOLD) < 24000)
-						{
-							SetUpgradeLock(GOLD, 1);
-						}
+						SetUpgradeLock(GOLD, 1);
 					}
-					else if (mineCap == 55)
+				}
+				else if (mineCap == 55)
+				{
+					if (food > 80000 && GetMoney(GOLD) < 26000)
 					{
-						if (food > 80000 && GetMoney(GOLD) < 26000)
-						{
-							SetUpgradeLock(GOLD, 1);
-						}
+						SetUpgradeLock(GOLD, 1);
 					}
 				}
 			}
-			// Fully upgraded mines (capacity 95): battleships + AKA29
-			if (mineCap == 95)
+		}
+		// Fully upgraded mines (capacity 95): battleships + AKA29
+		if (mineCap == 95)
+		{
+			TryUpgrade(&AKA29, 70, 10);
+			TryUnit(&linkor, 1, 50, 30);
+			TryUnit(&linkor, 2, 30, 30);
+			TryUnit(&linkor, 3, 20, 30);
+			TryUnit(&linkor, 5, 10, 30);
+		}
+		// Towers once the economy is large and all towers are ready
+		if (peasants > 80 && towers == towersReady)
+		{
+			TryUnit(&bashnia2, 1, 80, 10);
+			if (peasants > 95)
 			{
-				TryUpgrade(&AKA29, 70, 10);
-				TryUnit(&linkor, 1, 50, 30);
-				TryUnit(&linkor, 2, 30, 30);
-				TryUnit(&linkor, 3, 20, 30);
-				TryUnit(&linkor, 5, 10, 30);
+				TryUnit(&bashnia2, 2, 80, 10);
+				TryUnit(&bashnia2, 3, 50, 10);
+				TryUnit(&bashnia2, 4, 30, 10);
 			}
-			// Towers once the economy is large and all towers are ready
-			if (peasants > 80 && towers == towersReady)
+		}
+		// 18th c. units once the academy chain is underway
+		if (kuz03Running && UpgIsDone(&AKA08))
+		{
+			TryUnit(&grenader, 75, 1, 30);
+			// (the original also queries these two and drops the
+			// results; kept to mirror the flow)
+			UpgIsDone(&pushka_BUILD5);
+			UpgIsDone(&mortira_BUILD5);
+		}
+		// (original queries the art depository here and drops it)
+		GetUnits(&art_depo);
+		TryUnit(&lodka, 3, 90, 90);
+		if (UpgIsDone(&AKA07))
+		{
+			TryUnit(&lodka, 20, 10, 90);
+		}
+		if (kuz03Running && UpgIsDone(&AKA08))
+		{
+			if (building == 0)
 			{
-				TryUnit(&bashnia2, 1, 80, 10);
-				if (peasants > 95)
-				{
-					TryUnit(&bashnia2, 2, 80, 10);
-					TryUnit(&bashnia2, 3, 50, 10);
-					TryUnit(&bashnia2, 4, 30, 10);
-				}
+				TryUnit(&konushnia, 2, 90, 20);
+				TryUnit(&konushnia, 3, 90, 20);
+				TryUnit(&konushnia, 4, 90, 20);
 			}
-			// 18th c. units once the academy chain is underway
-			if (kuz03Running && UpgIsDone(&AKA08))
+			if (strelecs > 20)
 			{
-				TryUnit(&grenader, 75, 1, 30);
-				// (the original also queries these two and drops the
-				// results; kept to mirror the flow)
-				UpgIsDone(&pushka_BUILD5);
-				UpgIsDone(&mortira_BUILD5);
+				TryUpgrade(&AKA31, 90, 100);
+				TryUpgrade(&AKA33, 80, 70);
 			}
-			// (original queries the art depository here and drops it)
-			GetUnits(&art_depo);
-			TryUnit(&lodka, 3, 90, 90);
-			if (UpgIsDone(&AKA07))
+			TryUpgrade(&AKA07, 60, 90);
+			if (UpgIsRun(&pehota_ATTACK4))
 			{
-				TryUnit(&lodka, 20, 10, 90);
+				TryUpgrade(&AKA12, 90, 90);
+				TryUpgrade(&AKA13, 90, 90);
+				TryUpgrade(&AKA14, 70, 90);
+				TryUpgrade(&AKA15, 70, 90);
 			}
-			if (kuz03Running && UpgIsDone(&AKA08))
+		}
+		TryUpgrade(&AKA30, 99, 100);
+		TryUpgrade(&AKA10, 60, 90);
+		// Enough 18th c. strike troops -> mass 17th c. musketeers
+		if (GetUnits(&barack) > 1 && elite > 300)
+		{
+			if (strelecs * 5 < elite - 50)
 			{
-				if (building == 0)
-				{
-					TryUnit(&konushnia, 2, 90, 20);
-					TryUnit(&konushnia, 3, 90, 20);
-					TryUnit(&konushnia, 4, 90, 20);
-				}
-				if (strelecs > 20)
-				{
-					TryUpgrade(&AKA31, 90, 100);
-					TryUpgrade(&AKA33, 80, 70);
-				}
-				TryUpgrade(&AKA07, 60, 90);
-				if (UpgIsRun(&pehota_ATTACK4))
-				{
-					TryUpgrade(&AKA12, 90, 90);
-					TryUpgrade(&AKA13, 90, 90);
-					TryUpgrade(&AKA14, 70, 90);
-					TryUpgrade(&AKA15, 70, 90);
-				}
+				TryUnit(&pehota, 500, 10, 10);
 			}
-			TryUpgrade(&AKA30, 99, 100);
-			TryUpgrade(&AKA10, 60, 90);
-			// Enough 18th c. strike troops -> mass 17th c. musketeers
-			if (GetUnits(&barack) > 1 && elite > 300)
-			{
-				if (strelecs * 5 < elite - 50)
-				{
-					TryUnit(&pehota, 500, 10, 10);
-				}
-				WaterStrelecUpgrades();
-			}
+			WaterStrelecUpgrades();
 		}
 	}
 
