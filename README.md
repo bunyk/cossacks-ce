@@ -70,6 +70,27 @@ Or run directly:
 build/Debug/cossacks /window
 ```
 
+## Game data
+
+The game data (`gamedata/`, from a legally obtained copy of the game) is
+expected in the working directory; the binary is run from the repo root or
+`gamedata` itself (see `docs/missions.md` for how the game finds its files).
+
+### Extract mission maps (required for campaigns/tutorials)
+
+Each mission under `gamedata/Missions/` ships its map packed in a
+per-mission `.rar` (e.g. `Tutorial/Tutorial1/tutorial1.rar` holds
+`tutorial1.m3d`). The original engine extracted these on demand via
+`unrar.dll`; this port expects them extracted once as loose files next to
+the archive. A missing map fails silently in the engine and shows up as a
+black screen on mission start (a `Load3DMap: can't open map` warning is
+printed to stderr since the 2026-11 port).
+
+```bash
+sudo apt install unrar
+find gamedata/Missions -name '*.rar' -execdir unrar x -o+ {} \;
+```
+
 ## Contributing
 
 Contributions from the community are welcomed! If you are interested in helping with the migration or have any suggestions, please feel free to open an issue or submit a pull request.

@@ -2164,11 +2164,17 @@ void Load3DMap( char* Map )
 
 	if ( f1 == INVALID_HANDLE_VALUE )
 	{
+		// Silent-failure trap: a mission whose .m3d is still packed in the
+		// per-mission .rar (see README "Game data") shows up as a black
+		// screen - everything else loads, only the map stays empty.
+		fprintf( stderr, "WARNING: Load3DMap: can't open map '%s' "
+			"(not extracted from its .rar?)\n", Map );
 		return;
 	}
 
 	if ( !LoadHeader( f1 ) )
 	{
+		fprintf( stderr, "WARNING: Load3DMap: bad map header in '%s'\n", Map );
 		RClose( f1 );
 		return;
 	}
@@ -2343,9 +2349,17 @@ void Load3DMapLandOnly( char* Map )
 	CheckMapName( Map );
 	ResFile f1 = RReset( Map );
 	ClearMaps();
-	if ( f1 == INVALID_HANDLE_VALUE )return;
+	if ( f1 == INVALID_HANDLE_VALUE )
+	{
+		// See Load3DMap: missing map would otherwise fail silently and
+		// leave an empty (black) terrain.
+		fprintf( stderr, "WARNING: Load3DMapLandOnly: can't open map '%s' "
+			"(not extracted from its .rar?)\n", Map );
+		return;
+	}
 	if ( !LoadHeader( f1 ) )
 	{
+		fprintf( stderr, "WARNING: Load3DMapLandOnly: bad map header in '%s'\n", Map );
 		RClose( f1 );
 		return;
 	};

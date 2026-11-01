@@ -244,6 +244,27 @@ set_target_properties(Denmark PROPERTIES PREFIX "" OUTPUT_NAME "Denmark"
 target_compile_options(Denmark PRIVATE "-fvisibility=hidden")
 
 
+# ---------------------------------------------------------------------------
+# Ported mission modules. The original Missions/<Group>/<Name>/Mission.dll
+# files import the scenary API from dmcr.exe and export OnInit +
+# ProcessScenary; the game LoadLibrary()s "Missions\<Group>\<Name>\Mission.dll"
+# and the os.cpp shim retries it as .so (see docs/missions.md). The engine
+# exports the whole scenary API via -rdynamic, so the modules call it
+# directly - no dlsym scaffolding needed.
+function(add_mission MISSION_PATH)
+    get_filename_component(mission_name "${MISSION_PATH}" NAME)
+    add_library("Mission_${mission_name}" MODULE
+        "src/missions/${MISSION_PATH}/mission.cpp")
+    set_target_properties("Mission_${mission_name}" PROPERTIES
+        PREFIX "" OUTPUT_NAME "Mission"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/gamedata/Missions/${MISSION_PATH}")
+    target_compile_options("Mission_${mission_name}" PRIVATE "-fvisibility=hidden")
+endfunction()
+
+add_mission(Tutorial/Tutorial1)
+add_mission(Singles/Single59)
+
+
 # And Boost
 find_package(Boost REQUIRED COMPONENTS context filesystem iostreams)
 target_link_libraries(cossacks PRIVATE Boost::context Boost::filesystem Boost::iostreams)
