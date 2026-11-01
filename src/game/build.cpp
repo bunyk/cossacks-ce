@@ -30,6 +30,7 @@
 
 #include "fonts.h"
 #include "conststr.h"
+#include "icontool.h"//INFINITY_COUNT (queued-production infinity sentinel)
 
 extern const int kImportantMessageDisplayTime;
 extern const int kMinorMessageDisplayTime;
@@ -719,7 +720,7 @@ int GetAmount( word ID )
 					if ( OR1->OrderType == 13 &&
 						OR1->info.Produce.ObjIndex == ID )
 					{
-						if ( OR1->info.Produce.ID == 0xFFFE )CID += 1200;
+						if ( OR1->info.Produce.ID == 0xFFFE )CID += INFINITY_COUNT;
 						else CID++;
 					};
 					OR1 = OR1->NextOrder;

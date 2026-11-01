@@ -2876,7 +2876,15 @@ CheckBox* DialogsSystem::addGP_CheckBox( SimpleDialog* Parent,
 //-----------colored bar---------------------//
 DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 {
-#ifdef _WIN32
+	//Solid fill of an Lx0 x Ly0 rectangle into the screen buffer, clipped
+	//to the current RLC window (SetRLCWindow). The bounds check + clipping
+	//below is plain C++ and cross-platform; only the fill loop was asm.
+	//IMPORTANT: this body used to sit entirely inside #ifdef _WIN32, so on
+	//Linux CBar was an EMPTY no-op and every caller silently drew nothing:
+	//the infinity symbol on infinitely-queued production icons
+	//(icontool.cpp OneIcon::Draw -> DrawInf -> xLine -> 1x1 CBar pixels),
+	//hint panel backgrounds (DrawHintPattern), stats screen fills
+	//(DrawStatTable), ColoredBar dialogs, spriteless icon backgrounds.
 	if (Lx0 <= 0 || Ly0 <= 0 || x0<0 || y0<0 || x0 + Lx0>ScrWidth || y0 + Ly0>SCRSizeY)
 	{
 		return;
@@ -2908,6 +2916,7 @@ DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 		Ly = WindY1 - y + 1;
 		if (Ly <= 0)return;
 	};
+#ifdef _WIN32
 	int ofst = int( ScreenPtr ) + x + y*ScrWidth;
 	int adds = ScrWidth - Lx;
 	int Lx4 = Lx >> 2;
@@ -2933,6 +2942,14 @@ DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 			  jnz		qwr
 			  pop		edi
 	}
+#else
+	//Portable translation of the asm fill above: Ly rows of Lx bytes
+	byte* scr = (byte*)ScreenPtr + x + (intptr_t)y * ScrWidth;
+	for (int i = 0; i < Ly; i++)
+	{
+		memset( scr, c, Lx );
+		scr += ScrWidth;
+	};
 #endif // _WIN32
 }
 
