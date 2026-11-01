@@ -9086,10 +9086,10 @@ StartPlay://IMPORTANT: Main game loop
 
 	} while ( !GameExit );
 
-#ifdef _WIN32
 	Lobby = 0;
 	PlayGameMode = 0;
 
+#ifdef _WIN32
 	if ( RecordMode )
 	{
 		RGAME.Save();
