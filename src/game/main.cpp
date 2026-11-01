@@ -864,156 +864,6 @@ static void ScaleMouseToLogical(int* x, int* y)
 	}
 }
 
-/*  Create Direct Draw object
- *
- * This procedure creadtes Direct Draw object with primary surface and
- * one backbuffer and sets 800x600x8 display mode.
- * This procedure enables usage of all other procedure in thes module.
- */
-bool CreateDDObjects( SDL_Window* sdlWindow )
-{
-	bool success;
-	SDLError = false;
-
-	if (window_mode)
-	{
-		SVSC.SetSize( RealLx, RealLy );
-		SDLError = false;
-		SCRSizeX = MaxSizeX;
-		SCRSizeY = MaxSizeY;
-		COPYSizeX = RealLx;
-		RSCRSizeX = RealLx;
-		RSCRSizeY = RealLy;
-		ScrHeight = SCRSizeY;
-		ScrWidth = SCRSizeX;
-
-		InitRLCWindows();
-
-		WindX = 0;
-		WindY = 0;
-		WindLx = RealLx;
-		WindLy = RealLy;
-		WindX1 = WindLx - 1;
-		WindY1 = WindLy - 1;
-		BytesPerPixel = 1;
-		offScreenPtr = ( malloc( SCRSizeX*( SCRSizeY + 32 * 4 ) ) );
-
-		if (renderer)
-		{
-			SDL_DestroySurface(primarySurface);
-			SDL_DestroyTexture(primaryTexture);
-			success = true;
-		}
-		else
-		{
-			renderer = nullptr;
-			success = CreateSDLRenderer();
-		}
-		if (success)
-		{
-			primarySurface = SDL_CreateSurface(COPYSizeX, RSCRSizeY, SDL_PIXELFORMAT_INDEX8);
-			primaryTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, COPYSizeX, RSCRSizeY);
-			if (primarySurface)
-			{
-				return true;
-			}
-		}
-
-		//SDL_DisplayID displayID = SDL_GetPrimaryDisplay();
-		//SDL_Rect displayBounds;
-		//SDL_GetDisplayBounds(displayID, &displayBounds);
-
-		//const int screen_width = displayBounds.w;
-		//const int screen_height = displayBounds.h;
-
-		//const int ModeLX_candidates[] = { 1024, 1152, 1280, 1280, 1366, 1600, 1920 };
-		//const int ModeLY_candidates[] = { 768,  864,  720, 1024,  768,  900, 1080 };
-
-		//// Overwrites EnumModesOnly results
-		//NModes = 0;
-		//for (int i = 0; i < 8; i++)
-		//{
-		//	//Only show resolutions up to current screen resolution
-		//	if (ModeLX_candidates[i] <= screen_width
-		//		&& ModeLY_candidates[i] <= screen_height)
-		//	{
-		//		ModeLX[i] = ModeLX_candidates[i];
-		//		ModeLY[i] = ModeLY_candidates[i];
-		//		NModes++;
-		//	}
-		//}
-
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ERROR", SDL_GetError(), sdlWindow);
-		return false;
-	}
-
-	SVSC.SetSize( RealLx, RealLy );
-	offScreenPtr = offScreenPtr = ( malloc( MaxSizeX*( MaxSizeY + 32 * 4 ) ) );
-
-	if (renderer)
-	{
-		SDL_DestroySurface(primarySurface);
-		SDL_DestroyTexture(primaryTexture);
-		goto SDMOD;
-	}
-
-	renderer = nullptr;
-
-	success = CreateSDLRenderer();
-
-	if (success)
-	{
-SDMOD:;
-		// Borderless fullscreen (fullscreen at desktop resolution): the
-		// window is created with SDL_WINDOW_FULLSCREEN in doInit and never
-		// leaves that state, so this is only a re-assert for the re-init
-		// path (focus-gain). The original DirectDraw exclusive
-		// SetDisplayMode(RealLx, RealLy, 8) is deliberately NOT reproduced
-		// (SDL_SetWindowFullscreenMode to a real display mode + SDL_SyncWindow):
-		// it forces a monitor mode change and resync - the main reason
-		// fullscreen startup was much slower than /window. The RealLx x RealLy
-		// canvas is stretched into the (desktop-sized) window by
-		// CopyToScreen/FlipPages via RenderTexture.
-		success = SDL_SetWindowFullscreen(sdlWindow, true);
-		if (success)
-		{
-			//ddsd.dwSize = sizeof( ddsd );
-			//ddsd.dwFlags = DDSD_CAPS;
-			//ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
-			//primarySurface = SDL_GetWindowSurface(sdlWindow);
-
-			// TODO: remove primaryTexture as not needed
-			primarySurface = SDL_CreateSurface(RealLx, RealLy, SDL_PIXELFORMAT_INDEX8);
-			primaryTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, RealLx, RealLy);
-			//ddrval = lpDD->CreateSurface( &ddsd, &lpDDSPrimary, nullptr );
-			if (primarySurface)
-			{
-				SDLError = false;
-				SCRSizeX = MaxSizeX;
-				SCRSizeY = MaxSizeY;
-				RSCRSizeX = RealLx;
-				Pitch = primarySurface->pitch;
-				COPYSizeX = RealLx;
-				RSCRSizeY = RealLy;
-				ScrHeight = SCRSizeY;
-				ScrWidth = SCRSizeX;
-				WindX = 0;
-				WindY = 0;
-				WindLx = RealLx;
-				WindLy = RealLy;
-				WindX1 = WindLx - 1;
-				WindY1 = WindLy - 1;
-				//BytesPerPixel = 1;
-				BytesPerPixel = SDL_GetPixelFormatDetails(primarySurface->format)->bytes_per_pixel;
-
-				return true;
-			}
-		}
-	}
-	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "ERROR", SDL_GetError(), sdlWindow);
-	return false;
-}
-
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 {
 	static BYTE phase = 0;
@@ -1401,15 +1251,6 @@ void ResizeAndCenterWindow()
 {
 	if (!window_mode)
 	{//Just in case
-		return;
-	}
-
-	// Skip centering for a maximized window (the default since doInit):
-	// a maximized window ignores repositioning anyway, so only keep the
-	// mouse confined to it.
-	if (SDL_GetWindowFlags( sdlWindow ) & SDL_WINDOW_MAXIMIZED)
-	{
-		ClipCursorToWindowArea();
 		return;
 	}
 
@@ -2076,9 +1917,6 @@ static BOOL doInit()
 		// canvas to whatever the window size is; mouse input is scaled back
 		// in SDL_AppEvent (see ScaleMouseToLogical).
 		windowFlags |= SDL_WINDOW_RESIZABLE;
-		// Maximized by default: restoring (title bar double-click etc.)
-		// falls back to the created RealLx x RealLy size.
-		windowFlags |= SDL_WINDOW_MAXIMIZED;
 	}
 	if (borderless)
 	{

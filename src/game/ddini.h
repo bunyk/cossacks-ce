@@ -49,6 +49,13 @@ extern bool                    SDLError;       // false if SDL works normally
 extern SDL_Window* sdlWindow;
 extern bool window_mode;
 extern SDL_Palette* sdlPal;
+/*  Create Direct Draw object
+ *
+ * This procedure creadtes Direct Draw object with primary surface and
+ * one backbuffer and sets 800x600x8 display mode.
+ * This procedure enables usage of all other procedure in thes module.
+ */
+bool CreateDDObjects(SDL_Window* sdlWindow);
 /*     Closing all Direct Draw objects
  *
  * This procedure must be called before the program terminates,
