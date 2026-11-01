@@ -519,7 +519,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	//Init DirectDraw and find possible resolutions
 	EnumModesOnly();
 
-	//Load unrar.dll, call CGSCset::gOpen() to load archives
+	//Scan the data directory for .gsc archives (CGSCset::gOpen)
 	if (!FilesInit())
 	{
 		FilesExit();
