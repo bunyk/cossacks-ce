@@ -152,6 +152,71 @@ set_target_properties(Bavaria PROPERTIES PREFIX "" OUTPUT_NAME "Bavaria"
     LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
 target_compile_options(Bavaria PRIVATE "-fvisibility=hidden")
 
+add_library(England MODULE src/ai/England/dllmain.cpp)
+set_target_properties(England PROPERTIES PREFIX "" OUTPUT_NAME "England"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(England PRIVATE "-fvisibility=hidden")
+
+add_library(France MODULE src/ai/France/dllmain.cpp)
+set_target_properties(France PROPERTIES PREFIX "" OUTPUT_NAME "France"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(France PRIVATE "-fvisibility=hidden")
+
+add_library(Prussia MODULE src/ai/Prussia/dllmain.cpp)
+set_target_properties(Prussia PROPERTIES PREFIX "" OUTPUT_NAME "German"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Prussia PRIVATE "-fvisibility=hidden")
+
+add_library(Holland MODULE src/ai/Holland/dllmain.cpp)
+set_target_properties(Holland PROPERTIES PREFIX "" OUTPUT_NAME "Holland"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Holland PRIVATE "-fvisibility=hidden")
+
+add_library(Piemont MODULE src/ai/Piemont/dllmain.cpp)
+set_target_properties(Piemont PROPERTIES PREFIX "" OUTPUT_NAME "Piemont"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Piemont PRIVATE "-fvisibility=hidden")
+
+add_library(Poland MODULE src/ai/Poland/dllmain.cpp)
+set_target_properties(Poland PROPERTIES PREFIX "" OUTPUT_NAME "Poland"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Poland PRIVATE "-fvisibility=hidden")
+
+add_library(Portugal MODULE src/ai/Portugal/dllmain.cpp)
+set_target_properties(Portugal PROPERTIES PREFIX "" OUTPUT_NAME "Portugalia"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Portugal PRIVATE "-fvisibility=hidden")
+
+add_library(Saxony MODULE src/ai/Saxony/dllmain.cpp)
+set_target_properties(Saxony PROPERTIES PREFIX "" OUTPUT_NAME "Saksinia"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Saxony PRIVATE "-fvisibility=hidden")
+
+add_library(Spain MODULE src/ai/Spain/dllmain.cpp)
+set_target_properties(Spain PROPERTIES PREFIX "" OUTPUT_NAME "Spain"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Spain PRIVATE "-fvisibility=hidden")
+
+add_library(Sweden MODULE src/ai/Sweden/dllmain.cpp)
+set_target_properties(Sweden PROPERTIES PREFIX "" OUTPUT_NAME "Sveden"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Sweden PRIVATE "-fvisibility=hidden")
+
+add_library(Venice MODULE src/ai/Venice/dllmain.cpp)
+set_target_properties(Venice PROPERTIES PREFIX "" OUTPUT_NAME "Venecia"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Venice PRIVATE "-fvisibility=hidden")
+
+add_library(Hungary MODULE src/ai/Hungary/dllmain.cpp)
+set_target_properties(Hungary PROPERTIES PREFIX "" OUTPUT_NAME "Vengria"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Hungary PRIVATE "-fvisibility=hidden")
+
+add_library(Switzerland MODULE src/ai/Switzerland/dllmain.cpp)
+set_target_properties(Switzerland PROPERTIES PREFIX "" OUTPUT_NAME "Switzerland"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Switzerland PRIVATE "-fvisibility=hidden")
+
 add_library(Turkey MODULE src/ai/Turkey/dllmain.cpp)
 set_target_properties(Turkey PROPERTIES PREFIX "" OUTPUT_NAME "Turcia"
     LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
