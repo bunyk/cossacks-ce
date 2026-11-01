@@ -12504,12 +12504,24 @@ AddMissionsPack::AddMissionsPack()
 					strcpy( c1, ".dsc" );
 					strcpy( Pack[NMiss].Preview, ccc );
 					strcpy( c1, ".bmp" );
+#ifdef _WIN32
 					FILE* F1 = fopen( ccc, "r " );
 					if ( F1 )
 					{
 						strcpy( Pack[NMiss].Bitmap, ccc );
 						fclose( F1 );
 					};
+#else
+					// Linux: raw fopen() cannot open backslash paths -
+					// use the engine's RReset (case-insensitive loose
+					// files or the GSC archive) for the bitmap check.
+					ResFile F1 = RReset( ccc );
+					if ( F1 != INVALID_HANDLE_VALUE )
+					{
+						strcpy( Pack[NMiss].Bitmap, ccc );
+						RClose( F1 );
+					};
+#endif
 				};
 				Gclose( F );
 				NMiss++;
@@ -12660,7 +12672,10 @@ HHH1:
 			if ( LB->CurItem >= N0 )
 			{
 				PRV.LoadPicture( AMSP.Pack[LB->CurItem - N0].Bitmap );
-				PREV->Ptr = (byte*) ( PRV.PicPtr + 2 );
+				// Guard: a pack entry without a bitmap (none found at
+				// startup) must not feed a null PicPtr to the renderer.
+				PREV->Ptr = PRV.PicPtr ? (byte*) ( PRV.PicPtr + 2 ) : nullptr;
+				PREV->Visible = PRV.PicPtr != nullptr;
 				prmiss = LB->CurItem;
 			}
 			else
@@ -12668,7 +12683,8 @@ HHH1:
 				char ccc[200];
 				sprintf( ccc, "Maps2\\single%d.bmp", LB->CurItem + 1 );
 				PRV.LoadPicture( ccc );
-				PREV->Ptr = (byte*) ( PRV.PicPtr + 2 );
+				PREV->Ptr = PRV.PicPtr ? (byte*) ( PRV.PicPtr + 2 ) : nullptr;
+				PREV->Visible = PRV.PicPtr != nullptr;
 				prmiss = LB->CurItem;
 			};
 		};

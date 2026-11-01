@@ -263,6 +263,7 @@ endfunction()
 
 add_mission(Tutorial/Tutorial1)
 add_mission(Singles/Single59)
+add_mission(Singles/Single1)
 
 
 # And Boost

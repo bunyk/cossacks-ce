@@ -6,6 +6,7 @@
 
 #include "ddini.h"
 #include "activescenary.h"
+#include <execinfo.h>
 #include "gp_draw.h"
 #include "resfile.h"
 #include "fastdraw.h"
@@ -428,8 +429,25 @@ void ScenaryInterface::Load( char* Name, char* Text )
 	}
 	else
 	{
+#ifdef _WIN32
 		if ( hLib )FreeLibrary( hLib );
 		hLib = LoadLibrary( Name );
+#else
+		// Linux: do NOT dlclose the previous module here. The engine
+		// keeps raw pointers into the module's .bss (SCENINF.SaveZone
+		// from RegisterVar, UGRP group data); SaveLoad runs SCENINF.Load
+		// TWICE back-to-back (SFLB_PreLoadGame for the map's embedded
+		// DLL, then LoadMission again), so the dlclose leaves those
+		// pointers dangling into an unmapped .so and the variable
+		// restore in LoadMission segfaults (mission modules also
+		// re-register from their dlopen constructor, doubling NSaves).
+		// dlopen of the same path just bumps the refcount: same handle,
+		// no constructor re-run, registered state stays valid. The real
+		// teardown is ScenaryInterface::UnLoading (quit mission), which
+		// frees everything and unloads - different missions simply stay
+		// resident until then, which is harmless.
+		hLib = LoadLibrary( Name );
+#endif
 	}
 	ScenaryHandler = NULL;
 	if ( hLib == NULL )
@@ -4769,9 +4787,29 @@ void AIER( char* Mess )
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, CurAIDLL, Mess, sdlWindow);
 }
 
-void AI_Error()
+// Logs the offending function name + a backtrace: the guard violation
+// is otherwise impossible to attribute (23 guarded exports share this
+// error, and the caller chain crosses dlopen module boundaries).
+void AI_Error( const char* fn )
 {
-	AIER( "ERROR: AI function must be called only from AI section." );
+	char cc[256];
+	sprintf( cc, "ERROR: AI function %s must be called only from AI section "
+		"(AiIsRunNow==0).", fn );
+	fprintf( stderr, "%s\n", cc );
+#ifdef __GLIBC__
+	{
+		void* bt[32];
+		int n = backtrace( bt, 32 );
+		char** syms = backtrace_symbols( bt, n );
+		fprintf( stderr, "AI guard violation backtrace (%d frames):\n", n );
+		for ( int i = 0; i < n && syms; i++ )
+		{
+			fprintf( stderr, "  #%d %s\n", i, syms[i] );
+		}
+		free( syms );
+	}
+#endif
+	AIER( cc );
 }
 
 extern "C" DLLEXPORT int GetAINation()
@@ -4782,7 +4820,7 @@ extern "C" DLLEXPORT int GetAINation()
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
@@ -4864,7 +4902,7 @@ extern "C" DLLEXPORT bool TryUnit( GAMEOBJ* UnitType, int Max, byte CostPercent,
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
@@ -4916,7 +4954,7 @@ extern "C" DLLEXPORT bool TryUpgrade( GAMEOBJ* Upgrade, int CostPercent, int Pro
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
@@ -4935,7 +4973,7 @@ extern "C" DLLEXPORT void SetMineBalanse( int N, word* Bal )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 // AI module API: relative weights for peasants working food/wood/stone
@@ -4951,7 +4989,7 @@ extern "C" DLLEXPORT void SetPDistribution( int OnFood, int OnWood, int OnStone 
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 // AI module API: how many mine-deepening researches the nation has
@@ -4968,7 +5006,7 @@ extern "C" DLLEXPORT void AssignAmountOfMineUpgrades( int MU )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 // AI module API: the U-th mine-deepening research: upgrade name plus
@@ -5004,7 +5042,7 @@ extern "C" DLLEXPORT bool AssignMineUpgrade( word U, char* Str, word val )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 	return 1;
@@ -5032,7 +5070,7 @@ extern "C" DLLEXPORT void AssignMine( char* Name )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 // AI module API: which registered unit is the nation's PEASANT/worker.
@@ -5049,7 +5087,7 @@ extern "C" DLLEXPORT void AssignPeasant( char* Name )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 // AI module API: which registered building is the population-support
@@ -5081,7 +5119,7 @@ extern "C" DLLEXPORT void AssignHouse( char* Name )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
@@ -5099,7 +5137,7 @@ extern "C" DLLEXPORT void AssignWall( char* Name )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
@@ -5113,7 +5151,7 @@ extern "C" DLLEXPORT void SET_MINE_CAPTURE_RADIUS( int x )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
@@ -5126,7 +5164,7 @@ extern "C" DLLEXPORT void SET_MINE_UPGRADE1_RADIUS( int x )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
@@ -5139,7 +5177,7 @@ extern "C" DLLEXPORT void SET_MINE_UPGRADE2_RADIUS( int x )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
@@ -5153,7 +5191,7 @@ extern "C" DLLEXPORT void SET_DEFAULT_MAX_WORKERS( int x )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
@@ -5167,7 +5205,7 @@ extern "C" DLLEXPORT void SET_MIN_PEASANT_BRIGADE( int x )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
@@ -5186,7 +5224,7 @@ extern "C" DLLEXPORT int GetMoney( byte id )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
@@ -5207,7 +5245,7 @@ extern "C" DLLEXPORT int GetUnits( GAMEOBJ* UnitType )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
@@ -5240,7 +5278,7 @@ extern "C" DLLEXPORT int GetUnitsByUsage( byte Nat, byte Usage )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
@@ -5284,7 +5322,7 @@ extern "C" DLLEXPORT int GetReadyUnits( GAMEOBJ* UnitType )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
@@ -5313,7 +5351,7 @@ extern "C" DLLEXPORT void SetDefSettings( int p1, int p2 )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
@@ -5355,7 +5393,7 @@ extern "C" DLLEXPORT bool UpgIsDone( GAMEOBJ* Upgrade )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
@@ -5376,7 +5414,7 @@ extern "C" DLLEXPORT bool UpgIsRun( GAMEOBJ* Upgrade )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
