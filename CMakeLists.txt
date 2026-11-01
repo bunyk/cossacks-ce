@@ -236,6 +236,13 @@ set_target_properties(Russia PROPERTIES PREFIX "" OUTPUT_NAME "Russia"
     LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
 target_compile_options(Russia PRIVATE "-fvisibility=hidden")
 
+# European-family AI (49152-byte DLL, handlers identical to Bavaria's).
+# TEXT\AI.TXT asks for AI\Denmark.dll - mixed case, keep it exact.
+add_library(Denmark MODULE src/ai/Denmark/dllmain.cpp)
+set_target_properties(Denmark PROPERTIES PREFIX "" OUTPUT_NAME "Denmark"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Denmark PRIVATE "-fvisibility=hidden")
+
 
 # And Boost
 find_package(Boost REQUIRED COMPONENTS context filesystem iostreams)

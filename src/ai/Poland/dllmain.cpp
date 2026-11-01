@@ -232,8 +232,10 @@ void RegisterPoland()
 	RegisterUpgrade(&dragun18_SHIELD6, "Dragun_18(PL)SHIELD6");
 	RegisterUpgrade(&dragun18_SHIELD7, "Dragun_18(PL)SHIELD7");
 
-	// The original registers no initial SetPDistribution here (unlike
-	// Russia); the per-tick handlers call it.
+	// Original InitAI (unlike Bavaria, which omits this): an initial
+	// food/wood/stone peasant distribution of 9/4/4 before the mine
+	// upgrade setup; the per-tick handlers adjust it afterwards.
+	SetPDistribution(9, 4, 4);
 	AssignAmountOfMineUpgrades(6);
 	AssignMineUpgrade(0, "shahta(PL)INSIDE", 90);
 	AssignMineUpgrade(1, "shahta(PL)INSIDE3", 50);
