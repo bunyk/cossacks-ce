@@ -64,6 +64,14 @@ In debugger:
 ```bash
 gdb --args build/Debug/cossacks /window
 ```
+The repo-root `.gdbinit` sets `solib-search-path` so gdb finds the AI
+modules the game dlopens from its data dir (`gamedata/AI/*.so`); without
+it you get "Could not load shared library symbols" warnings and no
+symbols for AI-module code. On the first run gdb may decline the
+`.gdbinit` for security — allow it once with:
+```bash
+echo "add-auto-load-safe-path $(pwd)/.gdbinit" >> ~/.config/gdb/gdbinit
+```
 
 Or run directly:
 ```bash
