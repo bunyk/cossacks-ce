@@ -3492,7 +3492,17 @@ extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
 //-----------------Bit Pictures Viewer-------------
 bool BPXView_OnDraw( SimpleDialog* SD )
 {
-#ifdef _WIN32
+	//Blits the raw pixel buffer (BPXView::Ptr) into the screen buffer.
+	//Two modes: DECLX == 0 draws one contiguous block Nx*OneLx wide,
+	//Ny*OneLy rows high (e.g. the map-example preview window of the
+	//random game lobby and the mission screens); DECLX != 0 draws a grid
+	//of OneLx x OneLy tiles separated by DECLX decoration gaps (map
+	//editor pickers). The two original asm rep movsd row loops are
+	//translated to portable memcpy loops below; the Choosed/SSTAT overlay
+	//is the original C++.
+	//NOTE: this body used to sit entirely inside #ifdef _WIN32, so on
+	//Linux the view drew NOTHING (the map example window was always
+	//empty) and the function fell off its end without a return value.
 	if (!SD->Visible)
 	{
 		return false;
@@ -3504,66 +3514,46 @@ bool BPXView_OnDraw( SimpleDialog* SD )
 	}
 	if (BV->PosY > BV->RealNy - BV->Ny)BV->PosY = BV->RealNy - BV->Ny;
 	if (BV->PosY < 0)BV->PosY = 0;
-	int ps = int( BV->Ptr ) + BV->PosY*BV->OneLx*BV->Nx*BV->OneLy;
-	int sofst = int( ScreenPtr ) + BV->x + BV->y*SCRSizeX;
 	int Ly = BV->Ny*BV->OneLy;
-	int Lx = ( BV->Nx*BV->OneLx ) >> 2;
 	if (BV->DECLX)
 	{
 		for (int iy = 0; iy < BV->Ny; iy++)
 		{
 			for (int ix = 0; ix < BV->Nx; ix++)
 			{
-				Lx = BV->OneLx >> 2;
-				Ly = BV->OneLy;
-				int addof = SCRSizeX - ( Lx << 2 );
-				ps = int( BV->Ptr ) + ( BV->PosY + iy )*( BV->OneLx + BV->DECLX )*BV->Nx*( BV->OneLy + BV->DECLX ) + ix*( BV->OneLx + BV->DECLX );
+				//Bytes per tile row; the asm copied (OneLx >> 2) dwords,
+				//i.e. OneLx rounded down to a multiple of 4
+				int W = BV->OneLx & ~3;
+				//Source row stride inside one tile: skips the decoration
+				//gap after this tile up to the same tile column one tile
+				//row below (the asm's addB)
 				int addB = ( BV->DECLX + BV->OneLx )*BV->Nx - BV->OneLx;
-				int sofst = int( ScreenPtr ) + BV->x + BV->OneLx*ix + ( BV->y + BV->OneLy*iy )*SCRSizeX;
-				__asm
+				byte* src = (byte*)BV->Ptr
+					+ (intptr_t)( BV->PosY + iy )*( BV->OneLx + BV->DECLX )*BV->Nx*( BV->OneLy + BV->DECLX )
+					+ (intptr_t)ix*( BV->OneLx + BV->DECLX );
+				byte* dst = (byte*)ScreenPtr + BV->x + BV->OneLx*ix
+					+ (intptr_t)( BV->y + BV->OneLy*iy )*SCRSizeX;
+				for (int r = 0; r < BV->OneLy; r++)
 				{
-					push	esi
-					push	edi
-					pushf
-					cld
-					mov		esi, ps
-					mov		edi, sofst
-					mov		edx, Ly
-					ppp1 : mov		ecx, Lx
-						   rep		movsd
-						   add		edi, addof
-						   add     esi, addB
-						   dec		edx
-						   jnz		ppp1
-						   popf
-						   pop		edi
-						   pop		esi
-
-				}
-			}
-		}
+					memcpy( dst, src, W );
+					src += W + addB;
+					dst += SCRSizeX;
+				};
+			};
+		};
 	}
 	else
 	{
-		int addof = SCRSizeX - ( Lx << 2 );
-		__asm
+		//Bytes per row; the asm copied ((Nx*OneLx) >> 2) dwords
+		int W = ( BV->Nx*BV->OneLx ) & ~3;
+		byte* src = (byte*)BV->Ptr + (intptr_t)BV->PosY*BV->OneLx*BV->Nx*BV->OneLy;
+		byte* dst = (byte*)ScreenPtr + BV->x + (intptr_t)BV->y*SCRSizeX;
+		for (int r = 0; r < Ly; r++)
 		{
-			push	esi
-			push	edi
-			pushf
-			cld
-			mov		esi, ps
-			mov		edi, sofst
-			mov		edx, Ly
-			ppp : mov		ecx, Lx
-				  rep		movsd
-				  add		edi, addof
-				  dec		edx
-				  jnz		ppp
-				  popf
-				  pop		edi
-				  pop		esi
-		}
+			memcpy( dst, src, W );
+			src += W;
+			dst += SCRSizeX;
+		};
 	}
 	bool SSTAT = ( GetSDLKeyState( SDL_SCANCODE_LSHIFT ) ) != 0;
 	for (int ix = 0; ix < BV->Nx; ix++)
@@ -3592,7 +3582,6 @@ bool BPXView_OnDraw( SimpleDialog* SD )
 		}
 	}
 	return true;
-#endif // _WIN32
 }
 
 bool BPXView_OnKeyDown( SimpleDialog* SD )
