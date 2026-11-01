@@ -19,7 +19,7 @@ The list is not exhaustive and will be updated as the project progresses.
 |-------------|--------|----------|
 | Remove Windows-specific symbols and types | ⏳ In Progress | Things left to be migrated: DLL loading, FS management, registry management, misc. |
 | Migrate from Winsock to cross-platform sockets | 🚧 Not Started ||
-| Remove or replace binary dependencies | 🚧 Not Started | Known so far: `Pinger.lib`, `unrar.dll`, `gw_server.dll` |
+| Remove or replace binary dependencies | 🚧 Not Started | Known so far: `Pinger.lib`, `gw_server.dll` |
 | Recreate the AI | ⏳ In Progress ||
 | Rewrite assembler code to C++ | 🚧 In progress | Over 200 places with inline assembly 😢, related mostly to rendering |
 

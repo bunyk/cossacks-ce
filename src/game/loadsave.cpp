@@ -61,7 +61,6 @@ extern int RealLx;
 extern int RealLy;
 extern int Pitch;
 extern bool MiniMade;
-void SetSumms();
 extern bool SetDestMode;
 void ClearUniCash();
 

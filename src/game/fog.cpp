@@ -7,7 +7,6 @@
 #include "mapdiscr.h"
 #include "mode.h"
 #include "3dgraph.h"
-#include "antibug.h"
 
 //Offset for fog coordinates calculation
 const int kFogOffset = 3;

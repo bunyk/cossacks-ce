@@ -17,7 +17,6 @@ div_t CDECL SecureDivision( int const numerator, int const denominator );
 
 typedef unsigned short word;
 
-#include "antibug.h"
 #include "icons.h"
 #include <stdio.h>
 

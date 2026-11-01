@@ -2005,10 +2005,6 @@ static BOOL doInit()
 	//Create the screen object with RealLx x RealLy resolution
 	CreateDDObjects( sdlWindow );
 
-	#ifdef _WIN32
-	CHKALL();
-	#endif // _WIN32
-
 	if (!SDLError)
 	{
 		LockSurface();
