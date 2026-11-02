@@ -559,8 +559,15 @@ the fullscreen path); letterboxing would need a dst-rect in RenderTexture
   globals removed (now defined by the un-guarded interface.cpp code).
   STILL WINDOWS-ONLY (re-guarded after probing): in-game Load/Save-game + SaveMap/LoadMap
   + Options dialogs (interface.cpp ~6300-8020; use WIN32_FIND_DATA + CD-audio API; menu
-  buttons that call them are individually #ifdef'd) and the map-editor ProcessGMainMenu
-  variants. main.cpp autosave block still guarded (ProcessUpdate is ir_main.cpp).
+  buttons that call them are individually #ifdef'd). The MAP EDITOR itself was UN-BLOCKED
+  2026-11-01: /MAPEDITOR <file> opens the editor with that map (mcmVideo branch,
+  PrepareEditMedia, EditGame, DrawAllEditScreen un-guarded; EditorKeyCheck +
+  SaveScreen/RenderAllMap family MOVED from ddex1.cpp - the un-compiled Windows
+  entrypoint - into main.cpp; GameKeyCheck's editor/chat/vote dispatch un-guarded).
+  Editor pieces still no-op stubs (linux_stubs.cpp): the map save/load file dialogs
+  (ProcessGSaveMap/ProcessGLoadMap region), resource editor (ProcessResEdit), minimap
+  editor (EditMiniMap), interior choosers (ChooseInterior), chat keys. ESC menu works
+  (ProcessE_GMainMenu; its Save/Load buttons call the stubbed dialogs). main.cpp autosave block still guarded (ProcessUpdate is ir_main.cpp).
   STUBS REMAINING IN-GAME: pathfinding (units cannot move), fog draw, VirtualScreen
   (virtscr.cpp - GFieldShow works without it), water, chat. Watch for first-frame crashes:
   this is the first time the render+simulation path runs on Linux.

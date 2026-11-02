@@ -6858,7 +6858,10 @@ int processMainMenu()
 #endif
 		}
 
-#ifdef _WIN32
+		// Map editor entry (via /MAPEDITOR <file> or the RunMapeditor
+		// export): un-guarded 2026-11-01 - the editor core (3dmaped.cpp)
+		// has no Win32 code, PrepareEditMedia calls only portable
+		// engine functions.
 		if ( ItemChoose == mcmVideo )
 		{
 			ShowLoading();
@@ -6866,7 +6869,6 @@ int processMainMenu()
 			PrepareEditMedia( 0 );
 			ItemChoose = mcmSingle;
 		}
-#endif // _WIN32 (mcmVideo: map-editor media, not ported)
 
 		if ( ItemChoose == mcmEdit )
 		{
@@ -8110,8 +8112,8 @@ void ChooseUnit()
 #endif
 }
 
-#ifdef _WIN32
 //------MAIN MENU IN MAP EDITOR----------//
+// (un-guarded 2026-11-01: thin wrapper over the portable ProcessE_GMainMenu)
 
 int ProcessE_GMainMenu();
 
@@ -8138,7 +8140,6 @@ word GetTexture()
 }
 
 extern int MaxTex;
-#endif // WIN32
 	   //
 int SelectTexture()
 {
@@ -9176,7 +9177,8 @@ StartPlay://IMPORTANT: Main game loop
 	}
 }
 
-#ifdef _WIN32
+// (un-guarded 2026-11-01: the editor screen compose uses the ported
+// GFieldShow/GMiniShow/ShowProp/ShowAbility/CopyToScreen chain)
 
 void DrawAllEditScreen()
 {
@@ -9213,13 +9215,16 @@ void FastEditScreenProcess()
 
 void CheckGP();
 
-#endif // _WIN32
 
+int ProcessResEdit(); // linux_stubs.cpp no-op until the dialog is extracted
 
 //Main map editor function
 void EditGame()
 {
-	#ifdef _WIN32
+	// Editor loop un-guarded 2026-11-01: only the per-frame machinery
+	// already ported for the game (PreDrawGameProcess/FastScreenProcess/
+	// PostDrawGameProcess) plus the editor dialogs; the Load/Save map
+	// dialogs inside ProcessE_GMainMenu stay stubbed until ported.
 	InEditor = true;
 
 	if ( window_mode )
@@ -9330,7 +9335,6 @@ void EditGame()
 	}
 
 	IgnoreSlow = false;
-	#endif // _WIN32
 }
 
 #ifdef _WIN32
@@ -9510,7 +9514,8 @@ void AllGame(boost::coroutines2::coroutine<void>::push_type& yield)
 	yieldObject = nullptr;
 }
 
-#ifdef _WIN32
+// (un-guarded 2026-11-01: editor media setup - all calls portable;
+// PrepareToEdit is main.cpp)
 
 extern int PLNAT[8];
 void PrepareGameMedia( byte myid, bool );
@@ -9520,6 +9525,8 @@ void SetupArrays();
 void CreateTotalLocking();
 
 void ResearchIslands();
+
+void EraseAreas();
 
 void PrepareEditMedia( byte myid )
 {
@@ -9563,7 +9570,6 @@ void RedrawGameBackground()
 		DrawAllScreen();
 	}
 }
-#endif // _WIN32
 
 void ProcessHelp()
 {

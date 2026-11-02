@@ -3484,7 +3484,9 @@ extern "C" DLLEXPORT void RefreshScreen()
 	GSYSDRAW();
 }
 
-#ifdef _WIN32
+// Un-guarded 2026-11-01: fully portable body; Single2's Mission.dll
+// imports SelCenter (an exported scenary API), and the multi.cpp global
+// array of the same name (renamed SelCenterArr) was shadowing the symbol.
 extern "C" DLLEXPORT bool SelCenter( GAMEOBJ* DstZone, byte Nat, int R )
 {
 	Nat = AssignTBL[Nat];
@@ -3529,7 +3531,6 @@ extern "C" DLLEXPORT bool SelCenter( GAMEOBJ* DstZone, byte Nat, int R )
 	}
 	return true;
 }
-#endif // _WIN32
 extern "C" DLLEXPORT bool CreateZoneNearUnit( GAMEOBJ* DstZone, GAMEOBJ* Zone, GAMEOBJ* UnitType, byte Nat, int R )
 {
 	Nat = AssignTBL[Nat];

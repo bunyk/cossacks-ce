@@ -390,8 +390,13 @@ extern "C" __declspec(dllexport) void ProcessScenary()
 		SpawnInto( &gal1, &galera_tu, &z1g, 4 );
 		SpawnInto( &gal2, &galera_tu, &z2g, 4 );
 		SpawnInto( &gal3, &galera_tu, &z3g, 4 );
-		SpawnInto( &gal_fleet, &galera_tu, &z4a, 4 );
-		SpawnInto( &gal5, &galera_tu, &z6, 4 );
+		// NOTE: the Ghidra decompilation misattributes these two zone
+		// args as Z4A/Z6 (hoisted pushes around the difficulty branch
+		// below); the raw assembly pushes 0x100324c8 (Z6) for
+		// gal_fleet and 0x100324d0 (Z7) for gal5 - verified in objdump
+		// after the beached-galley report.
+		SpawnInto( &gal_fleet, &galera_tu, &z6, 4 );
+		SpawnInto( &gal5, &galera_tu, &z7, 4 );
 		if ( difficulty < 2 )
 		{
 			i++;

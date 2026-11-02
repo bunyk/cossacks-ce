@@ -7,7 +7,7 @@
 #include "mapdiscr.h"
 
 
-extern word SelCenter[8];
+extern word SelCenterArr[8];
 SelGroup SelSet[80];
 
 SelGroup::SelGroup()
@@ -85,7 +85,7 @@ void SelGroup::DeleteMembers()
 
 void SelGroup::SelectMembers(byte NI, bool Shift)
 {
-	SelCenter[NI] = 0;
+	SelCenterArr[NI] = 0;
 	word MID;
 	OneObject* OB;
 	word Nsel = NSL[NI];
@@ -137,7 +137,7 @@ void SelGroup::SelectMembers(byte NI, bool Shift)
 };
 
 void SelGroup::ImSelectMembers(byte NI, bool Shift) {
-	SelCenter[NI] = 0;
+	SelCenterArr[NI] = 0;
 	word MID;
 	OneObject* OB;
 	word Nsel = ImNSL[NI];
