@@ -187,34 +187,12 @@ DLLEXPORT void FlipPages( void )
 	}
 
 
-	//TODO: replace asm
 	int ofs = 0;
 	int	lx = COPYSizeX >> 2;
 	int	ly = RealLy;
 	int	addOf = SCRSizeX - ( lx << 2 );
 	int RaddOf = RSCRSizeX - ( lx << 2 );
-	/*
-	__asm 
-	{
-		push	esi
-		push	edi
-		mov		esi, ScreenPtr
-		mov		edi, RealScreenPtr
-		add		esi, ofs
-		add		edi, ofs
-		cld
-		mov		eax, ly
-		xxx :
-		mov		ecx, lx
-			rep		movsd
-			add		esi, addOf
-			add		edi, RaddOf
-			dec		eax
-			jnz		xxx
-	}
-	*/
 
-	// AI-Generated, need to test:
     uint8_t* src = ScreenPtr + ofs;
     uint8_t* dst = RealScreenPtr + ofs;
     for (int y = 0; y < ly; ++y) {
@@ -222,23 +200,6 @@ DLLEXPORT void FlipPages( void )
         src += lx * 4 + addOf;
         dst += lx * 4 + RaddOf;
     }
-
-	/*
-	//Refactored asm... doesn't work for 'Connecting to master server' message when in fullscreen?
-
-	int	addOf = SCRSizeX - COPYSizeX;
-	int RaddOf = RSCRSizeX - COPYSizeX;
-
-	int src = (int) ScreenPtr;
-	int dest = (int) RealScreenPtr;
-
-	for (int i = 0; i < RealLy; i++)
-	{
-		memcpy( (void*) dest, (void*) src, COPYSizeX );
-		src += addOf;
-		dest += RaddOf;
-	}
-	*/
 
 	yield();
 }

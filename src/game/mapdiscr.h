@@ -17,7 +17,6 @@ div_t CDECL SecureDivision( int const numerator, int const denominator );
 
 typedef unsigned short word;
 
-#include "antibug.h"
 #include "icons.h"
 #include <stdio.h>
 
@@ -1085,6 +1084,9 @@ public:
 	bool capBase : 1;
 	bool Ready : 1;
 	bool NoSearchVictim : 1;
+	// Unused (the old cell-request queue was removed), but keep the bit:
+	// OneObject fields are saved/loaded as a raw byte range (NeedPath..Inside)
+	// and removing it would shift the layout and break old save files.
 	bool AskMade : 1;
 	bool SafeWall : 1;
 	bool StandGround : 1;
@@ -1776,7 +1778,6 @@ extern int	miniy;
 
 void MakePostProcess();
 void MakeWPostProcess();
-void PrepareProcessing();
 
 extern int Flips;
 extern int	mapx;
@@ -1789,7 +1790,6 @@ extern Weapon Vibux1;
 void CloseExplosions();
 extern byte PlayerMask;
 extern bool EgoFlag;
-void AddAsk( word ReqID, byte x, byte y, char zdx, char zdy );
 extern SelGroup SelSet[80];
 extern Weapon* WPLIST[1024];
 
@@ -1903,8 +1903,6 @@ typedef void UniqMethood( int x, int y );
 
 void HandleSW();
 void CreateStrangeObject( int i, byte NI, int x, int y, word ID );
-void ShowRLCItemMutno( int x, int y, lpRLCTable lprt, int n );
-void ShowRLCItemFired( int x, int y, lpRLCTable lprt, int n );
 bool CheckAttAbility( OneObject* OB, word Patient );
 void PrepareToEdit();
 void PrepareToGame();

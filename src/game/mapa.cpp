@@ -79,8 +79,6 @@ extern int LOADED;
 extern bool SHOWSLIDE;
 extern bool CINFMOD;
 void ShowMines( NewMonster* NM );
-void ShowRLCItemDarkN( int x, int y, lpRLCTable lprt, int n, int Ints );
-void ShowRLCItemRedN( int x, int y, lpRLCTable lprt, int n, int Ints );
 int CheckCreationAbility( byte NI, NewMonster* NM, int* x2i, int* y2i, word* BLD, int NBLD );
 void CmdGoToTransport( byte NI, word ID );
 bool GetRealCoords( int xs, int ys, int* xr, int* yr );
@@ -159,7 +157,6 @@ byte blx;
 byte bly;
 word BuildingID;
 Nation* BNat;
-extern int NAsk;
 extern int mousePointerType;
 int	smapx;
 int	smapy;
@@ -2371,36 +2368,19 @@ void GMiniShow()
 	if (MiniY < 0)
 		MiniY = 0;
 
-	if (MiniX + MiniLx >= MaxMLX)
-		MiniX = MaxMLX - MiniLx - 1;
+	// Clamp the window inside the map. The original used
+	// "MaxMLX - MiniLx - 1", which becomes -1 when the whole map fits in
+	// the window (MiniLx == MaxMLX, e.g. the fullscreen minimap); the
+	// copy below then read one row before the minimap buffer and showed
+	// a line of random pixels at the top of the minimap.
+	if (MiniX + MiniLx > MaxMLX)
+		MiniX = MaxMLX - MiniLx;
 
-	if (MiniY + MiniLy >= MaxMLY)
-		MiniY = MaxMLY - MiniLy - 1;
+	if (MiniY + MiniLy > MaxMLY)
+		MiniY = MaxMLY - MiniLy;
 
 	minix = RealLx - MiniLx - 12;
 	miniy = RealLy - MiniLy - 16;
-
-	//TESTING: display color palette instead of minimap
-	//Dimensions of minimap : MiniLx * MiniLy
-	//? ? ? : MiniX = MiniY = -1
-	//Position ? : minix = 772; miniy = 512
-	/*
-	char colorbyte = 0x00;
-	for (int row = 0; row < 16; row++)
-	{
-		for (int col = 0; col < 16; col++)
-		{
-			for (int cell_x = 0; cell_x < 15; cell_x++)
-			{
-				for (int cell_y = 0; cell_y < 15; cell_y++)
-				{
-					minimap[15 * row + cell_x][15 * col + cell_y] = colorbyte;
-				}
-			}
-			colorbyte++;
-		}
-	}
-	*/
 
 	//Copy data from minimap buffer into the screen buffer
 	// (original used 32-bit int pointer arithmetic - fixed for 64-bit)
@@ -2408,7 +2388,7 @@ void GMiniShow()
 	byte* til = (byte*) &minimap + MiniX + ( (intptr_t) MiniY ) * maxmap;
 	for (int i = 0; i < MiniLy; i++)
 	{
-		memcpy( scr, til, MiniLx );//REFACTORED: __asm
+		memcpy( scr, til, MiniLx );
 		scr += SCRSizeX;
 		til += maxmap;
 	}
@@ -2465,7 +2445,7 @@ void GMiniShow()
 				}
 
 				//Place a colored 2x2 square tag
-				memset( scr, val, 2 );//REFACTORED: __asm
+				memset( scr, val, 2 );
 				memset( scr + SCRSizeX, val, 2 );
 			}
 		}

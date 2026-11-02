@@ -28,6 +28,8 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "../src/game/arc/gscarch.h"
 #include "../src/game/gp_draw.h"
@@ -1019,12 +1021,33 @@ static BmpImage TryDecodeGp( const std::vector<uint8_t>& d, int& spriteCount, in
 }
 
 // ---------------------------------------------------------------- main
+// Run BEFORE the default-priority static globals: exconst.cpp's GConstant
+// constructor opens Const.lst (via GSFILES, CWD-relative) while main() has
+// not run yet. If the tool is launched from the repo root, the game data
+// (all.gsc, Const.lst, the .gp/.grd resources) lives in gamedata/ - enter
+// it before anything game-side initializes. From gamedata itself (or a
+// GOG install dir) this is a no-op.
+static struct GamedataChdir
+{
+	GamedataChdir()
+	{
+		struct stat st;
+		if ( stat( "all.gsc", &st ) != 0 && stat( "gamedata/all.gsc", &st ) == 0 )
+		{
+			fprintf( stderr, "gscbrowser: all.gsc not in CWD, using gamedata/\n" );
+			chdir( "gamedata" );
+		}
+	}
+} g_gamedataChdir __attribute__(( init_priority( 101 ) ));
+
 int main( int argc, char** argv )
 {
-	const char* archPath = argc > 1 ? argv[1] : "all.gsc";
 	bool dumpMode = argc > 3 && !strcmp( argv[1], "--dump" );
 	bool listMode = argc > 2 && !strcmp( argv[1], "--list" );
-	if ( dumpMode || listMode ) archPath = argv[2];
+	const char* archPath = "all.gsc";
+	if ( dumpMode || listMode ) archPath = argc > 2 ? argv[2] : "all.gsc";
+	else if ( argc > 1 ) archPath = argv[1];
+
 
 	CGSCarch arch;
 	if ( !arch.Open( const_cast<char*>( archPath ) ) )

@@ -575,6 +575,7 @@ void RecordGame::ReadStream( char* Name )
 
 		if ( STREAM.Error() )
 		{
+			printf( "Error reading record file %s\n", Name );
 			STREAM.Close();
 			return;
 		}
@@ -646,6 +647,19 @@ void RecordGame::ReadStream( char* Name )
 		memcpy( Stream, BUFF + BFPOS, BFSZ - BFPOS );
 		Size = BFSZ - BFPOS;//sz;
 		Pos = 0;
+		//A recording whose map file is missing would silently replay on an
+		//empty map (black screen, no units) - Load3DMap/CreateNationalMask
+		//ForMap just return on a failed RReset. Warn so it is diagnosable.
+		ResFile ChkMap = RReset( CurrentMap );
+		if ( ChkMap == INVALID_HANDLE_VALUE )
+		{
+			printf( "ReadStream: WARNING - map '%s' not found!"
+				" The recording will replay on an empty map.\n", CurrentMap );
+		}
+		else
+		{
+			RClose( ChkMap );
+		}
 		//RClose(F);
 		ShowLoading();
 		int RM = RunMethod >> 24;

@@ -2,6 +2,9 @@
 #include <boost/coroutine2/all.hpp>
 #include <boost/context/fixedsize_stack.hpp>
 #include <dirent.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
 
 // There is no main() function, instead we have
 // SDL_AppInit, SDL_AppEvent, SDL_AppIterate and SDL_AppQuit callbacks.
@@ -182,7 +185,13 @@ int exFMode = 1;
 int SpeedSh = 1;
 
 //Minimal delay between two PostDrawGameProcess() returns, in ms
-const unsigned int kPostDrawInterval = 16;//~60 Hz
+const unsigned int kPostDrawInterval = 16;//~60 Hz (live multiplayer only)
+
+//The original game tick: 80ms per sim tick (12.5 ticks/s) - the step
+//multiplayer locks to (CurrentStepTime) and the pace the original game
+//ran at. Single player and replays are paced to this (see the frame
+//limiter at the end of PostDrawGameProcess).
+const unsigned int kSimTickInterval = 80;
 
 //Timespan in ms after last LastCTRLPressTime which allows setting unit control groups
 const int kCtrlStickyTime = 50;
@@ -386,9 +395,96 @@ DLLEXPORT bool KeyPressed;
 DLLEXPORT SDL_Keycode LastKey;
 
 
+//Pick and enter the game data directory. The original game runs from its
+//data directory: every resource path is relative to the current directory
+//(loose files, .gsc archive discovery, settings and saves). To keep the
+//source checkout clean, the data can live in a subdirectory instead:
+//pass --gamedata <dir> (or --gamedata=<dir>), or just create ./gamedata
+//where you run the game from - it is picked up automatically. We chdir()
+//there before any file is opened, so reads, writes and archive discovery
+//all follow. Idempotent: only the first call acts.
+static void EnterGameDataDir( int argc, char* argv[] )
+{
+	static bool Done = false;
+	if (Done)return;
+	Done = true;
+
+	const char* GameDataDir = nullptr;
+	for (int i = 1; i < argc; i++)
+	{
+		if (strcmp( argv[i], "--gamedata" ) == 0 && i + 1 < argc)
+		{
+			GameDataDir = argv[++i];
+		}
+		else if (strncmp( argv[i], "--gamedata=", 11 ) == 0)
+		{
+			GameDataDir = argv[i] + 11;
+		}
+	}
+	if (!GameDataDir && access( "gamedata", F_OK ) == 0)
+	{
+		GameDataDir = "gamedata";
+	}
+	if (GameDataDir)
+	{
+		if (chdir( GameDataDir ) == 0)
+		{
+			char CWD[1024];
+			if (getcwd( CWD, sizeof CWD ))printf( "Game data directory: %s\n", CWD );
+		}
+		else
+		{
+			printf( "Could not enter game data directory '%s': %s\n",
+				GameDataDir, strerror( errno ) );
+		}
+	}
+}
+
+#ifndef _WIN32
+//MissPack MISSLIST (activescenary.cpp) and other global objects open
+//resource files from their constructors. Those constructors run during
+//static initialization - BEFORE SDL_AppInit, so before its chdir() - and
+//with the data files moved out of the current directory they would find
+//nothing (worse: FilesInit() would then cache an empty archive list for
+//the whole run). So enter the data directory even earlier, from a
+//prioritized constructor: it runs before the unprioritized static
+//constructors of the other translation units. argc/argv do not exist yet
+//at this point, so read the command line from /proc/self/cmdline
+//(arguments are NUL-separated there).
+__attribute__( ( constructor( 101 ) ) )
+static void EnterGameDataDirEarly()
+{
+	char CmdLine[4096];
+	FILE* ProcFile = fopen( "/proc/self/cmdline", "rb" );
+	if (!ProcFile)return;
+	size_t N = fread( CmdLine, 1, sizeof CmdLine - 1, ProcFile );
+	fclose( ProcFile );
+	if (!N)return;
+	CmdLine[N] = 0;
+
+	char* Args[256];
+	int Argc = 0;
+	char* p = CmdLine;
+	char* End = CmdLine + N;
+	while (p < End && Argc < 255)
+	{
+		Args[Argc++] = p;
+		while (p < End && *p)p++;
+		p++;//skip the NUL separator
+	}
+	Args[Argc] = nullptr;
+
+	EnterGameDataDir( Argc, Args );
+}
+#endif //_WIN32
+
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 {
-	printf("SDL_AppInit\n");
+	//Game data directory: normally already entered by the early static
+	//constructor above; this is a no-op then. Kept here for the case where
+	//the early lookup could not run (no /proc).
+	EnterGameDataDir( argc, argv );
+
 	for (int i = 0; i < argc; i++)
 	{
 		if (strcmp(argv[i], "/MAPEDITOR") == 0)
@@ -419,12 +515,11 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	}
 
 	InitSDL();
-	printf("SDL initialized.\n");
 
 	//Init DirectDraw and find possible resolutions
 	EnumModesOnly();
 
-	//Load unrar.dll, call CGSCset::gOpen() to load archives
+	//Scan the data directory for .gsc archives (CGSCset::gOpen)
 	if (!FilesInit())
 	{
 		FilesExit();
@@ -712,7 +807,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	// Fine on desktop, but not on mobile
 	SDL_StartTextInput(sdlWindow);
 
-	printf(">>> SDL_AppInit done. Starting AllGameCoroutine\n");
 	AllGameCoroutine = new boost::coroutines2::coroutine<void>::pull_type(
 		boost::context::fixedsize_stack(8 * 1024 * 1024), AllGame);
 
@@ -1248,6 +1342,9 @@ void PostDrawGameProcess()
 		}
 		else
 		{
+			//Live multiplayer is paced through WaitToTime/NeedCurrentTime;
+			//single player keeps the original free-run loop and replays
+			//are paced by the frame limiter (kSimTickInterval).
 			PitchTicks = 0;
 		}
 	}
@@ -1281,7 +1378,11 @@ void PostDrawGameProcess()
 
 	if (GLOBALTIME - PGLOBALTIME > PitchTicks)
 	{
-		CurrentStepTime -= CurrentStepTime >> 5;
+		//The step decay is multiplayer lag recovery (paired with
+		//DoItSlow's regrow in multi.cpp). Nothing regrows it in single
+		//player or in replays, where it would erode the 80ms pace within
+		//minutes - so only decay in live multiplayer games.
+		if ( MaxPingTime && !PlayGameMode )CurrentStepTime -= CurrentStepTime >> 5;
 		RealGameLength = GetSDLTickCount() - RealStTime;
 
 #ifdef _WIN32
@@ -1443,6 +1544,27 @@ void PostDrawGameProcess()
 		prev_postdraw_time = GetSDLTickCount();
 	}
 
+	//Tick pacing: replays (PlayGameMode!=0) are paced here to the
+	//original 80ms sim tick (kSimTickInterval, 12.5 ticks/s) - the pace
+	//the recording was made at (recordings carry no timing of their own:
+	//single-player streams store all-zero PitchTicks bytes, so an
+	//original recording replayed at the free-run loop rate zips through
+	//several times too fast). Waiting here keeps the render path
+	//untouched - one render per tick, no render-inside-wait judder.
+	//Live multiplayer is paced by WaitToTime above and single player
+	//keeps the free-run loop (the fast feel this port has always had);
+	//both get only the render cap.
+	//KNOWN BUG (docs/TODO.txt, "Ticks tick too fast in scenarios"): at
+	//the free-run rate the sim runs ~5x the 2001 pace (60+ ticks/s vs
+	//12.5), so scenario timers (8<<SpeedSh per mission tick, HandleMission
+	//on every 8th sim tick) expire ~5x too fast - Single2's escape window
+	//was ~2.5s instead of ~13s. Pacing single player to 80ms here fixes
+	//the timers but drops the render to 12.5fps (one frame per sim tick),
+	//which is unbearable - reverted. The real fix needs the render rate
+	//decoupled from the sim tick (original: 12.5 ticks/s sim, smooth
+	//scrolling via DirectDraw overlays), and/or tying into the game speed
+	//slider (exFMode/SpeedSh).
+	unsigned int tick_interval = PlayGameMode ? kSimTickInterval : kPostDrawInterval;
 	unsigned long time_since_last_call = 0;
 	do
 	{
@@ -1452,7 +1574,7 @@ void PostDrawGameProcess()
 			GameKeyCheck();
 		}
 		time_since_last_call = GetSDLTickCount() - prev_postdraw_time;
-	} while (PauseMode || time_since_last_call < kPostDrawInterval);
+	} while (PauseMode || time_since_last_call < tick_interval);
 
 	prev_postdraw_time = GetSDLTickCount();
 }
@@ -1893,10 +2015,6 @@ static BOOL doInit()
 	//Create the screen object with RealLx x RealLy resolution
 	CreateDDObjects( sdlWindow );
 
-	#ifdef _WIN32
-	CHKALL();
-	#endif // _WIN32
-
 	if (!SDLError)
 	{
 		LockSurface();
@@ -1969,6 +2087,834 @@ extern void ClearMStack();
 
 bool EnterChatMode = 0;
 
+// Multiplayer vote keys (multi.cpp) and chat keys (linux_stubs no-op
+// until the chat is ported).
+void ProcessVotingKeys();
+void ProcessChatKeys();
+
+// Screenshot + full-map-render family - MOVED here from ddex1.cpp
+// (the original Windows entrypoint, not part of the Linux build) for the
+// map editor's G/H keys (SaveScreen/RenderAllMap); bodies unchanged.
+extern int CurPalette;
+extern bool NoText;     // mapa.cpp
+extern bool SHOWSLIDE;  // main.cpp (declared below; defined here)
+void GFieldShow();
+
+void SaveScreenShot( char* Name )
+{
+	byte PAL[1024];
+	memset( PAL, 0, 1024 );
+	char ccx[120];
+	sprintf( ccx, "%d\\agew_1.pal", CurPalette );
+	ResFile f = RReset( ccx );
+	int i;
+	for (i = 0; i < 256; i++)
+	{
+		int ofs = i << 2;
+		RBlockRead( f, PAL + ofs + 2, 1 );
+		RBlockRead( f, PAL + ofs + 1, 1 );
+		RBlockRead( f, PAL + ofs, 1 );
+	};
+	RClose( f );
+	f = RRewrite( Name );
+	i = 0x4D42;
+	RBlockWrite( f, &i, 2 );
+	i = RealLx*RealLy + 1080;
+	RBlockWrite( f, &i, 4 );
+	i = 0;
+	int j = 0x436;
+	RBlockWrite( f, &i, 4 );
+	RBlockWrite( f, &j, 4 );
+	j = 0x28;
+	RBlockWrite( f, &j, 4 );
+	RBlockWrite( f, &RealLx, 4 );
+	RBlockWrite( f, &RealLy, 4 );
+	j = 0x080001;
+	RBlockWrite( f, &j, 4 );
+	RBlockWrite( f, &i, 4 );
+	RBlockWrite( f, &i, 4 );
+	j = 0x0B12;
+	RBlockWrite( f, &j, 4 );
+	RBlockWrite( f, &j, 4 );
+	RBlockWrite( f, &i, 4 );
+	RBlockWrite( f, &i, 4 );
+	RBlockWrite( f, PAL, 1024 );
+	for (int i = 0; i < RealLy; i++)
+	{
+		char* pos = static_cast<char*>(ScreenPtr) + (RealLy - i - 1) * SCRSizeX;
+		RBlockWrite( f, pos, RealLx );
+	};
+	RClose( f );
+};
+void SaveBMP8( char* Name, int lx, int ly, byte* Data )
+{
+	byte PAL[1024];
+	memset( PAL, 0, 1024 );
+	char ccc[128];
+	sprintf( ccc, "%d\\agew_1.pal", CurPalette );
+	ResFile f = RReset( ccc );
+	int i;
+	for (i = 0; i < 256; i++)
+	{
+		int ofs = i << 2;
+		RBlockRead( f, PAL + ofs + 2, 1 );
+		RBlockRead( f, PAL + ofs + 1, 1 );
+		RBlockRead( f, PAL + ofs, 1 );
+	};
+	RClose( f );
+	f = RRewrite( Name );
+	i = 0x4D42;
+	RBlockWrite( f, &i, 2 );
+	i = lx*ly + 1080;
+	RBlockWrite( f, &i, 4 );
+	i = 0;
+	int j = 0x436;
+	RBlockWrite( f, &i, 4 );
+	RBlockWrite( f, &j, 4 );
+	j = 0x28;
+	RBlockWrite( f, &j, 4 );
+	int LX = lx;
+	int LY = ly;
+	RBlockWrite( f, &LX, 4 );
+	RBlockWrite( f, &LY, 4 );
+	j = 0x080001;
+	RBlockWrite( f, &j, 4 );
+	RBlockWrite( f, &i, 4 );
+	RBlockWrite( f, &i, 4 );
+	j = 0x0B12;
+	RBlockWrite( f, &j, 4 );
+	RBlockWrite( f, &j, 4 );
+	RBlockWrite( f, &i, 4 );
+	RBlockWrite( f, &i, 4 );
+	RBlockWrite( f, PAL, 1024 );
+	for (int i = 0; i < LY; i++)
+	{
+		char* pos = reinterpret_cast<char*>(Data) + (ly - i - 1) * lx;
+		RBlockWrite( f, pos, lx );
+	};
+	RClose( f );
+};
+void SaveMiniScreenShot( char* Name )
+{
+	byte PAL[1024];
+	memset( PAL, 0, 1024 );
+	ResFile f = RReset( "agew_1.pal" );
+	int i;
+	for (int i = 0; i < 256; i++)
+	{
+		int ofs = i << 2;
+		RBlockRead( f, PAL + ofs + 2, 1 );
+		RBlockRead( f, PAL + ofs + 1, 1 );
+		RBlockRead( f, PAL + ofs, 1 );
+	};
+	RClose( f );
+	f = RRewrite( Name );
+	i = 0x4D42;
+	RBlockWrite( f, &i, 2 );
+	i = RealLx*RealLy + 1080;
+	RBlockWrite( f, &i, 4 );
+	i = 0;
+	int j = 0x436;
+	RBlockWrite( f, &i, 4 );
+	RBlockWrite( f, &j, 4 );
+	j = 0x28;
+	RBlockWrite( f, &j, 4 );
+	int LX = RealLx >> 2;
+	int LY = RealLy >> 2;
+	RBlockWrite( f, &LX, 4 );
+	RBlockWrite( f, &LY, 4 );
+	j = 0x080001;
+	RBlockWrite( f, &j, 4 );
+	RBlockWrite( f, &i, 4 );
+	RBlockWrite( f, &i, 4 );
+	j = 0x0B12;
+	RBlockWrite( f, &j, 4 );
+	RBlockWrite( f, &j, 4 );
+	RBlockWrite( f, &i, 4 );
+	RBlockWrite( f, &i, 4 );
+	RBlockWrite( f, PAL, 1024 );
+	for (int i = 0; i < LY; i++)
+	{
+		char* pos = static_cast<char*>(ScreenPtr) + (RealLy - i - 1) * SCRSizeX;
+		for (int j = 0; j < LX; j++)RBlockWrite( f, pos + j * 4, 1 );
+	};
+	RClose( f );
+};
+void SaveScreen()
+{
+	char ccc[128];
+	SDL_CreateDirectory( "Screenshots");
+	int i;
+	for (i = 0; i < 1000; i++)
+	{
+		sprintf( ccc, "Screenshots\\screen%d.bmp", i );
+		ResFile f = RReset( ccc );
+		if (f == INVALID_HANDLE_VALUE)
+		{
+			RClose( f );
+			goto zzz;
+		};
+		RClose( f );
+	};
+	i = 99;
+zzz:
+	sprintf( ccc, "Screenshots\\screen%d.bmp", i );
+	SaveScreenShot( ccc );
+};
+extern bool NoText;
+extern bool SHOWSLIDE;
+void GFieldShow();
+void SaveMiniScreenShot( char* Name );
+void MiniRenderAllMap()
+{
+	SHOWSLIDE = true;
+	int nx = div( msx, smaplx ).quot;
+	int ny = div( msy, smaply ).quot;
+	//if(nx>3)nx=3;
+	//if(ny>3)ny=3;
+	char ccc[128];
+	NoText = true;
+	for (int y = 0; y < ny; y++)
+	{
+		for (int x = 0; x < nx; x++)
+		{
+			mapx = x*smaplx;
+			mapy = y*smaply;
+			GFieldShow();
+			FlipPages();
+			int p = x + y*nx;
+			if (p < 10)sprintf( ccc, "scr00%d.bmp", p );
+			else if (p < 100)sprintf( ccc, "scr0%d.bmp", p );
+			else sprintf( ccc, "scr%d.bmp", p );
+			SaveMiniScreenShot( ccc );
+		};
+	};
+	NoText = false;
+};
+
+void RenderAllMap()
+{
+	if (GetSDLKeyState( SDL_SCANCODE_LSHIFT ))
+	{
+		MiniRenderAllMap();
+		return;
+	};
+	SHOWSLIDE = true;
+	int nx = div( msx, smaplx ).quot;
+	int ny = div( msy, smaply ).quot;
+	//if(nx>3)nx=3;
+	//if(ny>3)ny=3;
+	char ccc[128];
+	NoText = true;
+	for (int y = 0; y < ny; y++)
+	{
+		for (int x = 0; x < nx; x++)
+		{
+			mapx = x*smaplx;
+			mapy = y*smaply;
+			GFieldShow();
+			FlipPages();
+			int p = x + y*nx;
+			if (p < 10)sprintf( ccc, "scr00%d.bmp", p );
+			else if (p < 100)sprintf( ccc, "scr0%d.bmp", p );
+			else sprintf( ccc, "scr%d.bmp", p );
+			SaveScreenShot( ccc );
+		}
+	}
+	NoText = false;
+}
+
+// Map-editor key dispatcher - MOVED here from ddex1.cpp (the original
+// Windows entrypoint file, not part of the Linux build) so the editor
+// gets keyboard input; the body is unchanged. The declarations below
+// come with it from ddex1.cpp (the editor tooling lives in
+// 3dmaped.cpp / 3drandmap.cpp / mapa.cpp, all compiled).
+void EditorKeyCheck();
+void ProcessSaveInSquares();
+void TestGenMap();
+bool ShowStatistics();
+extern bool GUARDMODE;   // mapa.cpp
+extern bool PATROLMODE;  // mapa.cpp
+extern bool RESMODE;
+extern bool OptHidden;
+extern bool ToolsHidden;
+extern int PEN_RADIUS;
+extern int PEN_BRIGHTNESS;
+void CreateFastLocking();
+void AddHill();
+bool DelCurrentAZone();
+void SelectNextGridMode();
+void ProcessMapOptions();
+void ResearchIslands();
+void EnterRandomParams();
+void GenerateRandomRoad( int idx );
+bool CheckCurve();
+void ClearCurve();
+void SetFractalTexture();
+void AutoSMSSet();
+void UpdateAllPieces();
+
+void SaveScreen();
+
+void EditorKeyCheck()
+{
+	if (KeyPressed)
+	{
+		KeyPressed = false;
+		SDL_Keycode wParam = LastKey;
+		switch (wParam)
+		{
+		case SDLK_RIGHT:
+			//if(DrawPixMode||DrawGroundMode)TexStDX=(TexStDX+1)&7;
+			break;
+		case SDLK_UP:
+			//if(DrawPixMode||DrawGroundMode)TexStDY=(TexStDY-1)&7;
+			break;
+		case SDLK_LEFT:
+			//if(DrawPixMode||DrawGroundMode)TexStDX=(TexStDX-1)&7;
+			break;
+		case SDLK_DOWN:
+			//if(DrawPixMode||DrawGroundMode)TexStDY=(TexStDY+1)&7;
+			break;
+		case SDLK_E:
+			FastMode = !FastMode;
+			break;
+		case SDLK_0:
+			//if(DrawPixMode||DrawGroundMode)STBRR(wParam);
+			break;
+		case SDLK_1:
+			//if(DrawPixMode||DrawGroundMode)STBRR(wParam);else
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))CostThickness = 1;
+			else ReliefBrush = 1;
+			break;
+		case SDLK_2:
+			//if(DrawPixMode||DrawGroundMode)STBRR(wParam);else
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))CostThickness = 2;
+			else ReliefBrush = 2;
+			break;
+		case SDLK_3:
+			//if(DrawPixMode||DrawGroundMode)STBRR(wParam);else
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))CostThickness = 3;
+			else ReliefBrush = 3;
+			break;
+		case SDLK_4:
+			//if(DrawPixMode||DrawGroundMode)STBRR(wParam);else
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))CostThickness = 4;
+			else ReliefBrush = 4;
+			break;
+		case SDLK_5:
+			//if(DrawPixMode||DrawGroundMode)STBRR(wParam);else
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))CostThickness = 5;
+			else ReliefBrush = 5;
+			break;
+		case SDLK_6:
+			//if(DrawPixMode||DrawGroundMode)STBRR(wParam);else
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))CostThickness = 6;
+			else ReliefBrush = 9;
+			break;
+		case SDLK_7:
+			//if(DrawPixMode||DrawGroundMode)STBRR(wParam);else
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))CostThickness = 7;
+			else ReliefBrush = 20;
+			break;
+		case SDLK_8:
+			//if(DrawPixMode||DrawGroundMode)STBRR(wParam);else
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))CostThickness = 8;
+			else ReliefBrush = 50;
+			break;
+		case SDLK_9:
+			//if(DrawPixMode||DrawGroundMode)STBRR(wParam);else
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))CostThickness = 9;
+			else ReliefBrush = 100;
+			break;
+		case SDLK_H:
+			//FullScreenMode=!FullScreenMode;
+			//GameNeedToDraw=true;
+			//GSSetup800();
+			RenderAllMap();
+			break;
+		case SDLK_V:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				ClearModes();
+				NeedToPopUp = 20;
+			}
+			else
+			{
+				ClearModes();
+				NeedToPopUp = 22;
+				//SetFractalTexture();
+				/*
+				switch(Light){
+				case 0:SetLight(-5,10,20);
+					break;
+				case 1:SetLight(-5,12,17);
+					break;
+				case 2:SetLight(-5,15,15);
+					break;
+				case 3:SetLight(-5,17,12);
+					break;
+				case 4:SetLight(-5,20,10);
+					break;
+				case 5:SetLight(-5,17,12);
+					break;
+				case 6:SetLight(-5,15,15);
+					break;
+				case 7:SetLight(-5,12,17);
+				};
+				Light++;
+				if(Light>7)Light=0;
+				*/
+			};
+			break;
+		case SDLK_RETURN:
+			if (!( GetSDLKeyState( SDL_SCANCODE_LCTRL ) ))
+			{
+				MakeMenu=true;
+				MenuType=3;
+				EnterChatMode = 1;
+				ClearKeyStack();
+			}
+			else KeyPressed = true;
+			break;
+		case SDLK_J:
+			RSCRSizeX++;
+			ShowStatistics();
+			break;
+		case SDLK_PAUSE:
+			if (!LockPause)SpecCmd = 137;
+			//PauseMode=!PauseMode;
+			break;
+		case SDLK_ESCAPE:
+			AttGrMode = 0;
+			if (CheckCurve())
+			{
+				ClearCurve();
+			}
+			else
+			{
+				ClearModes();
+				BuildMode = false;
+				//BuildWall=false;
+				GetCoord = false;
+				mousePointerType = 0;
+				curdx = 0;
+				curdy = 0;
+				GUARDMODE = 0;
+				PATROLMODE = 0;
+				PauseMode = false;
+				SetDestMode = false;
+				GoAndAttackMode = false;
+				NeedToPopUp = 1;
+			};
+			//if(PlayerMenuMode==2)
+			//MainMenu.ShowModal();
+			//Options.ShowModal();
+			break;
+		case SDLK_F12:
+			MenuType = 1;
+			MakeMenu = true;
+			break;
+		case SDLK_TILDE:
+			HealthMode = !HealthMode;
+			break;
+		case SDLK_F1:
+			HelpMode = !HelpMode;
+			break;
+		case SDLK_F2:
+			NeedToPopUp = 6;
+			break;
+		case SDLK_F3:
+			NeedToPopUp = 15;
+			break;
+		case SDLK_F4:
+			NeedToPopUp = 4;
+			break;
+		case SDLK_F5:
+			if (WaterEditMode)
+			{
+				WaterEditMode = 1;
+				NeedToPopUp = 8;
+			}
+			else
+			{
+				NeedToPopUp = 5;
+			};
+			break;
+		case SDLK_U:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))CINFMOD = !CINFMOD;
+			else if (Inform != 2)Inform = 2; else Inform = 0;
+			MiniActive = 0;
+			Recreate = 1;
+			//CINFMOD=0;
+			break;
+		case SDLK_F:
+			//SVSC.Zero();
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				TestGenMap();
+			}
+			else FogMode = !FogMode;
+			//HeightEditMode=false;
+			//MEditMode=true;
+			//EditMedia=5;
+			break;
+		case SDLK_F6:
+			if (WaterEditMode)
+			{
+				WaterEditMode = 2;
+				NeedToPopUp = 9;
+			}
+			else
+			{
+				ClearModes();
+				MakeMenu = true;
+				MenuType = 6;
+			};
+			break;
+		case SDLK_F7:
+			if (WaterEditMode)
+			{
+				WaterEditMode = 3;
+				NeedToPopUp = 10;
+			}
+			else Reset3D();
+			break;
+		case SDLK_F8:
+			if (WaterEditMode)
+			{
+				WaterEditMode = 4;
+				NeedToPopUp = 11;
+			}
+			else
+			{
+				NeedToPopUp = 3;
+			};
+			break;
+		case SDLK_N:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				AutoSMSSet();
+			}
+			else
+			{
+				NeedToPopUp = 7;
+				//HeightEditMode=3;
+				//MEditMode=false;
+				//EditMedia=5;
+			};
+			break;
+		case SDLK_DELETE:
+			if (!DelCurrentAZone())SpecCmd = 200;
+			break;
+
+		/*
+		case SDLK_D:
+			if (!( GetSDLKeyState( SDL_SCANCODE_LCTRL ) ))
+			{
+				if (( GetSDLKeyState( SDL_SCANCODE_LSHIFT ) ))//&& PlayGameMode)
+				{
+					switch (HISPEED)
+					{
+					case 0:
+						HISPEED = 1;
+						break;
+					case 1:
+						HISPEED = 2;
+						break;
+					case 2:
+						HISPEED = 3;
+						break;
+					default:
+						HISPEED = 0;
+						break;
+					};
+				};
+
+			}
+			else
+			{
+				//CmdChangeSpeed();//BUGFIX: real time speed changing
+			}
+			break;
+		*/
+
+		case SDLK_A:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))SpecCmd = 1;
+			else if (NSL[MyNation])GoAndAttackMode = 1;
+			break;
+		case SDLK_S:
+			//ClearModes();
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				//EnterRandomParams();
+			}
+			else
+			{
+				switch (LockMode)
+				{
+				case 0:
+					NeedToPopUp = 12;
+					break;
+				case 1:
+					NeedToPopUp = 13;
+					break;
+				case 2:
+					NeedToPopUp = 14;
+					break;
+				case 3:
+					NeedToPopUp = 1;
+					break;
+				};
+			};
+			break;
+		case SDLK_W:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))ProcessSaveInSquares();
+			else PeaceMode = !PeaceMode;
+			break;
+			/*
+		case 'N':
+			switch(RSCRSizeX){
+				case 800:RSCRSizeX=1024;
+						break;
+				case 1024:RSCRSizeX=800+32;
+						break;
+				case 1280:RSCRSizeX=1600;
+					break;
+				case 1600:RSCRSizeX=800;
+					break;
+				default:
+					RSCRSizeX=800;
+			};*/
+			/*if(RSCRSizeX!=1024)RSCRSizeX=1024;
+			else RSCRSizeX=800;*/
+			//break;
+		case SDLK_C:
+			//CINFMOD=!CINFMOD;
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				SpecCmd = 217;
+			}
+			else
+			{
+				WaterEditMode = 1;
+				NeedToPopUp = 8;
+			};
+			break;
+		case SDLK_X:
+			//if(GetSDLKeyState(SDL_SCANCODE_LCTRL))SpecCmd=5;
+			//else SpecCmd=6;
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				EraseAreas();
+				rando();//!!
+				CreateTotalLocking();
+				ResearchIslands();
+			}
+			else
+			{
+				ClearModes();
+				DrawPixMode = 1;
+				NeedToPopUp = 21;
+			};
+			break;
+		case SDLK_Q:
+			LockGrid += 2;//++;
+			if (LockGrid > 3)LockGrid = 0;
+			MiniActive = 0;
+			Recreate = 1;
+			break;
+		case SDLK_B:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))SpecCmd = 9;
+			else SpecCmd = 10;
+			//ClearMaps();
+			//CreateUnitsLocking();
+			break;
+		case SDLK_Z:
+			//if(DrawPixMode){
+			//	PerformPixUndo();
+			//};
+			//if(GetSDLKeyState(SDL_SCANCODE_LCTRL))SpecCmd=11;
+			//else SpecCmd=12;
+
+			break;
+			//case SDLK_F11:
+			//	WaterCorrection();
+			//	break;
+		case SDLK_F9:
+			MEditMode = false;
+			HeightEditMode = false;
+			LockMode = 0;
+			Creator = 4096 + 255;
+			NeedToPopUp = 1;
+			break;
+		case SDLK_KP_1:
+			SetMyNation( 0 );
+			MEditMode = false;
+			HeightEditMode = false;
+			PlayerMask = 1;
+			break;
+		case SDLK_KP_2:
+			SetMyNation( 1 );
+			MEditMode = false;
+			HeightEditMode = false;
+			PlayerMask = 2;
+			break;
+		case SDLK_KP_3:
+			SetMyNation( 2 );
+			MEditMode = false;
+			HeightEditMode = false;
+			PlayerMask = 4;
+			break;
+		case SDLK_KP_4:
+			SetMyNation( 3 );
+			MEditMode = false;
+			HeightEditMode = false;
+			PlayerMask = 8;
+			break;
+		case SDLK_KP_5:
+			SetMyNation( 4 );
+			MEditMode = false;
+			HeightEditMode = false;
+			PlayerMask = 16;
+			break;
+		case SDLK_KP_6:
+			SetMyNation( 5 );
+			MEditMode = false;
+			HeightEditMode = false;
+			PlayerMask = 32;
+			break;
+		case SDLK_KP_7:
+			SetMyNation( 6 );
+			MEditMode = false;
+			HeightEditMode = false;
+			PlayerMask = 64;
+			break;
+		case SDLK_KP_8:
+			SetMyNation( 7 );
+			MEditMode = false;
+			HeightEditMode = false; PlayerMask = 128;
+			break;
+		case SDLK_I:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))InfoMode = !InfoMode;
+			else if (Inform != 1)Inform = 1; else Inform = 0;
+			MiniActive = 0;
+			Recreate = 1;
+			//InfoMode=1;
+			break;
+		case SDLK_O:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				OptHidden = !OptHidden;
+			}
+			else
+			{
+				TransMode = !TransMode;
+				MiniActive = 0;
+				Recreate = 1;
+			};
+			break;
+			//WaterCorrection();
+			//if(MsPerFrame)MsPerFrame--;
+		case SDLK_P:
+			//MsPerFrame++;
+			//if(GetSDLKeyState(SDL_SCANCODE_LCTRL))RotatePhiI();
+			//RotatePhi();
+			NeedToPopUp = 2;
+			break;
+		case SDLK_R:
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				//ProcessMapOptions();
+			}
+			else
+			{
+				MEditMode = false;
+				HeightEditMode = false;
+				MakeMenu = true;
+				MenuType = 31;
+			};
+			break;
+		case SDLK_L:
+			/*
+			if(!MiniMode)SetMiniMode();
+			else ClearMiniMode();
+			MEditMode=false;
+			*/
+			//ReverseLMode();
+			break;
+		case SDLK_T:
+			//HeightEditMode=false;
+			//ChoosePosition=true;
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				ToolsHidden = !ToolsHidden;
+			};
+			break;
+		case SDLK_G:
+			//if(GetSDLKeyState(SDL_SCANCODE_LSHIFT))CreateMapShot();
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))SelectNextGridMode();
+			else SaveScreen();
+			//SVSC.Grids=!SVSC.Grids;
+			//SVSC.RefreshScreen();
+			break;
+		case SDLK_KP_PLUS:
+			if (HeightEditMode)HiStyle = 1;
+			break;
+		case SDLK_KP_MINUS:
+			if (HeightEditMode)HiStyle = 2;
+			break;
+		case SDLK_KP_MULTIPLY:
+			if (HeightEditMode)HiStyle = 3;
+			break;
+		case SDLK_KP_DIVIDE:
+			if (HeightEditMode)HiStyle = 4;
+			break;
+		case SDLK_M://NUM 0 // why?
+			//if(HeightEditMode)HiStyle=5;
+			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			{
+				//AddHill();
+				GenerateRandomRoad( 5 );
+			}
+			else FullMini = !FullMini;
+			MiniActive = 0;
+			Recreate = 1;
+			break;
+		case SDLK_PAGEUP:
+			if (HeightEditMode)HiStyle = 7;
+			break;
+		case SDLK_PAGEDOWN:
+			if (HeightEditMode)HiStyle = 8;
+			break;
+		case SDLK_HOME:
+			if (HeightEditMode)HiStyle = 9;
+			break;
+		default:
+			if (SDLK_0 <= wParam && wParam <= SDLK_9)
+			{
+				if (GetSDLKeyState( SDL_SCANCODE_LSHIFT ))
+				{
+					int v = wParam - SDLK_0;
+					SHIFT_VAL = SHIFT_VAL * 10 + v;
+				}
+				else
+				{
+					if (GetSDLTickCount() - LastCTRLPressTime < kCtrlStickyTime)
+					{
+						CmdMemSelection( MyNation, wParam - SDLK_0 );
+					}
+					else CmdRememSelection( MyNation, wParam - SDLK_0 );
+					//if(GetSDLKeyState(SDL_SCANCODE_LCTRL))
+					//	CmdMemSelection(MyNation,wParam-SDLK_0);
+					//else CmdRememSelection(MyNation,wParam-SDLK_0);
+				};
+			};
+		};
+	};
+};
+void SERROR();
+
 //Many diffirent key checks for various game modes
 void GameKeyCheck()
 {
@@ -1983,7 +2929,9 @@ void GameKeyCheck()
 		}
 	}
 
-	#ifdef _WIN32
+	// Un-guarded 2026-11-01 for the map editor: EditorKeyCheck (and the
+	// chat/voting key dispatch ahead of it) are portable (ddex1.cpp);
+	// without this the editor had no keyboard input, not even ESC.
 	ProcessVotingKeys();
 
 	if (EnterChatMode)
@@ -1997,12 +2945,12 @@ void GameKeyCheck()
 		EditorKeyCheck();
 		return;
 	}
-	#endif // _WIN32
 
 	if (KeyPressed)
 	{
 		KeyPressed = false;
 		SDL_Keycode wParam = LastKey;
+
 		switch (wParam)
 		{
 		case SDLK_ESCAPE:
@@ -2112,7 +3060,9 @@ void GameKeyCheck()
 			}
 			break;
 		case SDLK_TILDE:
+		case SDLK_GRAVE:
 			HealthMode = !HealthMode;
+			printf("HealthMode: %d\n", HealthMode);
 			break;
 		case SDLK_DELETE:
 			SpecCmd = 200;
@@ -2535,13 +3485,19 @@ int TAverage = 50;
 
 void WaitToTime( int Time )
 {
-	int dt0 = Time - GetSDLTickCount();
+	//All tick values fit int for sessions under 24 days (see GetSDLTickCount).
+	//Keep every comparison SIGNED: the original exit condition
+	//'Time - ticks > 0' evaluated in unsigned arithmetic and wrapped to a
+	//huge value once the counter overshot the target - and it always
+	//overshoots, each loop iteration renders for >1ms - so the wait spun
+	//forever. That froze the paced game on the very first wait.
+	int dt0 = Time - (int) GetSDLTickCount();
 	bool DoDraw = dt0 > ( TAverage >> 2 );
 	do
 	{
 		if (DoDraw)
 		{
-			int T0 = GetSDLTickCount();
+			int T0 = (int) GetSDLTickCount();
 			if (T0 - Time < 0)
 			{
 				int tt = T0;
@@ -2553,7 +3509,7 @@ void WaitToTime( int Time )
 			}
 		}
 		ProcessMessages();
-	} while ( Time - GetSDLTickCount() > 0);
+	} while ( (int) GetSDLTickCount() < Time );
 	//SUBTIME=0;
 }
 

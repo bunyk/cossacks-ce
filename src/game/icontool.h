@@ -1,3 +1,11 @@
+//Queued-production count sentinel for ENDLESS production (Ctrl+click on a
+//production icon): GetAmount (build.cpp) adds this per infinite order
+//(Produce.ID == 0xFFFE), and OneIcon::AssignIntVal/Draw treat any count
+//>= this as infinity - drawing the lemniscate glyph (DrawInf) instead of
+//the number; count / INFINITY_COUNT is the number of infinity symbols
+//queued. NOTE: cannot be named just INFINITY - that is a <math.h> macro.
+#define INFINITY_COUNT 1200
+
 class OneIcon{
 public:
 	word FileID;

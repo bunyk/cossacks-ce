@@ -21,19 +21,8 @@ void Hline(int x,int y,int xend,byte c){
 		if(x>WindX1)Lxr=WindX1-xr+1;else Lxr=x-xr+1;
 	};
 	if(Lxr<=0)return;
-#ifdef _WIN32
-	int scr=int(ScreenPtr)+xr+y*ScrWidth;
-	__asm{
-		mov		edi,scr
-		mov		al,c
-		mov		ecx,Lxr
-		cld
-		rep		stosb
-	};
-#else
 	uint8_t* scr = (uint8_t*)ScreenPtr + xr + y * ScrWidth;
 	memset(scr, c, Lxr);
-#endif // _WIN32
 };
 void Vline(int x,int y,int yend,byte c){
 	if(x<WindX||x>WindX1)return;
@@ -50,26 +39,11 @@ void Vline(int x,int y,int yend,byte c){
 		if(y>WindY1)Lyr=WindY1-yr+1;else Lyr=y-yr+1;
 	};
 	if(Lyr<=0)return;
-#ifdef _WIN32
-	int scr=int(ScreenPtr)+x+yr*ScrWidth;
-	__asm{
-		mov		edi,scr
-		mov		al,c
-		mov		ecx,Lyr
-		mov		edx,ScrWidth
-		dec		edx
-		cld
-uuuuu:	stosb
-		add		edi,edx
-		loop	uuuuu
-	};
-#else
 	uint8_t* scr = (uint8_t*)ScreenPtr + x + yr * ScrWidth;
 	for (int i = 0; i < Lyr; ++i) {
 		*scr = c;
 		scr += ScrWidth;
 	}
-#endif // _WIN32
 };
 
 void Xbar(int x,int y,int lx,int ly,byte c){

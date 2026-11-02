@@ -6,6 +6,7 @@
 
 #include "ddini.h"
 #include "activescenary.h"
+#include <execinfo.h>
 #include "gp_draw.h"
 #include "resfile.h"
 #include "fastdraw.h"
@@ -428,8 +429,25 @@ void ScenaryInterface::Load( char* Name, char* Text )
 	}
 	else
 	{
+#ifdef _WIN32
 		if ( hLib )FreeLibrary( hLib );
 		hLib = LoadLibrary( Name );
+#else
+		// Linux: do NOT dlclose the previous module here. The engine
+		// keeps raw pointers into the module's .bss (SCENINF.SaveZone
+		// from RegisterVar, UGRP group data); SaveLoad runs SCENINF.Load
+		// TWICE back-to-back (SFLB_PreLoadGame for the map's embedded
+		// DLL, then LoadMission again), so the dlclose leaves those
+		// pointers dangling into an unmapped .so and the variable
+		// restore in LoadMission segfaults (mission modules also
+		// re-register from their dlopen constructor, doubling NSaves).
+		// dlopen of the same path just bumps the refcount: same handle,
+		// no constructor re-run, registered state stays valid. The real
+		// teardown is ScenaryInterface::UnLoading (quit mission), which
+		// frees everything and unloads - different missions simply stay
+		// resident until then, which is harmless.
+		hLib = LoadLibrary( Name );
+#endif
 	}
 	ScenaryHandler = NULL;
 	if ( hLib == NULL )
@@ -668,6 +686,10 @@ extern "C" DLLEXPORT void RegisterVisibleZone( GAMEOBJ* GOBJ, char* Name )
 	}
 }
 
+// AI module API: bind a GAMEOBJ handle to a unit/building by its NDS name
+// (e.g. "Pik_rus(RU)"). Called from the module's InitAI. Unknown name ->
+// returns false SILENTLY and the GAMEOBJ stays unbound; the misuse only
+// surfaces later as an "invalid unit ID" dialog from GetUnits/TryUnit.
 extern "C" DLLEXPORT bool RegisterUnitType( GAMEOBJ* GOBJ, char* Name )
 {
 	GeneralObject** GOS = NATIONS[0].Mon;
@@ -688,6 +710,8 @@ extern "C" DLLEXPORT bool RegisterUnitType( GAMEOBJ* GOBJ, char* Name )
 	return false;
 }
 
+// AI module API: same as RegisterUnitType, for a research/upgrade
+// (NDS names have no parens here: "AKA08RU", "MAINRU").
 extern "C" DLLEXPORT bool RegisterUpgrade( GAMEOBJ* GOBJ, char* Name )
 {
 	NewUpgrade** NUP = NATIONS[0].UPGRADE;
@@ -707,6 +731,8 @@ extern "C" DLLEXPORT bool RegisterUpgrade( GAMEOBJ* GOBJ, char* Name )
 	return false;
 }
 
+// AI module API: like RegisterUpgrade but reserved for names that may
+// legitimately not exist in the nation's NDS - fails quietly, no dialog.
 extern "C" DLLEXPORT bool SafeRegisterUpgrade( GAMEOBJ* GOBJ, char* Name )
 {
 	NewUpgrade** NUP = NATIONS[0].UPGRADE;
@@ -3458,7 +3484,9 @@ extern "C" DLLEXPORT void RefreshScreen()
 	GSYSDRAW();
 }
 
-#ifdef _WIN32
+// Un-guarded 2026-11-01: fully portable body; Single2's Mission.dll
+// imports SelCenter (an exported scenary API), and the multi.cpp global
+// array of the same name (renamed SelCenterArr) was shadowing the symbol.
 extern "C" DLLEXPORT bool SelCenter( GAMEOBJ* DstZone, byte Nat, int R )
 {
 	Nat = AssignTBL[Nat];
@@ -3503,7 +3531,6 @@ extern "C" DLLEXPORT bool SelCenter( GAMEOBJ* DstZone, byte Nat, int R )
 	}
 	return true;
 }
-#endif // _WIN32
 extern "C" DLLEXPORT bool CreateZoneNearUnit( GAMEOBJ* DstZone, GAMEOBJ* Zone, GAMEOBJ* UnitType, byte Nat, int R )
 {
 	Nat = AssignTBL[Nat];
@@ -4726,6 +4753,16 @@ extern "C" DLLEXPORT void RemoveGroup( GAMEOBJ* Source, GAMEOBJ* Dest )
 }
 
 //-------------------------AI Low level functions------------------------//
+// The nation AI API: functions exported for the per-nation AI modules
+// (AI/<Nation>.so, see src/ai/*/dllmain.cpp and docs/AI.md). The engine
+// services one nation's City per AI tick: it sets the context globals
+// below (CCIT = the city, CNAT = its nation, CurAINation = its index),
+// raises AiIsRunNow, calls the module's exported ProcessAI(), then
+// evaluates the proposals the module queued via TryUnit/TryUpgrade.
+// Everything below is callable ONLY during that window (AiIsRunNow),
+// except the Register*/Assign* setup which modules call from InitAI.
+// The authoritative per-function reference for callers is
+// src/ai/<Nation>/typedefs.h.
 const int AI_PROB[4] = { 32768 / 100, 32768 / 50, 32768 / 10, 32768 };
 byte CurAINation = 1;
 City* CCIT = NULL;
@@ -4751,9 +4788,29 @@ void AIER( char* Mess )
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, CurAIDLL, Mess, sdlWindow);
 }
 
-void AI_Error()
+// Logs the offending function name + a backtrace: the guard violation
+// is otherwise impossible to attribute (23 guarded exports share this
+// error, and the caller chain crosses dlopen module boundaries).
+void AI_Error( const char* fn )
 {
-	AIER( "ERROR: AI function must be called only from AI section." );
+	char cc[256];
+	sprintf( cc, "ERROR: AI function %s must be called only from AI section "
+		"(AiIsRunNow==0).", fn );
+	fprintf( stderr, "%s\n", cc );
+#ifdef __GLIBC__
+	{
+		void* bt[32];
+		int n = backtrace( bt, 32 );
+		char** syms = backtrace_symbols( bt, n );
+		fprintf( stderr, "AI guard violation backtrace (%d frames):\n", n );
+		for ( int i = 0; i < n && syms; i++ )
+		{
+			fprintf( stderr, "  #%d %s\n", i, syms[i] );
+		}
+		free( syms );
+	}
+#endif
+	AIER( cc );
 }
 
 extern "C" DLLEXPORT int GetAINation()
@@ -4764,13 +4821,28 @@ extern "C" DLLEXPORT int GetAINation()
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
 
 extern byte CannonState;
 
+// AI module API: propose producing/building one more of a registered
+// unit or building. Called from ProcessAI each tick; a proposal is only
+// queued into CCIT->BestProj, the tick's project loop acts on it later.
+//   Max         - propose only while the nation owns fewer than Max;
+//                UnitAmount includes unfinished (under construction).
+//   CostPercent - affordability: passes only if CostPercent >= the
+//                project's worst cost[res]*100/stock[res] over the 8
+//                resources (Branch::GetMonsterCostPercent). 1..20 = only
+//                when nearly free vs stock, ~100 = pay from stock,
+//                >100 = even above stock.
+//   Probability  - per-tick chance (0..100) the proposal is made at all.
+// Buildings: the city places only ONE building project at a time
+// (City::PresentProject) - further building proposals this tick are
+// dropped and failed placements retry on later ticks. Unit proposals
+// queue freely at their producing building.
 extern "C" DLLEXPORT bool TryUnit( GAMEOBJ* UnitType, int Max, byte CostPercent, byte Probability )
 {
 	if ( AiIsRunNow )
@@ -4831,11 +4903,17 @@ extern "C" DLLEXPORT bool TryUnit( GAMEOBJ* UnitType, int Max, byte CostPercent,
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
 
+// AI module API: propose starting a research. Same Max-less dice and
+// CostPercent rule as TryUnit (cost percent from
+// Branch::GetUpgradeCostPercent), but a successful proposal starts the
+// research IMMEDIATELY via the producer's PerformUpgrade - no queue, no
+// one-at-a-time limit. A resource locked by SetUpgradeLock with a cost
+// >600 there gets its percent forced to 1000 = unaffordable.
 extern "C" DLLEXPORT bool TryUpgrade( GAMEOBJ* Upgrade, int CostPercent, int Probability )
 {
 	if ( Upgrade->Type == 'SAFE' )
@@ -4877,11 +4955,16 @@ extern "C" DLLEXPORT bool TryUpgrade( GAMEOBJ* Upgrade, int CostPercent, int Pro
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
 
+// AI module API: mine-vs-food peasant balance, N PAIRS of
+// {total peasants, peasants wanted on food+wood+stone}. Consumed by
+// City::CalculateBalance which INTERPOLATES between pairs and sends the
+// rest to mines. The consumer scan ignores N (walks while pair[0] <=
+// peasant count), so the table must end with a {4000, ~400} terminator.
 extern "C" DLLEXPORT void SetMineBalanse( int N, word* Bal )
 {
 	if ( AiIsRunNow )
@@ -4891,9 +4974,12 @@ extern "C" DLLEXPORT void SetMineBalanse( int N, word* Bal )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
+// AI module API: relative weights for peasants working food/wood/stone
+// (ratios, not percentages; e.g. 9,4,4). The balance remainder of
+// SetMineBalanse goes to mines regardless of this.
 extern "C" DLLEXPORT void SetPDistribution( int OnFood, int OnWood, int OnStone )
 {
 	if ( AiIsRunNow )
@@ -4904,9 +4990,11 @@ extern "C" DLLEXPORT void SetPDistribution( int OnFood, int OnWood, int OnStone 
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
+// AI module API: how many mine-deepening researches the nation has
+// (allocates the UGRP_MINEUP chain filled by AssignMineUpgrade below).
 extern "C" DLLEXPORT void AssignAmountOfMineUpgrades( int MU )
 {
 	if ( AiIsRunNow )
@@ -4919,9 +5007,11 @@ extern "C" DLLEXPORT void AssignAmountOfMineUpgrades( int MU )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
+// AI module API: the U-th mine-deepening research: upgrade name plus
+// its cost value shown in the mine panel.
 extern "C" DLLEXPORT bool AssignMineUpgrade( word U, char* Str, word val )
 {
 	if ( AiIsRunNow )
@@ -4953,7 +5043,7 @@ extern "C" DLLEXPORT bool AssignMineUpgrade( word U, char* Str, word val )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 	return 1;
@@ -4967,6 +5057,7 @@ int GETUID( char* Name )
 	if ( k >= N )return -1;
 	return k;
 }
+// AI module API: which registered building is the nation's MINE.
 extern "C" DLLEXPORT void AssignMine( char* Name )
 {
 	if ( AiIsRunNow )
@@ -4980,9 +5071,10 @@ extern "C" DLLEXPORT void AssignMine( char* Name )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
+// AI module API: which registered unit is the nation's PEASANT/worker.
 extern "C" DLLEXPORT void AssignPeasant( char* Name )
 {
 	if ( AiIsRunNow )
@@ -4996,9 +5088,13 @@ extern "C" DLLEXPORT void AssignPeasant( char* Name )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
+// AI module API: which registered building is the population-support
+// HOUSE. Also initializes City::FarmLX/FarmLY from the building's
+// footprint - these drive the house-placement spiral
+// (City::GetNextPlaceForFarm).
 extern "C" DLLEXPORT void AssignHouse( char* Name )
 {
 	if ( AiIsRunNow )
@@ -5024,10 +5120,11 @@ extern "C" DLLEXPORT void AssignHouse( char* Name )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
+// AI module API: which registered building is the WALL the AI builds.
 extern "C" DLLEXPORT void AssignWall( char* Name )
 {
 	if ( AiIsRunNow )
@@ -5041,10 +5138,12 @@ extern "C" DLLEXPORT void AssignWall( char* Name )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
+// AI module API: how far (game cells) from its town center the AI
+// captures free mines.
 extern "C" DLLEXPORT void SET_MINE_CAPTURE_RADIUS( int x )
 {
 	if ( AiIsRunNow )
@@ -5053,10 +5152,11 @@ extern "C" DLLEXPORT void SET_MINE_CAPTURE_RADIUS( int x )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
+// AI module API: radius for building the first mine upgrade.
 extern "C" DLLEXPORT void SET_MINE_UPGRADE1_RADIUS( int x )
 {
 	if ( AiIsRunNow )
@@ -5065,10 +5165,11 @@ extern "C" DLLEXPORT void SET_MINE_UPGRADE1_RADIUS( int x )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
+// AI module API: radius for building further mine upgrades.
 extern "C" DLLEXPORT void SET_MINE_UPGRADE2_RADIUS( int x )
 {
 	if ( AiIsRunNow )
@@ -5077,10 +5178,12 @@ extern "C" DLLEXPORT void SET_MINE_UPGRADE2_RADIUS( int x )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
+// AI module API: cap on FREE (unassigned) peasants - EnumProp stops
+// proposing peasants while the free count is above this.
 extern "C" DLLEXPORT void SET_DEFAULT_MAX_WORKERS( int x )
 {
 	if ( AiIsRunNow )
@@ -5089,10 +5192,12 @@ extern "C" DLLEXPORT void SET_DEFAULT_MAX_WORKERS( int x )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
+// AI module API: minimum free peasants kept before the AI detaches a
+// brigade to capture a new mine (TakeNewMineBrain & co).
 extern "C" DLLEXPORT void SET_MIN_PEASANT_BRIGADE( int x )
 {
 	if ( AiIsRunNow )
@@ -5101,10 +5206,12 @@ extern "C" DLLEXPORT void SET_MIN_PEASANT_BRIGADE( int x )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
+// AI module API: current stockpile, id 0=wood 1=gold 2=stone 3=food
+// 4=iron 5=coal.
 extern "C" DLLEXPORT int GetMoney( byte id )
 {
 
@@ -5118,11 +5225,13 @@ extern "C" DLLEXPORT int GetMoney( byte id )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
 
+// AI module API: owned count of a registered unit/building INCLUDING
+// unfinished (under construction) ones.
 extern "C" DLLEXPORT int GetUnits( GAMEOBJ* UnitType )
 {
 	if ( AiIsRunNow )
@@ -5137,11 +5246,15 @@ extern "C" DLLEXPORT int GetUnits( GAMEOBJ* UnitType )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
 
+// AI module API: count living units of a newMons->Usage id (see
+// mapdiscr.h: 0x19 Fregat, 0x1B Galera, 0x1C Iaxta, 0x1F Parom,
+// 0x0E Linkor, ...). Nat is a player slot through AssignTBL - the
+// original AI DLLs always pass 0.
 extern "C" DLLEXPORT int GetUnitsByUsage( byte Nat, byte Usage )
 {
 	Nat = AssignTBL[Nat];
@@ -5166,7 +5279,7 @@ extern "C" DLLEXPORT int GetUnitsByUsage( byte Nat, byte Usage )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
@@ -5178,6 +5291,8 @@ byte INVECO[6] = { 2,5,4,0,1,3 };
 void PerformTorg( byte Nation, byte SellRes, byte BuyRes, int SellAmount );
 
 //Performs market exchange for bots
+// AI module API: place a market trade (sell SellAmount of SellRes for
+// BuyRes, resource ids as in GetMoney).
 extern "C" DLLEXPORT void AI_Torg( byte SellRes, byte BuyRes, int SellAmount )
 {
 	PerformTorg( CNAT->NNUM, INVECO[SellRes], INVECO[BuyRes], SellAmount );
@@ -5186,11 +5301,14 @@ extern "C" DLLEXPORT void AI_Torg( byte SellRes, byte BuyRes, int SellAmount )
 int GetTorgResultEx( byte SellRes, byte BuyRes, int SellAmount );
 
 //Calculates market exchange results for bots
+// AI module API: preview the buy yield of a trade without trading.
 extern "C" DLLEXPORT int GetTorgResult( byte SellRes, byte BuyRes, int SellAmount )
 {
 	return GetTorgResultEx( INVECO[SellRes], INVECO[BuyRes], SellAmount );
 }
 
+// AI module API: owned count with construction COMPLETE (contrast
+// GetUnits, which counts unfinished ones too).
 extern "C" DLLEXPORT int GetReadyUnits( GAMEOBJ* UnitType )
 {
 	if ( AiIsRunNow )
@@ -5205,11 +5323,15 @@ extern "C" DLLEXPORT int GetReadyUnits( GAMEOBJ* UnitType )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
 
+// AI module API: temporarily forbid (Val=1) / reallow (Val=0) upgrades
+// costing >600 of Res. GetUpgradeCostPercent inflates such upgrades to
+// percent 1000 (unaffordable), so TryUpgrade skips them - used to hoard
+// gold for the XVIII-century research.
 extern "C" DLLEXPORT void SetUpgradeLock( byte Res, byte Val )
 {
 	if ( Res < 8 )
@@ -5218,6 +5340,9 @@ extern "C" DLLEXPORT void SetUpgradeLock( byte Res, byte Val )
 	}
 }
 
+// AI module API: city guard-pool caps (MaxGuards / AbsMaxGuards) used
+// when RegisterNewUnit sorts new combat units into
+// aggressor/defender/guard pools.
 extern "C" DLLEXPORT void SetDefSettings( int p1, int p2 )
 {
 	if ( AiIsRunNow )
@@ -5227,10 +5352,13 @@ extern "C" DLLEXPORT void SetDefSettings( int p1, int p2 )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 	}
 }
 
+// AI module API: the largest per-mine worker capacity the AI currently
+// has - grows with the mine-deepening research (5 -> 10 -> ... -> 95).
+// The original water-map AIs key late-game behavior on it.
 extern "C" DLLEXPORT int GetMaxPeasantsInMines()
 {
 	int N = NtNUnits[CNAT->NNUM];
@@ -5251,6 +5379,7 @@ extern "C" DLLEXPORT int GetMaxPeasantsInMines()
 	return Max;
 }
 
+// AI module API: research fully completed.
 extern "C" DLLEXPORT bool UpgIsDone( GAMEOBJ* Upgrade )
 {
 	if ( AiIsRunNow )
@@ -5265,11 +5394,12 @@ extern "C" DLLEXPORT bool UpgIsDone( GAMEOBJ* Upgrade )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
 
+// AI module API: research done OR in progress (NOT strictly running).
 extern "C" DLLEXPORT bool UpgIsRun( GAMEOBJ* Upgrade )
 {
 	if ( AiIsRunNow )
@@ -5285,7 +5415,7 @@ extern "C" DLLEXPORT bool UpgIsRun( GAMEOBJ* Upgrade )
 	}
 	else
 	{
-		AI_Error();
+		AI_Error( __func__ );
 		return 0;
 	}
 }
@@ -5293,12 +5423,18 @@ extern "C" DLLEXPORT bool UpgIsRun( GAMEOBJ* Upgrade )
 extern int* ResTBL;
 extern int  NInResTBL;
 
+// AI module API: which resource the NEXT captured mine must yield:
+// NElm PAIRS {RSM = gold + (iron<<8) + (coal<<16) owned-mine counts,
+// ResID: 1=gold 4=iron}. TakeNewMineBrain scans for an exact RSM match
+// (last match wins); no match = take the nearest mine of any type.
 extern "C" DLLEXPORT void SetMinesBuildingRules( int* Table, int NElm )
 {
 	ResTBL = Table;
 	NInResTBL = NElm;
 }
 
+// AI module API: 27 ints - the share (percent) of gold/iron/coal mines
+// to keep at upgrade tiers 1/2/3: MU1{G,I,C}% MU2{G,I,C}% MU3{G,I,C}%.
 extern "C" DLLEXPORT void SetMinesUpgradeRules( int* Table )
 {
 	if ( !AiIsRunNow )
@@ -5346,16 +5482,19 @@ extern "C" DLLEXPORT void SetMinesUpgradeRules( int* Table )
 	Nat->MU3C_PERCENT[2] = Table[26];
 }
 
+// AI module API: the city's flag that sown fields exist (CCIT->FieldReady).
 extern "C" DLLEXPORT bool FieldExist()
 {
 	return CCIT->FieldReady;
 }
 
+// AI module API: game difficulty setting (0..3) of the current AI city.
 extern "C" DLLEXPORT int GetDifficulty()
 {
 	return CCIT->Difficulty;
 }
 
+// AI module API: the starting-resources option of the current game.
 extern "C" DLLEXPORT int GetStartRes()
 {
 	return CCIT->StartRes;
@@ -5371,6 +5510,8 @@ extern "C" DLLEXPORT int GetResOnMap()
 	return CCIT->ResOnMap;
 }
 
+// AI module API: map land type: 0=Land, 1=Mediterranean,
+// 2=Peninsulas, 3=Islands, 4=Continents, 5=Continent.
 extern "C" DLLEXPORT int GetLandType()
 {
 	return CCIT->LandType;
@@ -5423,6 +5564,8 @@ extern "C" DLLEXPORT bool NationIsErased( byte Nat )
 	}
 	else return 1;
 }
+// AI module API: which unit forms up with officers (the pike); used
+// when the AI assembles formations.
 extern "C" DLLEXPORT void AssignFormUnit( char* Name )
 {
 	GeneralObject** GOS = NATIONS[0].Mon;
@@ -5464,6 +5607,10 @@ extern word NPlayers;
 
 extern uint64_t GetSDLTickCount();
 // TODO: maybe not used
+// AI module API: per-game pseudo-random index (the original AIs use it
+// in InitAI to pick per-game unit variants). Deterministic in
+// play/record mode (derived from unit coordinates), otherwise a
+// time-seeded ticking counter.
 extern "C" DLLEXPORT int GetRandomIndex()
 {
 	if ( PlayGameMode || RecordMode )
@@ -5499,11 +5646,14 @@ extern "C" DLLEXPORT int GetRandomIndex()
 
 int AI_Registers[8][32];
 
+// AI module API: 32 scratch int slots per AI nation, kept for the whole
+// game - the original AIs use them as "did this once" flags.
 extern "C" DLLEXPORT void SetAIRegister( int Reg, int Val )
 {
 	if ( Reg < 32 && CurAINation < 8 )AI_Registers[CurAINation][Reg] = Val;
 }
 
+// AI module API: read one of the 32 per-nation scratch slots.
 extern "C" DLLEXPORT int GetAIRegister( int Reg )
 {
 	if ( Reg < 32 && CurAINation < 8 )return AI_Registers[CurAINation][Reg];
@@ -5515,6 +5665,9 @@ extern int WasInIron[8];
 extern int WasInCoal[8];
 
 //Returns resource amount based on gathering speed
+// AI module API: current extraction SPEED of a resource (food/wood/
+// stone from the city counters, iron/coal/gold from the "was in mine"
+// accumulators).
 extern "C" DLLEXPORT int GetExtraction( byte ResID )
 {
 	if ( !AiIsRunNow )
@@ -5554,6 +5707,9 @@ extern "C" DLLEXPORT int GetExtraction( byte ResID )
 						else return 0;
 }
 
+// AI module API: nonzero = "defense mode" - the engine switches to
+// defensive brigade-composition thresholds when forming armies
+// (City::CheckArmy uses DefBriMin instead of BriMin).
 extern "C" DLLEXPORT void SetDefenseState( byte State )
 {
 	if ( AiIsRunNow )
@@ -5587,10 +5743,14 @@ bool ReadWinString( GFILE* F, char* STR, int Max )
 extern int CurPalette;
 void ErrM( char* s, char* s1 )
 {
-	if ( CurPalette == 2 )LoadPalette( "2\\agew_1.pal" );
-	else LoadPalette( "0\\agew_1.pal" );
 	char cc2[200];
 	sprintf( cc2, s, s1 );
+	//Also log to the console: the message box is gone once dismissed, and
+	//carries no context when reading a captured log afterwards.
+	printf( "ErrM: %s\n", cc2 );
+	fflush( stdout );
+	if ( CurPalette == 2 )LoadPalette( "2\\agew_1.pal" );
+	else LoadPalette( "0\\agew_1.pal" );
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "LOADING FAILED...", cc2, sdlWindow);
 	assert( false );
 }
@@ -5656,6 +5816,10 @@ void MissPack::LoadMissions()
 	}
 	else
 	{
+		//TODO(debug): log to console as well (these can fire during static
+		//init, where ErrM's palette handling is not safe)
+		printf( "Missions loading failed...: Could not open Missions\\Missions.txt\n" );
+		fflush( stdout );
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Missions loading failed...", "Could not open Missions\\Missions.txt", sdlWindow);
 	}
 
@@ -5687,6 +5851,8 @@ void MissPack::LoadMissions()
 	}
 	else
 	{
+		printf( "Missions loading failed...: Could not open Missions\\SingleMiss.txt\n" );
+		fflush( stdout );
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Missions loading failed...", "Could not open Missions\\SingleMiss.txt", sdlWindow);
 	}
 }

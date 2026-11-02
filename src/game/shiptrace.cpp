@@ -30,9 +30,7 @@ void ProcessBlobs();
 //one frame of the Wave1.pix animation stack. wave.grd (TraceGrd) is the
 //4096-byte blend table that maps (water pixel, blob pixel) to a water-
 //palette shade, so foam melts into the water instead of covering it.
-//The blob/drawing code below still sits in _WIN32 asm blocks; on Linux
-//the stubs in linux_stubs.cpp keep TestBlob/InitBlobs/CreateTrace inert,
-//so ships produce no wakes until that asm is translated.
+//(The original asm inner loops are translated to portable C++ below.)
 class Blob {
 public:
 	short Lx;
@@ -72,7 +70,12 @@ void Blob::Load(char* Name) {
 	RClose(f);
 };
 byte TraceGrd[4096];
-#ifdef _WIN32
+//Draws one blob frame at (x,y), blending it into the water through the
+//TraceGrd table: out = TraceGrd[(blob<<8) | water]. Blob frames use
+//palette indices 0..15 and water pixels 0..255, so the combined index
+//fits the 4096-byte table. The two original asm versions (byte loop for
+//BLX%4!=0, 4-pixel unrolled otherwise) were behaviorally identical, so
+//this single portable loop replaces both.
 void ShowBlob(int x, int y, byte* Blob, int Lx, int Ly) {
 	if (x > WindX1 || y > WindY1)return;
 	byte* bof = Blob;
@@ -100,93 +103,16 @@ void ShowBlob(int x, int y, byte* Blob, int Lx, int Ly) {
 		//assert(BLX>0&&BLY>0);
 		return;
 	};
-	int sof = int(ScreenPtr) + x + y*ScrWidth;
-	int bufo = int(bof);
+	byte* dst = (byte*)ScreenPtr + x + y*ScrWidth;
+	byte* src = bof;
 	int scadd = ScrWidth - BLX;
 	int badd = Lx - BLX;
-	if (BLX & 3) {
-		__asm {
-			push	esi
-			push	edi
-			mov		esi, bufo
-			mov		edi, sof
-			mov		ch, byte ptr BLY
-			xor		eax, eax
-			lab1 :
-			mov		cl, byte ptr BLX
-				lab2 :
-			mov		ah, [esi]
-				mov		al, [edi]
-				mov		al, [TraceGrd + eax]
-				mov[edi], al
-				inc		esi
-				inc		edi
-				dec		cl
-				jnz		lab2
-				add		esi, badd
-				add		edi, scadd
-				dec		ch
-				jnz		lab1
-				pop		edi
-				pop		esi
+	for (int i = 0; i < BLY; i++) {
+		for (int j = 0; j < BLX; j++) {
+			dst[j] = TraceGrd[(src[j] << 8) | dst[j]];
 		};
-	}
-	else {
-		BLX >>= 2;
-		__asm {
-			push	esi
-			push	edi
-			mov		esi, bufo
-			mov		edi, sof
-			mov		ch, byte ptr BLY
-			xor		eax, eax
-			lab1o :
-			mov		cl, byte ptr BLX
-				lab2o :
-			mov		ebx, [esi]
-				mov		edx, [edi]
-				mov		ah, bl
-				mov		al, dl
-				shr		ebx, 8
-				mov		al, [TraceGrd + eax]
-				mov		dl, al
-				mov		ah, bl
-				ror		edx, 8
-				mov		al, dl
-
-				shr		ebx, 8
-				mov		al, [TraceGrd + eax]
-				mov		dl, al
-				mov		ah, bl
-				ror		edx, 8
-				mov		al, dl
-
-				add		edi, 4
-
-				shr		ebx, 8
-				mov		al, [TraceGrd + eax]
-				mov		dl, al
-				mov		ah, bl
-				ror		edx, 8
-				mov		al, dl
-
-				add		esi, 4
-
-				mov		al, [TraceGrd + eax]
-				mov		dl, al
-				ror		edx, 8
-				dec		cl
-
-				mov[edi - 4], edx
-
-				jnz		lab2o
-				add		esi, badd
-				add		edi, scadd
-				dec		ch
-				jnz		lab1o
-				pop		edi
-				pop		esi
-		};
+		src += BLX + badd;
+		dst += scadd + BLX;
 	};
 };
 void Blob::Show(int x, int y, int m) {
@@ -195,7 +121,6 @@ void Blob::Show(int x, int y, int m) {
 };
 //------------------------LOADING&TEST-----------------
 
-#endif // _WIN32
 Blob Blob1;
 //Loaded as part of the water-and-fog visual set by LoadFog (fog.cpp):
 //fog.cpp owns all fog/water shading tables (fog palettes, darkfog, refl,
@@ -211,7 +136,6 @@ void LoadBlobs()
 	Blob1.Load("Wave1.pix");
 }
 
-#ifdef _WIN32
 extern int tmtmt;
 void TestBlob() {
 	ProcessBlobs();
@@ -234,44 +158,20 @@ void ProcessBlobs() {
 	int MaxX = ((mapx + smaplx) << 9) + 32 * 16;
 	int MaxY = ((mapy + smaply) << 9) + 32 * 16;
 	memset(BlobVisible, 0, MaxBlob);
-	int ddd = !(tmtmt & 3);
-	__asm {
-		push	esi
-		push	edi
-		mov		esi, NBlobs;
-		xor		ecx, ecx
-			mov		ebx, MinX
-			mov		edx, MaxX
-			mov		edi, MinY
-			lpp1 : mov		al, [BlobTime + ecx]
-			or al, al
-			jnz		lpp2
-			inc		ecx
-			dec		esi
-			jnz		lpp1
-			jmp     final
-			lpp2:	mov		eax, [BlobVx + ecx * 4]
-			add[BlobX + ecx * 4], eax
-			mov		eax, [BlobVy + ecx * 4]
-			add[BlobY + ecx * 4], eax
-			dec		byte ptr[BlobTime + ecx]
-			mov		eax, [BlobX + ecx * 4]
-			cmp		eax, ebx
-			jl		NoShow
-			cmp		eax, edx
-			jg		NoShow
-			mov		eax, [BlobY + ecx * 4]
-			cmp		eax, edi
-			jl		NoShow
-			cmp		eax, MaxY
-			jg		NoShow
-			mov		byte ptr[BlobVisible + ecx], 1
-			NoShow: inc		ecx
-			dec		esi
-			jnz		lpp1
-			final:
-		pop		edi
-			pop		esi
+	//Move every live blob (BlobTime!=0) by its velocity, age it by one
+	//tick and mark the ones inside the (x: [MinX,MaxX], y: [MinY,MaxY])
+	//camera window as visible.
+	for (int i = 0; i < NBlobs; i++)
+	{
+		if (!BlobTime[i])continue;
+		BlobX[i] += BlobVx[i];
+		BlobY[i] += BlobVy[i];
+		BlobTime[i]--;
+		if (BlobX[i] >= MinX && BlobX[i] <= MaxX
+			&& BlobY[i] >= MinY && BlobY[i] <= MaxY)
+		{
+			BlobVisible[i] = 1;
+		}
 	}
 
 	MinX = mapx * 32;
@@ -348,22 +248,22 @@ void AddBlob(int x, int y, byte Dir, bool dir2)
 	}
 	else
 	{
-		__asm
+		//All MaxBlob slots are in use: linear-search from CurBlob up to
+		//MaxBlob for a dead slot (BlobTime==0). Cur stays -1 if none is
+		//free and the blob is dropped.
+		Cur = -1;
+		int idx = CurBlob;
+		for (int cnt = MaxBlob - CurBlob; cnt > 0; cnt--)
 		{
-			mov		eax, CurBlob
-			mov		ecx, MaxBlob
-			sub		ecx, eax
-			lpp1 : cmp		byte ptr[BlobTime + eax], 0
-				   je		lpp2
-				   inc		eax
-				   dec		ecx
-				   jnz		lpp1
-				   mov		Cur, -1
-				   jmp		lpp3
-				   lpp2 : mov		Cur, eax
-						  inc		eax
-						  lpp3 : mov		CurBlob, eax
+			if (!BlobTime[idx])
+			{
+				Cur = idx;
+				idx++;
+				break;
+			}
+			idx++;
 		}
+		CurBlob = idx;
 	}
 
 	if (CurBlob >= MaxBlob)
@@ -402,11 +302,9 @@ int srando();
 extern int RealLx;
 extern int RealLy;
 int GetRiverDir(int x, int y);
-#endif // _WIN32
 
 void AddRandomBlobs()
 {
-#ifdef _WIN32
 	int x0 = (mapx << 5);
 	int y0 = (mapy << 5);
 	for (int i = 0; i < 80; i++)
@@ -420,10 +318,8 @@ void AddRandomBlobs()
 			AddBlob(x << 4, y << 4, dir, 1);
 		}
 	}
-#endif // _WIN32
 }
 
-#ifdef _WIN32
 extern int tmtmt;
 
 void AddTrace(int x, int y, byte Dir)
@@ -463,4 +359,3 @@ void CreateTrace(OneObject* OB)
 		}
 	}
 }
-#endif // _WIN32

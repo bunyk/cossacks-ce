@@ -258,7 +258,7 @@ void OneIcon::Draw( int x, int y )
 	};
 	if (Type & 8)
 	{//integer value
-		if (IntVal >= 1200)
+		if (IntVal >= INFINITY_COUNT)
 		{
 			byte c = 0xA5;
 			int x0 = x + 3;
@@ -268,7 +268,7 @@ void OneIcon::Draw( int x, int y )
 			//DrawInf(x0+1,y0,0xAE);
 			//DrawInf(x0,y0+1,0xAE);
 			DrawInf( x0 + 1, y0 + 1, 0xAE );
-			int N = IntVal / 1200;
+			int N = IntVal / INFINITY_COUNT;
 			if (N > 1)
 			{
 				char ss[16];

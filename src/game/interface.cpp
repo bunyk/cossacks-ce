@@ -2015,26 +2015,6 @@ char* GetPlNameByID( DWORD ID )
 	return UNKN;
 }
 
-void ControlLingvo( char* str )
-{
-	char* c1 = strstr( str, "fuck" );
-	if ( c1 )
-	{
-		c1[0] = '?';
-		c1[1] = '?';
-		c1[2] = '?';
-		c1[3] = '?';
-	};
-	c1 = strstr( str, "FUCK" );
-	if ( c1 )
-	{
-		c1[0] = '?';
-		c1[1] = '?';
-		c1[2] = '?';
-		c1[3] = '?';
-	};
-}
-
 void StopConnectionToSession();
 
 extern int GLOBALTIME;
@@ -3582,7 +3562,6 @@ ffe2:
 			{
 				if ( CHATBOX->Active&&CHATMESSAGE[0] )
 				{
-					ControlLingvo( CHATMESSAGE );
 					if ( use_gsc_network_protocol && strstr( CHATMESSAGE, "-->" ) )
 					{
 						CheckForPersonalChat( CHATMESSAGE );
@@ -5586,7 +5565,6 @@ bool MPL_WaitingBattleGame( bool Host, int BattleID )
 		{
 			if ( CHATBOX->Active&&CHATMESSAGE[0] )
 			{
-				ControlLingvo( CHATMESSAGE );
 				SendChat( CHATMESSAGE, 0 );
 				AddChatString(
 					GetPlNameByID( MyDPID ),
@@ -6663,7 +6641,7 @@ int processMainMenu()
 	}
 
 	//Time of inactivity in ms which triggers the credits
-	const int kCreditsDemoDelay = 300000;
+	const int kCreditsDemoDelay = 30000;
 
 	int StTime = GetSDLTickCount();
 
@@ -6781,7 +6759,6 @@ int processMainMenu()
 		// Main menu loop
 		do
 		{
-			#ifdef _WIN32 // TODO: uncomment later
 			//Check conditions and roll credits
 			if ( ADDSH == 1 && bActive
 				&& ( GetSDLTickCount() - StTime > kCreditsDemoDelay || RetryVideo )
@@ -6801,6 +6778,7 @@ int processMainMenu()
 							Gscanf( f, "%s", NAME );
 						}
 						Gscanf( f, "%s", NAME );
+						printf( "Playing demo: %s\n", NAME );
 						RGAME.ReadStream( NAME );
 						if ( RGAME.Size )
 						{
@@ -6813,9 +6791,10 @@ int processMainMenu()
 					}
 					Gclose( f );
 					StTime = GetSDLTickCount();
+				} else {
+					printf("Failed to open demo.run\n");
 				}
 			}
-			#endif // _WIN32
 
 			InMainMenuLoop = 1;
 
@@ -6879,7 +6858,10 @@ int processMainMenu()
 #endif
 		}
 
-#ifdef _WIN32
+		// Map editor entry (via /MAPEDITOR <file> or the RunMapeditor
+		// export): un-guarded 2026-11-01 - the editor core (3dmaped.cpp)
+		// has no Win32 code, PrepareEditMedia calls only portable
+		// engine functions.
 		if ( ItemChoose == mcmVideo )
 		{
 			ShowLoading();
@@ -6887,7 +6869,6 @@ int processMainMenu()
 			PrepareEditMedia( 0 );
 			ItemChoose = mcmSingle;
 		}
-#endif // _WIN32 (mcmVideo: map-editor media, not ported)
 
 		if ( ItemChoose == mcmEdit )
 		{
@@ -6907,17 +6888,21 @@ int processMainMenu()
 			processMLoadGame();
 		}
 
+// ItemChoose == 43: a demo recording was loaded by the idle-demo code
+// above (or a battle intro). Remap to mcmSingle so AllGame runs PlayGame()
+// with PlayGameMode = 1. This was the only guarded piece, so on Linux the
+// demo loaded but nothing was played.
+		if ( ItemChoose == 43 )
+		{
+			EditMapMode = 0;
+			ItemChoose = mcmSingle;
+		}
+
 #ifdef _WIN32
 		if ( ItemChoose == mcmExit )
 		{
 			SlowUnLoadPalette( "2\\agew_1.pal" );
 			SlideShow();
-		}
-
-		if ( ItemChoose == 43 )
-		{
-			EditMapMode = 0;
-			ItemChoose = mcmSingle;
 		}
 
 		if ( ItemChoose == 111 )
@@ -8127,8 +8112,8 @@ void ChooseUnit()
 #endif
 }
 
-#ifdef _WIN32
 //------MAIN MENU IN MAP EDITOR----------//
+// (un-guarded 2026-11-01: thin wrapper over the portable ProcessE_GMainMenu)
 
 int ProcessE_GMainMenu();
 
@@ -8155,7 +8140,6 @@ word GetTexture()
 }
 
 extern int MaxTex;
-#endif // WIN32
 	   //
 int SelectTexture()
 {
@@ -9103,10 +9087,10 @@ StartPlay://IMPORTANT: Main game loop
 
 	} while ( !GameExit );
 
-#ifdef _WIN32
 	Lobby = 0;
 	PlayGameMode = 0;
 
+#ifdef _WIN32
 	if ( RecordMode )
 	{
 		RGAME.Save();
@@ -9193,7 +9177,8 @@ StartPlay://IMPORTANT: Main game loop
 	}
 }
 
-#ifdef _WIN32
+// (un-guarded 2026-11-01: the editor screen compose uses the ported
+// GFieldShow/GMiniShow/ShowProp/ShowAbility/CopyToScreen chain)
 
 void DrawAllEditScreen()
 {
@@ -9230,13 +9215,16 @@ void FastEditScreenProcess()
 
 void CheckGP();
 
-#endif // _WIN32
 
+int ProcessResEdit(); // linux_stubs.cpp no-op until the dialog is extracted
 
 //Main map editor function
 void EditGame()
 {
-	#ifdef _WIN32
+	// Editor loop un-guarded 2026-11-01: only the per-frame machinery
+	// already ported for the game (PreDrawGameProcess/FastScreenProcess/
+	// PostDrawGameProcess) plus the editor dialogs; the Load/Save map
+	// dialogs inside ProcessE_GMainMenu stay stubbed until ported.
 	InEditor = true;
 
 	if ( window_mode )
@@ -9347,7 +9335,6 @@ void EditGame()
 	}
 
 	IgnoreSlow = false;
-	#endif // _WIN32
 }
 
 #ifdef _WIN32
@@ -9415,6 +9402,7 @@ void ShowFailure( int CreateGame )
 	LoadPalette( "2\\agew_1.pal" );
 };
 void WaitWithMessage( char* Message );
+#endif // _WIN32
 
 int prevVid = -1;
 int prevVid1 = -1;
@@ -9492,7 +9480,6 @@ int GetRndVid( int N )
 	return cv;
 }
 
-#endif // _WIN32
 
 //Main game loop function
 void AllGame(boost::coroutines2::coroutine<void>::push_type& yield)
@@ -9527,7 +9514,8 @@ void AllGame(boost::coroutines2::coroutine<void>::push_type& yield)
 	yieldObject = nullptr;
 }
 
-#ifdef _WIN32
+// (un-guarded 2026-11-01: editor media setup - all calls portable;
+// PrepareToEdit is main.cpp)
 
 extern int PLNAT[8];
 void PrepareGameMedia( byte myid, bool );
@@ -9537,6 +9525,8 @@ void SetupArrays();
 void CreateTotalLocking();
 
 void ResearchIslands();
+
+void EraseAreas();
 
 void PrepareEditMedia( byte myid )
 {
@@ -9580,7 +9570,6 @@ void RedrawGameBackground()
 		DrawAllScreen();
 	}
 }
-#endif // _WIN32
 
 void ProcessHelp()
 {
@@ -9658,8 +9647,14 @@ void ProcessHelp()
 	#endif // _WIN32
 };
 
-#ifdef _WIN32
+// Mission dialogs (page text viewer + the question variants). Un-guarded
+// from the Win32 region 2026-11-01: the bodies use only the ported
+// dialog/drawing machinery (DialogsSystem, GPS, RLCFont, ProcessMessages),
+// and on Linux they replace the linux_stubs.cpp no-ops that made mission
+// pages and questions silently invisible (tutorial started with "no
+// messages" because ShowPage -> ProcessMissionText hit the stub).
 extern bool ProtectionMode;
+extern int CurrentAnswer; // defined in recorder.cpp (decl was in a Win32 block)
 int ProcessComplexQuestion( int Nx, char* Bmp1, byte or1, char* Text1, char* Bmp2, byte or2, char* Text2, char* Quest )
 {
 	int Lx = Nx << 6;
@@ -10304,6 +10299,9 @@ bool AskMissionQuestion( char* Bmp, char* Text )
 	if ( ItemChoose == mcmOk )return true;
 	else return false;
 };
+
+// (the minimap-editor machinery below is still Windows-only)
+#ifdef _WIN32
 //----------------------MiniMap editor interface------------------
 SQPicture trans1u;
 SQPicture trans1p;
@@ -12512,12 +12510,24 @@ AddMissionsPack::AddMissionsPack()
 					strcpy( c1, ".dsc" );
 					strcpy( Pack[NMiss].Preview, ccc );
 					strcpy( c1, ".bmp" );
+#ifdef _WIN32
 					FILE* F1 = fopen( ccc, "r " );
 					if ( F1 )
 					{
 						strcpy( Pack[NMiss].Bitmap, ccc );
 						fclose( F1 );
 					};
+#else
+					// Linux: raw fopen() cannot open backslash paths -
+					// use the engine's RReset (case-insensitive loose
+					// files or the GSC archive) for the bitmap check.
+					ResFile F1 = RReset( ccc );
+					if ( F1 != INVALID_HANDLE_VALUE )
+					{
+						strcpy( Pack[NMiss].Bitmap, ccc );
+						RClose( F1 );
+					};
+#endif
 				};
 				Gclose( F );
 				NMiss++;
@@ -12668,7 +12678,10 @@ HHH1:
 			if ( LB->CurItem >= N0 )
 			{
 				PRV.LoadPicture( AMSP.Pack[LB->CurItem - N0].Bitmap );
-				PREV->Ptr = (byte*) ( PRV.PicPtr + 2 );
+				// Guard: a pack entry without a bitmap (none found at
+				// startup) must not feed a null PicPtr to the renderer.
+				PREV->Ptr = PRV.PicPtr ? (byte*) ( PRV.PicPtr + 2 ) : nullptr;
+				PREV->Visible = PRV.PicPtr != nullptr;
 				prmiss = LB->CurItem;
 			}
 			else
@@ -12676,7 +12689,8 @@ HHH1:
 				char ccc[200];
 				sprintf( ccc, "Maps2\\single%d.bmp", LB->CurItem + 1 );
 				PRV.LoadPicture( ccc );
-				PREV->Ptr = (byte*) ( PRV.PicPtr + 2 );
+				PREV->Ptr = PRV.PicPtr ? (byte*) ( PRV.PicPtr + 2 ) : nullptr;
+				PREV->Visible = PRV.PicPtr != nullptr;
 				prmiss = LB->CurItem;
 			};
 		};

@@ -60,7 +60,7 @@ word* ImSelm[8];
 word* ImSerN[8];
 word NSL[8];
 word ImNSL[8];
-word SelCenter[8];
+word SelCenterArr[8];
 bool CmdDone[ULIMIT];
 typedef  bool CHOBJ( OneObject* OB, int N );
 void CreateUnit( Nation* NT, byte x, byte y, word ID );
@@ -1917,7 +1917,7 @@ void ImCorrectShipsSelection( byte NI )
 void SmartSelectionCorrector( byte NI, word* Mon, int N );
 void CreateGoodSelection( byte NI, word xx, word yy, word xx1, word yy1, CHOBJ* FN, int NN, bool Addon )
 {
-	SelCenter[NI] = 0;
+	SelCenterArr[NI] = 0;
 	int x = xx >> 5;
 	int y = yy >> 5;
 	int x1 = xx1 >> 5;
@@ -5233,7 +5233,16 @@ void ExecuteBuffer()
 		}
 	}
 
-	NeedCurrentTime += MaxDCT;
+	//Command 81 (DoTimeStep) is multiplayer stall compensation: extend
+	//the pacing target by the stall so live clients hold instead of
+	//racing ahead. In single player / replays - which PostDrawGameProcess
+	//now paces through the same target - a single recorded stall (the GOG
+	//demo opens with a 6.1s load gap) would push the target that far ahead
+	//and freeze the replay for the same time on every hit. The rando()
+	//calls below stay unconditional: the recording's RNG stream consumed
+	//exactly that many values at this point, dropping them would desync
+	//the replay from the recorded game.
+	if ( MaxPingTime && !PlayGameMode )NeedCurrentTime += MaxDCT;
 
 	for ( int i = 0; i < MaxDCT; i++ )
 	{

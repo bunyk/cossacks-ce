@@ -22,6 +22,57 @@ static std::string toLinuxPath( LPCSTR path )
     for (char& c : s) if (c == '\\') c = '/';
     return s;
 }
+// Windows filesystems are case-insensitive and the engine relies on that:
+// e.g. Missions.txt asks for "Missions\Tutorial\Tutorial1\Tutorial1.m3d"
+// while the file extracted from the mission .rar is "tutorial1.m3d" (the
+// GSC archive side already up-cases everything, so only the loose files
+// need this). Walk the path component by component and match each one
+// case-insensitively against the directory entries; an unresolvable
+// component keeps the original spelling (so the open fails with the
+// requested name and the caller can log it).
+static std::string resolvePathCI( const std::string& path )
+{
+    std::string result;
+    size_t i = 0;
+    if (!path.empty() && path[0] == '/')
+    {
+        result = "/";
+        i = 1;
+    }
+    while (i < path.size())
+    {
+        size_t j = path.find( '/', i );
+        if (j == std::string::npos) j = path.size();
+        std::string comp = path.substr( i, j - i );
+        i = j + 1;
+        if (comp.empty() || comp == ".") continue;
+        std::string probe = result.empty() ? comp : result + "/" + comp;
+        if (access( probe.c_str(), F_OK ) == 0)
+        {
+            result = probe;
+            continue;
+        }
+        DIR* d = opendir( result.empty() ? "." : result.c_str() );
+        bool found = false;
+        if (d)
+        {
+            struct dirent* e;
+            while ((e = readdir( d )) != NULL)
+            {
+                if (strcasecmp( e->d_name, comp.c_str() ) == 0)
+                {
+                    result = result.empty() ? std::string( e->d_name )
+                                            : result + "/" + e->d_name;
+                    found = true;
+                    break;
+                }
+            }
+            closedir( d );
+        }
+        if (!found) return path;
+    }
+    return result;
+}
 // Case-insensitive wildcard match ('*' and '?'), mirroring what FindFirstFile
 // does with the up-cased mask on Windows (used by gFindFirst's disk scan).
 static bool WildMatchCI( const char* pat, const char* name )
@@ -80,8 +131,9 @@ LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool onlyInArchive )
 		// Windows FindFirstFile check. Without this the game read the mod
 		// archive's stale MODE.DAT (WarSound=0) while the settings write
 		// went to the loose mode.dat next to the executable - the settings
-		// never loaded back.
-		if (access(lpcsFileName, F_OK) == 0)
+		// never loaded back. Resolve separators + case like the loose
+		// open below (raw backslash names never hit on Linux).
+		if (access(resolvePathCI( toLinuxPath( lpcsFileName ) ).c_str(), F_OK) == 0)
 		{
 			inArchive = false;
 		}
@@ -130,7 +182,7 @@ LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool onlyInArchive )
 #else
 	// Linux: fall back to plain stdio if not found in archive
 	{
-		std::string path = toLinuxPath( lpcsFileName );
+		std::string path = resolvePathCI( toLinuxPath( lpcsFileName ) );
 		FILE* fp = fopen( path.c_str(), "rb" );
 		if (!fp) return nullptr;
 		gFile = new TGSCfile;
@@ -622,8 +674,11 @@ LPGSCfile CGSCset::gWriteOpen( LPCSTR lpcsFileName )
 		return NULL;
 	};
 #else
-	// Linux: plain stdio like gOpenFile's loose-file fallback (CREATE_ALWAYS -> "wb")
-	std::string path = toLinuxPath( lpcsFileName );
+	// Linux: plain stdio like gOpenFile's loose-file fallback (CREATE_ALWAYS -> "wb").
+	// Resolve case-insensitively so a re-save finds the file the game's
+	// case-insensitive reads already opened (instead of creating a
+	// second, differently-cased copy next to it).
+	std::string path = resolvePathCI( toLinuxPath( lpcsFileName ) );
 	FILE* fp = fopen( path.c_str(), "wb" );
 	if (!fp) return NULL;
 	gFile = new TGSCfile;

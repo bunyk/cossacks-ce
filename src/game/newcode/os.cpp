@@ -65,9 +65,23 @@ static void getExeDir(char* buf, size_t bufSize)
 
 // Try to dlopen one candidate path; also accepts "*.dll" data names by
 // retrying the same name with a ".so" extension.
+//
+// RTLD_LOCAL is load-bearing: every AI/mission module exports the same
+// symbol names (OnInit/InitAI/ProcessAI/ProcessScenary), and glibc
+// searches the GLOBAL scope BEFORE a dlopen'd object's own definitions.
+// With RTLD_GLOBAL, a previously loaded module's exports preempt a
+// newly loaded module's same-named symbols - e.g. on save-load the
+// mission constructor's OnInit() call bound to the still-resident
+// AI/Piemont.so's OnInit, running Piemont's InitAI outside the AI
+// window ("AI function must be called only from AI section"), and on a
+// fresh start the second nation's AI module ran the first nation's
+// registration. Modules never need to export into the global scope:
+// they reach the engine through the executable's -rdynamic symbols
+// (plain extern refs in missions, dlsym(RTLD_DEFAULT) in the AI
+// modules), which RTLD_LOCAL does not affect.
 static void* tryLoadLibrary(const char* path)
 {
-	void* lib = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
+	void* lib = dlopen(path, RTLD_NOW | RTLD_LOCAL);
 	if (!lib)
 	{
 		size_t len = strlen(path);
@@ -75,7 +89,7 @@ static void* tryLoadLibrary(const char* path)
 		{
 			char* alt = strdup(path);
 			strcpy(alt + len - 4, ".so");
-			lib = dlopen(alt, RTLD_NOW | RTLD_GLOBAL);
+			lib = dlopen(alt, RTLD_NOW | RTLD_LOCAL);
 			free(alt);
 		}
 	}

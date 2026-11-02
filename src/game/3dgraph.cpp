@@ -271,71 +271,6 @@ void ShowClippedTriangle(int x, int y, byte* data) {
 	int MinOfst = int(ScreenPtr) + y1*ScrWidth + WindX;
 	int MaxOfst = MinOfst + WindLx;
 	int  FinalESI;
-#ifdef _WIN32
-	__asm {
-		push	esi
-		push	edi
-		pushf
-		mov		edi, ofst
-		add		edi, DOfst
-		mov		esi, dofs
-		cld
-		mov		bx, word ptr NY
-		mov		esi, realof
-		xor		ecx, ecx
-		xor		eax, eax
-		lpp1 :	//mov		TempDI,edi
-		xor		eax, eax
-			mov		ax, [esi]
-			test	ax, 8000h
-			jz		uu1
-			or eax, 0xFFFF0000
-			uu1 :
-			add		edi, eax
-			xor		ecx, ecx
-			mov		cx, [esi + 2]
-			add		esi, 4
-			mov		FinalESI, esi
-			add		FinalESI, ecx
-			mov		edx, ecx
-			add		edx, edi
-			mov		TempDI, edi
-			cmp		edi, MinOfst
-			jae		uuu3
-			sub		edi, MinOfst
-			sub		esi, edi
-			mov		edi, MinOfst
-			uuu3 : cmp		edx, MaxOfst
-			jbe		uuu4
-
-			mov		edx, MaxOfst
-			uuu4 : sub		edx, edi
-			mov		ecx, edx
-			cmp		ecx, 0
-			jle		ttr
-			shr		ecx, 2
-			rep		movsd
-			mov		ecx, edx
-			and		ecx, 3
-			rep		movsb
-			ttr :
-		mov		esi, FinalESI
-			mov		edi, TempDI
-			//sub		edi,edx
-			add		edi, ScrWidth
-			mov		eax, MinOfst
-			add		eax, ScrWidth
-			mov		MinOfst, eax
-			mov		eax, MaxOfst
-			add		eax, ScrWidth
-			mov		MaxOfst, eax
-			dec		bx
-			jnz		lpp1
-			popf
-			pop		edi
-			pop		esi
-	};
-#else
 	{
 		byte* dst = (byte*)ScreenPtr + y1*ScrWidth + x - dx + DOfst;
 		byte* src = realof;
@@ -357,7 +292,6 @@ void ShowClippedTriangle(int x, int y, byte* data) {
 			maxOf += ScrWidth;
 		}
 	}
-#endif
 };
 void ShowClippedTriangleMMX(int x, int y, byte* data) {
 	int dx = ((int*)data)[1];
@@ -515,28 +449,9 @@ bool PrecPrepareToRender(int NLines, int startX, int startY) {
 };
 static word STRTX;
 bool AbsolutePrecPrepareToRender(int NLines, int startX, int startY) {
-#ifdef _WIN32
-	__asm {
-		mov		ax, VertBuf[0]
-		mov		bx, VertBuf[2]
-		cmp		ax, 0xFFFF
-		je		uu1
-		cmp		bx, 0xFFFF
-		je		uu3
-		cmp		ax, bx
-		jb		uu3
-		mov		curx, bx
-		jmp		uu5
-		uu3 : mov		curx, ax
-			  jmp		uu5
-			  uu1 : mov		curx, 0xFFFF
-					uu5 :
-	};
-#else
 	if (VertBuf[0] == 0xFFFF) curx = 0xFFFF;
 	else if (VertBuf[2] == 0xFFFF) curx = VertBuf[0];
 	else curx = VertBuf[0] < VertBuf[2] ? VertBuf[0] : VertBuf[2];
-#endif
 	STRTX = startX;
 	OffsetX = -curx + startX;
 	OffsetY = -startY;
@@ -577,7 +492,7 @@ bool AbsolutePrecPrepareToRender(int NLines, int startX, int startY) {
 	return true;
 };
 //RENDERING THE TRIANGLE. 
-//It is really important. Before this oeration
+//It is really important. Before this operation
 //VertBuf must be filled by values of x1,Lx,BMxy,Fog
 //OUTPUT:
 // word  NLines
@@ -594,74 +509,6 @@ int PrecRenderTriangle64(int NLines, byte* Dest, byte* Bitmap) {
 	((int*)Dest)[1] = OffsetX;
 	((int*)Dest)[2] = OffsetY;
 	int VBpos = int(VertBuf);
-#ifdef _WIN32
-	__asm {
-		push	esi
-		push	edi
-		pushf
-		mov		esi, Bitmap
-		mov		edi, Dest
-		add		edi, 12
-		mov		ebx, VBpos
-		cld
-		StartLine :
-		//Rendering the linear transformation
-		mov		ecx, [ebx]
-			mov[edi], ecx
-			add		edi, 4     //edi points to Dest
-			shr		ecx, 16    //Length of the scan line
-			mov		ScanSize, ecx
-			mov		Startscan, edi  //Storing for shadowing
-			mov		edx, [ebx + 4]    //BMX
-			mov		VertPos, ebx
-			mov		ebx, [ebx + 8]    //BMY
-			//and     ebx,0011 1111 1111 1110 0011 1111 1111 1110b
-			jcxz	StartShad
-			StartLinear :
-		mov		eax, edx     //1
-			ror		ebx, 8       //0
-			shr		eax, 16      //1
-			mov		ah, bh       //1
-			and		ax, 0011111100111111b
-			mov		al, [esi + eax]//?
-			rol		ebx, 8       //0
-			add		edx, BMDXX   //0
-			add		ebx, BMDYX   //1
-			dec		cx          //0
-			stosb               //0  could be optimized to stosd
-			jnz		StartLinear //1
-	//Shadow processing
-			StartShad :
-		xchg	edi, Startscan
-			mov		esi, VertPos
-			mov		ecx, ScanSize
-			mov		ebx, [esi + 12]   //fog
-			mov		edx, FogDx
-			//mov		edi,Startscan
-			jcxz	endfog
-			StartFog4 :      //Not optimal now! 32 bit reading coulde performed
-		mov		eax, ebx
-			sar		eax, 8
-			add		ebx, edx
-			mov		al, [edi]
-			mov		al, [darkfog + 16384 + eax]
-			mov[edi], al
-			inc		edi
-			dec		cx
-			jnz		StartFog4
-			endfog : mov		edi, Startscan
-			mov		ebx, esi
-			mov		esi, Bitmap
-			add		ebx, 16
-			dec		NLines
-			jnz		StartLine
-			sub		edi, Dest
-			mov		eax, edi
-			popf
-			pop		esi
-			pop		edi
-	};
-#else
 	{
 		byte* dst = Dest + 12;
 		byte* vb = (byte*)VertBuf;
@@ -691,7 +538,6 @@ int PrecRenderTriangle64(int NLines, byte* Dest, byte* Bitmap) {
 			dst = line + len;
 		}
 	}
-#endif
 	return 0;
 };
 int PrecRenderTriangle128(int NLines, byte* Dest, byte* Bitmap) {
@@ -702,74 +548,6 @@ int PrecRenderTriangle128(int NLines, byte* Dest, byte* Bitmap) {
 	((int*)Dest)[1] = OffsetX;
 	((int*)Dest)[2] = OffsetY;
 	int VBpos = int(VertBuf);
-#ifdef _WIN32
-	__asm {
-		push	esi
-		push	edi
-		pushf
-		mov		esi, Bitmap
-		mov		edi, Dest
-		add		edi, 12
-		mov		ebx, VBpos
-		cld
-		StartLine :
-		//Rendering the linear transformation
-		mov		ecx, [ebx]
-			mov[edi], ecx
-			add		edi, 4     //edi points to Dest
-			shr		ecx, 16    //Length of the scan line
-			mov		ScanSize, ecx
-			mov		Startscan, edi  //Storing for shadowing
-			mov		edx, [ebx + 4]    //BMX
-			mov		VertPos, ebx
-			mov		ebx, [ebx + 8]    //BMY
-			//and     ebx,0011 1111 1111 1110 0011 1111 1111 1110b
-			jcxz	StartShad
-			StartLinear :
-		mov		eax, edx     //1
-			ror		ebx, 8       //0
-			shr		eax, 16      //1
-			mov		ah, bh       //1
-			and		ax, 0111111101111111b
-			mov		al, [esi + eax]//?
-			rol		ebx, 8       //0
-			add		edx, BMDXX   //0
-			add		ebx, BMDYX   //1
-			dec		cx          //0
-			stosb               //0  could be optimized to stosd
-			jnz		StartLinear //1
-	//Shadow processing
-			StartShad :
-		xchg	edi, Startscan
-			mov		esi, VertPos
-			mov		ecx, ScanSize
-			mov		ebx, [esi + 12]   //fog
-			mov		edx, FogDx
-			//mov		edi,Startscan
-			jcxz	endfog
-			StartFog4 :      //Not optimal now! 32 bit reading coulde performed
-		mov		eax, ebx
-			sar		eax, 8
-			add		ebx, edx
-			mov		al, [edi]
-			mov		al, [darkfog + 16384 + eax]
-			mov[edi], al
-			inc		edi
-			dec		cx
-			jnz		StartFog4
-			endfog : mov		edi, Startscan
-			mov		ebx, esi
-			mov		esi, Bitmap
-			add		ebx, 16
-			dec		NLines
-			jnz		StartLine
-			sub		edi, Dest
-			mov		eax, edi
-			popf
-			pop		esi
-			pop		edi
-	};
-#else
 	{
 		byte* dst = Dest + 12;
 		byte* vb = (byte*)VertBuf;
@@ -799,7 +577,6 @@ int PrecRenderTriangle128(int NLines, byte* Dest, byte* Bitmap) {
 			dst = line + len;
 		}
 	}
-#endif
 	return 0;
 };
 int PrecRenderTriangle64Dithering(int NLines, byte* Dest, byte* Bitmap) {
@@ -810,90 +587,6 @@ int PrecRenderTriangle64Dithering(int NLines, byte* Dest, byte* Bitmap) {
 	((int*)Dest)[1] = OffsetX;
 	((int*)Dest)[2] = OffsetY;
 	int VBpos = int(VertBuf);
-#ifdef _WIN32
-	__asm {
-		push	esi
-		push	edi
-		pushf
-		mov		esi, Bitmap
-		mov		edi, Dest
-		add		edi, 12
-		mov		ebx, VBpos
-		cld
-		StartLine :
-		//Rendering the linear transformation
-		mov		ecx, [ebx]
-			mov[edi], ecx
-			add		edi, 4     //edi points to Dest
-			shr		ecx, 16    //Length of the scan line
-			mov		ScanSize, ecx
-			mov		Startscan, edi  //Storing for shadowing
-			mov		edx, [ebx + 4]    //BMX
-			mov		VertPos, ebx
-			mov		ebx, [ebx + 8]    //BMY
-			//and     ebx,0011 1111 1111 1110 0011 1111 1111 1110b
-			jcxz	StartShad
-			StartLinear :
-		mov		eax, edx     //1
-			ror		ebx, 8       //0
-			shr		eax, 16      //1
-			mov		ah, bh       //1
-			and		ax, 0011111100111111b
-			mov		al, [esi + eax]//?
-			rol		ebx, 8       //0
-			add		edx, BMDXX   //0
-			add		ebx, BMDYX   //1
-			dec		cx          //0
-			stosb               //0  could be optimized to stosd
-			jnz		StartLinear //1
-
-	//Shadow processing
-			StartShad :
-		xchg	edi, Startscan
-			mov		esi, VertPos
-			mov		ecx, ScanSize
-			mov		ebx, [esi + 12]   //fog
-			test	NLines, 1
-			jz		uuu2
-			add		ebx, 16384
-			uuu2:
-		mov		edx, FogDx
-			//mov		edi,Startscan
-			jcxz	endfog
-			StartFog4 :      //Not optimal now! 32 bit reading coulde performed
-		mov		eax, ebx
-			sar		eax, 8
-			add		ebx, edx
-			add		ebx, 32768
-			mov		al, [edi]
-			mov		al, [darkfog + 16384 + eax]
-			mov[edi], al
-			inc		edi
-			dec		cx
-			jz		endfog
-			mov		eax, ebx
-			sar		eax, 8
-			add		ebx, edx
-			sub		ebx, 32768
-			mov		al, [edi]
-			mov		al, [darkfog + 16384 + eax]
-			mov[edi], al
-			inc		edi
-			dec		cx
-			jnz		StartFog4
-			endfog : mov		edi, Startscan
-			mov		ebx, esi
-			mov		esi, Bitmap
-			add		ebx, 16
-			dec		NLines
-			jnz		StartLine
-			sub		edi, Dest
-			mov		eax, edi
-			popf
-			pop		esi
-			pop		edi
-	};
-#else
 	{
 		byte* dst = Dest + 12;
 		byte* vb = (byte*)VertBuf;
@@ -925,7 +618,6 @@ int PrecRenderTriangle64Dithering(int NLines, byte* Dest, byte* Bitmap) {
 			dst = line + len;
 		}
 	}
-#endif
 	return 0;
 };
 int PrecPreRenderTri64(int x1, int y1,
@@ -953,26 +645,8 @@ int PrecPreRenderTri64(int x1, int y1,
 	FOG1 = fog;
 	int VBpos = int(VertBuf);
 	//Инициализация VertBuf
-#ifdef _WIN32
-	__asm {
-		push	edi
-		pushf
-		cld
-		mov		edi, VBpos
-		mov		ecx, z2
-		sub		ecx, z1
-		inc		ecx
-		uux1 : mov		dword ptr[edi], 0xFFFFFFFF;
-		add		edi, 16
-			dec		ecx
-			jnz		uux1
-			popf
-			pop		edi
-	};
-#else
 	//VertBuf init: mark all lines as empty (x1 = x2 = 0xFFFF)
 	for (int i = 0; i <= z2 - z1; i++) *(int*)((byte*)VertBuf + i * 16) = -1;
-#endif
 	addLine(x2, y2 - z1);
 	addLine(x3, y3 - z1);
 	addLine(x1, y1 - z1);
@@ -1004,26 +678,8 @@ int PrecPreRenderTri128(int x1, int y1,
 	FOG1 = fog;
 	int VBpos = int(VertBuf);
 	//Инициализация VertBuf
-#ifdef _WIN32
-	__asm {
-		push	edi
-		pushf
-		cld
-		mov		edi, VBpos
-		mov		ecx, z2
-		sub		ecx, z1
-		inc		ecx
-		uux1 : mov		dword ptr[edi], 0xFFFFFFFF;
-		add		edi, 16
-			dec		ecx
-			jnz		uux1
-			popf
-			pop		edi
-	};
-#else
 	//VertBuf init: mark all lines as empty (x1 = x2 = 0xFFFF)
 	for (int i = 0; i <= z2 - z1; i++) *(int*)((byte*)VertBuf + i * 16) = -1;
-#endif
 	addLine(x2, y2 - z1);
 	addLine(x3, y3 - z1);
 	addLine(x1, y1 - z1);
@@ -1140,96 +796,6 @@ int DirectRenderTriangle64Dithering(int NLines, int StartLine, int EndLine, int 
 	//((int*)Dest)[2]=OffsetY;
 	int VBpos = int(VertBuf) + (RealStartLine << 4);
 	int StartEDI = int(Dest) + RealStartLine*DestSizeX;
-#ifdef _WIN32
-	__asm {
-		push	esi
-		push	edi
-		pushf
-		mov		esi, Bitmap
-		add		edi, 12
-		mov		ebx, VBpos
-		cld
-		StartLineCode :
-		//Rendering the linear transformation
-		mov		edi, StartEDI
-			mov		ecx, [ebx]
-			//mov		[edi],ecx
-			xor eax, eax
-			mov		ax, cx
-			test	cx, 0x8000
-			jz		ululuk
-			or eax, 0xFFFF0000
-			ululuk:
-		add		edi, eax   //edi points to Dest
-			shr		ecx, 16    //Length of the scan line
-			mov		ScanSize, ecx
-			mov		Startscan, edi  //Storing for shadowing
-			mov		edx, [ebx + 4]    //BMX
-			mov		VertPos, ebx
-			mov		ebx, [ebx + 8]    //BMY
-			//and     ebx,0011 1111 1111 1110 0011 1111 1111 1110b
-			jcxz	StartShad
-			StartLinear :
-		mov		eax, edx     //1
-			ror		ebx, 8       //0
-			shr		eax, 16      //1
-			mov		ah, bh       //1
-			and		ax, 0011111100111111b
-			mov		al, [esi + eax]//?
-			rol		ebx, 8       //0
-			add		edx, BMDXX   //0
-			add		ebx, BMDYX   //1
-			dec		cx          //0
-			stosb               //0  could be optimized to stosd
-			jnz		StartLinear //1
-
-	//Shadow processing
-			StartShad :
-		mov		edi, Startscan
-			mov		esi, VertPos
-			mov		ecx, ScanSize
-			mov		ebx, [esi + 12]   //fog
-			test	NLines, 1
-			jz		uuu2
-			add		ebx, 16384
-			uuu2:
-		mov		edx, FogDx
-			//mov		edi,Startscan
-			jcxz	endfog
-			StartFog4 :      //Not optimal now! 32 bit reading coulde performed
-		mov		eax, ebx
-			sar		eax, 8
-			add		ebx, edx
-			add		ebx, 32768
-			mov		al, [edi]
-			mov		al, [darkfog + 16384 + eax]
-			mov[edi], al
-			inc		edi
-			dec		cx
-			jz		endfog
-			mov		eax, ebx
-			sar		eax, 8
-			add		ebx, edx
-			sub		ebx, 32768
-			mov		al, [edi]
-			mov		al, [darkfog + 16384 + eax]
-			mov[edi], al
-			inc		edi
-			dec		cx
-			jnz		StartFog4
-			endfog : mov		edi, StartEDI
-			add		edi, DestSizeX
-			mov		StartEDI, edi
-			mov		ebx, esi
-			mov		esi, Bitmap
-			add		ebx, 16
-			dec		RealEndLine
-			jnz		StartLineCode
-			popf
-			pop		esi
-			pop		edi
-	};
-#else
 	{
 		byte* vb = (byte*)VertBuf + (RealStartLine << 4);
 		byte* line0 = Dest + RealStartLine*DestSizeX;
@@ -1259,7 +825,6 @@ int DirectRenderTriangle64Dithering(int NLines, int StartLine, int EndLine, int 
 			}
 		}
 	}
-#endif
 	return 0;
 };
 int DirectPreRenderTri64(int x1, int y1,

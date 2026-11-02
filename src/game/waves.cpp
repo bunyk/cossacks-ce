@@ -90,8 +90,6 @@ inline bool CheckColor(int x, int y)
 		return 0;
 	}
 }
-
-void ShowRLCItemBlue(int x, int y, lpRLCTable lprt, int n);
 int mul3(int);
 void ProcessWaveFrames()
 {

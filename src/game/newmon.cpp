@@ -4412,7 +4412,6 @@ void AddToVisual( short uy, short x, short y, OneObject* OB, word FileID, word S
 		} while ( true );
 	};
 };
-void ShowRLCItemTrans8( int x, int y, lpRLCTable lprt, int n );
 void ShowVisual()
 {
 	if ( !NVUnits )return;
@@ -11008,7 +11007,7 @@ bool OneObject::NewAttackPoint( int px, int py, int Prio1, byte OrdType, word NT
 		return false;
 	}
 	Or1->PrioryLevel = Prio & 127;
-	Or1->OrderType = 76;//ГЂГІГ ГЄГ 
+	Or1->OrderType = 76;// Attack
 	Or1->OrderTime = 0;
 	Or1->DoLink = &NewAttackPointLink;
 
@@ -13684,42 +13683,7 @@ void DeleteBlockLink( OneObject* OBJ )
 		OBJ->DeletePath();
 	};
 };
-//-----------Inverse references from (x,y)->Index----------//
-/*word MonInd[MAPSX*MAPSX];//512k
-#define MAXMI (MAPSX*MAPSY)
-inline word GetMI(int x,int y){
-	__asm{
-		mov		ebx,y
-		shl		ebx,9
-		add		ebx,x
-		cmp		ebx,0
-		jl		nona
-		cmp		ebx,MAXMI
-		jge		nona
-		shl		ebx,1
-		mov		ax,[eax]
-		jmp		done
-nona:	mov		ax,0xFFFF
-done:
-	};
-	return;
-};
-inline void SetMI(int x,int y,word MI){
-	__asm{
-		mov		eax,y
-		shl		eax,9
-		add		eax,x
-		cmp		eax,0
-		jl		nona
-		cmp		eax,MAXMI
-		jge		nona
-		shl		eax,1
-		mov		bx,MI
-		mov		[eax],bx
-nona:
-	};
-	return;
-};*/
+
 int ExplMedia;
 void DamageInCell( int cell, int x, int y, int r, word Damage, OneObject* Sender, word Attr )
 {
@@ -14085,6 +14049,9 @@ void OneObject::SearchVictim()
 
 	NewMonster* NM = newMons;
 
+	// AI ranged units (ARCHER token, e.g. Strelec_Algir_DIP) never do the
+	// passive victim search: if their brigade never orders them anywhere
+	// they just stand, even with enemies walking by.
 	if ( NM->Archer && Nat->AI_Enabled )
 	{
 		return;

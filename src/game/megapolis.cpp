@@ -735,10 +735,18 @@ void City::RegisterNewUnit( OneObject* OB )
 			};
 			if ( !( OB->newMons->Building || OB->newMons->LockType ) )
 			{
+				// PUSE: stuck (UnlimitedMotion) or boxed-in units are never
+				// drafted into any AI pool - they stay frozen where they are.
 				if ( PUSE( OB ) )return;
 				OB->Borg = 1;
 				byte use = OB->newMons->Usage;
 				bool AGRES = false;
+				// Artillery, ranged and mounted units are "aggressors": they
+				// get DoNotCall = true, which blocks every later drafting into
+				// defense/attack brigades (see Brigade::AddInRadius). Their
+				// only way into battle is SendAgressors below, which stops
+				// dispatching once NAgressors saturates at 15000 - so late in
+				// the game the aggressor pool just accumulates standing units.
 				if ( use == PushkaID || use == MortiraID || use == FastHorseID || use == SupMortID
 					|| use == GrenaderID || use == HardHorceID || use == StrelokID || use == ArcherID
 					|| use == HorseStrelokID )AGRES = true;
@@ -3510,6 +3518,10 @@ void City::SendAgressors()
 {
 	int N = Agressors.NMemb;
 
+	// NAgressors starts at 5 and jumps to 15000 permanently once the pool
+	// reaches 10 members (or after the first 5-unit raid sent), so in
+	// practice this dispatches only the first couple of raids per game.
+	// Afterwards the aggressor pool only shrinks by unit deaths.
 	if ( N > NAgressors )
 	{
 		if ( N < 10 )
@@ -3820,6 +3832,9 @@ void City::AddUnitDefender( OneObject* OB )
 };
 void DefendInfo::AddUnit( OneObject* OB )
 {
+	// Defense points are only ever added (AddDefending, e.g. one per
+	// unfinished building), never removed. A defender assigned to a point
+	// that became unreachable keeps standing around it forever.
 	if ( NDefenders >= MaxDefs )
 	{
 		MaxDefs += 8;

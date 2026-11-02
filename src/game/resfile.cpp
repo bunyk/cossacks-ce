@@ -17,7 +17,6 @@
 bool InitDone = 0;
 
 #ifdef _WIN32
-#include "unrar.h"
 #include "assert.h"
 void AText( char* str );
 //typedef LPGSCfile ResFile;
@@ -46,98 +45,12 @@ ResFile RResetEx( LPCSTR lpFileName )
 	}
 }
 
-bool GetRarName( LPCSTR Name, char* Dest )
-{
-	int L = strlen( Name );
-	strcpy( Dest, Name );
-	if (L > 3)
-	{
-		if (Dest[L - 1] == '.')Dest[L - 1] = 0;
-		else if (Dest[L - 2] == '.')Dest[L - 2] = 0;
-		else if (Dest[L - 3] == '.')Dest[L - 3] = 0;
-		else if (Dest[L - 4] == '.')Dest[L - 4] = 0;
-		strcat( Dest, ".rar" );
-		return 1;
-	}
-	else return 0;
-};
-
-char** FHNames = NULL;
-ResFile* FHANDLES = NULL;
-int NHNames = 0;
-int MaxNames = 0;
-
-void AddFHandle( ResFile F, char* Name )
-{
-	if (NHNames >= MaxNames)
-	{
-		MaxNames += 16;
-		FHNames = (char**) realloc( FHNames, MaxNames * sizeof(char*) );
-		FHANDLES = (ResFile*) realloc( FHANDLES, 4 * MaxNames );
-	}
-
-	FHNames[NHNames] = new char[strlen( Name ) + 1];
-	strcpy( FHNames[NHNames], Name );
-
-	FHANDLES[NHNames] = F;
-
-	NHNames++;
-}
-
-void EraseFName( ResFile F )
-{
-	for (int i = 0; i < NHNames; i++)if (FHANDLES[i] == F)
-	{
-		DeleteFile( FHNames[i] );
-		free( FHNames[i] );
-		if (i < NHNames - 1)
-		{
-			memcpy( FHNames + i, FHNames + i + 1, 4 * ( NHNames - i - 1 ) );
-			memcpy( FHANDLES + i, FHANDLES + i + 1, 4 * ( NHNames - i - 1 ) );
-		};
-		NHNames--;
-	};
-}
-
-void EraseAllFNames()
-{
-	for (int i = 0; i < NHNames; i++)DeleteFile( FHNames[i] );
-}
-
 void RCloseEx( ResFile hFile );
-void ExtractArchive( char *ArcName, int Mode, char* Dest );
-
 DLLEXPORT ResFile RReset( LPCSTR lpFileName )
 {
 	SetLastError( 0 );
 
-	ResFile F = RResetEx( lpFileName );
-#ifdef _WIN32
-	if (F == INVALID_HANDLE_VALUE)
-	{
-		RCloseEx( F );
-		int L = strlen( lpFileName );
-		char ccc[200];
-		if (GetRarName( lpFileName, ccc ))
-		{
-			F = RResetEx( ccc );
-			if (F != INVALID_HANDLE_VALUE)
-			{
-				RCloseEx( F );
-
-				ExtractArchive( ccc, 0, (char*) lpFileName );
-
-				F = RResetEx( lpFileName );
-
-				if (F != INVALID_HANDLE_VALUE)
-				{
-					AddFHandle( F, (char*) lpFileName );
-				}
-			}
-		}
-	}
-#endif // _WIN32
-	return F;
+	return RResetEx( lpFileName );
 }
 
 
@@ -231,50 +144,16 @@ DLLEXPORT void RClose( ResFile hFile )
 	LPGSCfile hf = LPGSCfile( hFile );
 	//CloseHandle(hFile);
 	RCloseEx( hf );
-	EraseFName( hFile );
 }
 
 
-//Loads unrar.dll and resource archives
+//Scans the data directory for .gsc archives (CGSCset::gOpen)
 bool FilesInit()
 {
 	if (InitDone)
 	{
 		return true;
 	}
-
-	#ifdef _WIN32
-	char CDR[256];
-	GetCurrentDirectory( 256, CDR );
-	if (CDR[strlen( CDR ) - 1] == '\\')
-	{
-		CDR[strlen( CDR ) - 1] = 0;
-	}
-
-	char ccc[290];
-	sprintf( ccc, "%s\\unrar.dll", CDR );
-	FILE* F = fopen( ccc, "r" );
-	if (F)
-	{
-		fclose( F );
-	}
-	else
-	{
-		int L = strlen( CDR );
-
-		while (L && CDR[L] != '\\')
-			L--;
-
-		CDR[L] = 0;
-		sprintf( ccc, "%s\\unrar.dll", CDR );
-		F = fopen( ccc, "r" );
-		if (F)
-		{
-			fclose( F );
-			SetCurrentDirectory( CDR );
-		}
-	}
-	#endif // _WIN32
 
 	InitDone = 1;
 
@@ -285,9 +164,5 @@ bool FilesInit()
 
 void FilesExit()
 {
-	#ifdef _WIN32
-	CloseRARLib();
-	#endif // _WIN32
-	EraseAllFNames();
 	GSFILES.gClose();
 }

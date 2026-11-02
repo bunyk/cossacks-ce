@@ -5,38 +5,13 @@ int CheckPt(int x, int y);
 bool CheckBar(int x, int y, int Lx, int Ly);
 #pragma warning(disable : 4035)
 
-//returns (2|x| + |y|) / 2 if x > y
-//returns (2|y| + |x|) / 2 if y > x
-#ifdef _WIN32
-inline int Norma(int x, int y)
-{
-	__asm
-	{
-		mov		eax, x
-		cmp		eax, 0
-		jge		ggg1
-		neg		eax
-		ggg1 : mov		ebx, y
-			   cmp		ebx, 0
-			   jge		ggg2
-			   neg		ebx
-			   ggg2 : mov		ecx, eax
-					  cmp		eax, ebx
-					  ja		ggg3
-					  mov		ecx, ebx
-					  ggg3 : add		ecx, eax
-							 add		ecx, ebx
-							 shr		ecx, 1
-							 mov		eax, ecx
-	}
-}
-#else
+//returns (2|x| + |y|) / 2 if |x| > |y|
+//returns (2|y| + |x|) / 2 if |y| > |x|
 inline int Norma(int x, int y) {
     x = std::abs(x);
     y = std::abs(y);
     return (x > y) ? (2 * x + y) / 2 : (2 * y + x) / 2;
 }
-#endif
 #pragma warning(default : 4035)
 
 void TryToStand(OneObject* OB, bool rest);

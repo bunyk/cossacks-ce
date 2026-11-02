@@ -36,7 +36,7 @@ extern PlayerInfo PINFO[8];
 
 extern const int kMinorMessageDisplayTime;
 
-extern word SelCenter[8];
+extern word SelCenterArr[8];
 void CreateFishMap();
 extern int LightDX;
 extern int LightDY;
@@ -61,7 +61,6 @@ extern int RealLx;
 extern int RealLy;
 extern int Pitch;
 extern bool MiniMade;
-void SetSumms();
 extern bool SetDestMode;
 void ClearUniCash();
 
@@ -604,7 +603,7 @@ void UnLoading()
 
 		ImSelm[i] = nullptr;
 		ImSerN[i] = nullptr;
-		SelCenter[i] = 0;
+		SelCenterArr[i] = 0;
 		NSL[i] = 0;
 		ImNSL[i] = 0;
 
@@ -1340,7 +1339,7 @@ void LoadSelection( SaveBuf* SB )
 	/*
 	for(i=0;i<8;i++){
 		xBlockRead(SB,&NSL[i],2);
-		SelCenter[i]=0;
+		SelCenterArr[i]=0;
 		if(NSL[i]){
 			Selm[i]=new word[NSL[i]];
 			SerN[i]=new word[NSL[i]];

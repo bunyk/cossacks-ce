@@ -113,7 +113,6 @@ FASTDRAW_API void ShowRLC(int x, int y, void* PicPtr);
 FASTDRAW_API bool LoadRLC(LPCSTR lpFileName, RLCTable *RLCtbl);
 
 FASTDRAW_API void ShowRLCItem(int x, int y, lpRLCTable lprt, int n, byte nt);
-FASTDRAW_API void ShowRLCItemShadow(int x, int y, lpRLCTable lprt, int n);
 FASTDRAW_API void ClearScreen();
 FASTDRAW_API void ShowString(int x, int y, LPCSTR lps, lpRLCFont lpf);
 FASTDRAW_API void RegisterRLCFont(lpRLCFont lrf, RLCTable lpr, int fir);

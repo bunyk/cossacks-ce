@@ -2876,7 +2876,15 @@ CheckBox* DialogsSystem::addGP_CheckBox( SimpleDialog* Parent,
 //-----------colored bar---------------------//
 DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 {
-#ifdef _WIN32
+	//Solid fill of an Lx0 x Ly0 rectangle into the screen buffer, clipped
+	//to the current RLC window (SetRLCWindow). The bounds check + clipping
+	//below is plain C++ and cross-platform; only the fill loop was asm.
+	//IMPORTANT: this body used to sit entirely inside #ifdef _WIN32, so on
+	//Linux CBar was an EMPTY no-op and every caller silently drew nothing:
+	//the infinity symbol on infinitely-queued production icons
+	//(icontool.cpp OneIcon::Draw -> DrawInf -> xLine -> 1x1 CBar pixels),
+	//hint panel backgrounds (DrawHintPattern), stats screen fills
+	//(DrawStatTable), ColoredBar dialogs, spriteless icon backgrounds.
 	if (Lx0 <= 0 || Ly0 <= 0 || x0<0 || y0<0 || x0 + Lx0>ScrWidth || y0 + Ly0>SCRSizeY)
 	{
 		return;
@@ -2908,6 +2916,7 @@ DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 		Ly = WindY1 - y + 1;
 		if (Ly <= 0)return;
 	};
+#ifdef _WIN32
 	int ofst = int( ScreenPtr ) + x + y*ScrWidth;
 	int adds = ScrWidth - Lx;
 	int Lx4 = Lx >> 2;
@@ -2933,6 +2942,14 @@ DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 			  jnz		qwr
 			  pop		edi
 	}
+#else
+	//Portable translation of the asm fill above: Ly rows of Lx bytes
+	byte* scr = (byte*)ScreenPtr + x + (intptr_t)y * ScrWidth;
+	for (int i = 0; i < Ly; i++)
+	{
+		memset( scr, c, Lx );
+		scr += ScrWidth;
+	};
 #endif // _WIN32
 }
 
@@ -3475,7 +3492,17 @@ extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
 //-----------------Bit Pictures Viewer-------------
 bool BPXView_OnDraw( SimpleDialog* SD )
 {
-#ifdef _WIN32
+	//Blits the raw pixel buffer (BPXView::Ptr) into the screen buffer.
+	//Two modes: DECLX == 0 draws one contiguous block Nx*OneLx wide,
+	//Ny*OneLy rows high (e.g. the map-example preview window of the
+	//random game lobby and the mission screens); DECLX != 0 draws a grid
+	//of OneLx x OneLy tiles separated by DECLX decoration gaps (map
+	//editor pickers). The two original asm rep movsd row loops are
+	//translated to portable memcpy loops below; the Choosed/SSTAT overlay
+	//is the original C++.
+	//NOTE: this body used to sit entirely inside #ifdef _WIN32, so on
+	//Linux the view drew NOTHING (the map example window was always
+	//empty) and the function fell off its end without a return value.
 	if (!SD->Visible)
 	{
 		return false;
@@ -3487,66 +3514,46 @@ bool BPXView_OnDraw( SimpleDialog* SD )
 	}
 	if (BV->PosY > BV->RealNy - BV->Ny)BV->PosY = BV->RealNy - BV->Ny;
 	if (BV->PosY < 0)BV->PosY = 0;
-	int ps = int( BV->Ptr ) + BV->PosY*BV->OneLx*BV->Nx*BV->OneLy;
-	int sofst = int( ScreenPtr ) + BV->x + BV->y*SCRSizeX;
 	int Ly = BV->Ny*BV->OneLy;
-	int Lx = ( BV->Nx*BV->OneLx ) >> 2;
 	if (BV->DECLX)
 	{
 		for (int iy = 0; iy < BV->Ny; iy++)
 		{
 			for (int ix = 0; ix < BV->Nx; ix++)
 			{
-				Lx = BV->OneLx >> 2;
-				Ly = BV->OneLy;
-				int addof = SCRSizeX - ( Lx << 2 );
-				ps = int( BV->Ptr ) + ( BV->PosY + iy )*( BV->OneLx + BV->DECLX )*BV->Nx*( BV->OneLy + BV->DECLX ) + ix*( BV->OneLx + BV->DECLX );
+				//Bytes per tile row; the asm copied (OneLx >> 2) dwords,
+				//i.e. OneLx rounded down to a multiple of 4
+				int W = BV->OneLx & ~3;
+				//Source row stride inside one tile: skips the decoration
+				//gap after this tile up to the same tile column one tile
+				//row below (the asm's addB)
 				int addB = ( BV->DECLX + BV->OneLx )*BV->Nx - BV->OneLx;
-				int sofst = int( ScreenPtr ) + BV->x + BV->OneLx*ix + ( BV->y + BV->OneLy*iy )*SCRSizeX;
-				__asm
+				byte* src = (byte*)BV->Ptr
+					+ (intptr_t)( BV->PosY + iy )*( BV->OneLx + BV->DECLX )*BV->Nx*( BV->OneLy + BV->DECLX )
+					+ (intptr_t)ix*( BV->OneLx + BV->DECLX );
+				byte* dst = (byte*)ScreenPtr + BV->x + BV->OneLx*ix
+					+ (intptr_t)( BV->y + BV->OneLy*iy )*SCRSizeX;
+				for (int r = 0; r < BV->OneLy; r++)
 				{
-					push	esi
-					push	edi
-					pushf
-					cld
-					mov		esi, ps
-					mov		edi, sofst
-					mov		edx, Ly
-					ppp1 : mov		ecx, Lx
-						   rep		movsd
-						   add		edi, addof
-						   add     esi, addB
-						   dec		edx
-						   jnz		ppp1
-						   popf
-						   pop		edi
-						   pop		esi
-
-				}
-			}
-		}
+					memcpy( dst, src, W );
+					src += W + addB;
+					dst += SCRSizeX;
+				};
+			};
+		};
 	}
 	else
 	{
-		int addof = SCRSizeX - ( Lx << 2 );
-		__asm
+		//Bytes per row; the asm copied ((Nx*OneLx) >> 2) dwords
+		int W = ( BV->Nx*BV->OneLx ) & ~3;
+		byte* src = (byte*)BV->Ptr + (intptr_t)BV->PosY*BV->OneLx*BV->Nx*BV->OneLy;
+		byte* dst = (byte*)ScreenPtr + BV->x + (intptr_t)BV->y*SCRSizeX;
+		for (int r = 0; r < Ly; r++)
 		{
-			push	esi
-			push	edi
-			pushf
-			cld
-			mov		esi, ps
-			mov		edi, sofst
-			mov		edx, Ly
-			ppp : mov		ecx, Lx
-				  rep		movsd
-				  add		edi, addof
-				  dec		edx
-				  jnz		ppp
-				  popf
-				  pop		edi
-				  pop		esi
-		}
+			memcpy( dst, src, W );
+			src += W;
+			dst += SCRSizeX;
+		};
 	}
 	bool SSTAT = ( GetSDLKeyState( SDL_SCANCODE_LSHIFT ) ) != 0;
 	for (int ix = 0; ix < BV->Nx; ix++)
@@ -3575,7 +3582,6 @@ bool BPXView_OnDraw( SimpleDialog* SD )
 		}
 	}
 	return true;
-#endif // _WIN32
 }
 
 bool BPXView_OnKeyDown( SimpleDialog* SD )
@@ -4965,34 +4971,6 @@ void CopyToScreen( int zx, int zy, int zLx, int zLy )
 	int radd = RSCRSizeX - Lx;
 	int Lx4 = Lx >> 2;
 	int Lx1 = Lx & 3;
-#ifdef _WIN32
-	__asm
-	{
-		push	esi
-		push	edi
-		mov		edx, Ly
-		or edx, edx
-		jz		lpp4
-		mov		esi, scof
-		mov		edi, reof
-		cld
-		lpp1 : mov		ecx, Lx4
-			   jcxz	lpp2
-			   //		cli
-			   rep		movsd
-			   lpp2 : mov		ecx, Lx1
-					  jcxz	lpp3
-					  rep		movsb
-					  lpp3 :	//sti
-		add		esi, sadd
-			add		edi, radd
-			dec		edx
-			jnz		lpp1
-			lpp4 : pop		edi
-			pop		esi
-	}
-#else
-	// TODO: check if this matches assmebly 100%
 	uint8_t* src = static_cast<uint8_t*>(ScreenPtr) + x + y * SCRSizeX;
 	uint8_t* dest = static_cast<uint8_t*>(RealScreenPtr) + x + y * RSCRSizeX;
 	for (int i = 0; i < Ly; ++i)
@@ -5010,7 +4988,6 @@ void CopyToScreen( int zx, int zy, int zLx, int zLy )
 		src += sadd;
 		dest += radd;
 	}
-#endif // _WIN32
 
 	SDL_Surface* srcSurface;
 	SDL_Surface* targetSurface;
@@ -5839,277 +5816,3 @@ DialogsSystem::~DialogsSystem()
 	CloseDialogs();
 	UnPress();
 };
-
-#ifdef _WIN32
-//transparency effect
-byte* TransPtr = nullptr;
-int TransLx = 0;
-int TransLy = 0;
-void MakeTranspSnapshot()
-{
-	if (RealLx != TransLx || RealLy != TransLy)
-	{
-		TransPtr = (byte*) realloc( TransPtr, RealLx*RealLy );
-		TransLx = RealLx;
-		TransLy = RealLy;
-	};
-	for (int i = 0; i < RealLy; i++)
-	{
-		memcpy( TransPtr + i*RealLx, (byte*) ScreenPtr + i*ScrWidth, RealLx );
-	};
-};
-void FreeTransBuffer()
-{
-	if (TransPtr)free( TransPtr );
-	TransPtr = nullptr;
-	TransLx = 0;
-	TransLy = 0;
-};
-
-#ifdef _WIN32
-void EncodeLine( byte* src, byte* dst, byte* scr, byte* tbl, byte* oddtbl )
-{
-	int N = TransLx >> 1;
-	__asm {
-		push esi
-		push edi
-		push ebx
-		mov  esi, tbl
-		mov  edi, oddtbl
-		mov  ebx, scr
-		mov  edx, src
-		mov  ecx, dst
-		LPP1 :
-		mov  al, [edx]
-			mov  ah, [ecx]
-			mov  al, [esi + eax]
-			mov[ebx], al
-			inc  edx
-			inc  ecx
-			inc  ebx
-			mov  al, [edx]
-			mov  ah, [ecx]
-			mov  al, [edi + eax]
-			mov[ebx], al
-			inc  edx
-			inc  ecx
-			inc  ebx
-			dec  N
-			jnz  LPP1
-
-			pop  ebx
-			pop  edi
-			pop  esi
-	};
-};
-#else
-void EncodeLine( byte* src, byte* dst, byte* scr, byte* tbl, byte* oddtbl )
-{
-}
-#endif
-
-#ifdef _WIN32
-void EncodeLine1( byte* src, byte* dst, byte* scr, byte* tbl )
-{
-	int N = TransLx >> 1;
-	__asm {
-		push esi
-		push edi
-		push ebx
-		mov  esi, tbl
-		mov  edi, tbl
-		mov  ebx, scr
-		mov  edx, src
-		mov  ecx, dst
-		LPP1 :
-		mov  al, [edx]
-			mov  ah, [ecx]
-			mov  al, [esi + eax]
-			mov[ebx], al
-			inc  edx
-			inc  ecx
-			inc  ebx
-			mov  ah, [ecx]
-			mov[ebx], ah
-			inc  edx
-			inc  ecx
-			inc  ebx
-			dec  N
-			jnz  LPP1
-
-			pop  ebx
-			pop  edi
-			pop  esi
-	};
-};
-#else
-void EncodeLine1( byte* src, byte* dst, byte* scr, byte* tbl )
-{
-}
-#endif
-
-#ifdef _WIN32
-void EncodeLine2( byte* src, byte* dst, byte* scr, byte* tbl )
-{
-	int N = TransLx >> 1;
-	__asm {
-		push esi
-		push edi
-		push ebx
-		mov  esi, tbl
-		mov  edi, tbl
-		mov  ebx, scr
-		mov  edx, src
-		mov  ecx, dst
-		LPP1 :
-		mov  ah, [ecx]
-			mov[ebx], ah
-			inc  edx
-			inc  ecx
-			inc  ebx
-			mov  al, [edx]
-			mov  ah, [ecx]
-			mov  al, [edi + eax]
-			mov[ebx], al
-			inc  edx
-			inc  ecx
-			inc  ebx
-			dec  N
-			jnz  LPP1
-
-			pop  ebx
-			pop  edi
-			pop  esi
-	};
-};
-#else
-void EncodeLine2( byte* src, byte* dst, byte* scr, byte* tbl )
-{
-}
-#endif
-
-extern byte trans4[65536];
-extern byte trans8[65536];
-void PerformTransMix( int degree )
-{
-	int N = TransLy >> 1;
-	switch (degree)
-	{
-	case 0:
-	{
-		for (int i = 0; i < N; i++)
-		{
-			byte* screen = (byte*) ScreenPtr + i * 2 * ScrWidth;
-			byte* transp = (byte*) TransPtr + i * 2 * TransLx;
-			EncodeLine1( transp, screen, screen, trans4 );
-			screen += ScrWidth;
-			transp += TransLx;
-			EncodeLine2( transp, screen, screen, trans4 );
-		};
-	};
-	break;
-	case 1:
-	{
-		for (int i = 0; i < N; i++)
-		{
-			byte* screen = (byte*) ScreenPtr + i * 2 * ScrWidth;
-			byte* transp = (byte*) TransPtr + i * 2 * TransLx;
-			EncodeLine( transp, screen, screen, trans4, trans4 );
-			screen += ScrWidth;
-			transp += TransLx;
-			EncodeLine( transp, screen, screen, trans4, trans4 );
-		};
-	};
-	break;
-	case 2:
-	{
-		for (int i = 0; i < N; i++)
-		{
-			byte* screen = (byte*) ScreenPtr + i * 2 * ScrWidth;
-			byte* transp = (byte*) TransPtr + i * 2 * TransLx;
-			EncodeLine( transp, screen, screen, trans8, trans4 );
-			screen += ScrWidth;
-			transp += TransLx;
-			EncodeLine( transp, screen, screen, trans4, trans8 );
-		};
-	};
-	break;
-	case 3:
-	{
-		for (int i = 0; i < N; i++)
-		{
-			byte* screen = (byte*) ScreenPtr + i * 2 * ScrWidth;
-			byte* transp = (byte*) TransPtr + i * 2 * TransLx;
-			EncodeLine( transp, screen, screen, trans8, trans8 );
-			screen += ScrWidth;
-			transp += TransLx;
-			EncodeLine( transp, screen, screen, trans8, trans8 );
-		};
-	};
-	break;
-	case 4:
-	{
-		for (int i = 0; i < N; i++)
-		{
-			byte* screen = (byte*) ScreenPtr + i * 2 * ScrWidth;
-			byte* transp = (byte*) TransPtr + i * 2 * TransLx;
-			EncodeLine( screen, transp, screen, trans4, trans8 );
-			screen += ScrWidth;
-			transp += TransLx;
-			EncodeLine( screen, transp, screen, trans8, trans4 );
-		};
-	};
-	break;
-	case 5:
-	{
-		for (int i = 0; i < N; i++)
-		{
-			byte* screen = (byte*) ScreenPtr + i * 2 * ScrWidth;
-			byte* transp = (byte*) TransPtr + i * 2 * TransLx;
-			EncodeLine( screen, transp, screen, trans4, trans4 );
-			screen += ScrWidth;
-			transp += TransLx;
-			EncodeLine( screen, transp, screen, trans4, trans4 );
-		};
-	};
-	break;
-	case 6:
-	{
-		for (int i = 0; i < N; i++)
-		{
-			byte* screen = (byte*) ScreenPtr + i * 2 * ScrWidth;
-			byte* transp = (byte*) TransPtr + i * 2 * TransLx;
-			EncodeLine1( screen, transp, screen, trans4 );
-			screen += ScrWidth;
-			transp += TransLx;
-			EncodeLine2( screen, transp, screen, trans4 );
-		};
-	};
-	break;
-	};
-};
-int Time0 = 0;
-void StartMixing()
-{
-	Time0 = GetSDLTickCount();
-	MakeTranspSnapshot();
-};
-void ProcessMixing()
-{
-	int idx = (GetSDLTickCount() - Time0 ) / 50;
-	if (idx <= 8)
-	{
-		idx--;
-		if (idx < 0)idx = 0;
-		if (idx > 6)idx = 6;
-		if (TransPtr)
-		{
-			PerformTransMix( 6 - idx );
-		};
-	}
-	else
-	{
-		FreeTransBuffer();
-	};
-};
-#endif // _WIN32

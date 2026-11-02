@@ -43,9 +43,10 @@ char HEIGHTSTR[12];
 int InteriorType = 0;
 extern const int kCtrlStickyTime = 700;bool LockFog = false;
 char MapScenaryDLL[200];
+// TexList/NTextures/GetTexture: real definitions un-guarded in
+// interface.cpp (editor texture picker) 2026-11-01 - stubs deleted.
 byte MI_Mode = 0;
 byte NeedToPopUp = 0;
-word NTextures = 0;
 bool OptHidden = false;
 int OrderSound = 0;
 int PREVGLOBALTIME = 0;
@@ -56,7 +57,6 @@ int RM_Restot = 0;
 char SaveFileName[128];
 int SeqErrorsCount = 0;
 byte SYNBAD[8];
-word TexList[128];
 bool TexMapMod = false;
 int TM_Height0 = 0;
 int TM_Height1 = 0;
@@ -94,41 +94,19 @@ word GetNextDivCell( byte NI, int F, int Start ) { (void)NI; (void)F; (void)Star
 word GetNextGreCell( byte NI, int F, int Start ) { (void)NI; (void)F; (void)Start; return 0xFFFF; }
 word GetNextSafeCell( byte NI, int F, int start, int Fin ) { (void)NI; (void)F; (void)start; (void)Fin; return 0xFFFF; }
 
-//-------------- virtscr.cpp --------------
-
-//-------------- water / rivers (realwater.cpp, river.cpp asm) --------------
-// Blob/wake system (shiptrace.cpp): LoadBlobs is now the real one (un-
-//guarded there), but InitBlobs/TestBlob (blob animation) and CreateTrace
-//(ship wakes) live in _WIN32 asm blocks in shiptrace.cpp - stubs stay
-// until the asm is translated. See the Blob class comment in shiptrace.cpp.
-void InitBlobs() {}
-void TestBlob() {}
-
 //-------------- interface.cpp / gp_draw.cpp guarded regions --------------
-// CheckCoorInGP, Clean_GP_IMG, Init_GP_IMG, RegisterVisibleGP: real
-// implementations now in gp_draw.cpp (CheckInsideMask asm translated to
-// portable C++; GP registry code was plain C++ already) - stubs deleted.
-bool AskMissionQuestion( char* Bmp, char* Text ) { (void)Bmp; (void)Text; return false; }
 bool CheckFlagsNeed() { return false; }
 bool CheckGameTime() { return false; }
-void CreateTrace( OneObject* OB ) { (void)OB; }
 void DontMakeRaiting() {}
 void ExplorerOpenRef( int Index, char* ref ) { (void)Index; (void)ref; }
 int  GetCurGamePtr( byte** Ptr ) { if (Ptr) *Ptr = NULL; return 0; }
-word GetTexture() { return 0; }
 int  GetTreeItem() { return 0; }
 bool IsGameActive() { return false; }
-// LoadPalettes: real implementation in fastdraw.cpp (loads PAL1..7 for
-// ShowRLCItem nation tints - wheat fields were black without it)
 void LoadMapInterface() {}
 void LoadSaveFile() {}
 void ProcessMapInterface() {}
-int  ProcessComplexQuestion( int Nx, char* Bmp1, byte or1, char* Text1, char* Bmp2, byte or2, char* Text2, char* Quest ) { (void)Nx; (void)Bmp1; (void)or1; (void)Text1; (void)Bmp2; (void)or2; (void)Text2; (void)Quest; return 0; }
-void ProcessMissionText( char* Bmp, char* Text ) { (void)Bmp; (void)Text; }
-int  ProcessMultilineQuestion( int Nx, char* Bmp1, byte or1, char* Text1, char* Quest ) { (void)Nx; (void)Bmp1; (void)or1; (void)Text1; (void)Quest; return 0; }
 void SetBrokenState() {}
 void ShowChat() {}
-int  ShowHistryItem( char* Bmp, char* Text ) { (void)Bmp; (void)Text; return 0; }
 void ShowCentralMessage4( char* Message, int GPIDX, int DX ) { (void)Message; (void)GPIDX; (void)DX; }
 void UpdateCurGame() {}
 
@@ -139,8 +117,6 @@ void UpdateCurGame() {}
 void CreateNEWMAP() {}
 bool ReadBMP24( char* Name, BMPformat* BM, byte** data ) { (void)Name; (void)BM; (void)data; return false; }
 void ReadClanData() {}
-
-//-------------- dialogs / GP drawing helpers --------------
 
 //-------------- network (mplayer.cpp, ir_main.cpp, unsyncro extras) --------------
 // Execute-buffer reset from mplayer.cpp (real implementation: pure state, no network)
@@ -230,6 +206,16 @@ bool processBattleMultiplayer() { return false; }
 // Map editor file pickers (save/load a map under a chosen name)
 bool ProcessSavingFile( char* Mask, char* DestName, int Header, bool clear ) { (void)Mask; (void)DestName; (void)Header; (void)clear; return false; }
 bool ProcessLoadingFile( char* Mask, char* DestName, int Header ) { (void)Mask; (void)DestName; (void)Header; return false; }
+// Map editor dialogs still inside Win32 regions (portable bodies, not
+// extracted yet); EditGame's MakeMenu dispatch calls them. No-ops until
+// ported: the resource editor (case 31), the minimap editor (case 6)
+// and the interior choosers (cases 7/8/9).
+int ProcessResEdit() { return 0; }
+void EditMiniMap() {}
+void ChooseInterior( int Type ) { (void)Type; }
+// Chat key dispatcher (interface.cpp, inside the Win32 multiplayer
+// region; chat is a stubbed feature anyway - see PortingNotes).
+void ProcessChatKeys() {}
 
 // network functions (mplayer.cpp)
 void AnalyseMessages() {}

@@ -445,3 +445,6 @@ FodyWeavers.xsd
 *.exp
 *.bsc
 /src/Testing
+
+# Game data directory (see --gamedata in main.cpp)
+gamedata/

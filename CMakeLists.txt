@@ -71,7 +71,6 @@ add_executable(cossacks
 
 	src/game/conststr.cpp
 
-	src/game/antibug.cpp
 	src/game/stringshash.cpp
 	src/game/graphs.cpp
 	src/game/fractal.cpp
@@ -126,12 +125,18 @@ target_link_options(cossacks PRIVATE "-rdynamic")
 # The game dlopen()s it via
 # LoadAIFromDLL; on failure-free data the name comes from the text tables
 # (e.g. "AI\Algeria.dll").
-# The game is run from the repo root (which doubles as the game data
-# directory) and dlopen()s the module as a loose file "AI/<Nation>.so" -
-# dlopen cannot read files packed inside all.gsc (see docs/PortingNotes.md).
-# So emit the modules straight into the game dir's AI/ folder, next to the
-# original Windows AI/<Nation>.dll set, instead of the build tree.
-set(AI_MODULES_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/AI")
+# The game data lives in ./gamedata (main.cpp chdir()s there at startup,
+# see the --gamedata option) and dlopen()s the module as a loose file
+# "AI/<Nation>.so" - dlopen cannot read files packed inside all.gsc
+# (see docs/PortingNotes.md).
+# So emit the modules straight into the game data dir's AI/ folder, next
+# to the original Windows AI/<Nation>.dll set, instead of the build tree.
+# OUTPUT_NAMEs must be byte-exact with the names in TEXT\AI.TXT (packed
+# in all.gsc): the game dlopens "AI\\<name>.dll" -> "<name>.so" and Linux
+# is case-sensitive (POLAND.dll, SPAIN.dll, SVEDEN.dll, HOLLAND.dll,
+# SAKSINIA.dll and VENECIA.dll are uppercase there; Hungary stays
+# "Vengria.dll" - verify EVERY name against that file, do not guess).
+set(AI_MODULES_OUTPUT_DIR "${CMAKE_SOURCE_DIR}/gamedata/AI")
 
 add_library(Algeria MODULE src/ai/Algeria/dllmain.cpp)
 set_target_properties(Algeria PROPERTIES PREFIX "" OUTPUT_NAME "Algeria"
@@ -141,10 +146,85 @@ set_target_properties(Algeria PROPERTIES PREFIX "" OUTPUT_NAME "Algeria"
 # game-facing exports (InitAI/ProcessAI/OnInit) override this explicitly.
 target_compile_options(Algeria PRIVATE "-fvisibility=hidden")
 
-# add_library(Austria MODULE src/ai/Austria/dllmain.cpp)
-# set_target_properties(Austria PROPERTIES PREFIX "" OUTPUT_NAME "Turcia"
-#     LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
-# target_compile_options(Austria PRIVATE "-fvisibility=hidden")
+add_library(Ukraine MODULE src/ai/Ukraine/dllmain.cpp)
+set_target_properties(Ukraine PROPERTIES PREFIX "" OUTPUT_NAME "Ukraine"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Ukraine PRIVATE "-fvisibility=hidden")
+
+add_library(Austria MODULE src/ai/Austria/dllmain.cpp)
+set_target_properties(Austria PROPERTIES PREFIX "" OUTPUT_NAME "Austria"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Austria PRIVATE "-fvisibility=hidden")
+
+add_library(Bavaria MODULE src/ai/Bavaria/dllmain.cpp)
+set_target_properties(Bavaria PROPERTIES PREFIX "" OUTPUT_NAME "Bavaria"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Bavaria PRIVATE "-fvisibility=hidden")
+
+add_library(England MODULE src/ai/England/dllmain.cpp)
+set_target_properties(England PROPERTIES PREFIX "" OUTPUT_NAME "England"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(England PRIVATE "-fvisibility=hidden")
+
+add_library(France MODULE src/ai/France/dllmain.cpp)
+set_target_properties(France PROPERTIES PREFIX "" OUTPUT_NAME "France"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(France PRIVATE "-fvisibility=hidden")
+
+add_library(Prussia MODULE src/ai/Prussia/dllmain.cpp)
+set_target_properties(Prussia PROPERTIES PREFIX "" OUTPUT_NAME "German"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Prussia PRIVATE "-fvisibility=hidden")
+
+add_library(Holland MODULE src/ai/Holland/dllmain.cpp)
+set_target_properties(Holland PROPERTIES PREFIX "" OUTPUT_NAME "HOLLAND"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Holland PRIVATE "-fvisibility=hidden")
+
+add_library(Piemont MODULE src/ai/Piemont/dllmain.cpp)
+set_target_properties(Piemont PROPERTIES PREFIX "" OUTPUT_NAME "Piemont"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Piemont PRIVATE "-fvisibility=hidden")
+
+add_library(Poland MODULE src/ai/Poland/dllmain.cpp)
+set_target_properties(Poland PROPERTIES PREFIX "" OUTPUT_NAME "POLAND"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Poland PRIVATE "-fvisibility=hidden")
+
+add_library(Portugal MODULE src/ai/Portugal/dllmain.cpp)
+set_target_properties(Portugal PROPERTIES PREFIX "" OUTPUT_NAME "Portugalia"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Portugal PRIVATE "-fvisibility=hidden")
+
+add_library(Saxony MODULE src/ai/Saxony/dllmain.cpp)
+set_target_properties(Saxony PROPERTIES PREFIX "" OUTPUT_NAME "SAKSINIA"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Saxony PRIVATE "-fvisibility=hidden")
+
+add_library(Spain MODULE src/ai/Spain/dllmain.cpp)
+set_target_properties(Spain PROPERTIES PREFIX "" OUTPUT_NAME "SPAIN"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Spain PRIVATE "-fvisibility=hidden")
+
+add_library(Sweden MODULE src/ai/Sweden/dllmain.cpp)
+set_target_properties(Sweden PROPERTIES PREFIX "" OUTPUT_NAME "SVEDEN"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Sweden PRIVATE "-fvisibility=hidden")
+
+add_library(Venice MODULE src/ai/Venice/dllmain.cpp)
+set_target_properties(Venice PROPERTIES PREFIX "" OUTPUT_NAME "VENECIA"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Venice PRIVATE "-fvisibility=hidden")
+
+add_library(Hungary MODULE src/ai/Hungary/dllmain.cpp)
+set_target_properties(Hungary PROPERTIES PREFIX "" OUTPUT_NAME "Vengria"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Hungary PRIVATE "-fvisibility=hidden")
+
+add_library(Switzerland MODULE src/ai/Switzerland/dllmain.cpp)
+set_target_properties(Switzerland PROPERTIES PREFIX "" OUTPUT_NAME "Switzerland"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Switzerland PRIVATE "-fvisibility=hidden")
 
 add_library(Turkey MODULE src/ai/Turkey/dllmain.cpp)
 set_target_properties(Turkey PROPERTIES PREFIX "" OUTPUT_NAME "Turcia"
@@ -155,6 +235,36 @@ add_library(Russia MODULE src/ai/Russia/dllmain.cpp)
 set_target_properties(Russia PROPERTIES PREFIX "" OUTPUT_NAME "Russia"
     LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
 target_compile_options(Russia PRIVATE "-fvisibility=hidden")
+
+# European-family AI (49152-byte DLL, handlers identical to Bavaria's).
+# TEXT\AI.TXT asks for AI\Denmark.dll - mixed case, keep it exact.
+add_library(Denmark MODULE src/ai/Denmark/dllmain.cpp)
+set_target_properties(Denmark PROPERTIES PREFIX "" OUTPUT_NAME "Denmark"
+    LIBRARY_OUTPUT_DIRECTORY "${AI_MODULES_OUTPUT_DIR}")
+target_compile_options(Denmark PRIVATE "-fvisibility=hidden")
+
+
+# ---------------------------------------------------------------------------
+# Ported mission modules. The original Missions/<Group>/<Name>/Mission.dll
+# files import the scenary API from dmcr.exe and export OnInit +
+# ProcessScenary; the game LoadLibrary()s "Missions\<Group>\<Name>\Mission.dll"
+# and the os.cpp shim retries it as .so (see docs/missions.md). The engine
+# exports the whole scenary API via -rdynamic, so the modules call it
+# directly - no dlsym scaffolding needed.
+function(add_mission MISSION_PATH)
+    get_filename_component(mission_name "${MISSION_PATH}" NAME)
+    add_library("Mission_${mission_name}" MODULE
+        "src/missions/${MISSION_PATH}/mission.cpp")
+    set_target_properties("Mission_${mission_name}" PROPERTIES
+        PREFIX "" OUTPUT_NAME "Mission"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/gamedata/Missions/${MISSION_PATH}")
+    target_compile_options("Mission_${mission_name}" PRIVATE "-fvisibility=hidden")
+endfunction()
+
+add_mission(Tutorial/Tutorial1)
+add_mission(Singles/Single59)
+add_mission(Singles/Single1)
+add_mission(Singles/Single2)
 
 
 # And Boost

@@ -36,7 +36,7 @@ void ImCorrectBrigadesSelection( byte NT );
 void NewMonsterSmartSendToLink( OneObject* OBJ );
 void NewMonsterSendToLink( OneObject* OBJ );
 void AI_AttackPointLink( OneObject* OBJ );
-extern word SelCenter[8];
+extern word SelCenterArr[8];
 int CheckCreationAbility( byte NI, NewMonster* NM, int* x2i, int* y2i, word* BLD, int NBLD );
 void BuildWithSelected( byte NI, word ObjID, byte OrdType );
 void GoToMineWithSelected( byte NI, word ID );
@@ -461,7 +461,7 @@ bool CorrectPositions( int* pos, word N )
 };
 int Brigade::SelectPeasants( byte NI )
 {
-	SelCenter[NI] = 0;
+	SelCenterArr[NI] = 0;
 	int np = 0;
 	for ( int i = 0; i < NMemb; i++ )
 	{

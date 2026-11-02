@@ -102,11 +102,6 @@ void MotionBrush::CreateSquareBrush(int d)
 }
 
 
-//-------------------------------------------------------//
-//                                                       //
-//                    ОБХОД ПРЕПЯТСТВИЙ                  //
-//                                                       //
-//-------------------------------------------------------//
 // MotionField = the occupancy ("what is blocked") matrix itself.
 // MapV is a bit matrix, 1 bit per motion cell, stored column-major:
 //   byte index = (x << (6 + ADDSH)) + (y >> 3), bit = 1 << (y & 7)
