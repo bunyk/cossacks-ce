@@ -8,20 +8,22 @@ This project is an effort to migrate the classic game **Cossacks: Back to War** 
 
 ## Motivation
 
-**Cossacks: Back to War** is the greatest RTS game ever made, in my opinion.
+**Cossacks: Back to War** is one of the greates RTS games ever made.
 
-## Roadmap
+## Changes
+- Some dead code removed
+- ASM sections replaced with C++ code
 
-Done doesn't mean it's perfect, it just means it works.
-The list is not exhaustive and will be updated as the project progresses.
-
-| Description | Status | Comments |
-|-------------|--------|----------|
-| Remove Windows-specific symbols and types | ⏳ In Progress | Things left to be migrated: DLL loading, FS management, registry management, misc. |
-| Migrate from Winsock to cross-platform sockets | 🚧 Not Started ||
-| Remove or replace binary dependencies | 🚧 Not Started | Known so far: `Pinger.lib`, `gw_server.dll` |
-| Recreate the AI | ⏳ In Progress ||
-| Rewrite assembler code to C++ | 🚧 In progress | Over 200 places with inline assembly 😢, related mostly to rendering |
+## TODO:
+- Missions and campaigns (loading works, 2/106 mission modules ported - see docs/missions.md)
+- Networking
+- Remove old entrypoint ddex1.cpp (replaced with main.cpp)
+- src/game/linux_stubs.cpp should be gone once everything is ported
+- Ticks tick to fast in scenarios (fixed in replay, but made game way to slow). Could it be related to the speed slider?
+- Why some units just seem to freeze and do nothing? It's ok for army to wait for attack, but sometimes also workers freeze.
+- Full screen loading is slower than window. Maybe go for maximized window by default?
+- Remove or replace binary dependencies. Known so far: `Pinger.lib`, `gw_server.dll`
+- Python for AI and missions? 
 
 ## Building
 

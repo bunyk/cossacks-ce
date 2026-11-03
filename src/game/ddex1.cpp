@@ -6,6 +6,8 @@
  *
  ***************************************************************************/
 
+// This was entry point, ported stuff should be moved to main.cpp
+
 #define NAME "CEW_KERNEL"
 
 #include "ddini.h"

@@ -3,7 +3,6 @@
 // Temporary no-op definitions for functionality that is not ported yet:
 //  - interface.cpp regions still guarded by _WIN32 (multiplayer, chat,
 //    clans, random-map dialogs)
-//  - path.cpp (pathfinding: heavy asm, needs porting)
 //  - fog.cpp / virtscr.cpp asm regions
 //  - realwater.cpp, shiptrace.cpp, mplayer.cpp (network), ir_main.cpp
 // Each stub keeps the exact signature from the headers so the mangled names match.
@@ -19,7 +18,6 @@
 #include "dialogs.h"
 #include "gp_draw.h"
 #include "masks.h"
-#include "path.h"
 #include "virtscreen.h"
 #include "mplayer.h"
 #include "ir.h"
