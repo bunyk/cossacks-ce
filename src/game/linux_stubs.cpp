@@ -2,7 +2,7 @@
 //
 // Temporary no-op definitions for functionality that is not ported yet:
 //  - interface.cpp regions still guarded by _WIN32 (multiplayer, chat,
-//    clans, random-map dialogs)
+//    random-map dialogs)
 //  - fog.cpp / virtscr.cpp asm regions
 //  - realwater.cpp, shiptrace.cpp, mplayer.cpp (network), ir_main.cpp
 // Each stub keeps the exact signature from the headers so the mangled names match.
@@ -103,8 +103,6 @@ void UpdateCurGame() {}
 // chosen in the random-map UI decoded to 0 (default).
 // ReadBMP24/CreateNEWMAP: real implementations now compiled (bmptool.cpp and
 // the editor UI in interface.cpp) - stubs deleted.
-// ReadClanData: real implementation is still inside a Win32 region.
-void ReadClanData() {}
 
 //-------------- network (mplayer.cpp, ir_main.cpp, unsyncro extras) --------------
 // Execute-buffer reset from mplayer.cpp (real implementation: pure state, no network)
@@ -133,8 +131,6 @@ void GetGameID( char* s ) { if (s) s[0] = 0; }
 void SendVictoryState( int ID, byte State ) { (void)ID; (void)State; }
 void SyncroDoctor() {}
 void ReceiveAll() {}
-bool CheckPlayerToExit() { return false; }
-bool RejectThisPlayer = false;
 
 // ProcessSingleMission: real implementation now in interface.cpp (single
 // missions + campaigns un-guarded) - stub deleted.

@@ -2059,8 +2059,6 @@ void ShowCentralMessage( char* Message, int GPIDX )
 	ShowString( ( RealLx - L ) / 2 - DX, ( RealLy - GetRLCHeight( YellowFont.RLC, 'W' ) ) / 2, Message, &YellowFont );
 }
 
-DLLEXPORT void ShowClanString( int x, int y, char* s, byte State, RLCFont* Fn, RLCFont* Fn1, int DY );
-
 void xLine( int x, int y, int x1, int y1, byte c );
 
 int SearchPlayer( char* Nick )
@@ -2498,8 +2496,6 @@ void RunHTTPC()
 bool GetPLIP( char* Nick, char* IP );
 bool T100_cmd_done = 0;
 void DecodeGS_Password( char* pass, char* result );
-bool CheckPlayerToExit();
-extern bool RejectThisPlayer;
 
 bool INSIDE1 = 0;
 
@@ -2672,8 +2668,6 @@ int  EncodeOptionsInNumber( int* selected_opt_values );
 bool GetPreview( char* Name, byte* Data );
 void DeepDeletePeer( DWORD ID );
 void ReceiveAll();
-bool CheckPlayerToExit();
-extern bool RejectThisPlayer;
 extern bool realLpressed;
 extern char CurrentMap[64];
 // not ported yet (Windows-only game-start block, stubbed in linux_stubs.cpp)
@@ -5074,11 +5068,7 @@ ffe2:
 			}
 		}
 
-	FinCLC:
-		if ( RejectThisPlayer || CheckPlayerToExit() )
-		{
-			ItemChoose = mcmCancel;
-		}
+	FinCLC:;
 
 	} while ( ItemChoose == -1 && PlayerMenuMode == 1 );
 
@@ -6626,7 +6616,6 @@ extern bool RetryVideo;
 int GetRndVid( int N );
 void processMLoadGame();
 bool InMainMenuLoop = 0;
-extern bool RejectThisPlayer;
 
 void ResizeAndCenterWindow();
 
@@ -6758,9 +6747,6 @@ int processMainMenu()
 
 		LastKey = SDLK_UNKNOWN;
 		KeyPressed = 0;
-		#ifdef _WIN32
-		RejectThisPlayer = 0;
-		#endif //_WIN32
 
 		// Main menu loop
 		do
@@ -16816,159 +16802,9 @@ void CreateNEWMAP()
 	}
 	free( p );
 }
-// (Windows-only region resumes: clans, the clan string export and the
-// AI-check export are outside the map editor UI)
+// (Windows-only region resumes: the AI-check export and the error
+// dialog helper below sit outside the map editor UI)
 #ifdef _WIN32
-//-----------------Clans support----------------//
-struct ClanInfo
-{
-	char* ClanName;
-	SQPicture Passive;
-	SQPicture Active;
-	SQPicture Over;
-};
-ClanInfo* CLINFO = nullptr;
-
-int NClans = 0;
-extern bool SafeLoad;
-
-void ReadClanData()
-{
-	SafeLoad = 1;
-	WIN32_FIND_DATA FD;
-	HANDLE H = FindFirstFile( "Clans\\*.clan", &FD );
-	if ( H != INVALID_HANDLE_VALUE )
-	{
-		do
-		{
-			char ccc[128];
-			sprintf( ccc, "Clans\\%s", FD.cFileName );
-			FILE* F = fopen( ccc, "r" );
-			if ( F )
-			{
-				char cc1[128];
-				char cc2[128];
-				char cc3[128];
-				int z = fscanf( F, "%s%s%s", cc1, cc2, cc3 );
-				if ( z == 3 )
-				{
-					SQPicture P1;
-					sprintf( ccc, "Clans\\%s", cc1 );
-					P1.LoadPicture( ccc );
-					if ( P1.GetLx() < 256 && P1.GetLy() == 20 )
-					{
-						sprintf( ccc, "Clans\\%s", cc2 );
-						P1.LoadPicture( ccc );
-						if ( P1.GetLx() < 256 && P1.GetLy() == 20 )
-						{
-							sprintf( ccc, "Clans\\%s", cc3 );
-							P1.LoadPicture( ccc );
-							if ( P1.GetLx() < 256 && P1.GetLy() == 20 )
-							{
-								CLINFO = (ClanInfo*) realloc( CLINFO, ( NClans + 1 ) * sizeof ClanInfo );
-								memset( CLINFO + NClans, 0, sizeof ClanInfo );
-								sprintf( ccc, "Clans\\%s", cc1 );
-								CLINFO[NClans].Over.LoadPicture( ccc );
-								sprintf( ccc, "Clans\\%s", cc2 );
-								CLINFO[NClans].Active.LoadPicture( ccc );
-								sprintf( ccc, "Clans\\%s", cc3 );
-								CLINFO[NClans].Passive.LoadPicture( ccc );
-								strcpy( ccc, FD.cFileName );
-								char* ccx = strstr( ccc, ".clan" );
-								if ( !ccx )ccx = strstr( ccc, ".CLAN" );
-								if ( !ccx )ccx = strstr( ccc, ".Clan" );
-								if ( ccx )ccx[0] = 0;
-								CLINFO[NClans].ClanName = new char[strlen( ccc ) + 1];
-								strcpy( CLINFO[NClans].ClanName, ccc );
-								NClans++;
-							}
-						}
-					}
-				}
-				fclose( F );
-			}
-		} while ( FindNextFile( H, &FD ) );
-
-		FindClose( H );
-	}
-
-	SafeLoad = 0;
-	//sorting
-	bool change;
-	ClanInfo CIN;
-	do
-	{
-		change = 0;
-		for ( int i = 1; i < NClans; i++ )
-		{
-			if ( strlen( CLINFO[i - 1].ClanName ) < strlen( CLINFO[i].ClanName ) )
-			{
-				CIN = CLINFO[i - 1];
-				CLINFO[i - 1] = CLINFO[i];
-				CLINFO[i] = CIN;
-				change = 1;
-			}
-		}
-	} while ( change );
-
-	memset( &CIN, 0, sizeof CIN );
-}
-
-DLLEXPORT void ShowClanString( int x, int y, char* s, byte State, RLCFont* Fn, RLCFont* Fn1, int DY )
-{
-	char ccc[64];
-	char NICK[128];
-	char CLAN[128];
-
-	strcpy( NICK, s );
-	_strupr( NICK );
-	strcpy( ccc, s );
-
-	for ( int i = 0; i < NClans; i++ )
-	{
-		strcpy( CLAN, CLINFO[i].ClanName );
-		_strupr( CLAN );
-		char* cc = strstr( NICK, CLAN );
-		if ( cc && cc == NICK )
-		{
-			//ok, found!
-			cc = ccc;
-			cc += strlen( CLINFO[i].ClanName );
-
-			SQPicture* p = nullptr;
-			switch ( State )
-			{
-			case 0:
-				p = &CLINFO[i].Passive;
-				break;
-			case 1:
-				p = &CLINFO[i].Active;
-				break;
-			case 2:
-				p = &CLINFO[i].Over;
-				break;
-			}
-
-			p->Draw( x, y - 2 );
-
-			if ( Fn1 )
-			{
-				ShowString( x + p->GetLx() + 1 + 3, y + DY + 1, cc, Fn1 );
-			}
-
-			ShowString( x + p->GetLx() + 3, y + DY, cc, Fn );
-			return;
-		}
-	}
-
-	if ( Fn1 )
-	{
-		ShowString( x + 1, y + DY + 1, s, Fn1 );
-	}
-
-	ShowString( x, y + DY, s, Fn );
-	return;
-}
 
 void WaitWithError4( char* ID, int GPID );
 

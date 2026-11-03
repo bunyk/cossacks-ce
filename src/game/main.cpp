@@ -324,7 +324,6 @@ void LoadBorders();
 void SetupArrays();
 extern byte* RivDir;
 void Init_GP_IMG();
-void ReadClanData();
 
 void LoadMessages();
 void Loadtextures();
@@ -3521,7 +3520,6 @@ void WaitToTime( int Time )
 //Load ids, textures etc
 bool Loading()
 {
-	ReadClanData();
 	RivDir = NULL;
 
 	Init_GP_IMG();
