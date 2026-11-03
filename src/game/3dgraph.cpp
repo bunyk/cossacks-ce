@@ -854,27 +854,8 @@ int DirectPreRenderTri64(int x1, int y1,
 	BMDYY = bmdyy;
 	FOG1 = fog;
 	int VBpos = int(VertBuf);
-	//Инициализация VertBuf
-#ifdef _WIN32
-	__asm {
-		push	edi
-		pushf
-		cld
-		mov		edi, VBpos
-		mov		ecx, z2
-		sub		ecx, z1
-		inc		ecx
-		uux1 : mov		dword ptr[edi], 0xFFFFFFFF;
-		add		edi, 16
-			dec		ecx
-			jnz		uux1
-			popf
-			pop		edi
-	};
-#else
 	//VertBuf init: mark all lines as empty (x1 = x2 = 0xFFFF)
 	for (int i = 0; i <= z2 - z1; i++) *(int*)((byte*)VertBuf + i * 16) = -1;
-#endif
 	addLine(x2, y2 - z1);
 	addLine(x3, y3 - z1);
 	addLine(x1, y1 - z1);

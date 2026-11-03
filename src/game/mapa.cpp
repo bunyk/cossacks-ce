@@ -1399,7 +1399,6 @@ void ProcessSelectedTower();
 extern City CITY[8];
 void DrawBorder( Brigade* BR );
 int PreviewBrig = -1;;
-void GenShow();
 void DrawAZones();
 void ScenaryLights();
 extern int NInGold[8];
@@ -1864,8 +1863,6 @@ void GFieldShow()
 	DrawCurves();
 
 	ShowCostPlaces();
-
-	GenShow();
 
 	if (GridMode)
 	{

@@ -1243,13 +1243,6 @@ bool GenMap::GenerateHillLink( int N, int Thick )
 	return false;
 };
 GenMap GMAP;
-void ShowNatDeal();
-
-//calls ShowNatDeal()
-void GenShow()
-{
-	ShowNatDeal();
-};
 
 #define NATLX (TopLx>>1)
 #define NATSH (TopSH-1)
@@ -4455,41 +4448,6 @@ void ClearAllRounds()
 		ClearCenterRound( CRoundX[i], CRoundY[i], 750 );
 	};
 	NCRound = 0;
-}
-
-#define C_NATLX 128
-void ShowNatDeal()
-{
-	return;
-#ifdef _WIN32
-	int adx = ScrWidth - NATLX;
-	int sptr = int( ScreenPtr ) + ScrWidth * 100;
-
-	__asm
-	{
-		push	esi
-		push	edi
-		mov		edi, sptr
-		mov		esi, NatDeals
-		cld
-		mov		ebx, C_NATLX
-		lpp1 : mov     edx, C_NATLX
-			   lpp2 : lodsb
-					  shr		al, 4
-					  shl		al, 2
-					  add		al, 0xD0
-					  //mov		ecx,C_NATLX>>2
-					  stosb
-					  dec		edx
-					  jnz     lpp2
-					  //rep		movsd
-					  add		edi, adx
-					  dec		ebx
-					  jnz		lpp1
-					  pop		edi
-					  pop		esi
-	}
-#endif
 }
 
 void SetBrightSpot( int x, int y, int Brightness, bool dir );
