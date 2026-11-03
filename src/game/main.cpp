@@ -2040,6 +2040,12 @@ static BOOL doInit()
 	return FALSE;
 }
 
+//Decls for ClearModes: river-flow editing (river.cpp), the TexMap brush
+//toggle (interface.cpp) and the curve scratchpad (3dmaped.cpp)
+extern bool RiverEditMode;
+extern bool TexMapMod;
+void ClearCurve();
+
 void ClearModes()
 {
 	DrawPixMode = 0;
@@ -2048,12 +2054,10 @@ void ClearModes()
 	MEditMode = false;
 	LockMode = 0;
 	WaterEditMode = false;
-	#ifdef _WIN32
 	SetWallBuildMode( 0xFF, 0 );
 	TexMapMod = false;
 	RiverEditMode = 0;
 	ClearCurve();
-	#endif
 	TexPieceMode = 0;
 }
 

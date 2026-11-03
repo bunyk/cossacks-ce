@@ -388,6 +388,8 @@ extern int MaxWX;
 extern int MaxWY;
 
 extern byte* WaterDeep;//cell size=32x16
+extern byte* WaterBright;
+
 void CreateMiniMapPart(int x0, int y0, int x1, int y1)
 {
 	int msx2 = msx >> 1;
@@ -457,10 +459,25 @@ void CreateMiniMapPart(int x0, int y0, int x1, int y1)
 			int iy = j >> (ADDSH);
 			if (ix >= 0 && ix < maxmap && iy >= 0 && iy < maxmap)
 			{
-				if (WaterDeep[i + j*MaxWX] > 128)
+				int ofs = i + j*MaxWX;
+				if (WaterDeep[ofs] > 128)
 				{
-					minimap[iy][ix] = 0xB7;
-					minimap[iy][ix] = 0xA4;
+					//Same blue depth/brightness ramp as in
+					//CreateMiniMap below (the original code here
+					//painted edited water red with 0xA4)
+					int B = WaterBright[ofs];
+					byte c = 0xB3;
+					if (B > (6 * 16 - 8))
+					{//Lighter
+						c = 0xB7;
+					}
+					else if (B > (5 * 16 - 8)) c = 0xB6;
+					else if (B > (3 * 16 - 8)) c = 0xB5;
+					else if (B > (1 * 16 - 8))
+					{//Darker
+						c = 0xB4;
+					}
+					minimap[iy][ix] = c;
 				}
 			}
 		}

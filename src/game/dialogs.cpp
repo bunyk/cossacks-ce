@@ -2875,14 +2875,7 @@ CheckBox* DialogsSystem::addGP_CheckBox( SimpleDialog* Parent,
 DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 {
 	//Solid fill of an Lx0 x Ly0 rectangle into the screen buffer, clipped
-	//to the current RLC window (SetRLCWindow). The bounds check + clipping
-	//below is plain C++ and cross-platform; only the fill loop was asm.
-	//IMPORTANT: this body used to sit entirely inside #ifdef _WIN32, so on
-	//Linux CBar was an EMPTY no-op and every caller silently drew nothing:
-	//the infinity symbol on infinitely-queued production icons
-	//(icontool.cpp OneIcon::Draw -> DrawInf -> xLine -> 1x1 CBar pixels),
-	//hint panel backgrounds (DrawHintPattern), stats screen fills
-	//(DrawStatTable), ColoredBar dialogs, spriteless icon backgrounds.
+	//to the current RLC window (SetRLCWindow).
 	if (Lx0 <= 0 || Ly0 <= 0 || x0<0 || y0<0 || x0 + Lx0>ScrWidth || y0 + Ly0>SCRSizeY)
 	{
 		return;
@@ -2914,41 +2907,12 @@ DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 		Ly = WindY1 - y + 1;
 		if (Ly <= 0)return;
 	};
-#ifdef _WIN32
-	int ofst = int( ScreenPtr ) + x + y*ScrWidth;
-	int adds = ScrWidth - Lx;
-	int Lx4 = Lx >> 2;
-	int Lx1 = Lx & 3;
-	__asm
-	{
-		push	edi
-		mov		edi, ofst
-		mov		edx, Ly
-		cld
-		mov		al, c
-		mov		ah, al
-		shl		eax, 16
-		mov		al, c
-		mov		ah, al
-		mov		ebx, Lx1
-		qwr : mov		ecx, Lx4
-			  rep		stosd
-			  mov		ecx, ebx
-			  rep		stosb
-			  add		edi, adds
-			  dec		edx
-			  jnz		qwr
-			  pop		edi
-	}
-#else
-	//Portable translation of the asm fill above: Ly rows of Lx bytes
 	byte* scr = (byte*)ScreenPtr + x + (intptr_t)y * ScrWidth;
 	for (int i = 0; i < Ly; i++)
 	{
 		memset( scr, c, Lx );
 		scr += ScrWidth;
 	};
-#endif // _WIN32
 }
 
 bool ColoredBar_OnDraw( SimpleDialog* SD )
@@ -4910,8 +4874,6 @@ void SimpleDialog::AssignSound( int ID, int Usage )
 
 void SimpleDialog::AssignSound( char* Name, int Usage )
 {
-	// Cross-platform (SearchStr/ErrM are portable). Was entirely
-	// _WIN32-guarded: on Linux no button ever got its click sound.
 	int ID = SearchStr( SoundID, Name, NSounds );
 	if (ID == -1)
 	{

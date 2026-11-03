@@ -629,9 +629,7 @@ void ProcessCampaigns( int Options );
 
 void SFLB_ReadFirstPlayerName( char* ccc );
 
-#ifdef _WIN32
 void SFLB_LoadMEDButtons();
-#endif
 
 //Read players.txt, load dialog resources
 void SFLB_InitDialogs()
@@ -650,9 +648,7 @@ void SFLB_InitDialogs()
 	FPassive = YellowFont;
 	FActive = WhiteFont;
 	FDisable = YellowFont;
-#ifdef _WIN32
 	SFLB_LoadMEDButtons();
-#endif
 }
 
 DLLEXPORT int ItemChoose;
@@ -10336,10 +10332,18 @@ SQPicture prepp;
 
 byte* higrad;
 int grsize;
-//Load resource file higrad.set
+//Load resource file higrad.set (height -> palette index table for the
+//minimap editor's height preview). Missing file leaves grsize 0 and
+//CreateHiMap falls back to raw heights.
 void SFLB_LoadMEDButtons()
 {
 	ResFile f1 = RReset( "higrad.set" );
+	if ( f1 == INVALID_HANDLE_VALUE )
+	{
+		grsize = 0;
+		higrad = nullptr;
+		return;
+	}
 	grsize = RFileSize( f1 );
 	higrad = new byte[grsize];
 	RBlockRead( f1, higrad, grsize );
@@ -10399,13 +10403,20 @@ void CreateHiMap()
 				Hig = 0;
 			}
 
-			if ( Hig < grsize )
+			if ( grsize )
 			{
-				Hig = higrad[Hig];
+				if ( Hig < grsize )
+				{
+					Hig = higrad[Hig];
+				}
+				else
+				{
+					Hig = higrad[grsize - 1];
+				}
 			}
-			else
-			{
-				Hig = higrad[grsize - 1];
+			else if ( Hig > 255 )
+			{//no higrad.set loaded - use the raw height
+				Hig = 255;
 			}
 			HiMap[ix + iy*HiLx] = Hig;
 			mpx += HiStepX;

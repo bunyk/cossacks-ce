@@ -783,20 +783,14 @@ void addLogTree( int x, int y )
 void addTrees( int x, int y1, int r )
 {
 	int y = Prop43( y1 );
-	if (r == 16)
+	int r2 = r*r;
+	int n = (r2 >> 14) + 1;
+	for (int i = 0; i < n; i++)
 	{
-		addLogTree( x, y );
-	}
-	else
-	{
-		int n = ( r*r ) >> 8;
-		int r2 = r*r;
-		for (int i = 0; i < n; i++)
-		{
-			int dx = ( ( rando() - 16384 )*r ) >> 14;
-			int dy = ( ( rando() - 16384 )*r ) >> 14;
-			if (dx*dx + dy*dy <= r2)addLogTree( x + dx, y + dy );
-		};
+		int dx = ( ( rando() - 16384 )*r ) >> 14;
+		int dy = ( ( rando() - 16384 )*r ) >> 14;
+		if (dx*dx + dy*dy <= r2)
+			addLogTree( x + dx, y + dy );
 	};
 };
 void delTrees( int x, int y1, int r )
