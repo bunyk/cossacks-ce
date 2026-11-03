@@ -4989,44 +4989,20 @@ void SQPicture::Draw( int x, int y )
 };
 void SQPicture::DrawTransparent( int x, int y )
 {
-#ifdef _WIN32
+	//Color-key blit: pixel value 0 is transparent, all others overwrite.
+	//Row stride is SCRSizeX, matching the original asm (scradd).
 	if (!PicPtr)return;
-	int sofst = int( ScreenPtr ) + x + y*SCRSizeX;
-	int pofst = int( PicPtr + 2 );
 	int lx = int( PicPtr[0] );
 	int ly = int( PicPtr[1] );
 	if (ly <= 0 || lx <= 0 || lx > RealLx || ly > RealLy)return;
-	int lx4 = lx >> 2;
-	int lx1 = lx & 3;
-	int scradd = SCRSizeX - lx;
-	__asm {
-		push	esi
-		push	edi
-		mov		esi, pofst
-		mov		edi, sofst
-		mov		edx, ly
-		or edx, edx
-		jz		uu3
-		cld
-		lpp0 : mov		ecx, lx
-			   lpp1 : lodsb
-					  or al, al
-					  jnz		lpp1x
-					  //inc		esi
-					  inc		edi
-					  dec		ecx
-					  jnz		lpp1
-					  jmp		uu2
-					  lpp1x : stosb
-							  dec		ecx
-							  jnz		lpp1
-							  uu2 : add		edi, scradd
-									dec		edx
-									jnz		lpp0
-									uu3 : pop		edi
-										  pop		esi
-	};
-#endif // _WIN32
+	uint8_t* dst = static_cast<uint8_t*>( ScreenPtr ) + x + y * SCRSizeX;
+	uint8_t* src = reinterpret_cast<uint8_t*>( PicPtr + 2 );
+	for (int row = 0; row < ly; ++row) {
+		uint8_t* d = dst + row * SCRSizeX;
+		uint8_t* s = src + row * lx;
+		for (int i = 0; i < lx; ++i)
+			if (s[i]) d[i] = s[i];
+	}
 };
 
 bool SafeLoad = 0;

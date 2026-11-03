@@ -47,7 +47,7 @@ Configure:
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
-Release build is configuredwithout debug symbols:
+Release build is configured without debug symbols:
 ```
 cmake -S . -B build
 ```
