@@ -1,7 +1,8 @@
 // Linux port stubs.
 //
 // Temporary no-op definitions for functionality that is not ported yet:
-//  - interface.cpp regions still guarded by _WIN32 (map interface, dialogs helpers, chat)
+//  - interface.cpp regions still guarded by _WIN32 (multiplayer, chat,
+//    clans, random-map dialogs)
 //  - path.cpp (pathfinding: heavy asm, needs porting)
 //  - fog.cpp / virtscr.cpp asm regions
 //  - realwater.cpp, shiptrace.cpp, mplayer.cpp (network), ir_main.cpp
@@ -28,26 +29,23 @@
 #ifndef _WIN32
 
 //-------------- global variables --------------
+// CUR_TOOL_MODE/DRAWLOCK/HEIGHTSTR: real definitions now compiled in
+// interface.cpp - stubs deleted.
 word COMPSTART[8];
 char CurrentMap[64];
-int CUR_TOOL_MODE = 0;
 char DEFPLNAMES[8][64];
-bool DRAWLOCK = false;
 DWORD EBPos1 = 0;
 int PLNAT[8];
 EXBUFFER EBufs[MaxPL];
 EXBUFFER EBufs1[MaxPL];
 int ExitNI = 0;
 // FogMode: defined in fog.cpp (ported)
-char HEIGHTSTR[12];
-int InteriorType = 0;
-extern const int kCtrlStickyTime = 700;bool LockFog = false;
+extern const int kCtrlStickyTime = 700;
+bool LockFog = false;
 char MapScenaryDLL[200];
-// TexList/NTextures/GetTexture: real definitions un-guarded in
-// interface.cpp (editor texture picker) 2026-11-01 - stubs deleted.
-byte MI_Mode = 0;
-byte NeedToPopUp = 0;
-bool OptHidden = false;
+// Editor UI state (InteriorType/MI_Mode/OptHidden/ToolsHidden/TP_Made/
+// NeedToPopUp) and TexMap brush parameters (TM_*/TexMapMod): real
+// definitions now compiled in interface.cpp - stubs deleted.
 int OrderSound = 0;
 int PREVGLOBALTIME = 0;
 word PrevRpos = 0;
@@ -57,13 +55,6 @@ int RM_Restot = 0;
 char SaveFileName[128];
 int SeqErrorsCount = 0;
 byte SYNBAD[8];
-bool TexMapMod = false;
-int TM_Height0 = 0;
-int TM_Height1 = 0;
-int TM_Tan0 = 0;
-int TM_Tan1 = 0;
-bool ToolsHidden = false;
-bool TP_Made = false;
 // Sound volumes: DirectSound-style slider positions (0..100). SDL_AppInit
 // zeroes these before loading mode.dat (same as the original), so these
 // inits only matter for the very first run before a mode.dat exists.
@@ -95,16 +86,14 @@ word GetNextGreCell( byte NI, int F, int Start ) { (void)NI; (void)F; (void)Star
 word GetNextSafeCell( byte NI, int F, int start, int Fin ) { (void)NI; (void)F; (void)start; (void)Fin; return 0xFFFF; }
 
 //-------------- interface.cpp / gp_draw.cpp guarded regions --------------
-bool CheckFlagsNeed() { return false; }
+// CheckFlagsNeed/GetTreeItem/LoadMapInterface/ProcessMapInterface: real
+// definitions now compiled in interface.cpp - stubs deleted.
 bool CheckGameTime() { return false; }
 void DontMakeRaiting() {}
 void ExplorerOpenRef( int Index, char* ref ) { (void)Index; (void)ref; }
 int  GetCurGamePtr( byte** Ptr ) { if (Ptr) *Ptr = NULL; return 0; }
-int  GetTreeItem() { return 0; }
 bool IsGameActive() { return false; }
-void LoadMapInterface() {}
 void LoadSaveFile() {}
-void ProcessMapInterface() {}
 void SetBrokenState() {}
 void ShowChat() {}
 void ShowCentralMessage4( char* Message, int GPIDX, int DX ) { (void)Message; (void)GPIDX; (void)DX; }
@@ -114,8 +103,9 @@ void UpdateCurGame() {}
 // DecodeOptionsFromNumber: real implementation in newcode/mapoptionsencoder.cpp
 // (now compiled) - stub deleted. Without it every additional game option
 // chosen in the random-map UI decoded to 0 (default).
-void CreateNEWMAP() {}
-bool ReadBMP24( char* Name, BMPformat* BM, byte** data ) { (void)Name; (void)BM; (void)data; return false; }
+// ReadBMP24/CreateNEWMAP: real implementations now compiled (bmptool.cpp and
+// the editor UI in interface.cpp) - stubs deleted.
+// ReadClanData: real implementation is still inside a Win32 region.
 void ReadClanData() {}
 
 //-------------- network (mplayer.cpp, ir_main.cpp, unsyncro extras) --------------
@@ -203,19 +193,27 @@ void GoHomeAnyway() {}
 // Multiplayer lobby screens; single-player play never reaches them.
 bool processMultiplayer() { return false; }
 bool processBattleMultiplayer() { return false; }
-// Map editor file pickers (save/load a map under a chosen name)
-bool ProcessSavingFile( char* Mask, char* DestName, int Header, bool clear ) { (void)Mask; (void)DestName; (void)Header; (void)clear; return false; }
-bool ProcessLoadingFile( char* Mask, char* DestName, int Header ) { (void)Mask; (void)DestName; (void)Header; return false; }
-// Map editor dialogs still inside Win32 regions (portable bodies, not
-// extracted yet); EditGame's MakeMenu dispatch calls them. No-ops until
-// ported: the resource editor (case 31), the minimap editor (case 6)
-// and the interior choosers (cases 7/8/9).
-int ProcessResEdit() { return 0; }
-void EditMiniMap() {}
-void ChooseInterior( int Type ) { (void)Type; }
 // Chat key dispatcher (interface.cpp, inside the Win32 multiplayer
 // region; chat is a stubbed feature anyway - see PortingNotes).
 void ProcessChatKeys() {}
+// Terrain-editor error prompt (interface.cpp, unguarded editor UI). The
+// real dialog body lives in ir_main.cpp (not compiled on Linux): draw the
+// text via ShowCentralMessage4 (no-op stub for now) and wait for a
+// keypress. printf keeps the message visible on the console meanwhile.
+extern bool KeyPressed;
+bool ProcessMessages();
+void WaitWithError( char* ID, int GPID )
+{
+	char* str = GetTextByID( ID );
+	printf( "WaitWithError: %s\n", str );
+	ShowCentralMessage4( str, GPID, 90 );
+	FlipPages();
+	KeyPressed = 0;
+	do
+	{
+		ProcessMessages();
+	} while ( !KeyPressed );
+}
 
 // network functions (mplayer.cpp)
 void AnalyseMessages() {}

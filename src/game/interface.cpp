@@ -73,6 +73,12 @@ extern const int kSystemMessageDisplayTime;
 #include "safety.h"
 #include "strategyresearch.h"
 #include "einfoclass.h"
+// Headers the map editor UI needs: terrain triangle access (3dgraph.h),
+// circle raster tables (topograf.h) and BMP load/save for the terrain
+// editor's heightmap import/export (bmptool.h)
+#include "3dgraph.h"
+#include "topograf.h"
+#include "bmptool.h"
 #endif // _WIN32
 
 extern bool RUNMAPEDITOR;
@@ -1342,6 +1348,19 @@ void ProcessMapOptions()
 };
 char DEFPLNAMES[8][64];
 //--------------------RESOURCE EDITOR----------------------//
+// Editor dialog (menu case 31) for editing per-player resources, player
+// names, the scenario DLL path and random-map resource presets.
+#endif // _WIN32
+// Decls whose originals sit in Windows-only blocks higher up in this file:
+// per-nation resources (nature.cpp), default player names and the scenario
+// DLL path (guarded blocks above), random-map resource presets
+// (linux_stubs.cpp provides the storage on non-Windows builds).
+extern char DEFPLNAMES[8][64];
+extern int RES[8][8];
+extern char MapScenaryDLL[200];
+extern int RM_LandType;
+extern int RM_Resstart;
+extern int RM_Restot;
 void MemScreenPart( int x, int y, int lx, int ly, byte* Ptr );
 extern int CBB_GPFILE;
 int ProcessResEdit()
@@ -1374,7 +1393,7 @@ int ProcessResEdit()
 	{
 		if ( RDS[i].Enabled )
 		{
-			_itoa( RES[MyNation][i], ResST[i], 10 );
+			sprintf( ResST[i], "%d", RES[MyNation][i] );
 			RESLOC[i] = RES[MyNation][NRes];
 			RESRID[NRes] = i;
 			NRes++;
@@ -1474,6 +1493,7 @@ int ProcessResEdit()
 	return ItemChoose;
 }
 
+//Texture-map ("TexMap") brush parameters, used by the editor texture tools
 int TM_Angle0 = 0;
 int TM_Angle1 = 89;
 int TM_Tan0;
@@ -1482,6 +1502,8 @@ int TM_Height0 = 0;
 int TM_Height1 = 1024;
 bool TexMapMod = false;
 
+// (Windows-only region resumes: the mission code)
+#ifdef _WIN32
 void ProcessFranceMission();
 #endif // _WIN32
 
@@ -6087,18 +6109,6 @@ bool SingleOptions()
 	}
 }
 
-//Screen-snapshot helpers (real defs at ~16334 are in the editor guard region)
-void PushScreen( byte** Ptr )
-{
-	*Ptr = new byte[ScrWidth*RealLy];
-	memcpy( *Ptr, ScreenPtr, ScrWidth*RealLy );
-}
-void PopScreen( byte* Ptr )
-{
-	memcpy( ScreenPtr, Ptr, ScrWidth*RealLy );
-	free( Ptr );
-}
-
 //Declarations for the save/load/options dialogs below (their originals sit
 //in Windows-only declaration blocks higher up in this file)
 extern int WarSound;
@@ -8034,7 +8044,6 @@ void UnPress();
 
 void ChooseUnit()
 {
-#ifdef _WIN32
 	ItemChoose = -1;
 	SQPicture Pan( "Units.bpx" );
 	//SQPicture Lstr("195x20.bpx");
@@ -8109,7 +8118,6 @@ void ChooseUnit()
 		ContinueGame = true;
 	};
 	UnPress();
-#endif
 }
 
 //------MAIN MENU IN MAP EDITOR----------//
@@ -8143,7 +8151,6 @@ extern int MaxTex;
 	   //
 int SelectTexture()
 {
-	#ifdef _WIN32
 	ContinueGame = false;
 	GameMode = 2;
 	NTextures = 0;
@@ -8225,7 +8232,6 @@ int SelectTexture()
 	GameMode = 0;
 	UnPress();
 	return ItemChoose;
-#endif // _WIN32
 }
 //----------MAIN MENU IN GAME------------//
 bool IsGameActive();
@@ -8382,9 +8388,7 @@ stg:
 
 	if ( ItemChoose == mcmLoad )
 	{
-#ifdef _WIN32 (dialogs in guarded region)
 		ProcessGLoadMap();
-#endif
 		GMM.MarkToDraw();
 		if ( !ContinueGame )
 			goto stg;
@@ -8392,9 +8396,7 @@ stg:
 
 	if ( ItemChoose == mcmSave )
 	{
-#ifdef _WIN32 (dialogs in guarded region)
 		ProcessGSaveMap();
-#endif
 		GMM.MarkToDraw();
 		if ( !ContinueGame )
 			goto stg;
@@ -9216,15 +9218,14 @@ void FastEditScreenProcess()
 void CheckGP();
 
 
-int ProcessResEdit(); // linux_stubs.cpp no-op until the dialog is extracted
+int ProcessResEdit();
 
 //Main map editor function
 void EditGame()
 {
-	// Editor loop un-guarded 2026-11-01: only the per-frame machinery
-	// already ported for the game (PreDrawGameProcess/FastScreenProcess/
-	// PostDrawGameProcess) plus the editor dialogs; the Load/Save map
-	// dialogs inside ProcessE_GMainMenu stay stubbed until ported.
+	// Editor loop: the per-frame machinery shared with the game
+	// (PreDrawGameProcess/FastScreenProcess/PostDrawGameProcess) plus the
+	// editor dialogs, including the Load/Save map pickers.
 	InEditor = true;
 
 	if ( window_mode )
@@ -10300,9 +10301,9 @@ bool AskMissionQuestion( char* Bmp, char* Text )
 	else return false;
 };
 
-// (the minimap-editor machinery below is still Windows-only)
-#ifdef _WIN32
 //----------------------MiniMap editor interface------------------
+// Pictures for the minimap editor tool buttons and the height gradient
+// (higrad.set maps terrain heights to palette indices for the preview).
 SQPicture trans1u;
 SQPicture trans1p;
 SQPicture trans2u;
@@ -10354,8 +10355,11 @@ int winX;
 int winY;
 int winX1;
 int winY1;
-byte* HiMap;
-byte* HiMap1;
+//Minimap preview buffers (HiLx*HiLy). Note: 3dsurf.cpp has an unrelated
+//global "short HiMap[256][256]" (surface heights, also extern'd by
+//mapa.cpp), so these must stay file-local.
+static byte* HiMap;
+static byte* HiMap1;
 
 void SetupHiMap()
 {
@@ -10412,6 +10416,10 @@ void CreateHiMap()
 }
 
 //----------------------LOADING THE FILE--------------------//
+// File picker dialogs used by the map editor's Load/Save map menu items:
+// a list of files matching Mask (e.g. "*.m3d") plus a name input on the
+// save side. On POSIX builds the FindFirstFile family is a shim (see the
+// load-game dialog section above).
 void CreateFilesList( char* Mask, ListBox* LB )
 {
 	WIN32_FIND_DATA FD;
@@ -10567,6 +10575,8 @@ bool ProcessSavingFile( char* Mask, char* DestName, int Header, bool clear )
 }
 
 //------------------TRANSFORMATIONS LIBRARY-----------------
+// Height-field brush transforms used by the minimap editor and the
+// terrain editor (hills/water/craters with random noise from tpr1..tpr6).
 int xc, yc;//center of the transformation
 static int HiMode = 0;
 static int tpr1 = 256;//Height
@@ -11277,9 +11287,10 @@ int GetTreeItem()
 	return TreeItems[( rando()*NTreeItems ) >> 15];
 }
 //Multiplayer Interface
+// (Windows-only from here to the end of this region: the lobby screens)
 
 //-------------Multiplayer settings--------------
-
+#ifdef _WIN32
 bool WaitingGame( bool Host )
 {
 	char STRI[128];
@@ -14465,7 +14476,12 @@ void GetTimeString( int t, char* str )
 };
 int SortPlayers( byte* Res, int* par );
 void ShowVictInFormat( char* Res, int idx, byte Type );
+// (Windows-only region ends here; the map editor tool UI below is
+// cross-platform)
+#endif // _WIN32
 //---------------------MAP EDITOR INTERFACE--------------//
+// Editor tool panels: mode buttons (height/water/texture/sprites/units...),
+// the per-tool option dialogs and the terrain editor they open into.
 byte MI_Mode = 1;
 
 int CurrentEditMode;
@@ -16004,10 +16020,12 @@ void DrawHeightPen( byte* BUF, int v1, int v2 )
 
 #define TERRSH 8
 
-byte* TerrHI;
-byte* SoftArea;
-byte* TerrMap;
-byte* ResultMap;
+//Terrain editor work buffers (msx-sized). File-local: megapolis.cpp has
+//an unrelated global "byte TerrMap[64][64]".
+static byte* TerrHI;
+static byte* SoftArea;
+static byte* TerrMap;
+static byte* ResultMap;
 
 extern byte trans8[65536];
 
@@ -16073,7 +16091,7 @@ void PixUndo::OpenNewChunk()
 {
 	if ( ( !NChunks ) || Chunks[NChunks - 1].Size )
 	{
-		Chunks = (UndoChunk*) realloc( Chunks, ( NChunks + 1 ) * sizeof UndoChunk );
+		Chunks = (UndoChunk*) realloc( Chunks, ( NChunks + 1 ) * sizeof( UndoChunk ) );
 		Chunks[NChunks].Size = 0;
 		Chunks[NChunks].MaxSize = 0;
 		Chunks[NChunks].UndoData = nullptr;
@@ -16794,6 +16812,9 @@ void CreateNEWMAP()
 	}
 	free( p );
 }
+// (Windows-only region resumes: clans, the clan string export and the
+// AI-check export are outside the map editor UI)
+#ifdef _WIN32
 //-----------------Clans support----------------//
 struct ClanInfo
 {

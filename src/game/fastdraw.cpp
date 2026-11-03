@@ -587,8 +587,7 @@ void LoadPalettes()//IMPORTANT: load color palettes for color masking
 	RBlockRead( f1, PAL7, 256 );
 	RClose( f1 );
 }
-#ifdef _WIN32
-
+//Loads a RLC font by file name (e.g. GETS()-resolved resource path)
 RLCFont::RLCFont( char* Name )
 {
 	int LOLD = LOADED;
@@ -598,7 +597,6 @@ RLCFont::RLCFont( char* Name )
 	Options = 0;
 	ShadowGP = -1;
 }
-#endif // _WIN32
 
 void RLCFont::SetRedColor()
 {

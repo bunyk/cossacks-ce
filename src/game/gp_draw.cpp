@@ -353,7 +353,7 @@ int GP_Header::GetDx()
 		DIFF = GPH->NextPict;
 		int Lxx = GPH->dx;
 		if (Lxx < LxMax)LxMax = Lxx;
-		GPH = (GP_Header*)((int)GPS + DIFF);
+		GPH = (GP_Header*)((uintptr_t)GPS + DIFF);
 	} while (DIFF != -1);
 	return LxMax;
 };
@@ -368,7 +368,7 @@ int GP_Header::GetDy()
 		DIFF = GPH->NextPict;
 		int Lxx = GPH->dy;
 		if (Lxx < LxMax)LxMax = Lxx;
-		GPH = (GP_Header*)((int)GPS + DIFF);
+		GPH = (GP_Header*)((uintptr_t)GPS + DIFF);
 	} while (DIFF != -1);
 	return LxMax;
 }

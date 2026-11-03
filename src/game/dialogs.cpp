@@ -2662,7 +2662,6 @@ InputBox* DialogsSystem::addInputBox( SimpleDialog* Parent,
 };
 //------end of class InputBox----------------//
 
-#ifdef _WIN32
 //----------class : CheckBox-----------------//
 bool CheckBox_OnDraw( SimpleDialog* SD )
 {
@@ -2871,7 +2870,6 @@ CheckBox* DialogsSystem::addGP_CheckBox( SimpleDialog* Parent,
 	return nullptr;
 };
 //--------end of CheckBox--------------------//
-#endif // _WIN32
 
 //-----------colored bar---------------------//
 DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
@@ -3679,7 +3677,6 @@ BPXView* DialogsSystem::addBPXView(
 	return nullptr;
 };
 //---------------end of BPXView--------------//
-#ifdef _WIN32
 //-----------------RLCListBox----------------//
 bool RLCListBox_OnDraw( SimpleDialog* SD )
 {
@@ -3799,7 +3796,6 @@ RLCListBox* DialogsSystem::addRLCListBox( SimpleDialog* Parent,
 	return nullptr;
 };
 //--------------end of RLCListBox------------//
-#endif // _WIN32
 
 //-------------------ComboBox----------------//
 bool ComboBox_OnDraw( SimpleDialog* SD )
@@ -4254,7 +4250,8 @@ bool ComboBox_OnDestroy( SimpleDialog* SD )
 	return true;
 };
 
-#ifdef _WIN32
+//Extra ComboBox pieces used by the editor tool dialogs: an attached
+//scrollbar, "ruler" mode (value pickers) and the plain-text combo box
 void ComboBox::AssignScroll( DialogsSystem* DSS, VScrollBar** SCR, int GPFile, int Sprite, int MaxLy )
 {
 	*SCR = DSS->addNewGP_VScrollBar( nullptr, x1 - DSS->BaseX - GPS.GetGPWidth( GPFile, Sprite ) + 1, y1 + 5 - DSS->BaseY, OneLy*MaxLy + 9, 1, 0, GPFile, Sprite );
@@ -4325,7 +4322,6 @@ ComboBox* DialogsSystem::addComboBox( SimpleDialog* Parent, int x, int y, int Lx
 
 	return nullptr;
 }
-#endif // _WIN32
 
 ComboBox* DialogsSystem::addGP_ComboBox( SimpleDialog* Parent, int x, int y, int GP_File,
 	int UpPart, int Center, int DownPart,
