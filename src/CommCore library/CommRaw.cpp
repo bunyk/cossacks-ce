@@ -84,6 +84,18 @@ BOOL CCommCore::SendRawPacket(PEER_ADDR			PeerAddr,
 
 	m_dwTxBytes += uRawFrameSize;
 
+	if (CCTraceEnabled())
+	{
+		CCTrace( "CC SND -> %s:%u type=%u (%s) peer=%u size=%u%s",
+			inet_ntoa( sinPeer.sin_addr ),
+			ntohs( sinPeer.sin_port ),
+			uType,
+			CCPacketName( uType ),
+			m_piNumber,
+			uRawFrameSize,
+			bSecureMessage ? " secure" : "" );
+	}
+
 #ifdef CC_DEBUG
 	CHAR		szMsg[255];
 	sprintf(szMsg, "call SendRawPacket()");

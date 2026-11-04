@@ -76,4 +76,9 @@ typedef int HRESULT;
 
 char* _strupr(char *str);
 
+// Networking debug trace helpers (implemented in the CommCore library
+// sources): enabled by default; silence with COSSACKS_NET_TRACE=0
+bool CCTraceEnabled();
+void CCTrace( const char* fmt, ... );
+
 #endif

@@ -1,6 +1,59 @@
 #include "CommCore.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+
+// -------------------------------- packet tracing ------------------------------
+
+bool CCTraceEnabled()
+{
+	// ON by default (set COSSACKS_NET_TRACE=0 to silence): the trace is the
+	// primary debugging tool for the multiplayer port right now, and it
+	// must not depend on the variable surviving launchers/gdb/debuggers
+	static int Enabled = -1;
+	if (Enabled < 0)
+	{
+		const char* Env = getenv( "COSSACKS_NET_TRACE" );
+		Enabled = ( !( Env && *Env && strcmp( Env, "0" ) == 0 ) );
+	}
+	return Enabled != 0;
+}
+
+void CCTrace( const char* fmt, ... )
+{
+	va_list ap;
+	va_start( ap, fmt );
+	vprintf( fmt, ap );
+	va_end( ap );
+	printf( "\n" );
+	fflush( stdout );
+}
+
+const char* CCPacketName( unsigned uType )
+{
+	switch (uType)
+	{
+	case CC_PT_FRAME_CONFIRM: return "FRAME_CONFIRM";
+	case CC_PT_HOST_ALIVE: return "HOST_ALIVE";
+	case CC_PT_SEND_DATA: return "SEND_DATA";
+	case CC_PT_SEND_DATA_SECURE: return "SEND_DATA_SECURE";
+	case CC_PT_CHCK_HOST: return "CHCK_HOST";
+	case CC_PT_TRY_CONNECT: return "TRY_CONNECT";
+	case CC_PT_CONNECT_OK: return "CONNECT_OK";
+	case CC_PT_CONNECT_REJECT: return "CONNECT_REJECT";
+	case CC_PT_SERVER_LIST: return "SERVER_LIST";
+	case CC_PT_HOST_EXIT: return "HOST_EXIT";
+	case CC_PT_HOST_DROP: return "HOST_DROP";
+	case CC_PT_CONNECT_DIFF: return "CONNECT_DIFF";
+	case CC_PT_HOST_DROP_OK: return "HOST_DROP_OK";
+	case CC_PT_SEND_USER_NAME: return "SEND_USER_NAME";
+	case CC_PT_SEND_USER_DATA: return "SEND_USER_DATA";
+	case CC_PT_SEND_NEW_NAME: return "SEND_NEW_NAME";
+	case CC_PT_SEND_NEW_DATA: return "SEND_NEW_DATA";
+	default: return "?UNKNOWN_CC?";
+	}
+}
 
 // ---------------------------------------------------------------------------------------------
 

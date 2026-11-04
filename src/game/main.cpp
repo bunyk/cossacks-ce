@@ -486,6 +486,16 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	//the early lookup could not run (no /proc).
 	EnterGameDataDir( argc, argv );
 
+	//Banner so trace state is visible in every log: tracing is ON by
+	//default; set COSSACKS_NET_TRACE=0 to silence it
+	{
+		const char* Env = getenv( "COSSACKS_NET_TRACE" );
+		printf( "NET TRACE: %s (COSSACKS_NET_TRACE=\"%s\")\n",
+			CCTraceEnabled() ? "ENABLED" : "disabled",
+			Env ? Env : "" );
+		fflush( stdout );
+	}
+
 	for (int i = 0; i < argc; i++)
 	{
 		if (strcmp(argv[i], "/MAPEDITOR") == 0)

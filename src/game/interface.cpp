@@ -29,10 +29,6 @@ extern PlayerInfo PINFO[8];
 
 #ifdef _WIN32
 
-#ifdef NETWORK
-#include "newcode/udpholepuncher.h"
-#endif
-
 #include "mgraph.h"
 #include "menu.h"
 #include "multipl.h"
@@ -55,10 +51,6 @@ extern PlayerInfo PINFO[8];
 #include "ir.h"
 #include "bmptool.h"
 
-
-#ifdef NETWORK
-UdpHolePuncher udp_hole_puncher;
-#endif
 
 extern const int kChatMessageDisplayTime;
 extern const int kSystemMessageDisplayTime;
@@ -1024,11 +1016,9 @@ bool FindSessionAndJoin( char* Name, char* Nick, unsigned short port );
 bool CreateSession( char* SessName, char* Name, DWORD User2, int MaxPlayers );
 extern int GMTYPE;
 
-bool historical_battle_over_gsc_network = false;
 
 bool DoNewInet = 0;
 extern int GMMAXPL;
-bool ProcessNewInternetLogin();
 extern char** NatsIDS;
 
 char IPADDR[128] = "";
@@ -1037,7 +1027,6 @@ bool TOTALEXIT = 0;
 
 bool EnterName();
 
-extern char ACCESS[16]; // ir_main.cpp: key of the last internet login
 //Prepares multiplayer Deathmatch lobby
 //Also handles lobbies for Historical Battles over GSC network
 bool processMultiplayer()
@@ -1046,15 +1035,6 @@ bool processMultiplayer()
 	memset( AddrBuf, 0, 128 );
 
 	int connection_menu_result = 0;
-
-#ifdef NETWORK
-RetryConn:
-	if ( historical_battle_over_gsc_network )
-	{
-		//Skip network protocol selection
-		goto REC3;
-	}
-#endif //NETWORK
 
 	connection_menu_result = MPL_ChooseConnection();
 
@@ -1068,32 +1048,6 @@ RetryConn:
 		return 0;
 	}
 
-#ifdef NETWORK
-	if ( selected_network_protocol == 3 )
-	{
-		//GSC-Game.Net Network Game
-	REC3:
-		//Show login menu
-		if ( !ProcessNewInternetLogin() )
-		{
-			return false;
-		}
-
-	REINCONN:
-		int r = ProcessInternetConnection( 1 );
-		if ( !r )
-		{
-			return 0;
-		}
-		if ( r == 2 )
-			connection_menu_result = 10;//Join
-		if ( r == 1 )
-			connection_menu_result = 11;//Host Deathmatch
-		if ( r == 3 )
-			connection_menu_result = 13;//Host Historical Battle
-	}
-	else
-#endif //NETWORK
 	{
 		if ( !EnterName() )
 		{
@@ -1117,9 +1071,21 @@ RetryConn:
 	switch ( connection_menu_result )
 	{
 	case mcmHost:
+		if ( CCTraceEnabled() )
+		{
+			CCTrace( "PHASE processMultiplayer: HOST branch, name=\"%s\"", PlName );
+		}
 		if ( CreateNamedSession( PlName, 0, GMMAXPL ) )
 		{
+			if (CCTraceEnabled())
+			{
+				CCTrace( "PHASE CreateNamedSession ok: session up, awaiting joins" );
+			}
 			WaitingHostGame( 0 );
+		}
+		else if (CCTraceEnabled())
+		{
+			CCTrace( "PHASE CreateNamedSession FAILED (bind/init error?)" );
 		}
 		break;
 
@@ -1127,113 +1093,29 @@ RetryConn:
 		// Direct join to the address typed in MPL_ChooseConnection
 		// (DirectPlay session browsing is long gone; the GSC lobby path
 		// below used to fill IPADDR from the chat room instead)
+		if (CCTraceEnabled())
+		{
+			CCTrace( "PHASE processMultiplayer: JOIN branch, ip=\"%s\" name=\"%s\"",
+				IPADDR, PlName );
+		}
 		if ( FindSessionAndJoin( ROOMNAMETOCONNECT, PlName, 0 ) )
 		{
+			if (CCTraceEnabled())
+			{
+				CCTrace( "PHASE FindSessionAndJoin ok: entering join lobby" );
+			}
 			WaitingJoinGame( GMTYPE );
 		}
 		else
 		{
+			if (CCTraceEnabled())
+			{
+				CCTrace( "PHASE FindSessionAndJoin FAILED: no session at that address" );
+			}
 			WaitWithMessage( GetTextByID( "ICUNJ" ) );
 		}
-#ifdef NETWORK
-		MPL_JoinGame( 0 );
-#endif //NETWORK
 		break;
 
-#ifdef NETWORK
-	case 11://Inet Host(Deathmatch)
-		PlayerMenuMode = 1;
-		if ( CreateSession( GlobalRIF.Name, GlobalRIF.Nick, 0, GlobalRIF.MaxPlayers ) )
-		{
-			NeedToPerformGSC_Report = 1;
-
-			//Pass all necessary data and prepare UdpHolePuncher
-			udp_hole_puncher.Init( GlobalRIF.udp_server, GlobalRIF.port, GlobalRIF.udp_interval,
-				GlobalRIF.player_id, ACCESS );
-
-			WaitingHostGame( 0 );
-			NeedToPerformGSC_Report = 0;
-			if ( PlayerMenuMode == 1 )
-			{
-				//need to leave the room there
-				LeaveGSCRoom();
-				goto REINCONN;
-			}
-			else
-			{
-				char* PLAYERS[8];
-				int Profiles[8];
-				char NAT[8][32];
-				char* Nations[8];
-				int Teams[8];
-				int Colors[8];
-				for ( int i = 0; i < NPlayers; i++ )
-				{
-					PLAYERS[i] = PINFO[i].name;
-					sprintf( NAT[i], "%d", PINFO[i].NationID );
-					Nations[i] = NAT[i];
-					Profiles[i] = PINFO[i].ProfileID;
-					Teams[i] = PINFO[i].GroupID;
-					Colors[i] = PINFO[i].ColorID;
-				}
-				StartGSCGame( "", PINFO[0].MapName, NPlayers, Profiles, Nations, Teams, Colors );
-				NeedToReportInGameStats = 1;
-				LastTimeReport_tmtmt = 0;
-			}
-		}
-		else
-		{
-			LeaveGSCRoom();
-			goto REINCONN;
-		}
-		break;
-
-	case 13:
-		PlayerMenuMode = 1;
-		goto REINCONN;
-		break;
-
-	case 10://Inet Join(Deathmatch)
-		PlayerMenuMode = 1;
-		strcpy( IPADDR, GlobalRIF.RoomIP );
-		if ( !FindSessionAndJoin( ROOMNAMETOCONNECT, GlobalRIF.Nick, GlobalRIF.port ) )
-		{
-			LeaveGSCRoom();
-			WaitWithMessage( GetTextByID( "ICUNJ" ) );
-		}
-		else
-		{
-			WaitingJoinGame( GMTYPE );
-		}
-
-		if ( PlayerMenuMode == 1 )
-		{
-			LeaveGSCRoom();
-			goto REINCONN;
-		}
-		else
-		{
-			char* PLAYERS[8];
-			int Profiles[8];
-			char NAT[8][32];
-			char* Nations[8];
-			int Teams[8];
-			int Colors[8];
-			for ( int i = 0; i < NPlayers; i++ )
-			{
-				PLAYERS[i] = PINFO[i].name;
-				sprintf( NAT[i], "%d", PINFO[i].NationID );
-				Nations[i] = NAT[i];
-				Profiles[i] = PINFO[i].ProfileID;
-				Teams[i] = PINFO[i].GroupID;
-				Colors[i] = PINFO[i].ColorID;
-			}
-			StartGSCGame( "", PINFO[0].MapName, NPlayers, Profiles, Nations, Teams, Colors );
-			NeedToReportInGameStats = 1;
-			LastTimeReport_tmtmt = 0;
-		}
-		break;
-#endif //NETWORK
 	}
 
 	return 1;
@@ -1243,66 +1125,6 @@ bool ProcessOneBattle( int BtlID );
 
 int ProcessWars();
 
-//Prepares multiplayer lobby for historical battles
-// (needs ProcessOneBattle/ProcessWars, which are not ported yet - the
-// Linux stub in linux_stubs.cpp returns without the LAN battle lobby)
-#ifdef NETWORK
-void processBattleMultiplayer()
-{
-
-TryConnection:
-
-	byte AddrBuf[128];
-	memset( AddrBuf, 0, 128 );
-
-	int connection_menu_result = MPL_ChooseConnection();
-
-	if ( TOTALEXIT )
-	{
-		return;
-	}
-
-	if ( connection_menu_result == mcmCancel )
-	{
-		return;
-	}
-
-	if ( selected_network_protocol == 3 )//GSC-Game.Net Internet Game
-	{
-		historical_battle_over_gsc_network = true;
-
-		processMultiplayer();
-
-		if ( TOTALEXIT )
-		{
-			return;
-		}
-
-		historical_battle_over_gsc_network = false;
-
-		return;
-	}
-
-	if ( !EnterName() )
-	{
-		return;
-	}
-
-	int BTLID = 1;
-
-	if ( connection_menu_result == mcmHost )
-	{
-		BTLID = ProcessWars();
-	}
-
-	if ( BTLID == -1 )
-	{
-		goto TryConnection;
-	}
-
-	CreateMultiplaterInterface();
-}
-#endif //NETWORK
 
 // Map options / resource editor dialogs: storage for MapScenaryDLL and
 // DEFPLNAMES on non-Windows builds comes from linux_stubs.cpp, so this
@@ -1945,6 +1767,12 @@ int MPL_ChooseConnection()
 	}
 
 	SlowUnLoadPalette( "2\\agew_1.pal" );
+
+	if (CCTraceEnabled())
+	{
+		CCTrace( "PHASE MPL_ChooseConnection: protocol=%d item=%d ip=\"%s\"",
+			selected_network_protocol, ItemChoose, IPADDR );
+	}
 
 	//No GameSpy option anymore, only GSC-Game.Net
 	use_gsc_network_protocol = false;
@@ -2692,6 +2520,12 @@ extern bool RecordMode;
 
 bool MPL_WaitingGame( bool Host, bool SINGLE )
 {
+	if (CCTraceEnabled())
+	{
+		CCTrace( "PHASE MPL_WaitingGame: Host=%d SINGLE=%d NPlayers=%u MyDPID=%u",
+			Host ? 1 : 0, SINGLE ? 1 : 0, NPlayers, (unsigned) MyDPID );
+	}
+
 	if ( SINGLE )
 	{
 		use_gsc_network_protocol = false;
@@ -6111,8 +5945,7 @@ void UnPress();
 bool processMultiplayer();
 #include "recorder.h"       // RecordGame RGAME
 
-int ProcessWars();         // interface.cpp PROCESS screens (not ported yet)
-void processBattleMultiplayer();
+int ProcessWars();         // battles screens at the end of this file (not ported yet)
 
 // IChat library exports this
 DLLIMPORT void GoHomeAnyway();
@@ -6185,13 +6018,8 @@ int MM_ProcessMultiPlayer()
 		}
 	}
 
-	if ( ItemChoose == 2 )
-	{
-		if ( WARS.NWars )
-		{
-			processBattleMultiplayer();
-		}
-	}
+	// (ItemChoose == 2, the Historical Battle button, does nothing until the
+	// battles screens region at the end of this file is ported)
 	return ItemChoose;
 }
 

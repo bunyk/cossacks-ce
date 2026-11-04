@@ -129,9 +129,6 @@ BOOL CPinger::RecvEcho() { return FALSE; }
 int MidiSound = 0;
 // IChat library callback (DLLIMPORT in interface.cpp); no-op without the DLL
 void GoHomeAnyway() {}
-// Multiplayer lobby screens; historical battles lobby needs the not-yet-
-// ported ProcessOneBattle/ProcessWars screens (interface.cpp NETWORK region).
-void processBattleMultiplayer() {}
 // Terrain-editor error prompt (interface.cpp, unguarded editor UI). The
 // real dialog body lives in ir_main.cpp (not compiled on Linux): draw the
 // text via ShowCentralMessage4 (no-op stub for now) and wait for a

@@ -314,6 +314,12 @@ BOOL CALLBACK IPCORE_EnumProc( const PEER_ID PeerID, LPCSTR lpcszPeerName )
 	PINFLOC[NPlayers].PlayerID = PeerID;
 	strcpy( PINFLOC[NPlayers].name, lpcszPeerName );
 
+	if (CCTraceEnabled())
+	{
+		CCTrace( "ENUM peer[%u] id=%u name=\"%s\" (NPlayers -> %u)",
+			NPlayers, PeerID, lpcszPeerName, NPlayers + 1 );
+	}
+
 	word pisize = sizeof( PlayerInfo ) - 36;
 	memset( &PINFLOC[NPlayers].NationID, 0, pisize );
 	IPCORE.GetUserData( PeerID, &PINFLOC[NPlayers].NationID, &pisize );
@@ -453,7 +459,18 @@ void HandleApplicationMessage(void* lpMsg, DWORD dwMsgSize,
 		int player_index = GetPIndex( idFrom );
 		if (player_index < 0)
 		{
+			if (CCTraceEnabled())
+			{
+				CCTrace( "APP DROP: from unknown player id=%u cmd=%.4s size=%u (NPlayers=%u)",
+					idFrom, (char*) lpMsg, dwMsgSize, NPlayers );
+			}
 			return;
+		}
+
+		if (CCTraceEnabled() && dwMsgSize >= 4)
+		{
+			CCTrace( "APP MSG: from id=%u player[%d] cmd=%.4s size=%u",
+				idFrom, player_index, (char*) lpMsg, dwMsgSize );
 		}
 
 		NTOTFROM[player_index]++;
@@ -664,6 +681,11 @@ STAGENEXT:
 								memcpy( CHATSTRING, (char*) ( lp + 2 ), lp[1] );
 								CHATSTRING[lp[1]] = 0;
 								CHATDPID = idFrom;
+								if (CCTraceEnabled())
+								{
+									CCTrace( "CHAT RCV from id=%u: \"%s\"", idFrom, CHATSTRING );
+								}
+
 							}
 							else
 							{
@@ -2792,6 +2814,10 @@ void SendChat( char* str, bool Ally )
 	else ps[0] = 'CHAT';
 	ps[1] = strlen( str ) + 1;
 	memcpy( ps + 2, str, ps[1] );
+	if (CCTraceEnabled())
+	{
+		CCTrace( "CHAT SEND (%s): \"%s\"", Ally ? "ALLIES" : "ALL", str );
+	}
 	SendToAllPlayers( ps[1] + 8, ps, 0 );
 }
 

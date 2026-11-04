@@ -87,6 +87,14 @@ typedef struct { int iUnused; } WSADATA;	// dummy for the WSAStartup macro
 // Millisecond tick counter supplied by the main executable (timing.cpp)
 uint64_t GetSDLTickCount();
 
+// Runtime packet tracing, enabled with COSSACKS_NET_TRACE=1 in the
+// environment: printf's every frame sent and received (see CommCore.cpp).
+// Used for debugging the lobby/game traffic between two instances.
+bool CCTraceEnabled();
+void CCTrace( const char* fmt, ... );
+// Decoded CC_PT_* packet type name (e.g. "TRY_CONNECT" / "SEND_DATA")
+const char* CCPacketName( unsigned uType );
+
 #pragma pack(push,1)
 
 // ---------------------------------------------------------------------------------------------
