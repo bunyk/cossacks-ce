@@ -64,12 +64,12 @@ cmake --build build
 
 In debugger:
 ```bash
-gdb --args build/Debug/cossacks /window
+gdb --args build/Debug/cossacks --window
 ```
 
 Or run directly:
 ```bash
-build/Debug/cossacks /window
+build/Debug/cossacks --window
 ```
 
 ## Game data

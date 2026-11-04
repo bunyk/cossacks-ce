@@ -77,12 +77,31 @@ BOOL CCommCore::InitSocket()
 	if(ioctlsocket(m_DataSocket,FIONBIO,&lArgP)==SOCKET_ERROR)
 		return FALSE;
 
+#ifdef _WIN32
 	u_long	lMaxSize;
 	int		iSizeOfMaxSize=sizeof(u_long);
 	if(getsockopt(m_DataSocket,SOL_SOCKET,SO_MAX_MSG_SIZE,(char *)&lMaxSize,&iSizeOfMaxSize)==SOCKET_ERROR)
 		return FALSE;
 
 	m_uMaxMsgSize=(u_short)lMaxSize;
+#else
+	// Unix has no SO_MAX_MSG_SIZE; use the maximum IPv4 UDP payload size
+	m_uMaxMsgSize=65507;
+#endif
+
+	return TRUE;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Binds the data socket to the fixed DATA_PORT. Only the session host calls
+// this: clients leave their socket unbound and the kernel assigns an
+// ephemeral source port on the first sendto, which the host learns from the
+// incoming packet source address. This also lets a host and a client run on
+// the same machine without a bind() port clash.
+BOOL CCommCore::BindSocket()
+{
+	if (m_bSocketBound)
+		return TRUE;
 
 	sockaddr_in locaddr;
 
@@ -92,6 +111,8 @@ BOOL CCommCore::InitSocket()
 
 	if(bind(m_DataSocket,(sockaddr *)&locaddr,sizeof(sockaddr_in))==SOCKET_ERROR)
 		return FALSE;
+
+	m_bSocketBound=TRUE;
 
 	return TRUE;
 }
@@ -104,6 +125,8 @@ BOOL CCommCore::CloseSocket()
 
 	if(closesocket(m_DataSocket)==SOCKET_ERROR)
 		return FALSE;
+
+	m_bSocketBound=FALSE;
 
 	return TRUE;
 }

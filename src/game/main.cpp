@@ -125,7 +125,9 @@ Weapon Vibux1;
 extern bool RUNMAPEDITOR;
 extern bool RUNUSERMISSION;
 extern char USERMISSPATH[128];
-bool window_mode;
+// Set by /window or --window (defaults to fullscreen); borderless implies
+// window mode
+bool window_mode = false;
 bool borderless = false;
 
 bool EditMapMode;
@@ -497,16 +499,15 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 			strcpy(USERMISSPATH, argv[i+1]);
 		}
 
-		if (strcmp(argv[i], "/window") == 0)
+		// Windowed (-less) mode flags. Any other argument must not reset
+		// them - an else-branch here used to clear window_mode on every
+		// non-flag parameter, so a trailing --gamedata wiped /window
+		if (strcmp(argv[i], "/window") == 0 || strcmp(argv[i], "--window") == 0)
 		{
 			window_mode = true;
 		}
-		else
-		{
-			window_mode = false;
-		}
 
-		if (strcmp(argv[i], "/borderless") == 0)
+		if (strcmp(argv[i], "/borderless") == 0 || strcmp(argv[i], "--borderless") == 0)
 		{
 			window_mode = true;
 			borderless = true;
@@ -2090,8 +2091,7 @@ extern void ClearMStack();
 
 bool EnterChatMode = 0;
 
-// Multiplayer vote keys (multi.cpp) and chat keys (linux_stubs no-op
-// until the chat is ported).
+// Multiplayer vote keys (multi.cpp) and chat keys (interface.cpp)
 void ProcessVotingKeys();
 void ProcessChatKeys();
 

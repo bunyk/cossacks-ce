@@ -69,6 +69,17 @@ add_executable(cossacks
 	src/game/report.cpp
 	src/game/linux_stubs.cpp
 
+	src/game/mplayer.cpp
+
+	"src/CommCore library/CommCore.cpp"
+	"src/CommCore library/CommInet.cpp"
+	"src/CommCore library/CommInit.cpp"
+	"src/CommCore library/CommPeers.cpp"
+	"src/CommCore library/CommQueue.cpp"
+	"src/CommCore library/CommRaw.cpp"
+	"src/CommCore library/CommRecv.cpp"
+	"src/CommCore library/CommServerList.cpp"
+
 	src/game/conststr.cpp
 
 	src/game/stringshash.cpp

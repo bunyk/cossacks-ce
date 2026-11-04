@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "../Main executable/common.h"
-
 // ---------------------------------------------------------------------------------------------
 
 BOOL CCommCore::SetSessionName( LPCSTR lpcszSessionName )
@@ -358,6 +356,7 @@ VOID CCommCore::SetCommCoreUID( LPCSTR lpcszCCUID )
 {
 	_log_message( "SetCommCoreUID()" );
 
+#ifdef _WIN32
 	HKEY	hKey;
 
 	RegCreateKeyEx( HKEY_CURRENT_USER,
@@ -367,6 +366,18 @@ VOID CCommCore::SetCommCoreUID( LPCSTR lpcszCCUID )
 	RegSetValueEx( hKey, "CCUID", 0, REG_SZ, (unsigned char*) lpcszCCUID, strlen( lpcszCCUID ) + 1 );
 
 	RegCloseKey( hKey );
+#else
+	// Unix replacement of the registry storage: a small file next to the
+	// game data. Holds the persistent per-installation id (22 chars).
+	FILE*	f;
+
+	f = fopen( "CCUID.dat", "w" );
+	if (f)
+	{
+		fprintf( f, "%s", lpcszCCUID );
+		fclose( f );
+	}
+#endif
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -381,7 +392,13 @@ VOID CCommCore::NewCommCoreUID( LPSTR lpszCCUID )
 	DWORD	dwTicks;
 	int		iRand;
 
+#ifdef _WIN32
 	GetComputerName( szComputerName, &dwSize );
+#else
+	if (gethostname( szComputerName, sizeof( szComputerName ) ) != 0)
+		strcpy( szComputerName, "localhost" );
+	dwSize = strlen( szComputerName );
+#endif
 
 	for (iRand = dwSize; iRand < 8; iRand++)
 		szComputerName[iRand] = '0';
@@ -394,7 +411,10 @@ VOID CCommCore::NewCommCoreUID( LPSTR lpszCCUID )
 
 	iRand = rand();
 
-	sprintf( szCCUID, "%-8.8s-%8.8X-%4.4X", szComputerName, dwTicks, iRand );
+	// Intended to fit exactly 22 chars into CHAR[23]: printf precision is a
+	// MINIMUM for integers, so mask iRand down to 4 hex digits explicitly,
+	// else the 26-char id overflows m_szCCUID in the CCommCore object
+	sprintf( szCCUID, "%-8.8s-%8.8X-%4.4X", szComputerName, dwTicks, iRand & 0xFFFF );
 
 	SetCommCoreUID( szCCUID );
 
@@ -407,6 +427,7 @@ VOID CCommCore::GetCommCoreUID( LPSTR lpszCCUID )
 {
 	_log_message( "GetCommCoreUID()" );
 
+#ifdef _WIN32
 	HKEY	hKey;
 	CHAR	szCCUID[64];
 	DWORD	dwSize = 64;
@@ -436,6 +457,31 @@ VOID CCommCore::GetCommCoreUID( LPSTR lpszCCUID )
 	RegCloseKey( hKey );
 
 	strcpy( lpszCCUID, szCCUID );
+#else
+	// Unix: id persisted by SetCommCoreUID() in CCUID.dat next to the game data
+	CHAR	szCCUID[64];
+	FILE*	f;
+
+	f = fopen( "CCUID.dat", "r" );
+	if (f)
+	{
+		if (fgets( szCCUID, sizeof( szCCUID ), f ) != NULL)
+		{
+			char* cc = strchr( szCCUID, '\n' );
+			if (cc) *cc = 0;
+			// Valid id is 22 chars ("name-ticks-rand"), otherwise regenerate
+			if (strlen( szCCUID ) == 22)
+			{
+				fclose( f );
+				strcpy( lpszCCUID, szCCUID );
+				return;
+			}
+		}
+		fclose( f );
+	}
+
+	NewCommCoreUID( lpszCCUID );
+#endif
 }
 
 // ---------------------------------------------------------------------------------------------

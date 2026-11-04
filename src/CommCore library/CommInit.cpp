@@ -46,6 +46,7 @@ CCommCore::CCommCore()
 	m_lpbUserData = NULL;
 	m_uUserDataSize = 0;
 	m_bBlockingCall = FALSE;
+	m_bSocketBound = FALSE;
 	m_uMaxPeers = MAX_PEERS;
 	GetCommCoreUID( m_szCCUID );
 	m_uAddrCount = 0;
@@ -75,6 +76,11 @@ CCommCore::~CCommCore()
 BOOL CCommCore::InitServer( LPCSTR lpcszSessionName, LPCSTR lpcszUserName )
 {
 	_log_message( "InitServer()" );
+
+	// Only the server holds the well-known DATA_PORT, enabling direct
+	// host and client instances on the same machine (see BindSocket)
+	if (!BindSocket())
+		return FALSE;
 
 	m_dwRxBytes = 0;
 	m_dwTxBytes = 0;

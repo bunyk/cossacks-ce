@@ -122,12 +122,13 @@ void UnPress();
 int CurrentNation = -1;
 extern int PitchTicks;
 extern int MaxPingTime;
-#ifdef _WIN32
 void StartPing( DWORD DPID, int ID );
 void EndPing( int ID );
 bool CheckLogin();
 char* GetLString( DWORD DPID );
 
+// Ping threshold (ms) below which a player counts as having a good
+// connection for game-speed sync purposes
 #define MinPing0 50
 
 void ShowLoading();
@@ -156,7 +157,6 @@ bool ProcessSingleCampagin( int n );
 void CreateNationalMaskForMap( char* Name );
 extern bool realLpressed;
 void CreateMiniMap();
-#endif // _WIN32
 void SFLB_CreateGamesList( ListBox* LB );
 
 char* GetTextByID( char* ID );
@@ -167,10 +167,11 @@ void RandomMapDialog( char* Result );
 void RandomMapDialog1( char* Result, int N, char* Nats );
 void PrepareGameMedia( byte myid, bool );
 bool CHKV( char* Name );
-bool WaitingHostGame( int );
 void NewMap( int szX, int szY );
-bool WaitingJoinGame( int );
 #endif // _WIN32
+bool WaitingHostGame( int ); // interface.cpp lobby wrappers
+bool WaitingJoinGame( int );
+bool CreateMultiplaterInterface(); // mplayer.cpp
 void SlowLoadPalette( const char* lpFileName );
 void SlowUnLoadPalette( const char* lpFileName );
 void SetDarkPalette();
@@ -239,38 +240,22 @@ bool MultiplayerStart;
 #ifdef _WIN32
 extern bool ChoosePosition;
 #endif // _WIN32
-#ifdef _WIN32
 extern word NPlayers; // comes from mplayer.cpp
 void CloseMPL(); // comes from mplayer.cpp
-#else 
-word NPlayers;
-void CloseMPL() {} // dummy function until MPL is implemented
-#endif // _WIN32
 
 void LBEnumerateSessions( ListBox* LB, int );
 void AnalyseMessages();
 bool CreateNamedSession( char* Name, DWORD User2, int Max );
 bool StartIGame( bool );
-#ifdef _WIN32
-extern bool GameInProgress;
-#else
-bool GameInProgress = false;
-#endif // _WIN32
+extern bool GameInProgress; // comes from mplayer.cpp
 byte MyRace;
-#ifdef _WIN32
-extern word PlayerMenuMode;
-#else 
-word PlayerMenuMode = 0;
-#endif // _WIN32
-#ifdef _WIN32
-extern LPVOID lplpConnectionBuffer[16];
+extern word PlayerMenuMode; // comes from mplayer.cpp
 extern bool SHOWSLIDE;
 
-void ProcessNetCash();
-void ProcessReceive();
+void ProcessNetCash(); // comes from mplayer.cpp
+void ProcessReceive(); // comes from mplayer.cpp
 int NPROCM = 0;
 int TPROCM = 0;
-#endif // _WIN32
 int LastCTRLPressTime = 0;
 
 int PrevProgStage = 0;
@@ -309,6 +294,7 @@ void ShowProgStr( char* ss, int prog )
 void ProcessNewInternet();
 int PrevT = 0;
 void IAmLeft();
+void ShutdownMultiplayer( bool Final ); // mplayer.cpp
 extern byte SpecCmd;
 
 void ShowOptMessage( char* ID, int v )
@@ -342,7 +328,7 @@ extern int TIME1;
 int PrevProcTime = 0;
 extern City CITY[8];
 #endif // _WIN32
-DWORD MyDPID; // was extern DWORD MyDPID;, but I have no clue from where it comes from
+extern CDPID MyDPID; // defined in mplayer.cpp
 #ifdef _WIN32
 //--------------------inserted from DIPLOMACY.H---------------//
 typedef void tpStartDownloadInternetFile( char* Name, char* Server, char* DestName );
@@ -905,7 +891,6 @@ void setCoor()
 		coorY[i] = -1;
 	}
 }
-#ifdef _WIN32
 
 void LoadAIFromDLL( byte Nat, char* Name );
 
@@ -913,8 +898,9 @@ void LoadNation( char* fn, byte NIndex, byte );
 
 extern City CITY[8];
 
-extern char ROOMNAMETOCONNECT[128];
+extern char ROOMNAMETOCONNECT[128]; // 3drandmap.cpp lobby room name
 
+#ifdef _WIN32
 bool ProcessOneBattle( int BtlID );
 #endif // _WIN32
 
@@ -1023,6 +1009,8 @@ StartJoin:;
 	return false;
 }
 
+#endif // _WIN32
+
 //--------------------HOST THE SESSION---------------------//
 extern char IPADDR[128];
 
@@ -1044,15 +1032,12 @@ bool ProcessNewInternetLogin();
 extern char** NatsIDS;
 
 char IPADDR[128] = "";
-#endif // _WIN32
+
 bool TOTALEXIT = 0;
 
 bool EnterName();
 
-#ifdef _WIN32
-extern char ACCESS[16];
-
-#ifdef NETWORK
+extern char ACCESS[16]; // ir_main.cpp: key of the last internet login
 //Prepares multiplayer Deathmatch lobby
 //Also handles lobbies for Historical Battles over GSC network
 bool processMultiplayer()
@@ -1062,12 +1047,14 @@ bool processMultiplayer()
 
 	int connection_menu_result = 0;
 
+#ifdef NETWORK
 RetryConn:
 	if ( historical_battle_over_gsc_network )
 	{
 		//Skip network protocol selection
 		goto REC3;
 	}
+#endif //NETWORK
 
 	connection_menu_result = MPL_ChooseConnection();
 
@@ -1081,6 +1068,7 @@ RetryConn:
 		return 0;
 	}
 
+#ifdef NETWORK
 	if ( selected_network_protocol == 3 )
 	{
 		//GSC-Game.Net Network Game
@@ -1105,6 +1093,7 @@ RetryConn:
 			connection_menu_result = 13;//Host Historical Battle
 	}
 	else
+#endif //NETWORK
 	{
 		if ( !EnterName() )
 		{
@@ -1135,9 +1124,23 @@ RetryConn:
 		break;
 
 	case mcmJoin:
+		// Direct join to the address typed in MPL_ChooseConnection
+		// (DirectPlay session browsing is long gone; the GSC lobby path
+		// below used to fill IPADDR from the chat room instead)
+		if ( FindSessionAndJoin( ROOMNAMETOCONNECT, PlName, 0 ) )
+		{
+			WaitingJoinGame( GMTYPE );
+		}
+		else
+		{
+			WaitWithMessage( GetTextByID( "ICUNJ" ) );
+		}
+#ifdef NETWORK
 		MPL_JoinGame( 0 );
+#endif //NETWORK
 		break;
 
+#ifdef NETWORK
 	case 11://Inet Host(Deathmatch)
 		PlayerMenuMode = 1;
 		if ( CreateSession( GlobalRIF.Name, GlobalRIF.Nick, 0, GlobalRIF.MaxPlayers ) )
@@ -1230,17 +1233,20 @@ RetryConn:
 			LastTimeReport_tmtmt = 0;
 		}
 		break;
+#endif //NETWORK
 	}
 
 	return 1;
 }
-#endif //NETWORK
 
 bool ProcessOneBattle( int BtlID );
 
 int ProcessWars();
 
 //Prepares multiplayer lobby for historical battles
+// (needs ProcessOneBattle/ProcessWars, which are not ported yet - the
+// Linux stub in linux_stubs.cpp returns without the LAN battle lobby)
+#ifdef NETWORK
 void processBattleMultiplayer()
 {
 
@@ -1296,7 +1302,12 @@ TryConnection:
 
 	CreateMultiplaterInterface();
 }
+#endif //NETWORK
 
+// Map options / resource editor dialogs: storage for MapScenaryDLL and
+// DEFPLNAMES on non-Windows builds comes from linux_stubs.cpp, so this
+// stays in the Windows-only region (see the extern decls at its end)
+#ifdef _WIN32
 //--------------------MULTIPLAYER GAME---------------------//
 extern char SaveFileName[128];
 
@@ -1807,7 +1818,6 @@ bool EnterName()
 	return ENRETVAL;
 }
 
-#ifdef _WIN32
 //Show network protocol menu
 int MPL_ChooseConnection()
 {
@@ -1946,17 +1956,7 @@ int MPL_ChooseConnection()
 	return ItemChoose;
 }
 
-extern CDPID MyDPID;
-#endif // _WIN32
-
-#ifdef _WIN32
 bool PIEnumeratePlayers( PlayerInfo* PIN, bool DoMsg ); // comes from mplayer.cpp
-#else
-bool PIEnumeratePlayers( PlayerInfo* PIN, bool DoMsg )
-{
-	return true;
-}
-#endif // _WIN32
 
 DLLEXPORT bool EnumPlr()
 {
@@ -2525,7 +2525,6 @@ bool CheckForPersonalChat( char* STR )
 	return false;
 }
 
-#ifdef _WIN32
 extern char LASTCLICKCHATNAME[128];
 bool CheckPersonality( char* MESSAGE )
 {
@@ -2563,9 +2562,13 @@ void SaveGlobalChat()
 	{
 		if ( NCHATS )
 		{
-			SYSTEMTIME ST;
-			GetSystemTime( &ST );
-			fprintf( F, "[UPDATED %d.%d.%d %d:%d]\n", ST.wDay, ST.wMonth, ST.wYear, ST.wHour, ST.wMinute );
+			// UTC timestamp header (was Windows SYSTEMTIME/GetSystemTime)
+			time_t tt = time( nullptr );
+			tm* ST = gmtime( &tt );
+			if ( ST )
+			{
+				fprintf( F, "[UPDATED %d.%d.%d %d:%d]\n", ST->tm_mday, ST->tm_mon + 1, ST->tm_year + 1900, ST->tm_hour, ST->tm_min );
+			}
 		};
 		for ( int i = 0; i < NCHATS; i++ )fprintf( F, "%s:%s\n", ChatSender[i], ChatMess[i] );
 		fclose( F );
@@ -2579,9 +2582,13 @@ void SavePersChat()
 	{
 		if ( NPERSCHATS )
 		{
-			SYSTEMTIME ST;
-			GetSystemTime( &ST );
-			fprintf( F, "[UPDATED %d.%d.%d %d:%d]\n", ST.wDay, ST.wMonth, ST.wYear, ST.wHour, ST.wMinute );
+			// UTC timestamp header (was Windows SYSTEMTIME/GetSystemTime)
+			time_t tt = time( nullptr );
+			tm* ST = gmtime( &tt );
+			if ( ST )
+			{
+				fprintf( F, "[UPDATED %d.%d.%d %d:%d]\n", ST->tm_mday, ST->tm_mon + 1, ST->tm_year + 1900, ST->tm_hour, ST->tm_min );
+			}
 		};
 		for ( int i = 0; i < NPERSCHATS; i++ )fprintf( F, "%s:%s\n", PersChatSender[i], PersChatMess[i] );
 		fclose( F );
@@ -2589,10 +2596,14 @@ void SavePersChat()
 };
 
 //Returns Process_GSC_ChatWindow()
+//(stays Windows-only: calls into the IChat lobby DLL, which is not ported;
+//Linux gets a no-op stub in linux_stubs.cpp)
+#ifdef _WIN32
 int ProcessInternetConnection( bool Active )
 {
 	return Process_GSC_ChatWindow( Active, &GlobalRIF );
 }
+#endif // _WIN32
 
 DLLEXPORT void SendPings();
 
@@ -2613,7 +2624,6 @@ bool CheckExistConn();
 void PrintBadConn( char* str );
 
 char* _engNOCONN = "No direct connection established with:";
-#endif // _WIN32
 
 byte MPL_NatRefTBL[8] = { 0,1,2,3,4,5,6,7 };
 void SetStdTBL()
@@ -2675,8 +2685,6 @@ bool ProcessSingleMission( int n, int Diff );
 extern char CHATSTRING[256];
 extern DWORD CHATDPID;
 extern int CurrentMaxPing[8];
-extern int MinPing0;
-extern DWORD GMGUID;
 extern bool DoNewInet;
 extern int PPTIME;
 extern bool RecordMode;
@@ -3405,14 +3413,10 @@ ffe2:
 	int PREVCNAME = GetSDLTickCount();
 
 
-#ifdef _WIN32
-	// Seems to be networking related, generate a unique game GUID?
-	LARGE_INTEGER V1;
-	QueryPerformanceCounter( &V1 );
-	LARGE_INTEGER V2;
-	QueryPerformanceFrequency( &V2 );
-	DWORD GMGUID = V1.LowPart + V2.LowPart;
-#endif // _WIN32
+	// Networking: unique-ish game session id transmitted in player info
+	// (was QueryPerformanceCounter+Frequency on Windows; a millisecond
+	// timestamp serves the same purpose)
+	DWORD GMGUID = (DWORD) GetSDLTickCount();
 
 	if ( SINGLE )
 	{
@@ -5222,7 +5226,6 @@ ffe2:
 	return ( ItemChoose == mcmOk ) || PlayerMenuMode != 1;
 }
 
-#ifdef _WIN32
 int SetCurrentBattle( int BattleID,
 	SQPicture* Prev,
 	ComboBox** MNATION,
@@ -5494,7 +5497,7 @@ bool MPL_WaitingBattleGame( bool Host, int BattleID )
 		}
 		else
 		{
-			memset( PINFO + i, 0, sizeof PlayerInfo );
+			memset( PINFO + i, 0, sizeof( PlayerInfo ) );
 		}
 	}
 
@@ -5956,7 +5959,7 @@ bool MPL_WaitingBattleGame( bool Host, int BattleID )
 	return ( ItemChoose == mcmOk ) || PlayerMenuMode != 1;//ItemChoose==mcmOk;
 }
 
-#endif // _WIN32 (the lobby above is Windows-only; the pieces below are cross-platform)
+
 
 void CreateNationalMaskForRandomMap( char* );
 void CreateMaskForSaveFile( char* );
@@ -6105,10 +6108,10 @@ extern int NModes;
 extern char GameName[128];  // loadsave.cpp
 extern char SaveFileName[128];
 void UnPress();
-void processMultiplayer();
+bool processMultiplayer();
 #include "recorder.h"       // RecordGame RGAME
 
-int ProcessWars();
+int ProcessWars();         // interface.cpp PROCESS screens (not ported yet)
 void processBattleMultiplayer();
 
 // IChat library exports this
@@ -6837,17 +6840,16 @@ int processMainMenu()
 			}
 		}
 
+		// Multiplayer submenu (deathmatch lobby / historical battles);
+		// 5 = Back
 		if ( ItemChoose == mcmMulti )
 		{
-			continue; // No multiplayer so far
-#ifdef _WIN32
 			SlowUnLoadPalette( "2\\agew_1.pal" );
 			int res = MM_ProcessMultiPlayer();
 			if ( res == 5 )
 			{
 				continue;
 			}
-#endif
 		}
 
 		// Map editor entry (via /MAPEDITOR <file> or the RunMapeditor
@@ -9053,12 +9055,13 @@ StartPlay://IMPORTANT: Main game loop
 			{
 				if ( GameExit )
 				{
-					#ifdef _WIN32 // No Linux multiplayer so far
+					// Leaving a multiplayer game: leave the session,
+					// record the defeat in the (stubbed) stats object
+					// and tear the connection down
 					IAmLeft();
 					LOOSEANDEXITFAST();
 					CloseMPL();
 					ShutdownMultiplayer( 0 );
-					#endif
 				}
 			}
 		}
@@ -11280,7 +11283,6 @@ int GetTreeItem()
 // (Windows-only from here to the end of this region: the lobby screens)
 
 //-------------Multiplayer settings--------------
-#ifdef _WIN32
 bool WaitingGame( bool Host )
 {
 	char STRI[128];
@@ -11544,7 +11546,6 @@ bool WaitingJoinGame( int ID )
 	return false;
 }
 
-#endif // _WIN32 (single-player game start: cross-platform, needed on Linux)
 extern bool NotInGame;
 void CenterScreen();
 extern bool NoWinner;
@@ -13905,11 +13906,12 @@ void CenterScreen()
 		mapy = y;
 	}
 }
-#ifdef _WIN32
 
 extern bool EnterChatMode;
-extern char ChatString[128];
-extern wchar_t unicode_chat_string[128];
+// in-chat console input buffer and its unicode representation
+// (EnterChatMode lives in main.cpp)
+char ChatString[128];
+wchar_t unicode_chat_string[128];
 bool Superuser = 0;
 void CmdGiveMoney( byte SrcNI, byte DstNI, byte Res, int Amount );
 void CmdMoney( byte NI );
@@ -13923,6 +13925,7 @@ extern wchar_t last_unicode;
 void HandleSMSChat( char* Mess );
 void HandlwSMSMouse();
 void CmdOfferVoting();
+void PlayEffect( int n, int pan, int vol ); // gamesound.cpp
 
 void ProcessChatKeys()
 {
@@ -14466,9 +14469,7 @@ void GetTimeString( int t, char* str )
 };
 int SortPlayers( byte* Res, int* par );
 void ShowVictInFormat( char* Res, int idx, byte Type );
-// (Windows-only region ends here; the map editor tool UI below is
-// cross-platform)
-#endif // _WIN32
+
 //---------------------MAP EDITOR INTERFACE--------------//
 // Editor tool panels: mode buttons (height/water/texture/sprites/units...),
 // the per-tool option dialogs and the terrain editor they open into.

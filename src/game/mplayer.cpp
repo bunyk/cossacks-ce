@@ -1,7 +1,7 @@
 // Multiplayer game
 
 #define INITGUID
-#include "../commcore library/commcore.h"
+#include "../CommCore library/CommCore.h"
 #include "ddini.h"
 #include "resfile.h"
 #include "fastdraw.h"
@@ -20,7 +20,7 @@
 #include "conststr.h"
 #include "sort.h"
 #include "graphs.h"
-#include <Math.h>
+#include <math.h>
 #include "gp_draw.h"
 #include "megapolis.h"
 #pragma pack(4)
@@ -94,8 +94,6 @@ word NSessions;
 DWORD RealTime;
 DWORD CurrentPitchTicks;
 
-LPVOID lplpConnectionBuffer[16];
-GUID SessionsGUID[32];
 CDPID PlayersID[32];
 byte* PData[32];
 DWORD PDSize[32];
@@ -125,11 +123,6 @@ typedef struct
 } MSG_CHATSTRING, *LPMSG_CHATSTRING;
 void IAmLeft();
 bool ShutdownConnection();
-// globals
-HANDLE ghReceiveThread = nullptr; // handle of receive thread
-DWORD gidReceiveThread = 0; // id of receive thread
-HANDLE ghKillReceiveEvent = nullptr; // event used to kill receive thread
-HWND ghChatWnd = nullptr; // main chat window
 //execute bufferisation
 
 EXBUFFER EBufs[MaxPL];
@@ -310,7 +303,7 @@ void SortPLIDS()
 int prevtime = 0;
 
 //Recieves lobby player data via IPCORE.GetUserData and stores it in PINFLOC[]
-BOOL __stdcall IPCORE_EnumProc( const PEER_ID PeerID, LPCSTR lpcszPeerName )
+BOOL CALLBACK IPCORE_EnumProc( const PEER_ID PeerID, LPCSTR lpcszPeerName )
 {
 	if (NPlayers >= 7)
 	{
@@ -808,13 +801,13 @@ void HandleSystemMessage(void* lpMsg, DWORD dwMsgSize,
 			lpszPlayerName = "unknown";
 
 		// allocate space for string
-		lpszStr = new char[lstrlen( szDisplayFormat ) +
-			lstrlen( lpszPlayerName ) + 1];
+		lpszStr = new char[strlen( szDisplayFormat ) +
+			strlen( lpszPlayerName ) + 1];
 		if (lpszStr == nullptr)
 			break;
 
 		// build string
-		wsprintf( lpszStr, szDisplayFormat, lpszPlayerName );
+		sprintf( lpszStr, szDisplayFormat, lpszPlayerName );
 	}
 	break;
 
@@ -831,13 +824,13 @@ void HandleSystemMessage(void* lpMsg, DWORD dwMsgSize,
 			lpszPlayerName = "unknown";
 
 		// allocate space for string
-		lpszStr = new char[lstrlen( szDisplayFormat ) +
-			lstrlen( lpszPlayerName ) + 1];
+		lpszStr = new char[strlen( szDisplayFormat ) +
+			strlen( lpszPlayerName ) + 1];
 		if (lpszStr == nullptr)
 			break;
 
 		// build string
-		wsprintf( lpszStr, szDisplayFormat, lpszPlayerName );
+		sprintf( lpszStr, szDisplayFormat, lpszPlayerName );
 	}
 	break;
 
@@ -851,7 +844,7 @@ void HandleSystemMessage(void* lpMsg, DWORD dwMsgSize,
 			break;
 
 		// build string
-		lstrcpy( lpszStr, szDisplayFormat );
+		strcpy( lpszStr, szDisplayFormat );
 
 	}
 	break;
@@ -916,12 +909,17 @@ void ReceiveMessage()
 
 		if (DoNewInet)
 		{
-			u_short peer;
+			u_short peer = 0;
 			dwMsgBufferSize = IPCORE.ReceiveData( (byte*) lpvMsgBuffer, &peer );
 			idFrom = peer;
 			idTo = MyDPID;
 
-			success = !dwMsgBufferSize;
+			//CommCore returns 0 when no packet is waiting. success must
+			//mean "a message was read" (DirectPlay's hr == DP_OK), else
+			//the empty case kept NeedMoreReceive true and the
+			//AnalyseMessages/ReceiveAll loops spun forever on the idle
+			//socket
+			success = dwMsgBufferSize != 0;
 		}
 		else
 		{
@@ -1223,8 +1221,15 @@ bool CreateNamedSession( char* Name, DWORD User2, int Max )
 		NETWORK_INIT = 1;
 	};
 	DWORD dwNameSize = MAXNAMELEN;
+#ifdef _WIN32
 	if (!GetComputerName( szSessionName, &dwNameSize ))
-		lstrcpy( szSessionName, "Session" );
+		strcpy( szSessionName, "Session" );
+#else
+	// szSessionName is only a fallback Name for the session; the
+	// ServerName argument to InitServer below is what actually gets used
+	if (gethostname( szSessionName, sizeof( szSessionName ) ) != 0)
+		strcpy( szSessionName, "Session" );
+#endif
 	// host a new session on this service provider
 	if (DoNewInet)
 	{
@@ -1474,7 +1479,7 @@ void NetCash::AddOne( byte* Data, int size, CDPID idTo )
 	if (NCells >= MaxCells)
 	{
 		MaxCells += 100;
-		CELLS = (NetCell*) realloc( CELLS, MaxCells * sizeof NetCell );
+		CELLS = (NetCell*) realloc( CELLS, MaxCells * sizeof( NetCell ) );
 	}
 
 	int T0 = int( 250 * ( sin( float( GetSDLTickCount() ) / 20000 ) + 1 ) ) + ( idt + idf ) * 95;
@@ -1496,7 +1501,7 @@ void NetCash::AddWithDelay( byte* Data, int size, CDPID idTo, int dt )
 	if (NCells >= MaxCells)
 	{
 		MaxCells += 100;
-		CELLS = (NetCell*) realloc( CELLS, MaxCells * sizeof NetCell );
+		CELLS = (NetCell*) realloc( CELLS, MaxCells * sizeof( NetCell ) );
 	}
 
 	CELLS[NCells].Data = new byte[size];
@@ -1547,7 +1552,7 @@ void NetCash::Process()
 				free( CELLS[i].Data );
 				if (i < NCells - 1)
 				{
-					memcpy( CELLS + i, CELLS + i + 1, ( NCells - i - 1 ) * sizeof NetCell );
+					memcpy( CELLS + i, CELLS + i + 1, ( NCells - i - 1 ) * sizeof( NetCell ) );
 				}
 				NCells--;
 				i--;
@@ -2062,7 +2067,7 @@ void AnalyseMessages()
 							CDPID id = PlayersID[j];
 							for (int i = 0; i < NPlayers&&id; i++)if (PINFO2[i].PlayerID == id)
 							{
-								memcpy( PINFO + j, PINFO2 + i, sizeof PlayerInfo );
+								memcpy( PINFO + j, PINFO2 + i, sizeof( PlayerInfo ) );
 								id = 0;
 							}
 						}
@@ -3308,7 +3313,7 @@ void PingSumm::AddPing( DWORD DPID, DWORD From, DWORD To, DWORD Back )
 	{
 		curr = NPL;
 		NPL++;
-		PSET = (PingsSet*) realloc( PSET, NPL * sizeof PingsSet );
+		PSET = (PingsSet*) realloc( PSET, NPL * sizeof( PingsSet ) );
 		PSET[curr].DPID = DPID;
 		PSET[curr].NPings = 0;
 		PSET[curr].MaxPings = 0;
@@ -3318,7 +3323,7 @@ void PingSumm::AddPing( DWORD DPID, DWORD From, DWORD To, DWORD Back )
 	if (PSET[curr].NPings >= PSET[curr].MaxPings)
 	{
 		PSET[curr].MaxPings += 50;
-		PSET[curr].Pings = (OnePing*) realloc( PSET[curr].Pings, PSET[curr].MaxPings * sizeof OnePing );
+		PSET[curr].Pings = (OnePing*) realloc( PSET[curr].Pings, PSET[curr].MaxPings * sizeof( OnePing ) );
 	};
 	int np = PSET[curr].NPings;
 	PSET[curr].Pings[np].BackTime = int( Back );
@@ -3431,7 +3436,7 @@ void PingSumm::AddPlayer( DWORD DPID )
 	}
 	int curr = NPL;
 	NPL++;
-	PSET = (PingsSet*) realloc( PSET, NPL * sizeof PingsSet );
+	PSET = (PingsSet*) realloc( PSET, NPL * sizeof( PingsSet ) );
 	PSET[curr].DPID = DPID;
 	PSET[curr].NPings = 0;
 	PSET[curr].MaxPings = 0;
@@ -3801,7 +3806,7 @@ void PLAYERSBACKUP::AddInf( byte* BUF, int L, CDPID ID, int RT )
 	if (NBDATA == 32)
 	{
 		free( BSTR[0].Data );
-		memcpy( BSTR, BSTR + 1, 31 * sizeof BACKUPSTR );
+		memcpy( BSTR, BSTR + 1, 31 * sizeof( BACKUPSTR ) );
 		NBDATA--;
 	}
 	BSTR[NBDATA].Data = new byte[L];
@@ -3851,7 +3856,7 @@ void RETRANS::AddOneRet( DWORD TO, DWORD FROM, DWORD RT )
 	for (int i = 0; i < NRET; i++)if (TOT[i].IDFROM == FROM&&TOT[i].IDTO == TO&&TOT[i].RT == RT)return;
 	if (NRET >= MaxRET)
 	{
-		TOT = (SingleRetr*) realloc( TOT, ( MaxRET + 64 ) * sizeof SingleRetr );
+		TOT = (SingleRetr*) realloc( TOT, ( MaxRET + 64 ) * sizeof( SingleRetr ) );
 		MaxRET += 64;
 	};
 	TOT[NRET].IDFROM = FROM;
@@ -3870,7 +3875,7 @@ void RETRANS::CheckRetr( DWORD From, DWORD RT )
 		PBACK.SendInfoAboutTo( From, TOT[i].IDTO, RT );
 		if (i < NRET - 1)
 		{
-			memcpy( TOT + i, TOT + i + 1, ( NRET - i - 1 ) * sizeof SingleRetr );
+			memcpy( TOT + i, TOT + i + 1, ( NRET - i - 1 ) * sizeof( SingleRetr ) );
 		};
 		NRET--;
 		i--;
@@ -3911,7 +3916,7 @@ public:
 };
 LoosedPack::LoosedPack()
 {
-	memset( OLID, 0, 16 * sizeof OneLostID );
+	memset( OLID, 0, 16 * sizeof( OneLostID ) );
 };
 LoosedPack::~LoosedPack()
 {
@@ -3941,7 +3946,7 @@ void LoosedPack::DeleteBadPlayers()
 				{
 					free( OLID[i].PING );
 				}
-				memset( OLID + i, 0, sizeof OneLostID );
+				memset( OLID + i, 0, sizeof( OneLostID ) );
 			}
 		}
 	}
@@ -3963,7 +3968,7 @@ void LoosedPack::Clear()
 			free( OLID[i].PING );
 		};
 	};
-	memset( OLID, 0, 8 * sizeof OneLostID );
+	memset( OLID, 0, 8 * sizeof( OneLostID ) );
 };
 void LoosedPack::Add( DWORD DPID, int ID )
 {
@@ -4013,7 +4018,7 @@ void LoosedPack::Add( DWORD DPID, int ID )
 	if (idx != -1)
 	{
 		OLID[idx].DPID = DPID;
-		OLID[idx].PING = (OneLPing*) realloc( OLID[idx].PING, ( OLID[idx].NPings + 1 ) * sizeof OneLPing );
+		OLID[idx].PING = (OneLPing*) realloc( OLID[idx].PING, ( OLID[idx].NPings + 1 ) * sizeof( OneLPing ) );
 		OneLPing* OP = OLID[idx].PING + OLID[idx].NPings;
 		OLID[idx].NPings++;
 		OLID[idx].LastAccessTime = CurTime;
@@ -4041,7 +4046,7 @@ void LoosedPack::Remove( int ID )
 				}
 				if (j < N - 1)
 				{
-					memcpy( OLID[i].PING + j, OLID[i].PING + j + 1, ( N - j - 1 ) * sizeof OneLPing );
+					memcpy( OLID[i].PING + j, OLID[i].PING + j + 1, ( N - j - 1 ) * sizeof( OneLPing ) );
 				}
 				OLID[i].NPings--;
 				if (!OLID[i].NPings)
@@ -4066,7 +4071,7 @@ void LoosedPack::Process()
 				if (OLID[i].NReceived)OLID[i].NSent++;
 				if (j < N - 1)
 				{
-					memcpy( OLID[i].PING + j, OLID[i].PING + j + 1, ( N - j - 1 ) * sizeof OneLPing );
+					memcpy( OLID[i].PING + j, OLID[i].PING + j + 1, ( N - j - 1 ) * sizeof( OneLPing ) );
 				};
 				OLID[i].NPings--;
 				if (!OLID[i].NPings)

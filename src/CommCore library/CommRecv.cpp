@@ -9,7 +9,11 @@ u_short CCommCore::ReceiveData(LPBYTE lpbBuffer, LPPEER_ID lpPeerId)
 	sockaddr_in					SenderAddr;
 	LPCC_PK_RAW_FRAME			lpFrame;
 	u_short						uPeer;
+#ifdef _WIN32
 	int							SenderLength=sizeof(sockaddr_in);
+#else
+	socklen_t					SenderLength=sizeof(sockaddr_in);
+#endif
 	u_short						PeerNum;
 	int							i;
 

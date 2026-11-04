@@ -12,6 +12,12 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#ifndef _WIN32
+// Winsock types left over from the commented-out includes below; mplayer.cpp
+// includes CommCore.h first, which provides the rest
+typedef unsigned short USHORT;
+#endif
+
 #define STATUS_FAILED		0xFFFF
 #define DEF_PACKET_SIZE		32
 #define MAX_PACKET			1024
