@@ -1071,21 +1071,9 @@ bool processMultiplayer()
 	switch ( connection_menu_result )
 	{
 	case mcmHost:
-		if ( CCTraceEnabled() )
-		{
-			CCTrace( "PHASE processMultiplayer: HOST branch, name=\"%s\"", PlName );
-		}
 		if ( CreateNamedSession( PlName, 0, GMMAXPL ) )
 		{
-			if (CCTraceEnabled())
-			{
-				CCTrace( "PHASE CreateNamedSession ok: session up, awaiting joins" );
-			}
 			WaitingHostGame( 0 );
-		}
-		else if (CCTraceEnabled())
-		{
-			CCTrace( "PHASE CreateNamedSession FAILED (bind/init error?)" );
 		}
 		break;
 
@@ -1093,25 +1081,12 @@ bool processMultiplayer()
 		// Direct join to the address typed in MPL_ChooseConnection
 		// (DirectPlay session browsing is long gone; the GSC lobby path
 		// below used to fill IPADDR from the chat room instead)
-		if (CCTraceEnabled())
-		{
-			CCTrace( "PHASE processMultiplayer: JOIN branch, ip=\"%s\" name=\"%s\"",
-				IPADDR, PlName );
-		}
 		if ( FindSessionAndJoin( ROOMNAMETOCONNECT, PlName, 0 ) )
 		{
-			if (CCTraceEnabled())
-			{
-				CCTrace( "PHASE FindSessionAndJoin ok: entering join lobby" );
-			}
 			WaitingJoinGame( GMTYPE );
 		}
 		else
 		{
-			if (CCTraceEnabled())
-			{
-				CCTrace( "PHASE FindSessionAndJoin FAILED: no session at that address" );
-			}
 			WaitWithMessage( GetTextByID( "ICUNJ" ) );
 		}
 		break;
@@ -1768,11 +1743,6 @@ int MPL_ChooseConnection()
 
 	SlowUnLoadPalette( "2\\agew_1.pal" );
 
-	if (CCTraceEnabled())
-	{
-		CCTrace( "PHASE MPL_ChooseConnection: protocol=%d item=%d ip=\"%s\"",
-			selected_network_protocol, ItemChoose, IPADDR );
-	}
 
 	//No GameSpy option anymore, only GSC-Game.Net
 	use_gsc_network_protocol = false;
@@ -2520,11 +2490,6 @@ extern bool RecordMode;
 
 bool MPL_WaitingGame( bool Host, bool SINGLE )
 {
-	if (CCTraceEnabled())
-	{
-		CCTrace( "PHASE MPL_WaitingGame: Host=%d SINGLE=%d NPlayers=%u MyDPID=%u",
-			Host ? 1 : 0, SINGLE ? 1 : 0, NPlayers, (unsigned) MyDPID );
-	}
 
 	if ( SINGLE )
 	{
@@ -7495,12 +7460,12 @@ void EnterChat()
 	} while ( ItemChoose == -1 );
 	if ( ItemChoose == mcmOk )
 	{
-		if ( !strcmp( passw, "www" ) )
-		{
-			ChangeNation = 1;
-			MultiTvar = 1;
-			FogMode = 0;
-		}
+	if ( !strcmp( passw, "www" ) )
+	{
+		ChangeNation = 1;
+		MultiTvar = 1;
+		FogMode = 0;
+	}
 		else
 			if ( !strcmp( passw, "VICTORY" ) )
 			{
@@ -11650,11 +11615,6 @@ void PrepareGameMedia( byte myid, bool SaveNR )
 		}
 		else
 		{
-			if (CCTraceEnabled())
-			{
-				CCTrace( "PHASE PrepareGameMedia: AI init loop NPlayers=%u (MapScenaryDLL[0]=%d)",
-					NPlayers, MapScenaryDLL[0] ? 1 : 0 );
-			}
 			for ( int i = NPlayers; i < 7; i++ )
 			{
 				if ( COMPSTART[i] )
@@ -11671,12 +11631,6 @@ void PrepareGameMedia( byte myid, bool SaveNR )
 							j = MAXOBJECT + 1;
 						}
 					}
-					if (CCTraceEnabled())
-					{
-						CCTrace( "PHASE PrepareGameMedia: AI slot %d COMPSTART=%04X ColorID=%d Diff=%d peasantNat=%d %s",
-							i, COMPSTART[i], c, Diff, Nat,
-							Nat == -1 ? "NO PEASANT - AI NOT STARTED" : "starting AI" );
-					}
 					if ( Nat != -1 )
 					{
 						char ccx[48];
@@ -11685,14 +11639,6 @@ void PrepareGameMedia( byte myid, bool SaveNR )
 						StartAIEx( PINFO[i].ColorID, ccx, RMP.STY[RM_LandType].AI_Style, RM_Resstart, RM_Restot, Diff - 1 );
 					}
 				}
-			}
-			if (CCTraceEnabled())
-			{
-				CCTrace( "PHASE PrepareGameMedia: AI_Enabled map n0=%d n1=%d n2=%d n3=%d n4=%d n5=%d n6=%d n7=%d",
-					NATIONS[0].AI_Enabled ? 1 : 0, NATIONS[1].AI_Enabled ? 1 : 0,
-					NATIONS[2].AI_Enabled ? 1 : 0, NATIONS[3].AI_Enabled ? 1 : 0,
-					NATIONS[4].AI_Enabled ? 1 : 0, NATIONS[5].AI_Enabled ? 1 : 0,
-					NATIONS[6].AI_Enabled ? 1 : 0, NATIONS[7].AI_Enabled ? 1 : 0 );
 			}
 		}
 		memcpy( NatRefTBL, RRR, 8 );

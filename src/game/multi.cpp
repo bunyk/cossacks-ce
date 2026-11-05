@@ -2246,14 +2246,6 @@ void BuildWithSelected( byte NI, word ObjID, byte OrdType )
 	word Nsel = NSL[NI];
 	word* SMon = Selm[NI];
 	word* Sm = SerN[NI];
-	if (CCTraceEnabled())
-	{
-		CCTrace( "SELTRACE BUILD NI=%d ObjID=%d OrdType=%d NSL=%d", NI, ObjID, OrdType, Nsel );
-		for (int q = 0; q < Nsel && q < 8; q++)
-		{
-			CCTrace( "SELTRACE BUILD sel[%d]=%d", q, SMon[q] );
-		}
-	}
 	if ( !Nsel )return;
 	OneObject* OBJ = Group[ObjID];
 	if ( !OBJ )return;
@@ -5301,14 +5293,6 @@ int _implSelBrigade( byte* Ptr )
 	};
 	Selm[NI] = (word*) realloc( Selm[NI], ( NAdd + NSL[NI] ) << 1 );
 	SerN[NI] = (word*) realloc( Selm[NI], ( NAdd + NSL[NI] ) << 1 );
-	if (CCTraceEnabled())
-	{
-		//the realloc above reallocs Selm twice and assigns the result to
-		//SerN: flag the aliasing if it fires (Selm[NI] may dangle)
-		CCTrace( "SELTRACE RCV200 NI=%d ID=%d NAdd=%d NSLbefore=%d Selm=%p SerN=%p %s",
-			NI, ID, NAdd, NSL[NI], Selm[NI], SerN[NI],
-			( void* ) Selm[NI] == ( void* ) SerN[NI] ? "ALIASED" : "" );
-	}
 	int NS = NSL[NI];
 	for ( int i = 2; i < N; i++ )
 	{
@@ -5385,10 +5369,6 @@ int _implUnSelBrigade( byte* Ptr )
 
 void CmdUnSelUnitsSet( byte NI, word* BUF, int NU )
 {
-	if (CCTraceEnabled())
-	{
-		CCTrace( "SELTRACE SND202 NI=%d NU=%d", NI, NU );
-	}
 	ExBuf[EBPos] = 202;
 	ExBuf[EBPos + 1] = NI;
 	*( (word*) ( ExBuf + EBPos + 2 ) ) = word( NU );
@@ -5402,10 +5382,6 @@ int _implUnSelUnitsSet( byte* Ptr )
 	byte NI = Ptr[0];
 	word N = *( (word*) ( Ptr + 1 ) );
 	word* Units = (word*) ( Ptr + 3 );
-	if (CCTraceEnabled())
-	{
-		CCTrace( "SELTRACE RCV202 NI=%d N=%d NSLbefore=%d", NI, N, NSL[NI] );
-	}
 	for ( int i = 0; i < N; i++ )
 	{
 		word MID = Units[i];
@@ -5438,10 +5414,6 @@ int _implUnSelUnitsSet( byte* Ptr )
 		};
 	};
 	NSL[NI] = N1;
-	if (CCTraceEnabled())
-	{
-		CCTrace( "SELTRACE RCV202 NI=%d NSLafter=%d", NI, NSL[NI] );
-	}
 	if ( N && !N1 )
 	{
 		free( Selm[NI] );
@@ -5690,11 +5662,6 @@ int SUSTREAMSZ = 0;
 
 void CmdSelUnitsSet( byte NI, word* BUF, int NU )
 {
-	if (CCTraceEnabled())
-	{
-		CCTrace( "SELTRACE SND204 NI=%d NU=%d %s", NI, NU,
-			( EBPos == PREVSEUSETPOS && SUSTREAMSZ + NU < 2048 && PREVNAT == NI ) ? "merge" : "new" );
-	}
 	if ( EBPos == PREVSEUSETPOS&&SUSTREAMSZ + NU < 2048 && PREVNAT == NI )
 	{
 		memcpy( PREVSTREAM + SUSTREAMSZ, BUF, NU + NU );
@@ -5747,19 +5714,6 @@ int _implSelUnitsSet( byte* Ptr )
 		OneObject* OB = Group[Units[i]];
 		if ( OB&&OB->NNUM == NatRefTBL[NI] )N1++;
 	}
-	if (CCTraceEnabled())
-	{
-		CCTrace( "SELTRACE RCV204 NI=%d N=%d pass=%d NSLbefore=%d", NI, N, N1, NSL[NI] );
-		//log every dropped unit id + reason: this filter is the prime
-		//suspect for selection divergence between machines
-		for ( int i = 0; i < N; i++ )
-		{
-			OneObject* OB = Group[Units[i]];
-			if ( !OB )CCTrace( "SELTRACE RCV204 DROP id=%d no-object", Units[i] );
-			else if ( OB->NNUM != NatRefTBL[NI] )
-				CCTrace( "SELTRACE RCV204 DROP id=%d NNUM=%d NatRefTBL=%d", Units[i], OB->NNUM, NatRefTBL[NI] );
-		}
-	}
 
 	int N0 = NSL[NI];
 	Selm[NI] = (word*) realloc( Selm[NI], ( N0 + N1 ) * 2 );
@@ -5779,10 +5733,6 @@ int _implSelUnitsSet( byte* Ptr )
 	}
 
 	NSL[NI] = N1;
-	if (CCTraceEnabled())
-	{
-		CCTrace( "SELTRACE RCV204 NI=%d NSLafter=%d", NI, NSL[NI] );
-	}
 
 	if ( tempbuf )
 	{
@@ -6027,10 +5977,6 @@ int _implSelUnitsSet_OLD( byte* Ptr )
 	};
 	NSL[NI] = N1;
 	//CorrectBrigadesSelection(NI);
-	if (CCTraceEnabled())
-	{
-		CCTrace( "SELTRACE RCV203 NI=%d N=%d NSLafter=%d", NI, N, NSL[NI] );
-	}
 	if ( tempbuf )
 	{
 		free( tempbuf );

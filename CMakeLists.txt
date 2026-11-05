@@ -71,7 +71,6 @@ add_executable(cossacks
 
 	src/game/mplayer.cpp
 
-	"src/CommCore library/CommCore.cpp"
 	"src/CommCore library/CommInet.cpp"
 	"src/CommCore library/CommInit.cpp"
 	"src/CommCore library/CommPeers.cpp"

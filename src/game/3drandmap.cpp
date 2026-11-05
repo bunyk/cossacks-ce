@@ -1635,12 +1635,6 @@ void CreateMapByName( char* Name )
 	RM_Resstart = Resst;
 	RM_Restot = Resmn;
 
-	if (CCTraceEnabled())
-	{
-		CCTrace( "PHASE random map decode: seed=%d style=%d play=%d mount=%d resstart=%d restot=%d RESrow=%d %d %d %d %d %d",
-			x1 & 8191, Style, Play, Mount, Resst, Resmn,
-			RES[0][0], RES[0][1], RES[0][2], RES[0][3], RES[0][4], RES[0][5] );
-	}
 	mrpos = x1 & 8191;
 	XXP = 0;
 	sprintf( cc1, "Terrain\\%s", RD.STY[Style].Players[Play].name );
@@ -1720,11 +1714,6 @@ void CheckMapName( char* Name )
 	if ( Name[0] == 'R' && Name[1] == 'N' && Name[3] == ' ' )
 	{
 		ResFile F = RReset( Name );
-		if (CCTraceEnabled())
-		{
-			CCTrace( "PHASE CheckMapName: map=\"%s\" file %s", Name,
-				F == INVALID_HANDLE_VALUE ? "MISSING - regenerating" : "exists" );
-		}
 		if ( F == INVALID_HANDLE_VALUE )
 		{
 			UnLoading();
@@ -1778,12 +1767,6 @@ void DecodeRandomMapParams( char* Name )
 	RM_LandType = Style;
 	RM_Resstart = Resst;
 	RM_Restot = Resmn;
-
-	if (CCTraceEnabled())
-	{
-		CCTrace( "PHASE random map params decoded from name: style=%d resstart=%d restot=%d RES0=%d",
-			Style, Resst, Resmn, RES[0][0] );
-	}
 }
 
 void CheckMapNameForStart( char* Name )

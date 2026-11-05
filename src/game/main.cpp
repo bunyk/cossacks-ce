@@ -486,16 +486,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	//the early lookup could not run (no /proc).
 	EnterGameDataDir( argc, argv );
 
-	//Banner so trace state is visible in every log: tracing is ON by
-	//default; set COSSACKS_NET_TRACE=0 to silence it
-	{
-		const char* Env = getenv( "COSSACKS_NET_TRACE" );
-		printf( "NET TRACE: %s (COSSACKS_NET_TRACE=\"%s\")\n",
-			!CCTraceEnabled() ? "OFF" : ( CCTransportTraceEnabled() ? "transport+game" : "game layer" ),
-			Env ? Env : "" );
-		fflush( stdout );
-	}
-
 	for (int i = 0; i < argc; i++)
 	{
 		if (strcmp(argv[i], "/MAPEDITOR") == 0)
@@ -941,6 +931,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 		int bx = (int)event->button.x, by = (int)event->button.y;
 		ScaleMouseToLogical(&bx, &by);
 		SDL_MouseButtonFlags mouseFlags = SDL_GetMouseState(nullptr, nullptr);
+		printf("SDL_EVENT_MOUSE_BUTTON_UP: b=%d x=%d y=%d\n", (int)event->button.button, bx, by);
 		if (event->button.button == SDL_BUTTON_LEFT)
 		{
 			mouseFlags &= ~SDL_BUTTON_LMASK;
