@@ -23,11 +23,6 @@
 #include "ir.h"
 #include "bmptool.h"
 #include "megapolis.h"
-// socket/Winsock type shims for pinger.h below (its MSVC includes are
-// commented out on purpose)
-#include "../CommCore library/CommCore.h"
-#include "pinger.h"
-#include "pinger.h"
 
 #ifndef _WIN32
 
@@ -108,19 +103,6 @@ int  ProcessInternetConnection( bool Active ) { (void)Active; return 0; }
 // (now compiled) - stub deleted.
 
 // network globals (mplayer.cpp)
-
-//-------------- CPinger (pinger.h, Pinger.lib is Windows-only) --------------
-// The pinger only measured ICMP reachability of the long-dead GameSpy
-// internet lobby ("peerchat.gamespy.com") on the multiplayer waiting screen;
-// a no-op keeps that screen logic running.
-CPinger::CPinger() {}
-CPinger::~CPinger() {}
-BOOL CPinger::InitNetwork() { return TRUE; }
-BOOL CPinger::DoneNetwork() { return TRUE; }
-BOOL CPinger::SetTargetName( LPCSTR lpcszTargetName ) { (void)lpcszTargetName; return FALSE; }
-BOOL CPinger::GetStatistic( BYTE * lpcReplies, BYTE * lpcTotal ) { if (lpcReplies) *lpcReplies = 0; if (lpcTotal) *lpcTotal = 0; return TRUE; }
-BOOL CPinger::SendEcho() { return FALSE; }
-BOOL CPinger::RecvEcho() { return FALSE; }
 
 // CD-audio/music: real implementations now in devicecd.cpp (SDL3 audio
 // stream + stb_vorbis "Tracks/Track_XX.ogg"); stubs deleted.

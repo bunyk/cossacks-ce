@@ -24,7 +24,6 @@
 #include "gp_draw.h"
 #include "megapolis.h"
 #pragma pack(4)
-#include "pinger.h"
 #pragma pack(1)
 #include "ir.h"
 
@@ -2351,43 +2350,10 @@ void HandleMultiplayer()
 	}
 
 	ClearFAILS();
-	CPinger PINGS;
-	int T0 = PREVTIME;
-	bool PStart = 0;
-	int FPT0 = 0;
-	int NPRECV = 0;
 	do
 	{
 		do
 		{
-			if (DoNewInet)
-			{
-				int T1 = GetSDLTickCount();
-				if (T1 - T0 > 15000 && !PStart)
-				{
-					PINGS.InitNetwork();
-					PINGS.SetTargetName( "peerchat.gamespy.com" );
-					FPT0 = T1;
-					PINGS.SendEcho();
-					PStart = 1;
-				}
-
-				if (PStart&&T1 - FPT0 > 1000)
-				{
-					FPT0 = T1;
-					bool Tx = ( PINGS.SendEcho() != 0 );
-				}
-
-				if (PStart)
-				{
-					byte TRY = 0;
-					byte REC = 0;
-					PINGS.RecvEcho();
-					PINGS.GetStatistic( &REC, &TRY );
-					NPRECV = REC;
-				}
-			}
-
 			ReceiveMessage();
 
 			mpl_time_1 = ( GetSDLTickCount() - mpl_time_4 ) >> 6;
@@ -2547,46 +2513,22 @@ void HandleMultiplayer()
 												MAXACC = ACC;
 											}
 										}
-										//checking if there is acces to internet
-										if (NPRECV > 1)
+										if (CITY[NatRefTBL[MyNation]].Account < ( MAXACC * 2 ) / 4)
 										{
-											//checking if disconnected player has maximal score
-											//1.search for maximal account
-											byte NI = PINFO[i].ColorID;
-											byte NIR = NatRefTBL[NI];
-											if (SumAccount[NIR] == MAXACC)
+											CmdEndGame( MyNation, 4, 106 );//defeat
+											if (IsGameActive())
 											{
-												if (IsGameActive())
-												{
-													DontMakeRaiting();
-													ShowCentralText( "NORATE", 400 );
-												}
-												CmdEndGame( PINFO[i].ColorID, 5, 104 );
-											}
-											else
-											{
-												CmdEndGame( PINFO[i].ColorID, 4, 105 );//defeat
+												ShowCentralText( "SPECIALDEFEAT", 400 );
 											}
 										}
 										else
 										{
-											if (CITY[NatRefTBL[MyNation]].Account < ( MAXACC * 2 ) / 4)
+											if (IsGameActive())
 											{
-												CmdEndGame( MyNation, 4, 106 );//defeat
-												if (IsGameActive())
-												{
-													ShowCentralText( "SPECIALDEFEAT", 400 );
-												}
+												StopRaiting();
+												ShowCentralText( "INCOMTXT", 400 );
 											}
-											else
-											{
-												if (IsGameActive())
-												{
-													StopRaiting();
-													ShowCentralText( "INCOMTXT", 400 );
-												}
-												CmdEndGame( PINFO[i].ColorID, 5, 107 );
-											}
+											CmdEndGame( PINFO[i].ColorID, 5, 107 );
 										}
 									}
 									else
@@ -2650,11 +2592,6 @@ void HandleMultiplayer()
 			GSYSDRAW();
 		} while (PresentEmptyBuf() && mpl_time_1 < 1000000);
 	} while (NeedMoreReceive);
-
-	if (PStart)
-	{
-		PINGS.DoneNetwork();
-	}
 
 	int MyColor = 7;
 	for (int i = 0; i < NPlayers; i++)
