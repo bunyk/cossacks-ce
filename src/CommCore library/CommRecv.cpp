@@ -68,16 +68,6 @@ u_short CCommCore::ReceiveData(LPBYTE lpbBuffer, LPPEER_ID lpPeerId)
 	if(lpFrame->m_lProto!=PROTO_ID)
 		return 0x00;
 
-	if (CCTransportTraceEnabled())
-	{
-		CCTrace( "CC RCV <- %s:%u type=%u (%s) peer=%u size=%u",
-			inet_ntoa( SenderAddr.sin_addr ),
-			ntohs( SenderAddr.sin_port ),
-			lpFrame->m_uType,
-			CCPacketName( lpFrame->m_uType ),
-			lpFrame->m_PeerId,
-			(u_short)lDataSize );
-	}
 
 	if(	(lpFrame->m_PeerId!=BAD_PEER_ID)&&
 		(GetPeerById(lpFrame->m_PeerId)==BAD_PEER_ID)&&

@@ -132,13 +132,13 @@ void GoHomeAnyway() {}
 // Terrain-editor error prompt (interface.cpp, unguarded editor UI). The
 // real dialog body lives in ir_main.cpp (not compiled on Linux): draw the
 // text via ShowCentralMessage4 (no-op stub for now) and wait for a
-// keypress. printf keeps the message visible on the console meanwhile.
+// keypress. stderr keeps the message visible on the console meanwhile.
 extern bool KeyPressed;
 bool ProcessMessages();
 void WaitWithError( char* ID, int GPID )
 {
 	char* str = GetTextByID( ID );
-	printf( "WaitWithError: %s\n", str );
+	fprintf( stderr, "WaitWithError: %s\n", str );
 	ShowCentralMessage4( str, GPID, 90 );
 	FlipPages();
 	KeyPressed = 0;

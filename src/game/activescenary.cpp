@@ -5816,10 +5816,9 @@ void MissPack::LoadMissions()
 	}
 	else
 	{
-		//TODO(debug): log to console as well (these can fire during static
-		//init, where ErrM's palette handling is not safe)
-		printf( "Missions loading failed...: Could not open Missions\\Missions.txt\n" );
-		fflush( stdout );
+		//ErrM's palette handling is not safe during static init, so these
+		//fire as stderr log + message box instead
+		fprintf( stderr, "Missions loading failed...: Could not open Missions\\Missions.txt\n" );
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Missions loading failed...", "Could not open Missions\\Missions.txt", sdlWindow);
 	}
 
@@ -5851,8 +5850,8 @@ void MissPack::LoadMissions()
 	}
 	else
 	{
-		printf( "Missions loading failed...: Could not open Missions\\SingleMiss.txt\n" );
-		fflush( stdout );
+		//Stderr log + message box (ErrM unsafe during static init)
+		fprintf( stderr, "Missions loading failed...: Could not open Missions\\SingleMiss.txt\n" );
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Missions loading failed...", "Could not open Missions\\SingleMiss.txt", sdlWindow);
 	}
 }

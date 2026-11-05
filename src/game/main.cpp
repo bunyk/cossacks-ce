@@ -435,7 +435,7 @@ static void EnterGameDataDir( int argc, char* argv[] )
 		}
 		else
 		{
-			printf( "Could not enter game data directory '%s': %s\n",
+			fprintf( stderr, "Could not enter game data directory '%s': %s\n",
 				GameDataDir, strerror( errno ) );
 		}
 	}

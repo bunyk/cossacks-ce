@@ -6580,7 +6580,7 @@ int processMainMenu()
 					Gclose( f );
 					StTime = GetSDLTickCount();
 				} else {
-					printf("Failed to open demo.run\n");
+					fprintf(stderr, "Failed to open demo.run\n");
 				}
 			}
 

@@ -2,6 +2,8 @@
 //
 #include "CommCore.h"
 #include <errno.h>
+#include <stdio.h>
+#include <string.h>
 
 // ---------------------------------------------------------------------------------------------
 
@@ -73,7 +75,9 @@ BOOL CCommCore::InitSocket()
 	m_DataSocket=socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
 	if(m_DataSocket==INVALID_SOCKET)
 	{
-		CCTrace( "InitSocket FAILED: socket() errno=%d (%s)", errno, strerror( errno ) );
+		//stderr, not the trace: a fatal network error must stay visible
+		//even with COSSACKS_NET_TRACE=0
+		fprintf(stderr,"InitSocket FAILED: socket() errno=%d (%s)\n", errno, strerror( errno ));
 		return FALSE;
 	}
 
@@ -115,8 +119,10 @@ BOOL CCommCore::BindSocket()
 
 	if(bind(m_DataSocket,(sockaddr *)&locaddr,sizeof(sockaddr_in))==SOCKET_ERROR)
 	{
-		CCTrace( "BindSocket FAILED: bind(%u) errno=%d (%s) - is another cossacks instance still running?",
-			DATA_PORT, errno, strerror( errno ) );
+		//stderr, not the trace: a fatal network error must stay visible
+		//even with COSSACKS_NET_TRACE=0
+		fprintf(stderr,"BindSocket FAILED: bind(%u) errno=%d (%s) - is another cossacks instance still running?\n",
+			DATA_PORT, errno, strerror( errno ));
 		return FALSE;
 	}
 
