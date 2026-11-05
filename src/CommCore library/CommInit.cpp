@@ -3,24 +3,6 @@
 #include "CommCore.h"
 
 // ---------------------------------------------------------------------------------------------
-#ifdef CC_DEBUG
-VOID CCommCore::DebugMessage( LPCSTR lpcszMessage )
-{
-	SYSTEMTIME		SysTime;
-	GetLocalTime( &SysTime );
-
-	m_DebugStream = fopen( "C:\\CommCore.log", "a+" );
-
-	fprintf( m_DebugStream, "%2.2u:%2.2u:%2.2u.%3.3u		%s\n",
-		SysTime.wHour,
-		SysTime.wMinute,
-		SysTime.wSecond,
-		SysTime.wMilliseconds,
-		lpcszMessage );
-
-	fclose( m_DebugStream );
-}
-#endif //CC_DEBUG
 
 
 CCommCore::CCommCore()
@@ -55,18 +37,12 @@ CCommCore::CCommCore()
 	m_dwTxBytes = 0;
 	m_dwNxBytes = 0;
 
-#ifdef CC_DEBUG
-	DebugMessage( "-- Log Started ---------------------------------" );
-#endif //CC_DEBUG
 }
 
 // ---------------------------------------------------------------------------------------------
 
 CCommCore::~CCommCore()
 {
-#ifdef CC_DEBUG
-	DebugMessage( "-- Log Stopped ---------------------------------" );
-#endif //CC_DEBUG
 	if (m_lpbRecvBuffer)
 		free( m_lpbRecvBuffer );
 }

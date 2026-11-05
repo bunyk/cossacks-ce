@@ -4015,6 +4015,11 @@ extern "C" DLLEXPORT void StartAI( byte Nat, char* Name, int Land, int Money, in
 }
 void StartAIEx( byte Nat, char* Name, int Land, int Money, int ResOnMap, int Difficulty )
 {
+	if (CCTraceEnabled())
+	{
+		CCTrace( "PHASE StartAIEx: color=%d name=\"%s\" Land=%d Money=%d ResOnMap=%d Difficulty=%d",
+			Nat, Name, Land, Money, ResOnMap, Difficulty );
+	}
 	Nat = AssignTBL[Nat];
 	LoadAIFromDLL( Nat, GetTextByID( Name ) );
 	if ( Difficulty != -1 )CITY[Nat].Difficulty = Difficulty;
@@ -5979,6 +5984,10 @@ void LoadAIFromDLL( byte Nat, char* Name )
 	CNAT = NATIONS + Nat;
 	CCIT = CNAT->CITY;
 	CurAINation = Nat;
+	if (CCTraceEnabled())
+	{
+		CCTrace( "PHASE LoadAIFromDLL: nation=%d module=\"%s\"", Nat, Name );
+	}
 	NT->hLibAI = LoadLibrary( Name );
 	AiIsRunNow = false;
 	if ( NT->hLibAI )

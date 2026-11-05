@@ -30,3 +30,9 @@ public:
 extern Syncro SYN;
 extern Syncro SYN1;
 extern word rpos;
+
+//Lockstep RNG divergence diagnostics (unsyncro.cpp): ring of recent
+//deterministic random-read call sites, dumped once on the first
+//RandIndex fork of a network game
+void ResetRandTrace();
+void DumpRandTrace();

@@ -12,13 +12,10 @@
 // фирмы Microsoft на трансляцию UDP-пакетов через шлюз
 
 #define _COOL_
-//#define CC_DEBUG
 
-#ifdef CC_DEBUG
-#define _log_message(message) DebugMessage(message)
-#else
-#define _log_message(message) 
-#endif //CC_DEBUG
+// (The old CC_DEBUG function-name logger is removed; runtime packet tracing
+// lives in CommCore.cpp - see CCTrace/CCTraceEnabled)
+#define _log_message(message)
 
 #ifndef _COMM_CORE_H_INCLUDED_
 #define _COMM_CORE_H_INCLUDED_
@@ -36,10 +33,6 @@
 #include <Winsock2.h>
 #include <WS2tcpip.h>
 #include <Windows.h>
-#ifdef CC_DEBUG
-#include <stdio.h>
-#endif //CC_DEBUG
-
 #pragma warning (disable : 4200)
 
 #else // !_WIN32
@@ -91,6 +84,7 @@ uint64_t GetSDLTickCount();
 // environment: printf's every frame sent and received (see CommCore.cpp).
 // Used for debugging the lobby/game traffic between two instances.
 bool CCTraceEnabled();
+bool CCTransportTraceEnabled();
 void CCTrace( const char* fmt, ... );
 // Decoded CC_PT_* packet type name (e.g. "TRY_CONNECT" / "SEND_DATA")
 const char* CCPacketName( unsigned uType );
@@ -443,11 +437,6 @@ public:
 	// ---------------------------------------------------------------------------------------------
 protected:
 	// ---------------------------------------------------------------------------------------------
-#ifdef CC_DEBUG
-	FILE	*	m_DebugStream;
-	VOID		DebugMessage( LPCSTR lpcszMessage );
-#endif //CC_DEBUG
-
 	CHAR		m_szUserName[MAX_HOST_NAME];		//
 //	PEER_ADDR	m_paHostAddr;						//
 //	CHAR		m_szDotAddr[18];					//

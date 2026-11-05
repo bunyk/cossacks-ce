@@ -135,6 +135,7 @@ void SetupEBufs()
 	SeqErrorsCount = 0;
 	LastRandDif = 0;
 	PrevRpos = 0;
+	ResetRandTrace();
 	for (int i = 0; i < MaxPL; i++)
 	{
 		EBufs[i].RealTime = NON;
@@ -147,6 +148,10 @@ void SetupEBufs()
 }
 
 extern word rpos;
+
+//unsyncro.cpp: one-shot RNG call-site dump for lockstep fork debugging
+extern void ResetRandTrace();
+extern void DumpRandTrace();
 
 //Describes which players are out of sync
 byte SYNBAD[8] = {};
@@ -181,6 +186,28 @@ void UpdateEBufs()
 					LastRandDif = int( EBufs[i].RandIndex ) - int( FirstRand );
 					rpos = FirstRand;
 					SYNBAD[PINFO[i].ColorID] = 1;
+
+					//First fork of the game: dump the ring of recent
+					//deterministic random-read call sites (unsyncro.cpp).
+					//Diffing both machines' RANDTRACE streams around the
+					//fork rpos pinpoints the divergent rando() call site
+					DumpRandTrace();
+				
+				static DWORD NextSyncTrace = 0;
+				if (CCTraceEnabled() && GetSDLTickCount() >= NextSyncTrace)
+				{
+					NextSyncTrace = GetSDLTickCount() + 2000;
+					CCTrace( "DESYNC: RandIndex fork! slot %d has %u, others %u (LastRandDif=%d, SeqErrors=%d)",
+						i, EBufs[i].RandIndex, FirstRand, LastRandDif, SeqErrorsCount );
+					for (int q = 0; q < MaxPL; q++)
+					{
+						if (EBufs[q].Enabled)
+						{
+							CCTrace( "  slot %d: RealTime=%u RandIndex=%u (local rpos=%u PrevRpos=%u)",
+								q, EBufs[q].RealTime, EBufs[q].RandIndex, rpos, PrevRpos );
+						}
+					}
+				}
 				}
 			}
 			//copy data to execute buffer
@@ -313,12 +340,6 @@ BOOL CALLBACK IPCORE_EnumProc( const PEER_ID PeerID, LPCSTR lpcszPeerName )
 	PlayersID[NPlayers] = PeerID;
 	PINFLOC[NPlayers].PlayerID = PeerID;
 	strcpy( PINFLOC[NPlayers].name, lpcszPeerName );
-
-	if (CCTraceEnabled())
-	{
-		CCTrace( "ENUM peer[%u] id=%u name=\"%s\" (NPlayers -> %u)",
-			NPlayers, PeerID, lpcszPeerName, NPlayers + 1 );
-	}
 
 	word pisize = sizeof( PlayerInfo ) - 36;
 	memset( &PINFLOC[NPlayers].NationID, 0, pisize );
@@ -459,18 +480,27 @@ void HandleApplicationMessage(void* lpMsg, DWORD dwMsgSize,
 		int player_index = GetPIndex( idFrom );
 		if (player_index < 0)
 		{
-			if (CCTraceEnabled())
+			static DWORD NextDropTrace = 0;
+			if (CCTraceEnabled() && GetSDLTickCount() >= NextDropTrace)
 			{
+				NextDropTrace = GetSDLTickCount() + 1000;
 				CCTrace( "APP DROP: from unknown player id=%u cmd=%.4s size=%u (NPlayers=%u)",
 					idFrom, (char*) lpMsg, dwMsgSize, NPlayers );
 			}
 			return;
 		}
 
+		//(per-command logging would flood during play - CHAT RCV below
+		// still prints every chat line)
 		if (CCTraceEnabled() && dwMsgSize >= 4)
 		{
-			CCTrace( "APP MSG: from id=%u player[%d] cmd=%.4s size=%u",
-				idFrom, player_index, (char*) lpMsg, dwMsgSize );
+			static DWORD NextMsgTrace = 0;
+			if (GetSDLTickCount() >= NextMsgTrace)
+			{
+				NextMsgTrace = GetSDLTickCount() + 1000;
+				CCTrace( "APP MSG: from id=%u player[%d] cmd=%.4s size=%u",
+					idFrom, player_index, (char*) lpMsg, dwMsgSize );
+			}
 		}
 
 		NTOTFROM[player_index]++;
@@ -507,6 +537,17 @@ void HandleApplicationMessage(void* lpMsg, DWORD dwMsgSize,
 		}
 
 STAGENEXT:
+		if (CCTraceEnabled() && BUFX[0] == 0xBB)
+		{
+			static DWORD NextEBTrace = 0;
+			if (GetSDLTickCount() >= NextEBTrace)
+			{
+				NextEBTrace = GetSDLTickCount() + 1000;
+				CCTrace( "LOCKSTEP RCV: from id=%u player[%d] size=%u (%s)",
+					idFrom, player_index, dwMsgSize, CheckRetrans ? "retrans" : "direct" );
+			}
+		}
+		
 		if (BUFX[0] == 0xBB && WWW[0] + WWW[1] == WWW[2])
 		{
 			if (!STAGE)
@@ -1171,7 +1212,13 @@ bool FindSessionAndJoin( char* Name, char* Nick, unsigned short port )
 			NETWORK_INIT = 1;
 		}
 
-		if (IPCORE.InitClient( IPADDR, Nick, port ))
+		bool JoinRes = ( IPCORE.InitClient( IPADDR, Nick, port ) != 0 );
+		if (!JoinRes && CCTraceEnabled())
+		{
+			CCTrace( "PHASE FindSessionAndJoin: InitClient( \"%s\" ) failed - nothing answered within timeout",
+				IPADDR );
+		}
+		if (JoinRes)
 		{
 			//IPCORE.SetUserName(Nick);
 			MyDPID = IPCORE.GetPeerID();
@@ -1258,7 +1305,20 @@ bool CreateNamedSession( char* Name, DWORD User2, int Max )
 		IPCORE.SetOptions( User2 );
 		IPCORE.SetMaxPeers( Max );
 		bool r = ( IPCORE.InitServer( Name, Name ) != 0 );
-		if (r)IPCORE_INIT = 1;
+		if (!r && CCTraceEnabled())
+		{
+			CCTrace( "PHASE CreateNamedSession: InitServer FAILED (NETWORK_INIT=%d IPCORE_INIT=%d)",
+				NETWORK_INIT ? 1 : 0, IPCORE_INIT ? 1 : 0 );
+		}
+		if (r)
+		{
+			//Must mirror CreateSession below: without our peer id, every
+			//"own player" lookup on the host fails - the own chat line
+			//shows ?UNKNOWN?, and the GMREADY self-ping row (Start button)
+			//never fills in
+			MyDPID = IPCORE.GetPeerID();
+			IPCORE_INIT = 1;
+		}
 		return r;
 	}
 	else return false;
@@ -1676,6 +1736,14 @@ void CenterScreen();
 
 void ComeInGame()
 {
+	extern int StartTime[8]; // this file, CreateStartTime() below
+	extern int MaxPingTime;   // this file, see AnalyseMessages/PitchTicks
+	if (CCTraceEnabled())
+	{
+		CCTrace( "PHASE ComeInGame: NeedCurrentTime=%d MaxPingTime=%d StartTime=%d %d - time anchors",
+			NeedCurrentTime, MaxPingTime, StartTime[0], StartTime[1] );
+	}
+
 	ShowLoading();
 
 	int myid = 0;
@@ -1718,6 +1786,14 @@ void ComeInGame()
 	PrepareGameMedia( myid, 1 );
 
 	memcpy( NatRefTBL, NRTBL, 8 );
+
+	if (CCTraceEnabled())
+	{
+		CCTrace( "PHASE ComeInGame identity: myid=%d MyDPID=%u ColorID=%d MyNation=%d NatRefTBL=%d %d %d %d %d %d %d %d %d",
+			myid, (unsigned) MyDPID, PINFO[myid].ColorID, MyNation ? MyNation : 0,
+			NatRefTBL[0], NatRefTBL[1], NatRefTBL[2], NatRefTBL[3],
+			NatRefTBL[4], NatRefTBL[5], NatRefTBL[6], NatRefTBL[7] );
+	}
 
 	CenterScreen();
 
@@ -2079,6 +2155,14 @@ void AnalyseMessages()
 						else
 						{
 							PitchTicks = 0;
+						}
+
+						if (CCTraceEnabled())
+						{
+							CCTrace( "PHASE Started by server: map=\"%s\" MaxPingTime=%d NPlayers=%u MyDPID=%u COMPSTART=%04X %04X %04X %04X %04X %04X %04X %04X",
+								CurrentMap, MaxPingTime, NPlayers, (unsigned) MyDPID,
+								COMPSTART[0], COMPSTART[1], COMPSTART[2], COMPSTART[3],
+								COMPSTART[4], COMPSTART[5], COMPSTART[6], COMPSTART[7] );
 						}
 
 						PlayerInfo PINFO2[8];
@@ -2776,6 +2860,15 @@ void HandleMultiplayer()
 
 	EBPos = 0;
 	UpdateEBufs();
+
+	//Per-lockstep-tick RNG check trail: stamping both machines' ticks with
+	//their local rpos lets the two logs be diffed tick-by-tick to find the
+	//first tick with divergent RNG consumption (rpos is post-fork-slam,
+	//PrevRpos is the value stamped into this tick's 0xAE block)
+	if (CCTraceEnabled())
+	{
+		CCTrace( "TICK RT=%u rpos=%u PrevRpos=%u", RealTime, rpos, PrevRpos );
+	}
 	RealTime++;
 }
 
@@ -2789,6 +2882,17 @@ void RetryNet( bool GUAR )
 	*( (word*) ( COMP + 5 ) ) = PrevEBSize + PrevPrevEBSize;
 	memcpy( COMP + 7, PrevPrevEB, PrevPrevEBSize );
 	memcpy( COMP + 7 + PrevPrevEBSize, PrevEB, PrevEBSize );
+
+	if (CCTraceEnabled())
+	{
+		static DWORD NextEBTrace = 0;
+		if (GetSDLTickCount() >= NextEBTrace)
+		{
+			NextEBTrace = GetSDLTickCount() + 1000;
+			CCTrace( "LOCKSTEP SND: 0xBB block size=%u (PrevPrevEB=%u PrevEB=%u)",
+				PrevPrevEBSize + PrevEBSize + 7, PrevPrevEBSize, PrevEBSize );
+		}
+	}
 
 	if (DoNewInet)
 	{

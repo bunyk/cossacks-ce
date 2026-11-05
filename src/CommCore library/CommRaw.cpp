@@ -17,25 +17,6 @@ BOOL CCommCore::ReSendFrame(u_short uFrameNum)
 
 	m_dwNxBytes += m_FrameList[uFrameNum].m_uSize;
 
-#ifdef CC_DEBUG
-	CHAR		szMsg[255];
-	sprintf(szMsg, "call ReSendFrame()");
-	DebugMessage(szMsg);
-
-	sprintf(szMsg, "     To:	%s:%u",
-		inet_ntoa(sinPeer.sin_addr),
-		ntohs(sinPeer.sin_port));
-	DebugMessage(szMsg);
-
-	sprintf(szMsg, "     Type:	%u", m_FrameList[uFrameNum].m_lpFrame->m_uType);
-	DebugMessage(szMsg);
-
-	sprintf(szMsg, "     PeerId:	%u", m_FrameList[uFrameNum].m_lpFrame->m_PeerId);
-	DebugMessage(szMsg);
-
-	sprintf(szMsg, "     Size:	%u", m_FrameList[uFrameNum].m_uSize);
-	DebugMessage(szMsg);
-#endif //CC_DEBUG
 
 	if (sendto(m_DataSocket,
 		(char *)m_FrameList[uFrameNum].m_lpFrame,
@@ -84,7 +65,7 @@ BOOL CCommCore::SendRawPacket(PEER_ADDR			PeerAddr,
 
 	m_dwTxBytes += uRawFrameSize;
 
-	if (CCTraceEnabled())
+	if (CCTransportTraceEnabled())
 	{
 		CCTrace( "CC SND -> %s:%u type=%u (%s) peer=%u size=%u%s",
 			inet_ntoa( sinPeer.sin_addr ),
@@ -96,25 +77,6 @@ BOOL CCommCore::SendRawPacket(PEER_ADDR			PeerAddr,
 			bSecureMessage ? " secure" : "" );
 	}
 
-#ifdef CC_DEBUG
-	CHAR		szMsg[255];
-	sprintf(szMsg, "call SendRawPacket()");
-	DebugMessage(szMsg);
-
-	sprintf(szMsg, "     To:	%s:%u",
-		inet_ntoa(sinPeer.sin_addr),
-		ntohs(sinPeer.sin_port));
-	DebugMessage(szMsg);
-
-	sprintf(szMsg, "     Type:	%u", lpRawFrame->m_uType);
-	DebugMessage(szMsg);
-
-	sprintf(szMsg, "     PeerId:	%u", lpRawFrame->m_PeerId);
-	DebugMessage(szMsg);
-
-	sprintf(szMsg, "     Size:	%u", uRawFrameSize);
-	DebugMessage(szMsg);
-#endif //CC_DEBUG
 
 	if (sendto(m_DataSocket,
 		(char *)lpRawFrame,

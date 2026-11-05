@@ -64,30 +64,11 @@ u_short CCommCore::ReceiveData(LPBYTE lpbBuffer, LPPEER_ID lpPeerId)
 	};
 // ----------------------------------------------------------------------
 
-#ifdef CC_DEBUG
-	CHAR		szMsg[255];
-	sprintf(szMsg,"after ReceiveData()");
-	DebugMessage(szMsg);
-
-	sprintf(szMsg,"     From:	%s:%u",
-		inet_ntoa(SenderAddr.sin_addr),
-		ntohs(SenderAddr.sin_port));
-	DebugMessage(szMsg);
-
-	sprintf(szMsg,"     Type:	%u",lpFrame->m_uType);
-	DebugMessage(szMsg);
-
-	sprintf(szMsg,"     PeerId:	%u",lpFrame->m_PeerId);
-	DebugMessage(szMsg);
-
-	sprintf(szMsg,"     Size:	%u",lDataSize);
-	DebugMessage(szMsg);
-#endif //CC_DEBUG
 
 	if(lpFrame->m_lProto!=PROTO_ID)
 		return 0x00;
 
-	if (CCTraceEnabled())
+	if (CCTransportTraceEnabled())
 	{
 		CCTrace( "CC RCV <- %s:%u type=%u (%s) peer=%u size=%u",
 			inet_ntoa( SenderAddr.sin_addr ),

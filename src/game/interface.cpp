@@ -11650,6 +11650,11 @@ void PrepareGameMedia( byte myid, bool SaveNR )
 		}
 		else
 		{
+			if (CCTraceEnabled())
+			{
+				CCTrace( "PHASE PrepareGameMedia: AI init loop NPlayers=%u (MapScenaryDLL[0]=%d)",
+					NPlayers, MapScenaryDLL[0] ? 1 : 0 );
+			}
 			for ( int i = NPlayers; i < 7; i++ )
 			{
 				if ( COMPSTART[i] )
@@ -11666,6 +11671,12 @@ void PrepareGameMedia( byte myid, bool SaveNR )
 							j = MAXOBJECT + 1;
 						}
 					}
+					if (CCTraceEnabled())
+					{
+						CCTrace( "PHASE PrepareGameMedia: AI slot %d COMPSTART=%04X ColorID=%d Diff=%d peasantNat=%d %s",
+							i, COMPSTART[i], c, Diff, Nat,
+							Nat == -1 ? "NO PEASANT - AI NOT STARTED" : "starting AI" );
+					}
 					if ( Nat != -1 )
 					{
 						char ccx[48];
@@ -11674,6 +11685,14 @@ void PrepareGameMedia( byte myid, bool SaveNR )
 						StartAIEx( PINFO[i].ColorID, ccx, RMP.STY[RM_LandType].AI_Style, RM_Resstart, RM_Restot, Diff - 1 );
 					}
 				}
+			}
+			if (CCTraceEnabled())
+			{
+				CCTrace( "PHASE PrepareGameMedia: AI_Enabled map n0=%d n1=%d n2=%d n3=%d n4=%d n5=%d n6=%d n7=%d",
+					NATIONS[0].AI_Enabled ? 1 : 0, NATIONS[1].AI_Enabled ? 1 : 0,
+					NATIONS[2].AI_Enabled ? 1 : 0, NATIONS[3].AI_Enabled ? 1 : 0,
+					NATIONS[4].AI_Enabled ? 1 : 0, NATIONS[5].AI_Enabled ? 1 : 0,
+					NATIONS[6].AI_Enabled ? 1 : 0, NATIONS[7].AI_Enabled ? 1 : 0 );
 			}
 		}
 		memcpy( NatRefTBL, RRR, 8 );

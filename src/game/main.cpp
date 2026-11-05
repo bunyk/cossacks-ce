@@ -491,7 +491,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	{
 		const char* Env = getenv( "COSSACKS_NET_TRACE" );
 		printf( "NET TRACE: %s (COSSACKS_NET_TRACE=\"%s\")\n",
-			CCTraceEnabled() ? "ENABLED" : "disabled",
+			!CCTraceEnabled() ? "OFF" : ( CCTransportTraceEnabled() ? "transport+game" : "game layer" ),
 			Env ? Env : "" );
 		fflush( stdout );
 	}
@@ -910,6 +910,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 	{
 		int bx = (int)event->button.x, by = (int)event->button.y;
 		ScaleMouseToLogical(&bx, &by);
+		printf("SDL_EVENT_MOUSE_BUTTON_DOWN: b=%d x=%d y=%d\n", (int)event->button.button, bx, by);
 		SDL_MouseButtonFlags mouseFlags = SDL_GetMouseState(nullptr, nullptr);
 		if (event->button.button == SDL_BUTTON_LEFT)
 		{
@@ -1395,9 +1396,12 @@ void PostDrawGameProcess()
 		if ( MaxPingTime && !PlayGameMode )CurrentStepTime -= CurrentStepTime >> 5;
 		RealGameLength = GetSDLTickCount() - RealStTime;
 
-#ifdef _WIN32
+		// Per-step multiplayer handler (mplayer.cpp): exchanges the
+		// execute-buffer turn data and gates the simulation on the other
+		// players' turns - the deterministic lockstep itself. Without this
+		// both peers run free-running, unsynchronized simulations
+		extern void HandleMultiplayer(); // mplayer.cpp: the deterministic lockstep
 		HandleMultiplayer();
-#endif // _WIN32 (mplayer.cpp not ported)
 
 		SYN.Copy( &SYN1 );
 

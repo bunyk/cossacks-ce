@@ -1,6 +1,7 @@
 // Network initialization part
 //
 #include "CommCore.h"
+#include <errno.h>
 
 // ---------------------------------------------------------------------------------------------
 
@@ -71,7 +72,10 @@ BOOL CCommCore::InitSocket()
 
 	m_DataSocket=socket(AF_INET,SOCK_DGRAM,IPPROTO_UDP);
 	if(m_DataSocket==INVALID_SOCKET)
+	{
+		CCTrace( "InitSocket FAILED: socket() errno=%d (%s)", errno, strerror( errno ) );
 		return FALSE;
+	}
 
 	u_long	lArgP=0x01;
 	if(ioctlsocket(m_DataSocket,FIONBIO,&lArgP)==SOCKET_ERROR)
@@ -110,7 +114,11 @@ BOOL CCommCore::BindSocket()
 	locaddr.sin_port=htons(DATA_PORT);
 
 	if(bind(m_DataSocket,(sockaddr *)&locaddr,sizeof(sockaddr_in))==SOCKET_ERROR)
+	{
+		CCTrace( "BindSocket FAILED: bind(%u) errno=%d (%s) - is another cossacks instance still running?",
+			DATA_PORT, errno, strerror( errno ) );
 		return FALSE;
+	}
 
 	m_bSocketBound=TRUE;
 

@@ -1634,6 +1634,13 @@ void CreateMapByName( char* Name )
 	RM_LandType = Style;
 	RM_Resstart = Resst;
 	RM_Restot = Resmn;
+
+	if (CCTraceEnabled())
+	{
+		CCTrace( "PHASE random map decode: seed=%d style=%d play=%d mount=%d resstart=%d restot=%d RESrow=%d %d %d %d %d %d",
+			x1 & 8191, Style, Play, Mount, Resst, Resmn,
+			RES[0][0], RES[0][1], RES[0][2], RES[0][3], RES[0][4], RES[0][5] );
+	}
 	mrpos = x1 & 8191;
 	XXP = 0;
 	sprintf( cc1, "Terrain\\%s", RD.STY[Style].Players[Play].name );
@@ -1713,6 +1720,11 @@ void CheckMapName( char* Name )
 	if ( Name[0] == 'R' && Name[1] == 'N' && Name[3] == ' ' )
 	{
 		ResFile F = RReset( Name );
+		if (CCTraceEnabled())
+		{
+			CCTrace( "PHASE CheckMapName: map=\"%s\" file %s", Name,
+				F == INVALID_HANDLE_VALUE ? "MISSING - regenerating" : "exists" );
+		}
 		if ( F == INVALID_HANDLE_VALUE )
 		{
 			UnLoading();
@@ -1734,10 +1746,52 @@ void CheckMapName( char* Name )
 	}
 }
 
+//Decodes the settings baked into an "RN<sz> <x1> <x2> ..." random-map
+//name into the global RM_* params and the per-nation start resource
+//matrix. The map NAME is the authoritative carrier of the settings (the
+//lobby encodes them there): every machine must decode it whether it
+//regenerates the map from the name (no cached .m3d) or loads the cached
+//file. Only the regeneration path (CreateMapByName) decodes them
+//otherwise - a cache hit leaves the machine with default RM_LandType /
+//RM_Restot (City.LandType/ResOnMap set by StartAIEx) and RES[], which
+//desyncs the AI's deterministic decisions in multiplayer.
+void DecodeRandomMapParams( char* Name )
+{
+	char cc1[128];
+	char cc2[32];
+	int x1, x2;
+	int ADD_PARAM = 0;
+	sscanf( Name, "%s%x%x%s%d", cc1, &x1, &x2, cc2, &ADD_PARAM );
+
+	RandomMapDesc RD;
+	RD.Load( "Terrain\\res.dat" );
+	int Style = x2 & 15;
+	int Resst = ( x2 >> 12 ) & 15;
+	int Resmn = ( x2 >> 16 ) & 15;
+	for ( int i = 0; i < 8; i++ )
+	{
+		for ( int p = 0; p < 8; p++ )
+		{
+			RES[i][p] = RD.RES[Resst].RES[p];
+		}
+	}
+	RM_LandType = Style;
+	RM_Resstart = Resst;
+	RM_Restot = Resmn;
+
+	if (CCTraceEnabled())
+	{
+		CCTrace( "PHASE random map params decoded from name: style=%d resstart=%d restot=%d RES0=%d",
+			Style, Resst, Resmn, RES[0][0] );
+	}
+}
+
 void CheckMapNameForStart( char* Name )
 {
 	if ( Name[0] == 'R' && Name[1] == 'N' && Name[3] == ' ' )
 	{
+		DecodeRandomMapParams( Name );
+
 		ResFile F = RReset( Name );
 		if ( F == INVALID_HANDLE_VALUE )
 		{

@@ -196,59 +196,6 @@ int GP_System::PreLoadGPImage( char* Name, bool Shadow )
 {
 	//search for existing name
 	return PreLoadGPImage( Name );
-	/*
-	NewGPImage=false;
-	for(int i=0;i<NGP;i++){
-		if(!strcmp(Name,GPNames[i])){
-			return i;
-		};
-	};
-	UNITBL[i]=UFONTS.FindFont(Name);
-	NewGPImage=true;
-	//determining image type
-	//1. GP
-	char FName[128];
-	sprintf(FName,"%s.gp",Name);
-	ResFile f=RReset(FName);
-	ImageType[NGP]=0;
-	if(f!=INVALID_HANDLE_VALUE){
-		RSeek(f,4);
-		RBlockRead(f,&GPNFrames[NGP],2);
-		RClose(f);
-		AText(FName);
-		ImageType[NGP]=1;
-	}else{
-		//2. RLC?
-		sprintf(FName,"%s.rlc",Name);
-		f=RReset(FName);
-		if(f!=INVALID_HANDLE_VALUE){
-			AText(FName);
-			RSeek(f,4);
-			RBlockRead(f,&GPNFrames[NGP],2);
-			RClose(f);
-			ImageType[NGP]=2;
-			if(Shadow){
-				sprintf(FName,"%ss.rlc",Name);
-				f=RReset(FName);
-				if(f!=INVALID_HANDLE_VALUE){
-					RClose(f);
-					ImageType[NGP]=3;
-				};
-			};
-		}else{
-			sprintf(FName,"Could not load %s.(gp|rlc)",Name);
-			ErrM(FName);
-		};
-	};
-	RLCNSpr[NGP]=GPNFrames[NGP];
-	GPNames[NGP]=new char[strlen(Name)+1];
-	strcpy(GPNames[NGP],Name);
-	GPH[NGP]=NULL;
-	GPLastTime[NGP]=0;
-	GPSize[NGP]=0;
-	NGP++;
-	return NGP-1;
-	*/
 };
 
 void GP_System::SetWhiteFont( int n )
