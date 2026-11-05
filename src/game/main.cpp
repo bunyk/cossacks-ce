@@ -606,6 +606,14 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 			&dummy, &ScrollSpeed, &exFMode, &PlayMode);
 		Gclose(fff);
 
+		//Validate values: mode.dat may come from an older/foreign build and
+		//carry values outside the valid ranges, which would later crash the
+		//options dialog (ComboBox indexes its Lines[] with CurLine).
+		//exFMode: 0 = SLOWMOD, 1 = FASTMOD.
+		//PlayMode: 0 = NOCD, 1 = NATMUS, 2 = RNDMUS.
+		if (exFMode < 0 || exFMode > 1) exFMode = 1;
+		if (PlayMode < 0 || PlayMode > 2) PlayMode = 2;
+
 		//Set last 'global resolution' according to current mode
 		if (window_mode)
 		{
