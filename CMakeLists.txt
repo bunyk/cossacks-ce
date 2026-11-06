@@ -112,6 +112,7 @@ add_executable(cossacks
 	src/game/3dmaped.cpp
 	src/game/3dsurf.cpp
 	src/game/megapolis.cpp
+	src/game/safenet.cpp
 	src/game/icontool.cpp
 	src/game/topograf.cpp
 	src/game/strategyresearch.cpp

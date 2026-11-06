@@ -1,12 +1,13 @@
-// Linux port stubs.
-//
-// Temporary no-op definitions for functionality that is not ported yet:
-//  - interface.cpp regions still guarded by _WIN32 (multiplayer, chat,
-//    random-map dialogs)
-//  - fog.cpp / virtscr.cpp asm regions
-//  - realwater.cpp, shiptrace.cpp, mplayer.cpp (network), ir_main.cpp
+// Linux port stubs: no-op stand-ins for code that is not compiled on Linux.
+// The originals live in:
+//  - ir_main.cpp (GSC online-game stats/mods hooks: CheckGameTime,
+//    IsGameActive, DontMakeRaiting/StopRaiting, LOOSE*/WINIGAME, ...)
+//  - _WIN32-guarded regions of interface.cpp (sound sliders, random-map
+//    presets, replay filenames, ProcessInternetConnection/IChat lobby)
+//  - the IChat / IntExplorer lobby DLLs (GoHomeAnyway, GetGameID,
+//    SendVictoryState, StartDownloadInternetFile, SendRecBuffer)
 // Each stub keeps the exact signature from the headers so the mangled names match.
-// TODO: replace with real implementations while porting the files above.
+// TODO: port the pieces above and delete their stubs.
 
 #include "ddini.h"
 #include "resfile.h"
@@ -27,18 +28,12 @@
 #ifndef _WIN32
 
 //-------------- global variables --------------
-// CUR_TOOL_MODE/DRAWLOCK/HEIGHTSTR: real definitions now compiled in
-// interface.cpp - stubs deleted.
-char CurrentMap[64];
-char DEFPLNAMES[8][64];
-// FogMode: defined in fog.cpp (ported)
-extern const int kCtrlStickyTime = 700;
-char MapScenaryDLL[200];
-// Editor UI state (InteriorType/MI_Mode/OptHidden/ToolsHidden/TP_Made/
-// NeedToPopUp) and TexMap brush parameters (TM_*/TexMapMod): real
-// definitions now compiled in interface.cpp - stubs deleted.
-int OrderSound = 0;
-int RM_LandType = 0;
+// These mirror the originals that sit in _WIN32-guarded regions of
+// interface.cpp.
+char CurrentMap[64];      // replay map name (recorder.cpp)
+char DEFPLNAMES[8][64];  // default player names (loadsave.cpp)
+char MapScenaryDLL[200]; // scenario DLL path (savenewmap.cpp)
+int RM_LandType = 0;     // random-map presets (3drandmap.cpp, savenewmap.cpp)
 int RM_Resstart = 0;
 int RM_Restot = 0;
 // Sound volumes: DirectSound-style slider positions (0..100). SDL_AppInit
@@ -46,22 +41,20 @@ int RM_Restot = 0;
 // inits only matter for the very first run before a mode.dat exists.
 int WarSound = 0;
 int WorkSound = 0;
+int OrderSound = 0;
+// MidiSound is only the options-slider state variable (interface.cpp's
+// definition is inside a _WIN32 region).
+int MidiSound = 0;
 
-// network / internet pointers (ir_main.cpp is not ported; mplayer.cpp
-// provides the real PSUMM/PBACK/RETSYS objects now)
+// Map-record streaming hooks exported by the IntExplorer exchange DLL
+// (not ported). They stay NULL, which disables the upload path in
+// recorder.cpp (code checks them before calling).
 typedef void tpStartDownloadInternetFile( char* Name, char* Server, char* DestName );
 typedef void tpSendRecBuffer( byte* Data, int size, bool Final );
 tpStartDownloadInternetFile* StartDownloadInternetFile = NULL;
 tpSendRecBuffer* SendRecBuffer = NULL;
 
-
-word GetNextDivCell( byte NI, int F, int Start ) { (void)NI; (void)F; (void)Start; return 0xFFFF; }
-word GetNextGreCell( byte NI, int F, int Start ) { (void)NI; (void)F; (void)Start; return 0xFFFF; }
-word GetNextSafeCell( byte NI, int F, int start, int Fin ) { (void)NI; (void)F; (void)start; (void)Fin; return 0xFFFF; }
-
-//-------------- interface.cpp / gp_draw.cpp guarded regions --------------
-// CheckFlagsNeed/GetTreeItem/LoadMapInterface/ProcessMapInterface: real
-// definitions now compiled in interface.cpp - stubs deleted.
+//-------------- ir_main.cpp hooks (GSC online-game stats, not ported) --------------
 bool CheckGameTime() { return false; }
 void DontMakeRaiting() {}
 void ExplorerOpenRef( int Index, char* ref ) { (void)Index; (void)ref; }
@@ -72,14 +65,6 @@ void SetBrokenState() {}
 void ShowCentralMessage4( char* Message, int GPIDX, int DX ) { (void)Message; (void)GPIDX; (void)DX; }
 void UpdateCurGame() {}
 
-//-------------- map editor / random map --------------
-// DecodeOptionsFromNumber: real implementation in newcode/mapoptionsencoder.cpp
-// (now compiled) - stub deleted. Without it every additional game option
-// chosen in the random-map UI decoded to 0 (default).
-// ReadBMP24/CreateNEWMAP: real implementations now compiled (bmptool.cpp and
-// the editor UI in interface.cpp) - stubs deleted.
-
-//-------------- network extras (ir_main.cpp is not ported) --------------
 // StopRaiting: ir_main.cpp stats-reporting hook, called by mplayer.cpp
 void StopRaiting() {}
 
@@ -88,27 +73,15 @@ void StopRaiting() {}
 // ir_main, so this is a no-op
 void LOOSEANDEXITFAST() {}
 
-// GetPName: real definition in interface.cpp (un-guarded)
 void LOOSEIGAME( char* Nick ) { (void)Nick; }
 void WINIGAME( char* Nick ) { (void)Nick; }
 void GetGameID( char* s ) { if (s) s[0] = 0; }
 void SendVictoryState( int ID, byte State ) { (void)ID; (void)State; }
 
-// ProcessSingleMission: real implementation now in interface.cpp (single
-// missions + campaigns un-guarded) - stub deleted.
-
-// lobby helpers used by the shared MPL_WaitingGame event loop
+// Lobby helper used by the shared MPL_WaitingGame event loop; the real one
+// calls into the IChat lobby DLL (Windows-only)
 int  ProcessInternetConnection( bool Active ) { (void)Active; return 0; }
-// EncodeOptionsInNumber: real implementation in newcode/mapoptionsencoder.cpp
-// (now compiled) - stub deleted.
 
-// network globals (mplayer.cpp)
-
-// CD-audio/music: real implementations now in devicecd.cpp (SDL3 audio
-// stream + stb_vorbis "Tracks/Track_XX.ogg"); stubs deleted.
-// MidiSound stays here: it is only the options-slider state variable
-// (interface.cpp's definition is inside a _WIN32 region).
-int MidiSound = 0;
 // IChat library callback (DLLIMPORT in interface.cpp); no-op without the DLL
 void GoHomeAnyway() {}
 // Terrain-editor error prompt (interface.cpp, unguarded editor UI). The
@@ -129,7 +102,5 @@ void WaitWithError( char* ID, int GPID )
 		ProcessMessages();
 	} while ( !KeyPressed );
 }
-
-// network functions (mplayer.cpp)
 
 #endif // !_WIN32

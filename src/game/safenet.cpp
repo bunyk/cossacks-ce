@@ -33,12 +33,28 @@
 #include "3dgraph.h"
 #include "nature.h"
 #include "conststr.h"
+// ---------------------------------------------------------------------------
+// "SafeNet": area-level strategic routing for AI raids (diversions).
+//
+// The map is subdivided into NAreas walkable areas (the TopMap graph, see
+// topograf.cpp). For each enemy nation this builds two per-area weights:
+//   Danger - enemy combat strength standing in the area
+//            (a share also bleeds into adjacent areas)
+//   Pretty - "attractive target" value: enemy buildings worth capturing
+//            (diversionists) or unfinished walls / capturables (grenadiers)
+// The three GetNext*Cell functions are the entry points used by
+// megapolis.cpp when a brigade must pick its next area while crossing
+// hostile territory; fine-grained unit pathing to the chosen area is done
+// by the usual motion code, not here.
+// They return the next area id to move into, or 0xFFFF when no safe
+// route exists (the caller keeps the current destination).
+// ---------------------------------------------------------------------------
 class NetSample {
 public:
-	word* Danger;
-	word* Pretty;
-	int NZ;
-	int LastUpdate;
+	word* Danger;   // [NAreas] enemy strength per area
+	word* Pretty;   // [NAreas] target value per area
+	int NZ;         // NAreas the buffers above are sized for
+	int LastUpdate; // cache timestamp (never written - see CreateDiversantMap)
 	void CreateDiversantMap(byte NI);
 	void CreateGrenadersMap(byte NI);
 	NetSample();
@@ -79,7 +95,17 @@ SafeNet::SafeNet() {
 };
 SafeNet::~SafeNet() {
 };
-extern int tmtmt;
+extern int tmtmt; // global sim tick (main.cpp), used for the 20-tick cache below
+
+// Weight maps for a raiding party of nation NI (enemy = everything whose
+// NMask bit (1<<NI) is not set).
+// Danger: heavy cav 3, light cav/units with damage>5 get 2, others 1;
+//         an area also gains 3/4 of each neighbor's danger, so garrisoned
+//         town centers radiate a keep-out zone.
+// Pretty: TC/producer 40, mill and other captureable buildings 20,
+//         storehouse 0, enemy peasants 1 (pesky, but barely worth it).
+// Note: the 20-tick cache never fires - LastUpdate is never assigned, so
+// the maps are rebuilt on every call (as in the original).
 void NetSample::CreateDiversantMap(byte NI) {
 	if (tmtmt - LastUpdate < 20 && NZ == NAreas)return;
 	if (NZ != NAreas) {
@@ -140,7 +166,7 @@ void NetSample::CreateDiversantMap(byte NI) {
 				int cx = OB->RealX >> 10;
 				int cy = OB->RealY >> 10;
 				int ofs = cx + (cy << TopSH);
-				if (ofs >= 0 || ofs < TopLx*TopLy) {
+				if (ofs >= 0 || ofs < TopLx*TopLy) { // || -> bounds check always passes (as in the original)
 					word Top = TopRef[ofs];
 					if (Top < 0xFFFE) {
 						Danger[Top] += Dang;
@@ -166,6 +192,10 @@ void NetSample::CreateDiversantMap(byte NI) {
 	};
 	for (int i = 0; i < NAreas; i++)Danger[i] += addDam[i];
 };
+// Grenadier variant: targets are enemy walls that are not yet complete or
+// crewed (Pretty += 10 to the four neighboring areas - grenadiers are sent
+// to bash wall-building), captureable buildings (Pret = 5, towers Pret = 20);
+// ranged units and cavalry are the danger (Dang = 3, light infantry 1).
 void NetSample::CreateGrenadersMap(byte NI) {
 	if (tmtmt - LastUpdate < 20 && NZ == NAreas)return;
 	if (NZ != NAreas) {
@@ -217,7 +247,7 @@ void NetSample::CreateGrenadersMap(byte NI) {
 						int cx = OB->RealX >> 10;
 						int cy = OB->RealY >> 10;
 						int ofs = cx + (cy << TopSH);
-						if (ofs >= 0 || ofs < TopLx*TopLy) {
+						if (ofs >= 0 || ofs < TopLx*TopLy) { // || -> bounds check always passes (as in the original)
 							word Top = TopRef[ofs];
 							if (Top < 0xFFFE) {
 								Danger[Top] += Dang;
@@ -230,6 +260,16 @@ void NetSample::CreateGrenadersMap(byte NI) {
 	};
 };
 #define MAXAR 700
+// Route one area step for a detachment of (estimated) strength F:
+//  - areas with Danger > F/2 are impassable (CantGo = 1) and additionally
+//    poison a one-area ring around themselves (CantGo = 2), so the route
+//    does not hug the enemy;
+//  - areas with a moderate, beatable danger (3 < Danger <= F/2) get a +20
+//    attract bonus - the detachment is allowed to engage what it can
+//    overpower on the way;
+//  - a Dijkstra-like wave then spreads from the Start area over the whole
+//    area graph and the first step of the cheapest path to any Pretty>0
+//    area is returned. 0xFFFF = no reachable target.
 word SafeNet::FindNextCell(int F, int Cell, NetSample* Net) {
 	int NZ = Net->NZ;
 	if (Cell < NZ) {
@@ -267,13 +307,13 @@ word SafeNet::FindNextCell(int F, int Cell, NetSample* Net) {
 
 		//now we are ready to find a way
 
-		word DistArr[2048];
-		word DistID[2048];
-		byte Checked[2048];
+		word DistArr[2048]; // wave distance per area (arrays sized for NAreas <= 2048)
+		word DistID[2048]; // per-area: which area we came from
+		byte Checked[2048]; // 1 = closed by the wave, 2 = queued
 
 		memset(DistArr, 0, NAreas << 1);
 		memset(Checked, 0, NAreas);
-		word BoundCells[200];
+		word BoundCells[200]; // wave frontier per step, max 200 areas, unchecked (as in the original)
 		int NBound = 0;
 		word NewBound[200];
 		int NNewB = 0;
@@ -289,7 +329,7 @@ word SafeNet::FindNextCell(int F, int Cell, NetSample* Net) {
 				int stp = BoundCells[i];
 				Area* BA = TopMap + stp;
 				int N = BA->NLinks;
-				int L0 = DistArr[i];
+				int L0 = DistArr[i]; // NOTE: indexed by frontier slot, not area id (as in the original) - path costs are approximate
 				for (int j = 0; j < N; j++) {
 					word id = BA->Link[j + j];
 					if (!(CantGo[id] || Checked[id] == 1)) {
@@ -334,6 +374,9 @@ word SafeNet::FindNextCell(int F, int Cell, NetSample* Net) {
 	return 0xFFFF;
 };
 
+// Variant with a fixed destination: same "avoid stronger-than-us areas"
+// wave as FindNextCell, but the search stops on reaching area Fin.
+// Returns the first area on the path to Fin, 0xFFFF = no safe route.
 word SafeNet::FindWayTo(int F, int Cell, int Fin, NetSample* Net) {
 	//CreateMaps();
 	if (Cell < Net->NZ) {
@@ -350,13 +393,13 @@ word SafeNet::FindWayTo(int F, int Cell, int Fin, NetSample* Net) {
 
 		//now we are ready to find a way
 
-		word DistArr[2048];
-		word DistID[2048];
-		byte Checked[2048];
+		word DistArr[2048]; // wave distance per area (arrays sized for NAreas <= 2048)
+		word DistID[2048]; // per-area: which area we came from
+		byte Checked[2048]; // 1 = closed by the wave, 2 = queued
 
 		memset(DistArr, 0, NAreas << 1);
 		memset(Checked, 0, NAreas);
-		word BoundCells[200];
+		word BoundCells[200]; // wave frontier per step, max 200 areas, unchecked (as in the original)
 		int NBound = 0;
 		word NewBound[200];
 		int NNewB = 0;
@@ -372,7 +415,7 @@ word SafeNet::FindWayTo(int F, int Cell, int Fin, NetSample* Net) {
 				int stp = BoundCells[i];
 				Area* BA = TopMap + stp;
 				int N = BA->NLinks;
-				int L0 = DistArr[i];
+				int L0 = DistArr[i]; // NOTE: indexed by frontier slot, not area id (as in the original) - path costs are approximate
 				for (int j = 0; j < N; j++) {
 					word id = BA->Link[j + j];
 					if (!(CantGo[id] || Checked[id] == 1)) {
@@ -416,7 +459,16 @@ word SafeNet::FindWayTo(int F, int Cell, int Fin, NetSample* Net) {
 	};
 	return 0xFFFF;
 };
-SafeNet SAFNET[8];
+SafeNet SAFNET[8]; // one router per nation index (NI = 0..7)
+// Entry points called from megapolis.cpp (brigade AI):
+//   NI    - acting nation (index into SAFNET, enemy = !NMask bit)
+//   F     - detachment strength estimate: megapolis passes the number of
+//           brigades * 16 (diversions), or ~10 - Danger > F/2 means "do not enter"
+//   Start - current area id of the detachment
+//   Fin   - target area id (only GetNextSafeCell; the *Div/*Gre versions pick
+//           their own target from the Pretty map)
+// The return value is the next area to move into, or 0xFFFF when no safe
+// route exists (the caller keeps the current position).
 word GetNextSafeCell(byte NI, int F, int start, int Fin) {
 	SAFNET[NI].Diversant.CreateDiversantMap(NI);
 	return SAFNET[NI].FindWayTo(F, start, Fin, &SAFNET[NI].Diversant);
