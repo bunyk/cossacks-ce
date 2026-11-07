@@ -1088,6 +1088,19 @@ void City::AddUpgr( word UIN, word prod, word per )
 };
 
 void GetUnitCost( byte NI, word NIndex, int* Cost );
+
+// TEMP AIDIAG: rate-limits the stalled-AI printf diagnostics to one
+// line per nation per `Spacing` game ticks (tmtmt).
+extern int tmtmt;
+static int LastAIDiagT[8];
+static bool AIDiagTick( int NI, int Spacing )
+{
+	if ( NI < 0 || NI > 7 )return false;
+	if ( tmtmt - LastAIDiagT[NI] < Spacing )return false;
+	LastAIDiagT[NI] = tmtmt;
+	return true;
+}
+
 void City::EnumProp()
 {
 	NProp = 0;
@@ -1214,6 +1227,44 @@ void City::EnumProp()
 			};
 		};
 	};
+
+	// TEMP AIDIAG: for AI nations, why is the mill food upgrade not being
+	// offered this tick? (The AI scripts gate all production on it.)
+	if ( Nat->AI_Enabled && AIDiagTick( NI, 200 ) )
+	{
+		printf( "AIDIAG city[%d] t=%d: EnumProp NProp=%d maxWorkers=%d freePS=%d food=%d gold=%d wood=%d stone=%d iron=%d coal=%d\n",
+			NI, tmtmt, NProp, MAX_WORKERS, FreePS,
+			XRESRC( NI, 3 ), XRESRC( NI, 1 ), XRESRC( NI, 0 ), XRESRC( NI, 2 ), XRESRC( NI, 4 ), XRESRC( NI, 5 ) );
+		for ( int i = MinType; i <= MaxType; i++ )
+		{
+			GeneralObject* GO = GOA[i];
+			if ( GO && GO->newMons->Usage == MillID )
+			{
+				printf( "AIDIAG city[%d]: mill(type=%d) idleCount=%d producerGroupIdx=%d NUpgrades=%d\n",
+					NI, i, UnBusyAmount[i], Producer[i], GO->NUpgrades );
+				int npc = UnBusyAmount[i] ? GO->NUpgrades : 0;
+				for ( int j = 0; j < npc; j++ )
+				{
+					word s = GO->Upg[j];
+					NewUpgrade* NU = Nat->UPGRADE[s];
+					bool aff = true;
+					for ( int r = 0; r < 8; r++ )if ( NU->Cost[r] > XRESRC( NI, r ) )aff = false;
+					printf( "AIDIAG city[%d]: mill upgrade %d: enabled=%d doing=%d done=%d affordable=%d\n",
+						NI, s, NU->Enabled ? 1 : 0, NU->IsDoing ? 1 : 0, NU->Done ? 1 : 0, aff ? 1 : 0 );
+				}
+			}
+			else if ( GO && GO->newMons->Usage == PeasantID )
+			{
+				printf( "AIDIAG city[%d]: peasant(type=%d) enabled=%d idleProducers=%d paCount=%d owned=%d\n",
+					NI, i, GO->Enabled ? 1 : 0, UnBusyAmount[i], Nat->PACount[i], UnitAmount[i] );
+			}
+			else if ( GO && GO->newMons->Usage == CenterID )
+			{
+				printf( "AIDIAG city[%d]: center(type=%d) idleCount=%d paCount=%d owned=%d\n",
+					NI, i, UnBusyAmount[i], Nat->PACount[i], UnitAmount[i] );
+			}
+		}
+	}
 };
 
 #define FARMID 20
@@ -2309,6 +2360,10 @@ void City::ProcessCreation()
 				{
 					POB->PerformUpgrade( PRP->NIndex, PRP->ProducerIndex );
 				}
+				else if ( AIDiagTick( NI, 100 ) )// TEMP AIDIAG
+				{
+					printf( "AIDIAG city[%d] t=%d: upgrade %d rejected - producer object gone (idx=%d)\n", NI, tmtmt, PRP->NIndex, PRP->ProducerIndex );
+				}
 			}
 			else
 			{
@@ -2320,6 +2375,10 @@ void City::ProcessCreation()
 					if ( POB )
 					{
 						ProduceByAI( NI, POB->Index, PRP->NIndex );
+					}
+					else if ( AIDiagTick( NI, 100 ) )// TEMP AIDIAG
+					{
+						printf( "AIDIAG city[%d] t=%d: unit %d rejected - producer object gone (idx=%d)\n", NI, tmtmt, PRP->NIndex, PRP->ProducerIndex );
 					}
 				}
 				else
@@ -2354,6 +2413,17 @@ void City::ProcessCreation()
 					}
 				}
 			}
+		}
+
+		// TEMP AIDIAG: periodic snapshot of a computer city - shows whether
+		// the AI module queues proposals and whether a building project got
+		// stuck without a placement.
+		if ( Nat->AI_Enabled && AIDiagTick( NI, 100 ) )
+		{
+			printf( "AIDIAG city[%d] t=%d: proposals=%d proj=%d present=%d bld=%d placeFound=%d tryPlace=%d tryStand=%d peasants=%d food=%d gold=%d\n",
+				NI, tmtmt, NBestProjects, proj, PresentProject ? 1 : 0, BPR.NIndex,
+				BPR.PlaceFound ? 1 : 0, BPR.AttemptsToFindApprPlace, BPR.AttemptsToStand,
+				UnitAmount[Nat->UID_PEASANT], XRESRC( NI, 3 ), XRESRC( NI, 1 ) );
 		}
 
 		if ( PresentProject )

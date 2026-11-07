@@ -908,7 +908,6 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 	{
 		int bx = (int)event->button.x, by = (int)event->button.y;
 		ScaleMouseToLogical(&bx, &by);
-		printf("SDL_EVENT_MOUSE_BUTTON_DOWN: b=%d x=%d y=%d\n", (int)event->button.button, bx, by);
 		SDL_MouseButtonFlags mouseFlags = SDL_GetMouseState(nullptr, nullptr);
 		if (event->button.button == SDL_BUTTON_LEFT)
 		{
@@ -939,7 +938,6 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 		int bx = (int)event->button.x, by = (int)event->button.y;
 		ScaleMouseToLogical(&bx, &by);
 		SDL_MouseButtonFlags mouseFlags = SDL_GetMouseState(nullptr, nullptr);
-		printf("SDL_EVENT_MOUSE_BUTTON_UP: b=%d x=%d y=%d\n", (int)event->button.button, bx, by);
 		if (event->button.button == SDL_BUTTON_LEFT)
 		{
 			mouseFlags &= ~SDL_BUTTON_LMASK;

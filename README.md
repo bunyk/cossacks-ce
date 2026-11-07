@@ -15,6 +15,7 @@ This project is an effort to migrate the classic game **Cossacks: Back to War** 
 - ASM sections replaced with C++ code
 
 ## TODO:
+- Fix Bavaria freezing (when playing as Normal friendly AI with Prussia against France on Land 2x map). Probably worth checking if it happened before 4f7826839ed55ef8ed5c28da14bb4feb7fb0d497.
 - Missions and campaigns (loading works, 2/106 mission modules ported - see docs/missions.md)
 - Networking
 - Remove old entrypoint ddex1.cpp (replaced with main.cpp)

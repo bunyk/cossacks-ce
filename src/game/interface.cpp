@@ -11553,6 +11553,22 @@ void PrepareGameMedia( byte myid, bool SaveNR )
 		}
 	}
 
+	for ( int i = 0; i < 7; i++ )
+	{
+		// TEMP AIDIAG: game-start team setup - shows whether team sharing
+		// (shared NMask = shared fog vision/alliance) is configured
+		if ( PINFO[i].name[0] || i < NPlayers || PINFO[i].MapStyle )
+		{
+			printf( "AIDIAG start: slot=%d name=%s color=%d group=%d resultNMask=%d\n",
+				i, PINFO[i].name, PINFO[i].ColorID, PINFO[i].GroupID,
+				NATIONS[NatRefTBL[PINFO[i].ColorID]].NMask );
+		}
+		else
+		{
+			printf( "AIDIAG start: slot=%d empty\n", i );
+		}
+	}
+
 	CheapMode = false;
 	ItemChoose = mcmSingle;
 	MultiplayerStart = true;

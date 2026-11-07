@@ -20,16 +20,42 @@ Upgrade::Upgrade()
 };
 void PerformUpgradeLink( OneObject* OBJ );
 
+extern int tmtmt;
+
+// TEMP AIDIAG: prints why an AI-proposed research was rejected; AI research
+// starts are rare, so the success path prints every time.
+#define AIDIAG_UPG( reason )  do { \
+	if ( Nat && Nat->AI_Enabled && Nat->NNUM < 8 && AIDiagUpgGate( Nat->NNUM ) ) \
+		printf( "AIDIAG nation[%d] t=%d: upgrade %d rejected: %s\n", Nat->NNUM, tmtmt, NewU, reason ); \
+} while ( 0 )
+static int LastUpgDiagT[8];
+static bool AIDiagUpgGate( int NI )
+{
+	if ( NI < 0 )return false;
+	if ( tmtmt - LastUpgDiagT[NI] < 250 )return false;
+	LastUpgDiagT[NI] = tmtmt;
+	return true;
+}
+
 void OneObject::PerformUpgrade( word NewU, word MakerID )
 {
 	if (CheckOrderAbility())
+	{
+		AIDIAG_UPG("order ability");
 		return;
+	}
 
 	if (UnlimitedMotion)
+	{
+		AIDIAG_UPG("unlimited motion");
 		return;
+	}
 
 	if (Nat->NUpgrades <= NewU || !Ready)
+	{
+		AIDIAG_UPG("producer not ready");
 		return;
+	}
 
 	word NUP = Ref.General->NUpgrades;
 	word* UPL = Ref.General->Upg;
@@ -44,17 +70,24 @@ void OneObject::PerformUpgrade( word NewU, word MakerID )
 	}
 
 	if (!canU)
+	{
+		AIDIAG_UPG("wrong producer building");
 		return;
+	}
 
 	NewUpgrade* NU = Nat->UPGRADE[NewU];
 
 	if (!NU->Enabled)
+	{
+		AIDIAG_UPG("upgrade not enabled");
 		return;
+	}
 
 	for (int i = 0; i < 8; i++)
 	{
 		if (XRESRC( NNUM, i ) < NU->Cost[i])
 		{
+			AIDIAG_UPG("cannot afford");
 			return;
 		}
 	}
@@ -102,6 +135,10 @@ void OneObject::PerformUpgrade( word NewU, word MakerID )
 	Ustage = 0;
 	NUstages = NU->NStages;
 	Ready = false;
+	if ( Nat && Nat->AI_Enabled && Nat->NNUM < 8 )// TEMP AIDIAG
+	{
+		printf( "AIDIAG nation[%d] t=%d: upgrade %d started at building (usage=%d)\n", Nat->NNUM, tmtmt, NewU, newMons->Usage );
+	}
 }
 
 void CreateTimedHint( char* s, int time );
