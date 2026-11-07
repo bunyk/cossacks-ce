@@ -67,7 +67,7 @@ add_executable(cossacks
 	src/game/savenewmap.cpp
 	src/game/gvclass.cpp
 	src/game/report.cpp
-	src/game/linux_stubs.cpp
+	src/game/ir_main.cpp
 
 	src/game/mplayer.cpp
 

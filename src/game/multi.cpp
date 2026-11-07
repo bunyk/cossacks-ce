@@ -920,6 +920,10 @@ extern word NPlayers;
 
 // IChat library exports this
 DLLIMPORT void SendVictoryState( int ID, byte State );
+#ifndef _WIN32
+// without the IChat lobby DLL victory states go nowhere
+void SendVictoryState( int ID, byte State ) { (void)ID; (void)State; }
+#endif // !_WIN32
 
 bool ProcessMessages();
 

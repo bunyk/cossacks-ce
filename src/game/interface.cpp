@@ -104,12 +104,17 @@ int GetGSC_Profile()
 {
 	return GlobalRIF.Profile;
 }
-
+#else
+// no IChat lobby / RoomInfo on Linux: no profile
+int GetGSC_Profile()
+{
+	return 0;
+}
+#endif // _WIN32 (RoomInfo lobby state above; the trivia below are portable)
 byte RedColor2 = 0xBB;
 extern int CurrentAnswer;
 
 void UnPress();
-#endif // _WIN32
 
 int CurrentNation = -1;
 extern int PitchTicks;
@@ -182,8 +187,9 @@ extern word rpos;
 int EncodeOptionsInNumber( int *selected_opt_values );
 int DecodeOptionsFromNumber( const int number, int *result );
 
-char CurrentMap[64];
 #endif _WIN32
+// replay map name, written by the map record format (recorder.cpp)
+char CurrentMap[64];
 // In-game screen globals shared with the menu system
 bool ContinueGame;
 int nsmaplx;
@@ -209,12 +215,17 @@ void PostLoadExtendedMap( char* s );
 void InitGame();
 void MFix();
 
+#endif // _WIN32 (nsmaplx/ly, WarSound...; LoPanel moved out below - used by GSSetup800)
+// Sound volumes: DirectSound-style slider positions (0..100; see
+// common.h decls and gamesound.cpp playback). SDL_AppInit zeroes these
+// before restoring mode.dat, so the zero-init only covers the very first
+// run before a mode.dat exists.
 int WarSound;
 int WorkSound;
 int OrderSound;
+// MidiSound is only the options-slider state variable (CD/music volume).
 int MidiSound;
 
-#endif // _WIN32 (nsmaplx/ly, WarSound...; LoPanel moved out below - used by GSSetup800)
 SQPicture LoPanel;
 RLCTable TPassive;
 RLCTable TActive;
@@ -1101,15 +1112,17 @@ bool ProcessOneBattle( int BtlID );
 int ProcessWars();
 
 
-// Map options / resource editor dialogs: storage for MapScenaryDLL and
-// DEFPLNAMES on non-Windows builds comes from linux_stubs.cpp, so this
-// stays in the Windows-only region (see the extern decls at its end)
+//---------------------Map options-------------------------//
+// scenario DLL path (saved into scenario maps) and default player names:
+// plain data used by the dialogs below and by ProcessResEdit's portable
+// editor (menu case 31)
+char MapScenaryDLL[200] = "";
+char DEFPLNAMES[8][64];
 #ifdef _WIN32
 //--------------------MULTIPLAYER GAME---------------------//
 extern char SaveFileName[128];
 
 //---------------------Map options-------------------------//
-char MapScenaryDLL[200] = "";
 void ProcessMapOptions()
 {
 	LocalGP FONT( "vinBig" );
@@ -1150,15 +1163,13 @@ void ProcessMapOptions()
 		strcpy( MapScenaryDLL, DLLSC );
 	};
 };
-char DEFPLNAMES[8][64];
 //--------------------RESOURCE EDITOR----------------------//
 // Editor dialog (menu case 31) for editing per-player resources, player
 // names, the scenario DLL path and random-map resource presets.
 #endif // _WIN32
-// Decls whose originals sit in Windows-only blocks higher up in this file:
-// per-nation resources (nature.cpp), default player names and the scenario
-// DLL path (guarded blocks above), random-map resource presets
-// (linux_stubs.cpp provides the storage on non-Windows builds).
+// Decls of data defined higher up in this file or in other units:
+// default player names and the scenario DLL path (blocks above), per-nation
+// resources and random-map presets (nature.cpp / its guard-split block above).
 extern char DEFPLNAMES[8][64];
 extern int RES[8][8];
 extern char MapScenaryDLL[200];
@@ -2271,8 +2282,13 @@ bool TryToJoinToPlayer( char* name )
 	};
 	return true;
 };
+#endif // _WIN32 (singleplayer random-map block above uses the multiplayer
+// helpers above it; RunHTTPC below is needed by ir_main.cpp stats on both
+// platforms)
 void RunHTTPC()
 {
+	// launches the stats uploader (upload.dat writer) minimized
+#ifdef _WIN32
 	STARTUPINFO			StartUpInfo;
 	PROCESS_INFORMATION		ProcessInformation;
 	memset( &StartUpInfo, 0x00, sizeof( STARTUPINFO ) );
@@ -2290,6 +2306,10 @@ void RunHTTPC()
 		nullptr,
 		&StartUpInfo,
 		&ProcessInformation );
+#else
+	// run in background like the minimized Windows process did
+	system( "httpc.exe >/dev/null 2>&1 &" );
+#endif // _WIN32
 };
 bool GetPLIP( char* Nick, char* IP );
 bool T100_cmd_done = 0;
@@ -2299,7 +2319,6 @@ bool INSIDE1 = 0;
 
 // IChat library exports this
 DLLIMPORT void SendPrivateMessage( char* Nick, char* MESSAGE );
-#endif // _WIN32 (SendPrivateMessage comes from IChat DLL on Windows)
 #ifndef _WIN32
 void SendPrivateMessage( char* Nick, char* MESSAGE ) { (void)Nick; (void)MESSAGE; }
 #endif
@@ -2394,13 +2413,15 @@ void SavePersChat()
 };
 
 //Returns Process_GSC_ChatWindow()
-//(stays Windows-only: calls into the IChat lobby DLL, which is not ported;
-//Linux gets a no-op stub in linux_stubs.cpp)
+// Windows: pumps the IChat lobby DLL. Without it (Linux) the connection
+// poll reports "nothing happened".
 #ifdef _WIN32
 int ProcessInternetConnection( bool Active )
 {
 	return Process_GSC_ChatWindow( Active, &GlobalRIF );
 }
+#else
+int ProcessInternetConnection( bool Active ) { (void)Active; return 0; }
 #endif // _WIN32
 
 DLLEXPORT void SendPings();
@@ -2432,13 +2453,8 @@ void SetStdTBL()
 	}
 }
 
-#ifdef _WIN32
+// GSC login rank (ir_main.cpp)
 int GetLogRank();
-#else
-int GetLogRank() {
-	return 0;
-}
-#endif // _WIN32
 
 void SETPLAYERDATA( DWORD ID, void* Data, int size, bool );
 
@@ -2450,21 +2466,16 @@ bool GetPreviewName( char* Name, char* ccc );
 
 void DeepDeletePeer( DWORD ID );
 
-#ifdef _WIN32
+// GSC profile id (ir_main.cpp)
 int GetMyProfile();
-#else
-int GetMyProfile() {
-	return 0;
-}
-#endif // _WIN32
 
 // IChat library exports this
 DLLIMPORT void ChatProcess();
 
 //Shows lobby interface for multiplayer deathmatch and single player random map
-// Multiplayer/network helpers that still live in unported files
-// (mplayer.cpp, ir_main.cpp). Declarations needed by MPL_WaitingGame's
-// shared event loop; stub definitions are in linux_stubs.cpp.
+// Multiplayer/network helpers that live in unported Windows blocks of this
+// file. Declarations needed by MPL_WaitingGame's shared event loop;
+// Linux definitions sit next to the original blocks above.
 #ifndef _WIN32
 void SendChat( char* str, bool toall );
 int  GetMaxRealPing();
@@ -2478,7 +2489,7 @@ void DeepDeletePeer( DWORD ID );
 void ReceiveAll();
 extern bool realLpressed;
 extern char CurrentMap[64];
-// not ported yet (Windows-only game-start block, stubbed in linux_stubs.cpp)
+// single-mission starter: the portable ProcessSingleMission below
 bool ProcessSingleMission( int n, int Diff );
 extern char CHATSTRING[256];
 extern DWORD CHATDPID;
@@ -5914,6 +5925,10 @@ int ProcessWars();         // battles screens at the end of this file (not porte
 
 // IChat library exports this
 DLLIMPORT void GoHomeAnyway();
+#ifndef _WIN32
+// without the IChat lobby DLL there is no lobby to go back to
+void GoHomeAnyway() {}
+#endif // !_WIN32
 
 int MM_ProcessMultiPlayer()
 {
@@ -9429,9 +9444,9 @@ void ProcessHelp()
 // Mission dialogs (page text viewer + the question variants). Un-guarded
 // from the Win32 region 2026-11-01: the bodies use only the ported
 // dialog/drawing machinery (DialogsSystem, GPS, RLCFont, ProcessMessages),
-// and on Linux they replace the linux_stubs.cpp no-ops that made mission
-// pages and questions silently invisible (tutorial started with "no
-// messages" because ShowPage -> ProcessMissionText hit the stub).
+// which fixed mission pages and questions being silently invisible (the
+// tutorial started with "no messages" because ShowPage -> ProcessMissionText
+// hit the old no-op).
 extern bool ProtectionMode;
 extern int CurrentAnswer; // defined in recorder.cpp (decl was in a Win32 block)
 int ProcessComplexQuestion( int Nx, char* Bmp1, byte or1, char* Text1, char* Bmp2, byte or2, char* Text2, char* Quest )
@@ -11836,10 +11851,16 @@ void RandomMapDialog( char* Result )
 	}
 }
 
+#endif // _WIN32 (RandomMapDialog above has no callers; the random-map
+// presets defined below are shared data)
+
+// Random-map generator presets: terrain style index, starting resources
+// and resources-on-map index (values index RandomMapDesc tables).
 int RM_LandType = 0;
 int RM_Resstart = 0;
 int RM_Restot = 0;
 
+#ifdef _WIN32
 void EnterRandomParams()
 {
 	DialogsSystem DSY( ( RealLx - 64 * 6 ) >> 1, ( RealLy - 64 * 5 ) >> 1 );

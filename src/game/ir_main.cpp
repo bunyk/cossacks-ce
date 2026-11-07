@@ -8,6 +8,99 @@
 #include "gp_draw.h"
 #include "drawform.h"
 
+#include <time.h>
+
+//---- Win32 time API shims for non-Windows builds ----
+// CurrentGame stats records store UTC date fields exactly as
+// SYSTEMTIME/GetSystemTime filled them, so the struct and the two
+// conversion functions keep the record format byte-identical. The
+// FILETIME/LARGE_INTEGER math on time deltas is also part of the
+// original behavior and is replicated via time_t.
+#ifndef _WIN32
+struct SYSTEMTIME
+{
+	word wYear;
+	word wMonth;
+	word wDayOfWeek;
+	word wDay;
+	word wHour;
+	word wMinute;
+	word wSecond;
+	word wMilliseconds;
+};
+
+struct FILETIME
+{
+	unsigned long dwLowDateTime;
+	unsigned long dwHighDateTime;
+};
+
+union LARGE_INTEGER
+{
+	struct
+	{
+		unsigned long LowPart;
+		long HighPart;
+	};
+	int64_t QuadPart;
+};
+
+// FILETIME counts 100ns ticks from 1601-01-01; time_t counts seconds
+// from 1970-01-01.
+static const int64_t FILETIME_EPOCH_DELTA = 11644473600;
+static const int64_t FILETIME_TICKS_PER_SEC = 10000000;
+
+static void GetSystemTime( SYSTEMTIME* st )
+{
+	time_t tt = time( nullptr );
+	tm* t = gmtime( &tt );
+	st->wYear = t->tm_year + 1900;
+	st->wMonth = t->tm_mon + 1;
+	st->wDay = t->tm_mday;
+	st->wHour = t->tm_hour;
+	st->wMinute = t->tm_min;
+	st->wSecond = t->tm_sec;
+	st->wMilliseconds = 0;
+	st->wDayOfWeek = t->tm_wday;
+}
+
+static void SystemTimeToFileTime( const SYSTEMTIME* st, FILETIME* ft )
+{
+	tm t;
+	memset( &t, 0, sizeof t );
+	t.tm_year = st->wYear - 1900;
+	t.tm_mon = st->wMonth - 1;
+	t.tm_mday = st->wDay;
+	t.tm_hour = st->wHour;
+	t.tm_min = st->wMinute;
+	t.tm_sec = st->wSecond;
+	time_t tt = timegm( &t );
+	uint64_t v = ( uint64_t ) ( tt + FILETIME_EPOCH_DELTA ) * FILETIME_TICKS_PER_SEC;
+	ft->dwLowDateTime = ( unsigned long ) v;
+	ft->dwHighDateTime = ( unsigned long ) ( v >> 32 );
+}
+
+// false for values that do not fit a calendar (negative deltas), same
+// contract as the Win32 original
+static bool FileTimeToSystemTime( const FILETIME* ft, SYSTEMTIME* st )
+{
+	uint64_t v = ( ( uint64_t ) ft->dwHighDateTime << 32 ) | ft->dwLowDateTime;
+	if ( v >> 63 ) return false;
+	time_t tt = ( time_t ) ( ( int64_t ) ( v / FILETIME_TICKS_PER_SEC ) - FILETIME_EPOCH_DELTA );
+	tm* t = gmtime( &tt );
+	if ( !t ) return false;
+	st->wYear = t->tm_year + 1900;
+	st->wMonth = t->tm_mon + 1;
+	st->wDay = t->tm_mday;
+	st->wHour = t->tm_hour;
+	st->wMinute = t->tm_min;
+	st->wSecond = t->tm_sec;
+	st->wMilliseconds = 0;
+	st->wDayOfWeek = t->tm_wday;
+	return true;
+}
+#endif // !_WIN32
+
 #define DOTRACE
 
 #include "playerinfo.h"
@@ -548,7 +641,7 @@ void CurrentGame::SaveGameToFile()
 	RBlockWrite( F1, &XXX, sizeof XXX );
 
 	int S = 0;
-	for (int i = 0; i < sizeof CurrentGame; i++)
+	for (int i = 0; i < sizeof( CurrentGame ); i++)
 	{
 		S += DATA[i];
 	}
@@ -595,14 +688,14 @@ NEXTFILE:
 	if (SUCCESS)
 	{
 		RSeek( F, 20532 + 200 + cur*( sizeof( CurrentGame ) + 4 ) );
-		RBlockRead( F, this, sizeof CurrentGame );
+		RBlockRead( F, this, sizeof( CurrentGame ) );
 		int S;
 		RBlockRead( F, &S, 4 );
 		byte* Key = (byte*) randoma;
 		byte* xx = ( byte* ) this;
 
 		int S1 = 0;
-		for (int i = 0; i < sizeof CurrentGame; i++)
+		for (int i = 0; i < sizeof( CurrentGame ); i++)
 		{
 			S1 += xx[i];
 		}
@@ -612,7 +705,7 @@ NEXTFILE:
 		}
 		else
 		{
-			for (int i = 0; i < sizeof CurrentGame; i++)
+			for (int i = 0; i < sizeof( CurrentGame ); i++)
 			{
 				xx[i] ^= Key[i];
 			}
@@ -1028,6 +1121,11 @@ void CheckExistingSaves()
 }
 
 DLLEXPORT void ExplorerOpenRef( int Index, char* ref );
+#ifndef _WIN32
+// Exported for the IChat lobby DLL; without it (lobby not ported) there
+// is nobody to call it, the in-engine calls below only mark streams
+void ExplorerOpenRef( int Index, char* ref ) { (void)Index; (void)ref; }
+#endif // !_WIN32
 
 void DontMakeRaiting()
 {
@@ -1383,6 +1481,9 @@ bool CheckGameTime()
 
 void SetNormAttr()
 {
+	// Anti-tamper helper: resets cew.dll's access/modify times back to
+	// their creation value (done in Win32 with GetFileTime/SetFileTime).
+#ifdef _WIN32
 	HANDLE H = CreateFile( "cew.dll",
 		GENERIC_WRITE, FILE_SHARE_READ, NULL,
 		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
@@ -1397,6 +1498,7 @@ void SetNormAttr()
 	F2 = F2;
 	SetFileTime( H, &F1, &F2, &F3 );
 	CloseHandle( H );
+#endif // _WIN32
 }
 
 bool TestHash1( char* s );

@@ -19,7 +19,6 @@ This project is an effort to migrate the classic game **Cossacks: Back to War** 
 - Missions and campaigns (loading works, 2/106 mission modules ported - see docs/missions.md)
 - Networking
 - Remove old entrypoint ddex1.cpp (replaced with main.cpp)
-- src/game/linux_stubs.cpp should be gone once everything is ported
 - Ticks tick to fast in scenarios (fixed in replay, but made game way to slow). Could it be related to the speed slider?
 - Why some units just seem to freeze and do nothing? It's ok for army to wait for attack, but sometimes also workers freeze.
 - Full screen loading is slower than window. Maybe go for maximized window by default?

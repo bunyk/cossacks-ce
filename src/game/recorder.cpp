@@ -48,9 +48,18 @@ typedef void tpStartDownloadInternetFile( char* Name, char* Server, char* DestNa
 typedef void tpProcessDownloadInternetFiles();
 typedef void tpSendRecBuffer( byte* Data, int size, bool Final );
 
+#ifdef _WIN32
 extern tpStartDownloadInternetFile* StartDownloadInternetFile;
 extern tpProcessDownloadInternetFiles* ProcessDownloadInternetFiles;
 extern tpSendRecBuffer* SendRecBuffer;
+#else
+// IntExplorer exchange DLL is not ported: the pointers stay NULL, which
+// disables the map-record upload/download path below (every call site
+// checks them first)
+tpStartDownloadInternetFile* StartDownloadInternetFile = NULL;
+tpProcessDownloadInternetFiles* ProcessDownloadInternetFiles = NULL;
+tpSendRecBuffer* SendRecBuffer = NULL;
+#endif
 //-----------------------------------------------------------//
 //#include "diplomacy.h"
 byte RecFormatID = 0;

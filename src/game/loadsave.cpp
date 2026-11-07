@@ -2864,6 +2864,10 @@ extern int PeaceTimeStage;
 
 // IChat library exports this
 DLLIMPORT void GetGameID( char* s );
+#ifndef _WIN32
+// without the IChat lobby DLL saves get an empty game id
+void GetGameID( char* s ) { if (s) s[0] = 0; }
+#endif // !_WIN32
 
 void PreSaveGame( SaveBuf* SB, char* Messtr, int ID )
 {

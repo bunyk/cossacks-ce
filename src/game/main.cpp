@@ -537,7 +537,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	ScreenPtr = nullptr;
 
 	// Declarations for globals that live in guarded decl blocks elsewhere
-	// (ChangeNation/MultiTvar - linux_stubs.cpp/loadsave.cpp, sfVersion - interface.cpp,
+	// (ChangeNation/MultiTvar - interface.cpp, sfVersion - interface.cpp,
 	// CreateRadio - topograf.cpp)
 	extern bool ChangeNation;
 	extern bool MultiTvar;

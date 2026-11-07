@@ -7,23 +7,41 @@ State and findings as of 2026-10-09. Companion to `docs/Ubuntu.md` (build instru
 - **Build succeeds**: `cmake --build build` produces `build/Debug/cossacks` (64-bit ELF,
   links clean) and the `gscbrowser` resource-browser tool.
 
-## src/game/linux_stubs.cpp - intentionally missing functionality
+## linux_stubs.cpp DELETED - ir_main.cpp now compiled (2026-11-07)
 
-No-op stubs with exact header signatures so it links. Each stub is a TODO:
+The temporary no-op file is gone. Real implementations live in their original
+files now; what is still Windows-only sits in `#ifdef _WIN32` regions there.
 
-- **Water**: `SetWaterSpot`, `InitBlobs` etc.; `WaterDeep`/`WaterBright` point at a static
-  1MB zero buffer instead of real map data.
-- **In-game UI**: `LoadMapInterface`, `ProcessMapInterface`, `DrawZones`, chat
-  (interface.cpp guarded regions). Mission dialogs are DONE: `ProcessMissionText`,
-  `ProcessComplexQuestion`, `ProcessMultilineQuestion`, `AskMissionQuestion`,
-  `ShowHistryItem` were un-guarded from interface.cpp's Win32 region 2026-11-01
-  (bodies use only the ported dialog machinery) and their linux_stubs.cpp no-ops
-  deleted - without them, tutorial pages/questions were silently invisible.
-- **Network**: `mplayer.cpp`/`ir_main.cpp` (GetPing, PSUMM/PBACK/RETRANS ctors, WINIGAME...).
-  Note `SetupEBufs` and `PLNAT[8]` are REAL implementations here (not stubs); when
-  mplayer.cpp gets ported, delete them along with the rest.
-- If you enable the real file later, delete the matching stubs or you get multiple-definition
-  link errors (this already happened with `DialogsSystem::addViewPort` in gvclass.cpp).
+- **ir_main.cpp is in the Linux build** (was the main reason linux_stubs.cpp
+  existed). Win32 time API calls (GetSystemTime/SYSTEMTIME,
+  SystemTimeToFileTime/FileTimeToSystemTime, LARGE_INTEGER) got portable
+  shims at the top of the file - the CurrentGame stats records keep
+  byte-identical UTC date fields. Two MSVC-isms fixed: `sizeof CurrentGame` ->
+  `sizeof( CurrentGame )`. SetNormAttr (cew.dll file-time anti-tamper reset)
+  is a no-op on Linux. This restored the real: CheckGameTime, IsGameActive,
+  GetCurGamePtr, UpdateCurGame, SetBrokenState, StopRaiting/DontMakeRaiting,
+  LOOSEIGAME/WINIGAME/LOOSEANDEXITFAST, ShowCentralMessage4/GetAllPar3,
+  WaitWithError, GetLogRank/GetMyProfile (via GetGSC_Profile -> 0),
+  ExplorerOpenRef (still a no-op: the caller is the unported IChat DLL).
+  All inert while LOGIN.Logged is false - the GSC login flow itself still
+  has Windows-only parts (newilogin.cpp not compiled).
+- **IChat lobby DLL hooks** got co-located Linux no-op definitions next to
+  their DLLIMPORT declarations: GetGameID (loadsave.cpp),
+  SendVictoryState (multi.cpp), GoHomeAnyway (interface.cpp),
+  ProcessInternetConnection (interface.cpp, next to the Win32
+  Process_GSC_ChatWindow block).
+- **IntExplorer map-record upload hooks**: StartDownloadInternetFile /
+  SendRecBuffer / ProcessDownloadInternetFiles stay NULL pointers - now
+  defined in recorder.cpp under #ifndef _WIN32 (the NULL checks already in
+  the code disable the upload path).
+- **RunHTTPC** (spawns the httpc.exe stats uploader) got a Linux branch
+  (`system("httpc.exe >/dev/null 2>&1 &")`) and was un-guarded from the
+  Windows-only multiplayer block it lived in.
+- **Data storage un-guarded from Win32 blocks in interface.cpp**:
+  CurrentMap, WarSound/WorkSound/OrderSound/MidiSound,
+  RM_LandType/RM_Resstart/RM_Restot, MapScenaryDLL/DEFPLNAMES (the dialogs
+  around them stay guarded; DEFPLNAMES/MapScenaryDLL serve the portable
+  ProcessResEdit).
 
 ## Enemy AI loading layer ported (2026-10-13)
 
