@@ -174,7 +174,6 @@ int CurrentAnswer = 0;
 bool AUTOSCROLL = 1;
 extern int SeqErrorsCount;
 extern bool RecordMode;
-extern int tmtmt;
 
 extern uint64_t GetSDLTickCount();
 
@@ -325,19 +324,6 @@ bool RecordGame::Extract()
 				if ( rr != rpos && PlayGameMode == 2 )
 				{
 					SeqErrorsCount = 1;
-					// RNG position diverged from the recording: the
-					// replay sim no longer matches the recorded game.
-					// Print the first few mismatches to tell an
-					// initial-state divergence (mismatch from tick 0)
-					// from gradual simulation drift.
-					static int NMismatchShown = 0;
-					if ( NMismatchShown < 5 )
-					{
-						NMismatchShown++;
-						printf( "DESYNC: recorded rpos=%d, replay rpos=%d "
-							"(delta %+d) at stream Pos=%d, tick tmtmt=%d\n",
-							rr, rpos, (int) rpos - (int) rr, Pos, tmtmt );
-					}
 				}
 
 				Pos += 2;
@@ -482,6 +468,7 @@ void ReadPichTicks()
 
 int RunMethod = 0;
 extern char RECFILE[128];
+void SetGSpeed( byte speed );
 
 void RecordGame::StartRecord( char* Map )
 {
@@ -613,6 +600,9 @@ void RecordGame::ReadStream( char* Name )
 		//RBlockRead(F,&RunMethod,4);
 		memcpy( &RunMethod, BUFF + BFPOS, 4 );
 		BFPOS += 4;
+		// total RunData size as stored in the record (kept for the
+		// speed-extension tail check in the 0xFFFFFFFE branch below)
+		int RecRunDataSize = 0;
 		if ( RunMethod == 0xFFFFFFFF )
 		{
 			//RBlockRead(F,&RunDataSize,4);
@@ -656,6 +646,10 @@ void RecordGame::ReadStream( char* Name )
 			}
 			//RBlockRead(F,&RunData,RunDataSize);
 			memcpy( &RunData, BUFF + BFPOS, RunDataSize );
+			// size as stored in the record; the branch below parses the
+			// fields back by re-walking RunDataSize, so keep the recorded
+			// total to know how much of a tail is left afterwards
+			RecRunDataSize = RunDataSize;
 			BFPOS += RunDataSize;
 		}
 
@@ -730,6 +724,18 @@ void RecordGame::ReadStream( char* Name )
 				RunDataSize += 4;
 				memcpy( NatRefTBL, RunData + RunDataSize, 8 );
 				RunDataSize += 8;
+				// Records made since 2026-11-07 also carry the game speed
+				// (SpeedSh) after NatRefTBL: restore it, or every
+				// FrmDec-based cadence (animations, unit delays) runs at a
+				// different pace than the recording and the RNG stream
+				// desyncs within ticks (the block rpos checks fail).
+				// Old records have no tail and keep FrmDec = 2 set above.
+				if ( RecRunDataSize - RunDataSize >= 4 )
+				{
+					int recSpeed;
+					memcpy( &recSpeed, RunData + RunDataSize, 4 );
+					SetGSpeed( recSpeed );
+				}
 				CreateNationalMaskForMap( CurrentMap );
 				byte MNAT = MyNation;
 				PrepareGameMedia( 0, 1 );

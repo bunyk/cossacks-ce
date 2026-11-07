@@ -7,6 +7,42 @@ State and findings as of 2026-10-09. Companion to `docs/Ubuntu.md` (build instru
 - **Build succeeds**: `cmake --build build` produces `build/Debug/cossacks` (64-bit ELF,
   links clean) and the `gscbrowser` resource-browser tool.
 
+## Replay desync "SYNCRONIZATION FAILURE" FIXED (2026-11-07)
+
+Replays of port-recorded games desynced within ticks (the WARNING!
+SYNCRONIZATION FAILURE banner, wrong peasants building, growing rpos delta).
+Root cause chain, isolated by env-gated RNG-call and per-tick world-state
+traces (bufferefs in git history, traces since removed):
+
+1. The live game ran with the setup-dialog speed setting (multi.opt remembers
+   it; a "slow" session => FrmDec = 1). Replays always started with ReadStream's
+   hardcoded FrmDec = 2 - the RECORD NEVER CARRIED THE STARTUP SPEED: the
+   speed-change command (exFMode != SpeedSh) is only queued on runtime changes,
+   and the setup dialog sets exFMode/SpeedSh/FrmDec all at once.
+2. FrmDec drives every per-frame animation/delay cadence, so end-of-animation
+   gates (MotionHandler1 idle TryToStand(rest)) fired at different ticks
+   (replay t7 vs recording t12), each consuming 2 rando() draws.
+3. The RNG cursor then pulled ahead of the recorded block rpos => the
+   per-command rpos check in recorder.cpp Extract fails => the world-state
+   divergence snowballs (badly assigning AI peasants, wrong builder picks).
+
+FIX: the record's RunData now carries SpeedSh (appended after NatRefTBL on
+record, interface.cpp); ReadStream restores it via SetGSpeed when the tail
+is present (old records have no tail and keep FrmDec = 2). Verified by the
+user: recorded-vs-replayed worlds stay hash-identical, no sync warning.
+
+Debugging lessons for next time:
+- `#define rando() RandNew(__FILE__, __LINE__)` - every RNG call already
+  carries its site; a printf in RandNew gated by an env var gives a
+  line-aligned trace to diff live vs replay (first differing call = culprit).
+- Per-tick FNV hash over every live object's fields (x/y/RealX/Y/Dest/NewCurSprite/
+  StandTime/LocalOrder/Selected/anim NFrames) finds the first diverging tick;
+  per-object detail dumps then name the unit and the field. Print raw
+  animation POINTERS never - ASLR randomizes them across processes.
+- The sim advances per frame (tmtmt++ per frame in PreDrawGameProcess);
+  the PostDrawGameProcess tick gate only exchanges command buffers, so
+  "ticks" and frames are the same currency in traces.
+
 ## linux_stubs.cpp DELETED - ir_main.cpp now compiled (2026-11-07)
 
 The temporary no-op file is gone. Real implementations live in their original

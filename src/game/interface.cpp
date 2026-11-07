@@ -11469,6 +11469,15 @@ void PrepareGameMedia( byte myid, bool SaveNR )
 	RunDataSize += 4;
 	memcpy( RunData + RunDataSize, NRTB, 8 );
 	RunDataSize += 8;
+	// The game speed (SpeedSh) the recording runs at: the replay MUST
+	// restore it (saved into the record; read back in ReadStream) - all
+	// animation/delay cadence runs on FrmDec = speed + 1. The stream does
+	// NOT carry the startup speed any other way: the speed-slider change
+	// command is only queued when exFMode != SpeedSh, and the game-setup
+	// dialog sets both at once, so without this tail a "slow"-speed
+	// recording replays at "normal" and desyncs within ticks.
+	memcpy( RunData + RunDataSize, &SpeedSh, 4 );
+	RunDataSize += 4;
 	assert( RunDataSize < 2048 );
 	//----------
 	//Aliances
@@ -11531,22 +11540,6 @@ void PrepareGameMedia( byte myid, bool SaveNR )
 				}
 				NATIONS[NatRefTBL[PINFO[i].ColorID]].NMask = mas;
 			}
-		}
-	}
-
-	for ( int i = 0; i < 7; i++ )
-	{
-		// TEMP AIDIAG: game-start team setup - shows whether team sharing
-		// (shared NMask = shared fog vision/alliance) is configured
-		if ( PINFO[i].name[0] || i < NPlayers || PINFO[i].MapStyle )
-		{
-			printf( "AIDIAG start: slot=%d name=%s color=%d group=%d resultNMask=%d\n",
-				i, PINFO[i].name, PINFO[i].ColorID, PINFO[i].GroupID,
-				NATIONS[NatRefTBL[PINFO[i].ColorID]].NMask );
-		}
-		else
-		{
-			printf( "AIDIAG start: slot=%d empty\n", i );
 		}
 	}
 
