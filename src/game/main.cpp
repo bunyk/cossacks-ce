@@ -187,13 +187,7 @@ int exFMode = 1;
 int SpeedSh = 1;
 
 //Minimal delay between two PostDrawGameProcess() returns, in ms
-const unsigned int kPostDrawInterval = 16;//~60 Hz (live multiplayer only)
-
-//The original game tick: 80ms per sim tick (12.5 ticks/s) - the step
-//multiplayer locks to (CurrentStepTime) and the pace the original game
-//ran at. Single player and replays are paced to this (see the frame
-//limiter at the end of PostDrawGameProcess).
-const unsigned int kSimTickInterval = 80;
+const unsigned int kPostDrawInterval = 16;//~60 Hz
 
 //Timespan in ms after last LastCTRLPressTime which allows setting unit control groups
 const int kCtrlStickyTime = 50;
@@ -1351,8 +1345,8 @@ void PostDrawGameProcess()
 		else
 		{
 			//Live multiplayer is paced through WaitToTime/NeedCurrentTime;
-			//single player keeps the original free-run loop and replays
-			//are paced by the frame limiter (kSimTickInterval).
+			//single player and replays keep the original free-run loop
+			//(see the frame limiter at the end of this function).
 			PitchTicks = 0;
 		}
 	}
@@ -1555,15 +1549,20 @@ void PostDrawGameProcess()
 		prev_postdraw_time = GetSDLTickCount();
 	}
 
-	//Tick pacing: replays (PlayGameMode!=0) are paced here to the
-	//original 80ms sim tick (kSimTickInterval, 12.5 ticks/s) - the pace
-	//the recording was made at (recordings carry no timing of their own:
-	//single-player streams store all-zero PitchTicks bytes, so an
-	//original recording replayed at the free-run loop rate zips through
-	//several times too fast). Waiting here keeps the render path
-	//untouched - one render per tick, no render-inside-wait judder.
-	//Live multiplayer is paced by WaitToTime above and single player
-	//keeps the free-run loop (the fast feel this port has always had);
+	//Tick pacing: render cap only. Single player keeps the original
+	//free-run loop (the fast feel this port has always had); replays
+	//(PlayGameMode!=0) use the SAME pace so a recording plays back at the
+	//speed it was recorded at - the port records single-player games at
+	//the free-run rate (~60 ticks/s), so pacing replays to the original's
+	//80ms sim tick (12.5 ticks/s, what 3f736cc "Fix demo pace" did) made
+	//our own recordings play back several times too slow. Multiplayer
+	//lockstep recordings carry PitchTicks bytes that gate the sim in the
+	//tick code above, so they still pace themselves.
+	//TRADEOFF: original-era recordings made at the retail free-run pace
+	//(the idle demo, Demo\script01.rec) play back ~5x too fast at this
+	//rate (3f736cc "Fix demo pace" paced replays to 80ms for them -
+	//that made our own recordings several times too slow instead).
+	//Live multiplayer is paced by WaitToTime above;
 	//both get only the render cap.
 	//KNOWN BUG (docs/TODO.txt, "Ticks tick too fast in scenarios"): at
 	//the free-run rate the sim runs ~5x the 2001 pace (60+ ticks/s vs
@@ -1575,7 +1574,7 @@ void PostDrawGameProcess()
 	//decoupled from the sim tick (original: 12.5 ticks/s sim, smooth
 	//scrolling via DirectDraw overlays), and/or tying into the game speed
 	//slider (exFMode/SpeedSh).
-	unsigned int tick_interval = PlayGameMode ? kSimTickInterval : kPostDrawInterval;
+	unsigned int tick_interval = kPostDrawInterval;
 	unsigned long time_since_last_call = 0;
 	do
 	{

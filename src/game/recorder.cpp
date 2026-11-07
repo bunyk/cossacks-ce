@@ -174,6 +174,7 @@ int CurrentAnswer = 0;
 bool AUTOSCROLL = 1;
 extern int SeqErrorsCount;
 extern bool RecordMode;
+extern int tmtmt;
 
 extern uint64_t GetSDLTickCount();
 
@@ -324,6 +325,19 @@ bool RecordGame::Extract()
 				if ( rr != rpos && PlayGameMode == 2 )
 				{
 					SeqErrorsCount = 1;
+					// RNG position diverged from the recording: the
+					// replay sim no longer matches the recorded game.
+					// Print the first few mismatches to tell an
+					// initial-state divergence (mismatch from tick 0)
+					// from gradual simulation drift.
+					static int NMismatchShown = 0;
+					if ( NMismatchShown < 5 )
+					{
+						NMismatchShown++;
+						printf( "DESYNC: recorded rpos=%d, replay rpos=%d "
+							"(delta %+d) at stream Pos=%d, tick tmtmt=%d\n",
+							rr, rpos, (int) rpos - (int) rr, Pos, tmtmt );
+					}
 				}
 
 				Pos += 2;

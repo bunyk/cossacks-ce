@@ -626,13 +626,7 @@ void SFLB_InitDialogs()
 	SFLB_ReadFirstPlayerName( PlName );
 	if ( !PlName[0] )
 	{
-#ifdef _WIN32
-		unsigned long dws = 20;
-		GetComputerName( PlName, &dws );
-		normstr( PlName );
-#else
 		strcpy( PlName, "Player" );
-#endif
 	}
 	FPassive = YellowFont;
 	FActive = WhiteFont;
@@ -860,29 +854,6 @@ extern int ScrollSpeed;
 //-----------------SINGLE PLAYER---------------//
 void UnLoading();
 static byte Ntn[8];
-#ifdef _WIN32
-// TODO: is this used? Orcs? Is this dead code from Warcraft 2000?
-bool NatChoose( SimpleDialog* SD )
-{
-	BpxTextButton* TB = (BpxTextButton*) SD;
-	char* qq = TB->Message;
-
-	if ( qq[0] == 'О' )
-	{
-		strcpy( TB->Message, "ЛЮДИ" );
-	}
-	else
-	{
-		strcpy( TB->Message, "ОРКИ" );
-	}
-
-	SD->NeedToDraw = true;
-	Lpressed = true;
-
-	return true;
-}
-
-#endif // _WIN32
 int coorX[8];
 int coorY[8];
 
@@ -903,9 +874,7 @@ extern City CITY[8];
 
 extern char ROOMNAMETOCONNECT[128]; // 3drandmap.cpp lobby room name
 
-#ifdef _WIN32
 bool ProcessOneBattle( int BtlID );
-#endif // _WIN32
 
 //Necessary for menu positioning in fullscreen. Export for IChat.dll
 DLLEXPORT int menu_x_off = 0;
@@ -2098,12 +2067,6 @@ void AddChatString( char* Nick, char* str, int MaxLx, lpRLCFont FONT,
 }
 
 #ifdef _WIN32
-bool SENDPRIVMESS( SimpleDialog* SD )
-{
-	KeyPressed = 0;
-	LastKey = SDLK_UNKNOWN;
-	return true;
-}
 
 bool DisableCreate = 0;
 extern bool UnderFirewall;
@@ -8864,7 +8827,7 @@ StartPlay://IMPORTANT: Main game loop
 				if ( GameExit )
 				{
 					// Leaving a multiplayer game: leave the session,
-					// record the defeat in the (stubbed) stats object
+					// record the defeat in the GSC stats object
 					// and tear the connection down
 					IAmLeft();
 					LOOSEANDEXITFAST();
@@ -8885,16 +8848,19 @@ StartPlay://IMPORTANT: Main game loop
 	Lobby = 0;
 	PlayGameMode = 0;
 
-#ifdef _WIN32
+	// store the recorded game (rec.dat: RecordMode + RECFILE "name")
 	if ( RecordMode )
 	{
 		RGAME.Save();
 		RecordMode = 0;
 	}
 
+#ifdef _WIN32
 	EndGSC_Reporting();
+#endif
 	use_gsc_network_protocol = false;
 
+#ifdef _WIN32
 	if ( RetryVideo && !( RUNMAPEDITOR || RUNUSERMISSION ) )
 	{
 		GFILE* f = Gopen( "Demo\\demo.run", "r" );
@@ -12732,7 +12698,6 @@ HHH1:
 	}
 }
 
-#ifdef _WIN32
 bool ProcessOneBattle( int BtlID )
 {
 	KeyPressed = 0;
@@ -12816,6 +12781,7 @@ bool ProcessOneBattle( int BtlID )
 	SlowUnLoadPalette( "2\\agew_1.pal" );
 	return ItemChoose == mcmOk;
 };
+#ifdef _WIN32
 int ProcessWars()
 {
 	if ( !WARS.NWars )return false;
@@ -12984,7 +12950,7 @@ void SlideShow()
 	};
 }
 
-#endif // _WIN32 (ProcessOneBattle/ProcessWars/SlideShow - battles screens, port separately)
+#endif // _WIN32 (ProcessWars/SlideShow - battles screens, port separately)
 
 void ClearScreen();
 char* ROME[6] = { "II","III","IV","V","VI","VII" };
