@@ -231,8 +231,10 @@ void RegisterHungary()
 	RegisterUpgrade(&dragun18_SHIELD6, "Dragun_18(VG)SHIELD6");
 	RegisterUpgrade(&dragun18_SHIELD7, "Dragun_18(VG)SHIELD7");
 
-	// The original registers no initial SetPDistribution here (unlike
-	// Russia); the per-tick handlers call it.
+	// Initial food/wood/stone peasant weights, same as in the rest of the
+	// European family. The land pipeline never adjusts them - without this
+	// call the peasants idle and starve.
+	SetPDistribution(9, 4, 4);
 	AssignAmountOfMineUpgrades(6);
 	AssignMineUpgrade(0, "shahta(VG)INSIDE", 90);
 	AssignMineUpgrade(1, "shahta(VG)INSIDE3", 50);
