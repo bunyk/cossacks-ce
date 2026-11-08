@@ -20,16 +20,24 @@ Upgrade::Upgrade()
 };
 void PerformUpgradeLink( OneObject* OBJ );
 
+extern int tmtmt;
+
 void OneObject::PerformUpgrade( word NewU, word MakerID )
 {
 	if (CheckOrderAbility())
+	{
 		return;
+	}
 
 	if (UnlimitedMotion)
+	{
 		return;
+	}
 
 	if (Nat->NUpgrades <= NewU || !Ready)
+	{
 		return;
+	}
 
 	word NUP = Ref.General->NUpgrades;
 	word* UPL = Ref.General->Upg;
@@ -44,12 +52,16 @@ void OneObject::PerformUpgrade( word NewU, word MakerID )
 	}
 
 	if (!canU)
+	{
 		return;
+	}
 
 	NewUpgrade* NU = Nat->UPGRADE[NewU];
 
 	if (!NU->Enabled)
+	{
 		return;
+	}
 
 	for (int i = 0; i < 8; i++)
 	{

@@ -429,10 +429,6 @@ void ScenaryInterface::Load( char* Name, char* Text )
 	}
 	else
 	{
-#ifdef _WIN32
-		if ( hLib )FreeLibrary( hLib );
-		hLib = LoadLibrary( Name );
-#else
 		// Linux: do NOT dlclose the previous module here. The engine
 		// keeps raw pointers into the module's .bss (SCENINF.SaveZone
 		// from RegisterVar, UGRP group data); SaveLoad runs SCENINF.Load
@@ -447,7 +443,6 @@ void ScenaryInterface::Load( char* Name, char* Text )
 		// frees everything and unloads - different missions simply stay
 		// resident until then, which is harmless.
 		hLib = LoadLibrary( Name );
-#endif
 	}
 	ScenaryHandler = NULL;
 	if ( hLib == NULL )
@@ -5816,10 +5811,9 @@ void MissPack::LoadMissions()
 	}
 	else
 	{
-		//TODO(debug): log to console as well (these can fire during static
-		//init, where ErrM's palette handling is not safe)
-		printf( "Missions loading failed...: Could not open Missions\\Missions.txt\n" );
-		fflush( stdout );
+		//ErrM's palette handling is not safe during static init, so these
+		//fire as stderr log + message box instead
+		fprintf( stderr, "Missions loading failed...: Could not open Missions\\Missions.txt\n" );
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Missions loading failed...", "Could not open Missions\\Missions.txt", sdlWindow);
 	}
 
@@ -5851,8 +5845,8 @@ void MissPack::LoadMissions()
 	}
 	else
 	{
-		printf( "Missions loading failed...: Could not open Missions\\SingleMiss.txt\n" );
-		fflush( stdout );
+		//Stderr log + message box (ErrM unsafe during static init)
+		fprintf( stderr, "Missions loading failed...: Could not open Missions\\SingleMiss.txt\n" );
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Missions loading failed...", "Could not open Missions\\SingleMiss.txt", sdlWindow);
 	}
 }
@@ -5988,12 +5982,7 @@ void LoadAIFromDLL( byte Nat, char* Name )
 		{
 			char cc[128];
 			sprintf( cc, "%s : Could not load <void ProcessAI()>", Name );
-#ifdef _WIN32
-			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "AI loadind from DLL", cc, sdlWindow);
-			assert( 0 );
-#else
 			fprintf( stderr, "LoadAIFromDLL: %s\n", cc );
-#endif
 		}
 		else
 		{
@@ -6002,13 +5991,8 @@ void LoadAIFromDLL( byte Nat, char* Name )
 			{
 				char cc[128];
 				sprintf( cc, "%s : Could not load <void InitAI()>", Name );
-#ifdef _WIN32
-				SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "AI loadind from DLL", cc, sdlWindow);
-				assert( 0 );
-#else
 				fprintf( stderr, "LoadAIFromDLL: %s\n", cc );
 				NT->ProcessAIinDLL = NULL;
-#endif
 			}
 			else
 			{
@@ -6031,15 +6015,11 @@ extern char PlName[64];
 void SavePlayerData( char* Name )
 {
 	char cc[200];
-#ifndef _WIN32
 	// Mirror the Linux branch of SFLB_LoadPDATA: forward-slash path. The
 	// Players directory may be missing in a fresh install, so create it
 	// (mkdir with an existing dir just fails with EEXIST, which is fine).
 	mkdir( "Players", 0755 );
 	sprintf( cc, "Players/%s.txt", Name );
-#else
-	sprintf( cc, "Players\\%s.txt", Name );
-#endif
 	GFILE* F = Gopen( cc, "w" );
 	if ( F )
 	{
@@ -6067,11 +6047,7 @@ void SFLB_LoadPDATA( char* Name )
 {
 	PLOAD = 0;
 	char cc[200];
-#ifdef _WIN32
-	sprintf( cc, "Players\\%s.txt", Name );
-#else
 	sprintf( cc, "Players/%s.txt", Name );
-#endif
 	GFILE* F = Gopen( cc, "r" );
 	if ( F )
 	{

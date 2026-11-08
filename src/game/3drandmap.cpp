@@ -1243,13 +1243,6 @@ bool GenMap::GenerateHillLink( int N, int Thick )
 	return false;
 };
 GenMap GMAP;
-void ShowNatDeal();
-
-//calls ShowNatDeal()
-void GenShow()
-{
-	ShowNatDeal();
-};
 
 #define NATLX (TopLx>>1)
 #define NATSH (TopSH-1)
@@ -1641,6 +1634,7 @@ void CreateMapByName( char* Name )
 	RM_LandType = Style;
 	RM_Resstart = Resst;
 	RM_Restot = Resmn;
+
 	mrpos = x1 & 8191;
 	XXP = 0;
 	sprintf( cc1, "Terrain\\%s", RD.STY[Style].Players[Play].name );
@@ -1741,10 +1735,46 @@ void CheckMapName( char* Name )
 	}
 }
 
+//Decodes the settings baked into an "RN<sz> <x1> <x2> ..." random-map
+//name into the global RM_* params and the per-nation start resource
+//matrix. The map NAME is the authoritative carrier of the settings (the
+//lobby encodes them there): every machine must decode it whether it
+//regenerates the map from the name (no cached .m3d) or loads the cached
+//file. Only the regeneration path (CreateMapByName) decodes them
+//otherwise - a cache hit leaves the machine with default RM_LandType /
+//RM_Restot (City.LandType/ResOnMap set by StartAIEx) and RES[], which
+//desyncs the AI's deterministic decisions in multiplayer.
+void DecodeRandomMapParams( char* Name )
+{
+	char cc1[128];
+	char cc2[32];
+	int x1, x2;
+	int ADD_PARAM = 0;
+	sscanf( Name, "%s%x%x%s%d", cc1, &x1, &x2, cc2, &ADD_PARAM );
+
+	RandomMapDesc RD;
+	RD.Load( "Terrain\\res.dat" );
+	int Style = x2 & 15;
+	int Resst = ( x2 >> 12 ) & 15;
+	int Resmn = ( x2 >> 16 ) & 15;
+	for ( int i = 0; i < 8; i++ )
+	{
+		for ( int p = 0; p < 8; p++ )
+		{
+			RES[i][p] = RD.RES[Resst].RES[p];
+		}
+	}
+	RM_LandType = Style;
+	RM_Resstart = Resst;
+	RM_Restot = Resmn;
+}
+
 void CheckMapNameForStart( char* Name )
 {
 	if ( Name[0] == 'R' && Name[1] == 'N' && Name[3] == ' ' )
 	{
+		DecodeRandomMapParams( Name );
+
 		ResFile F = RReset( Name );
 		if ( F == INVALID_HANDLE_VALUE )
 		{
@@ -4455,41 +4485,6 @@ void ClearAllRounds()
 		ClearCenterRound( CRoundX[i], CRoundY[i], 750 );
 	};
 	NCRound = 0;
-}
-
-#define C_NATLX 128
-void ShowNatDeal()
-{
-	return;
-#ifdef _WIN32
-	int adx = ScrWidth - NATLX;
-	int sptr = int( ScreenPtr ) + ScrWidth * 100;
-
-	__asm
-	{
-		push	esi
-		push	edi
-		mov		edi, sptr
-		mov		esi, NatDeals
-		cld
-		mov		ebx, C_NATLX
-		lpp1 : mov     edx, C_NATLX
-			   lpp2 : lodsb
-					  shr		al, 4
-					  shl		al, 2
-					  add		al, 0xD0
-					  //mov		ecx,C_NATLX>>2
-					  stosb
-					  dec		edx
-					  jnz     lpp2
-					  //rep		movsd
-					  add		edi, adx
-					  dec		ebx
-					  jnz		lpp1
-					  pop		edi
-					  pop		esi
-	}
-#endif
 }
 
 void SetBrightSpot( int x, int y, int Brightness, bool dir );

@@ -2373,19 +2373,6 @@ ListBox* DialogsSystem::addGP_ListBox( SimpleDialog* Parent, int x, int y, int N
 	return nullptr;
 };
 //-------------end of List Box---------------//
-#ifdef _WIN32
-//-----------class : InputBox----------------//
-void CutStringToLength( char* str, RLCFont* Fnt, int Lx )
-{
-	int L;
-	do
-	{
-		L = GetRLCStrWidth( str, Fnt );
-		if (L > Lx)str[strlen( str ) - 1] = 0;
-	} while (L > Lx);
-
-};
-#endif // _WIN32
 
 bool InputBox_OnDraw( SimpleDialog* SD )
 {
@@ -2393,7 +2380,6 @@ bool InputBox_OnDraw( SimpleDialog* SD )
 	if (!SD->Visible)return false;
 	if (SD)
 	{
-		//CutStringToLength(IB->Str,IB->AFont,IB->x1-IB->x);
 		int LL = IB->x1 - IB->x;
 		char base[2048];
 		strcpy( base, IB->Str );
@@ -2662,7 +2648,6 @@ InputBox* DialogsSystem::addInputBox( SimpleDialog* Parent,
 };
 //------end of class InputBox----------------//
 
-#ifdef _WIN32
 //----------class : CheckBox-----------------//
 bool CheckBox_OnDraw( SimpleDialog* SD )
 {
@@ -2871,20 +2856,12 @@ CheckBox* DialogsSystem::addGP_CheckBox( SimpleDialog* Parent,
 	return nullptr;
 };
 //--------end of CheckBox--------------------//
-#endif // _WIN32
 
 //-----------colored bar---------------------//
 DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 {
 	//Solid fill of an Lx0 x Ly0 rectangle into the screen buffer, clipped
-	//to the current RLC window (SetRLCWindow). The bounds check + clipping
-	//below is plain C++ and cross-platform; only the fill loop was asm.
-	//IMPORTANT: this body used to sit entirely inside #ifdef _WIN32, so on
-	//Linux CBar was an EMPTY no-op and every caller silently drew nothing:
-	//the infinity symbol on infinitely-queued production icons
-	//(icontool.cpp OneIcon::Draw -> DrawInf -> xLine -> 1x1 CBar pixels),
-	//hint panel backgrounds (DrawHintPattern), stats screen fills
-	//(DrawStatTable), ColoredBar dialogs, spriteless icon backgrounds.
+	//to the current RLC window (SetRLCWindow).
 	if (Lx0 <= 0 || Ly0 <= 0 || x0<0 || y0<0 || x0 + Lx0>ScrWidth || y0 + Ly0>SCRSizeY)
 	{
 		return;
@@ -2916,41 +2893,12 @@ DLLEXPORT void CBar( int x0, int y0, int Lx0, int Ly0, unsigned char c )
 		Ly = WindY1 - y + 1;
 		if (Ly <= 0)return;
 	};
-#ifdef _WIN32
-	int ofst = int( ScreenPtr ) + x + y*ScrWidth;
-	int adds = ScrWidth - Lx;
-	int Lx4 = Lx >> 2;
-	int Lx1 = Lx & 3;
-	__asm
-	{
-		push	edi
-		mov		edi, ofst
-		mov		edx, Ly
-		cld
-		mov		al, c
-		mov		ah, al
-		shl		eax, 16
-		mov		al, c
-		mov		ah, al
-		mov		ebx, Lx1
-		qwr : mov		ecx, Lx4
-			  rep		stosd
-			  mov		ecx, ebx
-			  rep		stosb
-			  add		edi, adds
-			  dec		edx
-			  jnz		qwr
-			  pop		edi
-	}
-#else
-	//Portable translation of the asm fill above: Ly rows of Lx bytes
 	byte* scr = (byte*)ScreenPtr + x + (intptr_t)y * ScrWidth;
 	for (int i = 0; i < Ly; i++)
 	{
 		memset( scr, c, Lx );
 		scr += ScrWidth;
 	};
-#endif // _WIN32
 }
 
 bool ColoredBar_OnDraw( SimpleDialog* SD )
@@ -3500,9 +3448,6 @@ bool BPXView_OnDraw( SimpleDialog* SD )
 	//editor pickers). The two original asm rep movsd row loops are
 	//translated to portable memcpy loops below; the Choosed/SSTAT overlay
 	//is the original C++.
-	//NOTE: this body used to sit entirely inside #ifdef _WIN32, so on
-	//Linux the view drew NOTHING (the map example window was always
-	//empty) and the function fell off its end without a return value.
 	if (!SD->Visible)
 	{
 		return false;
@@ -3679,7 +3624,6 @@ BPXView* DialogsSystem::addBPXView(
 	return nullptr;
 };
 //---------------end of BPXView--------------//
-#ifdef _WIN32
 //-----------------RLCListBox----------------//
 bool RLCListBox_OnDraw( SimpleDialog* SD )
 {
@@ -3799,7 +3743,6 @@ RLCListBox* DialogsSystem::addRLCListBox( SimpleDialog* Parent,
 	return nullptr;
 };
 //--------------end of RLCListBox------------//
-#endif // _WIN32
 
 //-------------------ComboBox----------------//
 bool ComboBox_OnDraw( SimpleDialog* SD )
@@ -4254,7 +4197,8 @@ bool ComboBox_OnDestroy( SimpleDialog* SD )
 	return true;
 };
 
-#ifdef _WIN32
+//Extra ComboBox pieces used by the editor tool dialogs: an attached
+//scrollbar, "ruler" mode (value pickers) and the plain-text combo box
 void ComboBox::AssignScroll( DialogsSystem* DSS, VScrollBar** SCR, int GPFile, int Sprite, int MaxLy )
 {
 	*SCR = DSS->addNewGP_VScrollBar( nullptr, x1 - DSS->BaseX - GPS.GetGPWidth( GPFile, Sprite ) + 1, y1 + 5 - DSS->BaseY, OneLy*MaxLy + 9, 1, 0, GPFile, Sprite );
@@ -4325,7 +4269,6 @@ ComboBox* DialogsSystem::addComboBox( SimpleDialog* Parent, int x, int y, int Lx
 
 	return nullptr;
 }
-#endif // _WIN32
 
 ComboBox* DialogsSystem::addGP_ComboBox( SimpleDialog* Parent, int x, int y, int GP_File,
 	int UpPart, int Center, int DownPart,
@@ -4914,8 +4857,6 @@ void SimpleDialog::AssignSound( int ID, int Usage )
 
 void SimpleDialog::AssignSound( char* Name, int Usage )
 {
-	// Cross-platform (SearchStr/ErrM are portable). Was entirely
-	// _WIN32-guarded: on Linux no button ever got its click sound.
 	int ID = SearchStr( SoundID, Name, NSounds );
 	if (ID == -1)
 	{
@@ -5009,184 +4950,6 @@ void CopyToScreen( int zx, int zy, int zLx, int zLy )
 	yield();
 }
 
-#ifdef _WIN32
-void CopyToOffScreen( int zx, int zy,
-	int srLx, int srLy,
-	byte* data )
-{
-	if (!bActive)return;
-	int x = zx;
-	int y = zy;
-	int Lx = srLx;
-	int Ly = srLy;
-	//if(zLx<=0||zLy<=0||zx<0||zy<0||zx+zLx>RealLx||zy+zLy>RealLy)return;
-	//if(zLx<=0||zLy<=0||zx<0||zy<0)return;
-	if (x < 0)
-	{
-		Lx += x;
-		x = 0;
-	};
-	if (y < 0)
-	{
-		Ly += y;
-		y = 0;
-	};
-	if (x + Lx > RealLx)Lx = RealLx - x;
-	if (y + Ly > RealLy)Ly = RealLy - y;
-	if (Lx < 0 || Ly < 0)
-		return;
-	int scof = int( data );
-	int reof = int( ScreenPtr ) + x + y*SCRSizeX;
-	int sadd = srLx - Lx;
-	int radd = SCRSizeX - Lx;
-	int Lx4 = Lx >> 2;
-	int Lx1 = Lx & 3;
-	__asm {
-		push	esi
-		push	edi
-		mov		edx, Ly
-		or edx, edx
-		jz		lpp4
-		mov		esi, scof
-		mov		edi, reof
-		cld
-		lpp1 : mov		ecx, Lx4
-			   jcxz	lpp2
-			   //		cli
-			   rep		movsd
-			   lpp2 : mov		ecx, Lx1
-					  jcxz	lpp3
-					  rep		movsb
-					  lpp3 :	//sti
-		add		esi, sadd
-			add		edi, radd
-			dec		edx
-			jnz		lpp1
-			lpp4 : pop		edi
-			pop		esi
-	};
-};
-void CopyToRealScreen( int zx, int zy,
-	int srLx, int srLy,
-	byte* data )
-{
-	if (!bActive)return;
-	//CopyToRealScreenMMX(zx,zy,srLx,srLy,data);
-	//return;
-	int x = zx;
-	int y = zy;
-	int Lx = srLx;
-	int Ly = srLy;
-	//if(zLx<=0||zLy<=0||zx<0||zy<0||zx+zLx>RealLx||zy+zLy>RealLy)return;
-	//if(zLx<=0||zLy<=0||zx<0||zy<0)return;
-	if (x < 0)
-	{
-		Lx += x;
-		x = 0;
-	};
-	if (y < 0)
-	{
-		Ly += y;
-		y = 0;
-	};
-	if (x + Lx > RealLx)Lx = RealLx - x;
-	if (y + Ly > RealLy)Ly = RealLy - y;
-	if (Lx < 0 || Ly < 0)
-		return;
-	int scof = int( data );
-	int reof = int( RealScreenPtr ) + x + y*RSCRSizeX;
-	int sadd = srLx - Lx;
-	int radd = RSCRSizeX - Lx;
-	int Lx4 = Lx >> 2;
-	int Lx1 = Lx & 3;
-	__asm {
-		push	esi
-		push	edi
-		mov		edx, Ly
-		or edx, edx
-		jz		lpp4
-		mov		esi, scof
-		mov		edi, reof
-		cld
-		lpp1 : mov		ecx, Lx4
-			   jcxz	lpp2
-			   //		cli
-			   rep		movsd
-			   lpp2 : mov		ecx, Lx1
-					  jcxz	lpp3
-					  rep		movsb
-					  lpp3 :	//sti
-		add		esi, sadd
-			add		edi, radd
-			dec		edx
-			jnz		lpp1
-			lpp4 : pop		edi
-			pop		esi
-	};
-};
-void CopyToRealScreenMMX( int zx, int zy,
-	int srLx, int srLy,
-	byte* data )
-{
-	int x = zx;
-	int y = zy;
-	int Lx = srLx;
-	int Ly = srLy;
-	//if(zLx<=0||zLy<=0||zx<0||zy<0||zx+zLx>RealLx||zy+zLy>RealLy)return;
-	//if(zLx<=0||zLy<=0||zx<0||zy<0)return;
-	if (x < 0)
-	{
-		Lx += x;
-		x = 0;
-	};
-	if (y < 0)
-	{
-		Ly += y;
-		y = 0;
-	};
-	if (x + Lx > RealLx)Lx = RealLx - x;
-	if (y + Ly > RealLy)Ly = RealLy - y;
-	if (Lx < 0 || Ly < 0)
-		return;
-	int scof = int( data );
-	int reof = int( RealScreenPtr ) + x + y*RSCRSizeX;
-	int sadd = srLx - Lx;
-	int radd = RSCRSizeX - Lx;
-	int Lx4 = Lx >> 3;
-	int Lx1 = Lx & 7;
-	__asm {
-		push	esi
-		push	edi
-		mov		edx, Ly
-		or edx, edx
-		jz		lpp4
-		mov		esi, scof
-		mov		edi, reof
-		cld
-		lpp1 : mov		ecx, Lx4
-			   jcxz	lpp2
-			   //		cli
-			   lppm1 : movq	mm0, [esi]
-					   add		esi, 8
-					   movq[edi], mm0
-					   add		edi, 8
-					   dec		ecx
-					   jnz		lppm1
-					   lpp2 : mov		ecx, Lx1
-							  jcxz	lpp3
-							  rep		movsb
-							  lpp3 :	//sti
-		add		esi, sadd
-			add		edi, radd
-			dec		edx
-			jnz		lpp1
-			lpp4 : pop		edi
-			pop		esi
-			emms
-	};
-};
-#endif // _WIN32
-
 //--------Pictures methods--------//
 void SQPicture::Draw( int x, int y )
 {
@@ -5209,44 +4972,20 @@ void SQPicture::Draw( int x, int y )
 };
 void SQPicture::DrawTransparent( int x, int y )
 {
-#ifdef _WIN32
+	//Color-key blit: pixel value 0 is transparent, all others overwrite.
+	//Row stride is SCRSizeX, matching the original asm (scradd).
 	if (!PicPtr)return;
-	int sofst = int( ScreenPtr ) + x + y*SCRSizeX;
-	int pofst = int( PicPtr + 2 );
 	int lx = int( PicPtr[0] );
 	int ly = int( PicPtr[1] );
 	if (ly <= 0 || lx <= 0 || lx > RealLx || ly > RealLy)return;
-	int lx4 = lx >> 2;
-	int lx1 = lx & 3;
-	int scradd = SCRSizeX - lx;
-	__asm {
-		push	esi
-		push	edi
-		mov		esi, pofst
-		mov		edi, sofst
-		mov		edx, ly
-		or edx, edx
-		jz		uu3
-		cld
-		lpp0 : mov		ecx, lx
-			   lpp1 : lodsb
-					  or al, al
-					  jnz		lpp1x
-					  //inc		esi
-					  inc		edi
-					  dec		ecx
-					  jnz		lpp1
-					  jmp		uu2
-					  lpp1x : stosb
-							  dec		ecx
-							  jnz		lpp1
-							  uu2 : add		edi, scradd
-									dec		edx
-									jnz		lpp0
-									uu3 : pop		edi
-										  pop		esi
-	};
-#endif // _WIN32
+	uint8_t* dst = static_cast<uint8_t*>( ScreenPtr ) + x + y * SCRSizeX;
+	uint8_t* src = reinterpret_cast<uint8_t*>( PicPtr + 2 );
+	for (int row = 0; row < ly; ++row) {
+		uint8_t* d = dst + row * SCRSizeX;
+		uint8_t* s = src + row * lx;
+		for (int i = 0; i < lx; ++i)
+			if (s[i]) d[i] = s[i];
+	}
 };
 
 bool SafeLoad = 0;

@@ -8,6 +8,99 @@
 #include "gp_draw.h"
 #include "drawform.h"
 
+#include <time.h>
+
+//---- Win32 time API shims for non-Windows builds ----
+// CurrentGame stats records store UTC date fields exactly as
+// SYSTEMTIME/GetSystemTime filled them, so the struct and the two
+// conversion functions keep the record format byte-identical. The
+// FILETIME/LARGE_INTEGER math on time deltas is also part of the
+// original behavior and is replicated via time_t.
+#ifndef _WIN32
+struct SYSTEMTIME
+{
+	word wYear;
+	word wMonth;
+	word wDayOfWeek;
+	word wDay;
+	word wHour;
+	word wMinute;
+	word wSecond;
+	word wMilliseconds;
+};
+
+struct FILETIME
+{
+	unsigned long dwLowDateTime;
+	unsigned long dwHighDateTime;
+};
+
+union LARGE_INTEGER
+{
+	struct
+	{
+		unsigned long LowPart;
+		long HighPart;
+	};
+	int64_t QuadPart;
+};
+
+// FILETIME counts 100ns ticks from 1601-01-01; time_t counts seconds
+// from 1970-01-01.
+static const int64_t FILETIME_EPOCH_DELTA = 11644473600;
+static const int64_t FILETIME_TICKS_PER_SEC = 10000000;
+
+static void GetSystemTime( SYSTEMTIME* st )
+{
+	time_t tt = time( nullptr );
+	tm* t = gmtime( &tt );
+	st->wYear = t->tm_year + 1900;
+	st->wMonth = t->tm_mon + 1;
+	st->wDay = t->tm_mday;
+	st->wHour = t->tm_hour;
+	st->wMinute = t->tm_min;
+	st->wSecond = t->tm_sec;
+	st->wMilliseconds = 0;
+	st->wDayOfWeek = t->tm_wday;
+}
+
+static void SystemTimeToFileTime( const SYSTEMTIME* st, FILETIME* ft )
+{
+	tm t;
+	memset( &t, 0, sizeof t );
+	t.tm_year = st->wYear - 1900;
+	t.tm_mon = st->wMonth - 1;
+	t.tm_mday = st->wDay;
+	t.tm_hour = st->wHour;
+	t.tm_min = st->wMinute;
+	t.tm_sec = st->wSecond;
+	time_t tt = timegm( &t );
+	uint64_t v = ( uint64_t ) ( tt + FILETIME_EPOCH_DELTA ) * FILETIME_TICKS_PER_SEC;
+	ft->dwLowDateTime = ( unsigned long ) v;
+	ft->dwHighDateTime = ( unsigned long ) ( v >> 32 );
+}
+
+// false for values that do not fit a calendar (negative deltas), same
+// contract as the Win32 original
+static bool FileTimeToSystemTime( const FILETIME* ft, SYSTEMTIME* st )
+{
+	uint64_t v = ( ( uint64_t ) ft->dwHighDateTime << 32 ) | ft->dwLowDateTime;
+	if ( v >> 63 ) return false;
+	time_t tt = ( time_t ) ( ( int64_t ) ( v / FILETIME_TICKS_PER_SEC ) - FILETIME_EPOCH_DELTA );
+	tm* t = gmtime( &tt );
+	if ( !t ) return false;
+	st->wYear = t->tm_year + 1900;
+	st->wMonth = t->tm_mon + 1;
+	st->wDay = t->tm_mday;
+	st->wHour = t->tm_hour;
+	st->wMinute = t->tm_min;
+	st->wSecond = t->tm_sec;
+	st->wMilliseconds = 0;
+	st->wDayOfWeek = t->tm_wday;
+	return true;
+}
+#endif // !_WIN32
+
 #define DOTRACE
 
 #include "playerinfo.h"
@@ -514,8 +607,6 @@ void CurrentGame::AssignKick( char* pNick )
 	}
 }
 
-void SetNormAttr();
-
 void CurrentGame::SaveGameToFile()
 {
 	if (!Active)
@@ -548,14 +639,13 @@ void CurrentGame::SaveGameToFile()
 	RBlockWrite( F1, &XXX, sizeof XXX );
 
 	int S = 0;
-	for (int i = 0; i < sizeof CurrentGame; i++)
+	for (int i = 0; i < sizeof( CurrentGame ); i++)
 	{
 		S += DATA[i];
 	}
 
 	RBlockWrite( F1, &S, 4 );
 	RClose( F1 );
-	SetNormAttr();
 }
 
 extern uint64_t GetSDLTickCount();
@@ -595,14 +685,14 @@ NEXTFILE:
 	if (SUCCESS)
 	{
 		RSeek( F, 20532 + 200 + cur*( sizeof( CurrentGame ) + 4 ) );
-		RBlockRead( F, this, sizeof CurrentGame );
+		RBlockRead( F, this, sizeof( CurrentGame ) );
 		int S;
 		RBlockRead( F, &S, 4 );
 		byte* Key = (byte*) randoma;
 		byte* xx = ( byte* ) this;
 
 		int S1 = 0;
-		for (int i = 0; i < sizeof CurrentGame; i++)
+		for (int i = 0; i < sizeof( CurrentGame ); i++)
 		{
 			S1 += xx[i];
 		}
@@ -612,7 +702,7 @@ NEXTFILE:
 		}
 		else
 		{
-			for (int i = 0; i < sizeof CurrentGame; i++)
+			for (int i = 0; i < sizeof( CurrentGame ); i++)
 			{
 				xx[i] ^= Key[i];
 			}
@@ -661,7 +751,6 @@ NEXTFILE:
 		Active = false;
 	}
 	RClose( F );
-	SetNormAttr();
 }
 
 void CurrentGame::DeleteThisGameFromFile()
@@ -680,7 +769,6 @@ void CurrentGame::DeleteThisGameFromFile()
 	int v = 0;
 	RBlockWrite( F, &v, 1 );
 	RClose( F );
-	SetNormAttr();
 };
 
 struct OneIChunk
@@ -1028,6 +1116,11 @@ void CheckExistingSaves()
 }
 
 DLLEXPORT void ExplorerOpenRef( int Index, char* ref );
+#ifndef _WIN32
+// Exported for the IChat lobby DLL; without it (lobby not ported) there
+// is nobody to call it, the in-engine calls below only mark streams
+void ExplorerOpenRef( int Index, char* ref ) { (void)Index; (void)ref; }
+#endif // !_WIN32
 
 void DontMakeRaiting()
 {
@@ -1381,24 +1474,6 @@ bool CheckGameTime()
 	}
 }
 
-void SetNormAttr()
-{
-	HANDLE H = CreateFile( "cew.dll",
-		GENERIC_WRITE, FILE_SHARE_READ, NULL,
-		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
-	if (H == INVALID_HANDLE_VALUE)
-	{
-		return;
-	}
-
-	FILETIME F1, F2, F3;
-	GetFileTime( H, &F1, &F2, &F3 );
-	F3 = F1;
-	F2 = F2;
-	SetFileTime( H, &F1, &F2, &F3 );
-	CloseHandle( H );
-}
-
 bool TestHash1( char* s );
 
 bool TestHash1( char* s )
@@ -1459,174 +1534,4 @@ void SetBrokenState()
 	{
 		CURIGAME.Broken = 1;
 	}
-}
-
-#include "http\httpcomm.h"
-
-int T0 = 0;
-char CLANR[32] = "";
-char PLNICK[32] = "";
-
-CHttpComm HTTPC;
-
-DWORD SendHTTPRequest( char* URL )
-{
-	return HTTPC.AddRequest( URL );
-}
-
-bool CheckHTTPAnswer( DWORD Handle, int* size, byte* Data )
-{
-	*size = 0;
-	try
-	{
-		HTTPC.ProcessRequests();
-		*size = HTTPC.GetData( Handle, (void*) Data, *size );
-	}
-	catch (...)
-	{
-	}
-
-	return ( *size ) != 0;
-}
-
-bool RejectThisPlayer = 0;
-DWORD CHECK_HANDLE = 0;
-DWORD SERV_HANDLES[6];
-int NSERV = 0;
-
-DWORD SendOneRequest( char* serv, char* param )
-{
-	char ccc[512];
-	sprintf( ccc, "%s?%s", serv, param );
-	try
-	{
-		return SendHTTPRequest( ccc );
-	}
-	catch (...)
-	{
-		return 0;
-	}
-}
-
-int GetStrHASH1( char* s )
-{
-	int L = strlen( s );
-	DWORD S = 0;
-	for (int i = 0; i < L; i++)
-	{
-		S += s[i];
-	}
-
-	for (int i = 0; i < L - 1; i++)
-	{
-		S += int( s[i] )*int( s[i + 1] );
-	}
-
-	for (int i = 0; i < L - 2; i++)
-	{
-		S -= int( s[i] )*int( s[i + 1] )*int( s[i + 2] );
-	}
-
-	for (int i = 0; i < L - 3; i++)
-	{
-		S += int( s[i] )*int( s[i + 1] )*int( s[i + 2] )*int( s[i + 3] );
-	}
-
-	for (int i = 0; i < L - 4; i++)
-	{
-		S -= int( s[i] )*int( s[i + 1] )*int( s[i + 2] )*int( s[i + 3] )*int( s[i + 4] );
-	}
-
-	for (int i = 0; i < L - 5; i++)
-	{
-		S += int( s[i] )*int( s[i + 1] )*int( s[i + 2] )*int( s[i + 3] )*int( s[i + 4] )*int( s[i + 5] );
-	}
-	return S;
-}
-
-void SendAllRequests( char* clan, char* nick, char* mail )
-{
-	RejectThisPlayer = 0;
-	char ccc[512];
-	sprintf( ccc, "com=check&clan=%s&user=%s&mail=%s&code=%d", clan, nick, mail, GetSDLTickCount() & 0b1111111111111111 );
-	NSERV = 0;
-
-	GFILE* F = Gopen( "Internet\\serv.dat", "r" );
-	if (F)
-	{
-		char cc[256];
-		int z = 0;
-		do
-		{
-			int hash = 0;
-			z = Gscanf( F, "%s%d", cc, &hash );
-			if (z == 2 && NSERV < 6)
-			{
-				if (hash == GetStrHASH1( cc ))
-				{
-					SERV_HANDLES[NSERV] = SendOneRequest( cc, ccc );
-					NSERV++;
-				}
-			}
-		} while (z == 2 && NSERV < 6);
-		Gclose( F );
-	}
-
-	if (!NSERV)
-	{
-		SERV_HANDLES[NSERV] = SendOneRequest( "www.gsc-game.net/games/Cossacks-AW/scripts/checkuser.php", ccc );
-		NSERV++;
-	}
-
-	CHECK_HANDLE = 1;
-}
-
-char CLANX[256];
-
-void WaitWithMessage( char* Message );
-
-
-bool CheckPlayerToExit()
-{
-	if (CHECK_HANDLE)
-	{
-		for (int i = 0; i < NSERV; i++)
-		{
-			char STR[4096];
-			int sz = 4096;
-			if (!T0)T0 = GetSDLTickCount();
-			if (CheckHTTPAnswer( SERV_HANDLES[i], &sz, (byte*) STR ))
-			{
-				STR[255] = 0;
-				int HC1 = 0;
-				int HC2 = 0;
-				int zz = sscanf( STR, "%d%d", &HC1, &HC2 );
-				if (zz == 2)
-				{
-					if (( HC1 + 37 ) * 13 == HC2)
-					{
-						LocalGP BOR2( "Interface\\bor2" );
-						sprintf( STR, GetTextByID( "NO_CLAN_MEMBER_[%s]" ), CLANX );
-						WaitWithError4( STR, BOR2.GPID );
-						HTTPC.FreeData( SERV_HANDLES[i] );
-						CHECK_HANDLE = 0;
-						T0 = 0;
-						RejectThisPlayer = 1;
-						return true;
-					}
-					else
-					{
-						if (( HC1 + 97 ) * 17 == HC2)
-						{
-							HTTPC.FreeData( SERV_HANDLES[i] );
-							CHECK_HANDLE = 0;
-							T0 = 0;
-							return false;
-						}
-					}
-				}
-			}
-		}
-	}
-	return false;
 }

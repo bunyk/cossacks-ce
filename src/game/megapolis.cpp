@@ -1088,6 +1088,7 @@ void City::AddUpgr( word UIN, word prod, word per )
 };
 
 void GetUnitCost( byte NI, word NIndex, int* Cost );
+
 void City::EnumProp()
 {
 	NProp = 0;

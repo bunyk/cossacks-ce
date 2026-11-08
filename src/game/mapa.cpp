@@ -1399,7 +1399,6 @@ void ProcessSelectedTower();
 extern City CITY[8];
 void DrawBorder( Brigade* BR );
 int PreviewBrig = -1;;
-void GenShow();
 void DrawAZones();
 void ScenaryLights();
 extern int NInGold[8];
@@ -1864,8 +1863,6 @@ void GFieldShow()
 	DrawCurves();
 
 	ShowCostPlaces();
-
-	GenShow();
 
 	if (GridMode)
 	{
@@ -3646,7 +3643,8 @@ void HandleMouse( int x, int y )
 				//	CmdCreateBuilding(MyNation,xxx,yyy,BuildingID);
 				int x0 = xmx << 4;
 				int y0 = ConvY( ysy ) << 4;
-				if (CheckSmartCreationAbility( NatRefTBL[MyNation], NATIONS[MyNation].Mon[BuildingID]->newMons, &x0, &y0 ) != -1)
+				int csc = CheckSmartCreationAbility( NatRefTBL[MyNation], NATIONS[MyNation].Mon[BuildingID]->newMons, &x0, &y0 );
+				if (csc != -1)
 				{
 					;
 					CmdCreateBuilding( MyNation, x0, y0, BuildingID );

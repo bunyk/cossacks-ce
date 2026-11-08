@@ -9,7 +9,11 @@ u_short CCommCore::ReceiveData(LPBYTE lpbBuffer, LPPEER_ID lpPeerId)
 	sockaddr_in					SenderAddr;
 	LPCC_PK_RAW_FRAME			lpFrame;
 	u_short						uPeer;
+#ifdef _WIN32
 	int							SenderLength=sizeof(sockaddr_in);
+#else
+	socklen_t					SenderLength=sizeof(sockaddr_in);
+#endif
 	u_short						PeerNum;
 	int							i;
 
@@ -60,28 +64,10 @@ u_short CCommCore::ReceiveData(LPBYTE lpbBuffer, LPPEER_ID lpPeerId)
 	};
 // ----------------------------------------------------------------------
 
-#ifdef CC_DEBUG
-	CHAR		szMsg[255];
-	sprintf(szMsg,"after ReceiveData()");
-	DebugMessage(szMsg);
-
-	sprintf(szMsg,"     From:	%s:%u",
-		inet_ntoa(SenderAddr.sin_addr),
-		ntohs(SenderAddr.sin_port));
-	DebugMessage(szMsg);
-
-	sprintf(szMsg,"     Type:	%u",lpFrame->m_uType);
-	DebugMessage(szMsg);
-
-	sprintf(szMsg,"     PeerId:	%u",lpFrame->m_PeerId);
-	DebugMessage(szMsg);
-
-	sprintf(szMsg,"     Size:	%u",lDataSize);
-	DebugMessage(szMsg);
-#endif //CC_DEBUG
 
 	if(lpFrame->m_lProto!=PROTO_ID)
 		return 0x00;
+
 
 	if(	(lpFrame->m_PeerId!=BAD_PEER_ID)&&
 		(GetPeerById(lpFrame->m_PeerId)==BAD_PEER_ID)&&

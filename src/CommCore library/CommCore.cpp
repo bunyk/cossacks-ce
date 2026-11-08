@@ -1,8 +1,79 @@
 #include "CommCore.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
+#include <time.h>
 
-#include "../Main executable/common.h"
+// -------------------------------- packet tracing ------------------------------
+
+bool CCTraceEnabled()
+{
+	// ON by default (set COSSACKS_NET_TRACE=0 to silence): the trace is the
+	// primary debugging tool for the multiplayer port right now, and it
+	// must not depend on the variable surviving launchers/gdb/debuggers.
+	// Note: the original CC_DEBUG build flag (see the top of CommCore.h)
+	// is a different, much coarser Windows-only mechanism
+	static int Enabled = -1;
+	if (Enabled < 0)
+	{
+		const char* Env = getenv( "COSSACKS_NET_TRACE" );
+		Enabled = ( !( Env && *Env && strcmp( Env, "0" ) == 0 ) );
+	}
+	return Enabled != 0;
+}
+
+// Level 2 adds the raw CC SND/CC RCV transport lines: useful for
+// handshake/hole punching debugging, too noisy during regular play
+bool CCTransportTraceEnabled()
+{
+	if (!CCTraceEnabled())
+	{
+		return false;
+	}
+	static int Level = -1;
+	if (Level < 0)
+	{
+		const char* Env = getenv( "COSSACKS_NET_TRACE" );
+		Level = Env ? atoi( Env ) : 1;
+	}
+	return Level >= 2;
+}
+
+void CCTrace( const char* fmt, ... )
+{
+	va_list ap;
+	va_start( ap, fmt );
+	vprintf( fmt, ap );
+	va_end( ap );
+	printf( "\n" );
+	fflush( stdout );
+}
+
+const char* CCPacketName( unsigned uType )
+{
+	switch (uType)
+	{
+	case CC_PT_FRAME_CONFIRM: return "FRAME_CONFIRM";
+	case CC_PT_HOST_ALIVE: return "HOST_ALIVE";
+	case CC_PT_SEND_DATA: return "SEND_DATA";
+	case CC_PT_SEND_DATA_SECURE: return "SEND_DATA_SECURE";
+	case CC_PT_CHCK_HOST: return "CHCK_HOST";
+	case CC_PT_TRY_CONNECT: return "TRY_CONNECT";
+	case CC_PT_CONNECT_OK: return "CONNECT_OK";
+	case CC_PT_CONNECT_REJECT: return "CONNECT_REJECT";
+	case CC_PT_SERVER_LIST: return "SERVER_LIST";
+	case CC_PT_HOST_EXIT: return "HOST_EXIT";
+	case CC_PT_HOST_DROP: return "HOST_DROP";
+	case CC_PT_CONNECT_DIFF: return "CONNECT_DIFF";
+	case CC_PT_HOST_DROP_OK: return "HOST_DROP_OK";
+	case CC_PT_SEND_USER_NAME: return "SEND_USER_NAME";
+	case CC_PT_SEND_USER_DATA: return "SEND_USER_DATA";
+	case CC_PT_SEND_NEW_NAME: return "SEND_NEW_NAME";
+	case CC_PT_SEND_NEW_DATA: return "SEND_NEW_DATA";
+	default: return "?UNKNOWN_CC?";
+	}
+}
 
 // ---------------------------------------------------------------------------------------------
 
@@ -358,6 +429,7 @@ VOID CCommCore::SetCommCoreUID( LPCSTR lpcszCCUID )
 {
 	_log_message( "SetCommCoreUID()" );
 
+#ifdef _WIN32
 	HKEY	hKey;
 
 	RegCreateKeyEx( HKEY_CURRENT_USER,
@@ -367,6 +439,10 @@ VOID CCommCore::SetCommCoreUID( LPCSTR lpcszCCUID )
 	RegSetValueEx( hKey, "CCUID", 0, REG_SZ, (unsigned char*) lpcszCCUID, strlen( lpcszCCUID ) + 1 );
 
 	RegCloseKey( hKey );
+#endif
+	// Unix: nothing to persist. The CCUID is per-process (see
+	// GetCommCoreUID below), so two game instances sharing one game
+	// data directory still get distinct peer identities
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -381,7 +457,13 @@ VOID CCommCore::NewCommCoreUID( LPSTR lpszCCUID )
 	DWORD	dwTicks;
 	int		iRand;
 
+#ifdef _WIN32
 	GetComputerName( szComputerName, &dwSize );
+#else
+	if (gethostname( szComputerName, sizeof( szComputerName ) ) != 0)
+		strcpy( szComputerName, "localhost" );
+	dwSize = strlen( szComputerName );
+#endif
 
 	for (iRand = dwSize; iRand < 8; iRand++)
 		szComputerName[iRand] = '0';
@@ -390,11 +472,24 @@ VOID CCommCore::NewCommCoreUID( LPSTR lpszCCUID )
 
 	dwTicks = GetSDLTickCount();
 
-	srand( dwTicks );
+	//Two game instances on one machine must not generate the same CCUID,
+	//or the host mistakes the joining client for itself reconnecting and
+	//never adds it as a peer. GetSDLTickCount() returns 0 during static
+	//initialization (SDL ticks are not running yet), which alone would
+	//make every instance seed srand() with 0 - so mix in the process id
+	//and the wall clock as well
+#ifdef _WIN32
+	srand( (unsigned) ( dwTicks ^ GetCurrentProcessId() ) );
+#else
+	srand( (unsigned) ( dwTicks ^ ( (uint64_t) getpid() << 12 ) ^ (uint64_t) time( nullptr ) ) );
+#endif
 
 	iRand = rand();
 
-	sprintf( szCCUID, "%-8.8s-%8.8X-%4.4X", szComputerName, dwTicks, iRand );
+	// Intended to fit exactly 22 chars into CHAR[23]: printf precision is a
+	// MINIMUM for integers, so mask iRand down to 4 hex digits explicitly,
+	// else the 26-char id overflows m_szCCUID in the CCommCore object
+	sprintf( szCCUID, "%-8.8s-%8.8X-%4.4X", szComputerName, dwTicks, iRand & 0xFFFF );
 
 	SetCommCoreUID( szCCUID );
 
@@ -407,6 +502,7 @@ VOID CCommCore::GetCommCoreUID( LPSTR lpszCCUID )
 {
 	_log_message( "GetCommCoreUID()" );
 
+#ifdef _WIN32
 	HKEY	hKey;
 	CHAR	szCCUID[64];
 	DWORD	dwSize = 64;
@@ -436,6 +532,13 @@ VOID CCommCore::GetCommCoreUID( LPSTR lpszCCUID )
 	RegCloseKey( hKey );
 
 	strcpy( lpszCCUID, szCCUID );
+#else
+	// Unix: no persisted install id - a persisted file in shared game data
+	// would give host and client of the same machine the SAME CCUID, which
+	// makes the server mistake the joining client for itself reconnecting.
+	// Generate per process instead (see NewCommCoreUID for the seeding)
+	NewCommCoreUID( lpszCCUID );
+#endif
 }
 
 // ---------------------------------------------------------------------------------------------

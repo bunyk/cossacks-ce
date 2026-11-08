@@ -12,13 +12,8 @@
 // фирмы Microsoft на трансляцию UDP-пакетов через шлюз
 
 #define _COOL_
-//#define CC_DEBUG
 
-#ifdef CC_DEBUG
-#define _log_message(message) DebugMessage(message)
-#else
-#define _log_message(message) 
-#endif //CC_DEBUG
+#define _log_message(message)
 
 #ifndef _COMM_CORE_H_INCLUDED_
 #define _COMM_CORE_H_INCLUDED_
@@ -27,15 +22,64 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include <assert.h>
+#include <stdint.h>
+#include <string.h>
+
+#ifdef _WIN32
+
 #include <Winsock2.h>
 #include <WS2tcpip.h>
 #include <Windows.h>
-#include <assert.h>
-#ifdef CC_DEBUG
-#include <stdio.h>
-#endif //CC_DEBUG
-
 #pragma warning (disable : 4200)
+
+#else // !_WIN32
+// BSD-sockets port of the Winsock layer this library was written against.
+// Type aliases below match the game's newcode/os.h definitions, so
+// translation units that include both headers still compile.
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+typedef unsigned int DWORD;
+typedef unsigned char BYTE, *LPBYTE;
+typedef char CHAR, *LPSTR;
+typedef const char* LPCSTR;
+typedef void VOID;
+typedef unsigned int BOOL;
+#define TRUE 1
+#define FALSE 0
+#define CALLBACK // nothing
+
+typedef int SOCKET;
+#define INVALID_SOCKET	(-1)
+#define SOCKET_ERROR	(-1)
+#define closesocket		close
+#define ioctlsocket		ioctl
+#define HOSTENT			hostent
+typedef struct { int iUnused; } WSADATA;	// dummy for the WSAStartup macro
+// No Winsock startup/teardown is needed on Unix
+#define WSAStartup( wVersionRequired, lpWSAData )	(0)
+#define WSACleanup()		(0)
+
+// Winsock's u_long is 32-bit, but Unix u_long (sys/types.h) is 64-bit on
+// LP64 and u_long is used inside the wire-format packet structs below, so
+// pin it at the Windows size to keep the protocol layout identical.
+#define u_long uint32_t
+
+#endif // _WIN32
+
+// Millisecond tick counter supplied by the main executable (timing.cpp)
+uint64_t GetSDLTickCount();
+
+// Decoded CC_PT_* packet type name (e.g. "TRY_CONNECT" / "SEND_DATA")
+const char* CCPacketName( unsigned uType );
 
 #pragma pack(push,1)
 
@@ -385,11 +429,6 @@ public:
 	// ---------------------------------------------------------------------------------------------
 protected:
 	// ---------------------------------------------------------------------------------------------
-#ifdef CC_DEBUG
-	FILE	*	m_DebugStream;
-	VOID		DebugMessage( LPCSTR lpcszMessage );
-#endif //CC_DEBUG
-
 	CHAR		m_szUserName[MAX_HOST_NAME];		//
 //	PEER_ADDR	m_paHostAddr;						//
 //	CHAR		m_szDotAddr[18];					//
@@ -424,6 +463,7 @@ protected:
 	u_short		m_uMaxMsgSize;						//
 
 	SOCKET		m_DataSocket;						// Сокет, обслуживающий пользовательские сообщения
+	BOOL		m_bSocketBound;				// TRUE after m_DataSocket was bound to DATA_PORT
 
 	u_long		m_lStamp;							// Автоинкрементный счетчик пакетов
 
@@ -450,6 +490,7 @@ protected:
 	BOOL	DropPeer( u_short uPeer );					//
 
 	BOOL InitSocket();
+	BOOL BindSocket();	// Binds m_DataSocket to DATA_PORT (server only)
 	BOOL CloseSocket();
 	BOOL InitHost();
 

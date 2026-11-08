@@ -48,9 +48,18 @@ typedef void tpStartDownloadInternetFile( char* Name, char* Server, char* DestNa
 typedef void tpProcessDownloadInternetFiles();
 typedef void tpSendRecBuffer( byte* Data, int size, bool Final );
 
+#ifdef _WIN32
 extern tpStartDownloadInternetFile* StartDownloadInternetFile;
 extern tpProcessDownloadInternetFiles* ProcessDownloadInternetFiles;
 extern tpSendRecBuffer* SendRecBuffer;
+#else
+// IntExplorer exchange DLL is not ported: the pointers stay NULL, which
+// disables the map-record upload/download path below (every call site
+// checks them first)
+tpStartDownloadInternetFile* StartDownloadInternetFile = NULL;
+tpProcessDownloadInternetFiles* ProcessDownloadInternetFiles = NULL;
+tpSendRecBuffer* SendRecBuffer = NULL;
+#endif
 //-----------------------------------------------------------//
 //#include "diplomacy.h"
 byte RecFormatID = 0;
@@ -459,6 +468,7 @@ void ReadPichTicks()
 
 int RunMethod = 0;
 extern char RECFILE[128];
+void SetGSpeed( byte speed );
 
 void RecordGame::StartRecord( char* Map )
 {
@@ -575,7 +585,7 @@ void RecordGame::ReadStream( char* Name )
 
 		if ( STREAM.Error() )
 		{
-			printf( "Error reading record file %s\n", Name );
+			fprintf( stderr, "Error reading record file %s\n", Name );
 			STREAM.Close();
 			return;
 		}
@@ -590,6 +600,9 @@ void RecordGame::ReadStream( char* Name )
 		//RBlockRead(F,&RunMethod,4);
 		memcpy( &RunMethod, BUFF + BFPOS, 4 );
 		BFPOS += 4;
+		// total RunData size as stored in the record (kept for the
+		// speed-extension tail check in the 0xFFFFFFFE branch below)
+		int RecRunDataSize = 0;
 		if ( RunMethod == 0xFFFFFFFF )
 		{
 			//RBlockRead(F,&RunDataSize,4);
@@ -633,6 +646,10 @@ void RecordGame::ReadStream( char* Name )
 			}
 			//RBlockRead(F,&RunData,RunDataSize);
 			memcpy( &RunData, BUFF + BFPOS, RunDataSize );
+			// size as stored in the record; the branch below parses the
+			// fields back by re-walking RunDataSize, so keep the recorded
+			// total to know how much of a tail is left afterwards
+			RecRunDataSize = RunDataSize;
 			BFPOS += RunDataSize;
 		}
 
@@ -707,6 +724,18 @@ void RecordGame::ReadStream( char* Name )
 				RunDataSize += 4;
 				memcpy( NatRefTBL, RunData + RunDataSize, 8 );
 				RunDataSize += 8;
+				// Records made since 2026-11-07 also carry the game speed
+				// (SpeedSh) after NatRefTBL: restore it, or every
+				// FrmDec-based cadence (animations, unit delays) runs at a
+				// different pace than the recording and the RNG stream
+				// desyncs within ticks (the block rpos checks fail).
+				// Old records have no tail and keep FrmDec = 2 set above.
+				if ( RecRunDataSize - RunDataSize >= 4 )
+				{
+					int recSpeed;
+					memcpy( &recSpeed, RunData + RunDataSize, 4 );
+					SetGSpeed( recSpeed );
+				}
 				CreateNationalMaskForMap( CurrentMap );
 				byte MNAT = MyNation;
 				PrepareGameMedia( 0, 1 );

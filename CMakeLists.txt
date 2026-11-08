@@ -67,7 +67,18 @@ add_executable(cossacks
 	src/game/savenewmap.cpp
 	src/game/gvclass.cpp
 	src/game/report.cpp
-	src/game/linux_stubs.cpp
+	src/game/ir_main.cpp
+
+	src/game/mplayer.cpp
+
+	"src/CommCore library/CommCore.cpp"
+	"src/CommCore library/CommInet.cpp"
+	"src/CommCore library/CommInit.cpp"
+	"src/CommCore library/CommPeers.cpp"
+	"src/CommCore library/CommQueue.cpp"
+	"src/CommCore library/CommRaw.cpp"
+	"src/CommCore library/CommRecv.cpp"
+	"src/CommCore library/CommServerList.cpp"
 
 	src/game/conststr.cpp
 
@@ -101,6 +112,7 @@ add_executable(cossacks
 	src/game/3dmaped.cpp
 	src/game/3dsurf.cpp
 	src/game/megapolis.cpp
+	src/game/safenet.cpp
 	src/game/icontool.cpp
 	src/game/topograf.cpp
 	src/game/strategyresearch.cpp

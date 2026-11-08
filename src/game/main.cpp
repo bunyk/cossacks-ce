@@ -125,7 +125,9 @@ Weapon Vibux1;
 extern bool RUNMAPEDITOR;
 extern bool RUNUSERMISSION;
 extern char USERMISSPATH[128];
-bool window_mode;
+// Set by /window or --window (defaults to fullscreen); borderless implies
+// window mode
+bool window_mode = false;
 bool borderless = false;
 
 bool EditMapMode;
@@ -185,13 +187,7 @@ int exFMode = 1;
 int SpeedSh = 1;
 
 //Minimal delay between two PostDrawGameProcess() returns, in ms
-const unsigned int kPostDrawInterval = 16;//~60 Hz (live multiplayer only)
-
-//The original game tick: 80ms per sim tick (12.5 ticks/s) - the step
-//multiplayer locks to (CurrentStepTime) and the pace the original game
-//ran at. Single player and replays are paced to this (see the frame
-//limiter at the end of PostDrawGameProcess).
-const unsigned int kSimTickInterval = 80;
+const unsigned int kPostDrawInterval = 16;//~60 Hz
 
 //Timespan in ms after last LastCTRLPressTime which allows setting unit control groups
 const int kCtrlStickyTime = 50;
@@ -324,7 +320,6 @@ void LoadBorders();
 void SetupArrays();
 extern byte* RivDir;
 void Init_GP_IMG();
-void ReadClanData();
 
 void LoadMessages();
 void Loadtextures();
@@ -434,7 +429,7 @@ static void EnterGameDataDir( int argc, char* argv[] )
 		}
 		else
 		{
-			printf( "Could not enter game data directory '%s': %s\n",
+			fprintf( stderr, "Could not enter game data directory '%s': %s\n",
 				GameDataDir, strerror( errno ) );
 		}
 	}
@@ -498,16 +493,15 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 			strcpy(USERMISSPATH, argv[i+1]);
 		}
 
-		if (strcmp(argv[i], "/window") == 0)
+		// Windowed (-less) mode flags. Any other argument must not reset
+		// them - an else-branch here used to clear window_mode on every
+		// non-flag parameter, so a trailing --gamedata wiped /window
+		if (strcmp(argv[i], "/window") == 0 || strcmp(argv[i], "--window") == 0)
 		{
 			window_mode = true;
 		}
-		else
-		{
-			window_mode = false;
-		}
 
-		if (strcmp(argv[i], "/borderless") == 0)
+		if (strcmp(argv[i], "/borderless") == 0 || strcmp(argv[i], "--borderless") == 0)
 		{
 			window_mode = true;
 			borderless = true;
@@ -537,7 +531,7 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	ScreenPtr = nullptr;
 
 	// Declarations for globals that live in guarded decl blocks elsewhere
-	// (ChangeNation/MultiTvar - linux_stubs.cpp/loadsave.cpp, sfVersion - interface.cpp,
+	// (ChangeNation/MultiTvar - interface.cpp, sfVersion - interface.cpp,
 	// CreateRadio - topograf.cpp)
 	extern bool ChangeNation;
 	extern bool MultiTvar;
@@ -605,6 +599,14 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 			&WarSound, &OrderSound, &OrderSound, &MidiSound,
 			&dummy, &ScrollSpeed, &exFMode, &PlayMode);
 		Gclose(fff);
+
+		//Validate values: mode.dat may come from an older/foreign build and
+		//carry values outside the valid ranges, which would later crash the
+		//options dialog (ComboBox indexes its Lines[] with CurLine).
+		//exFMode: 0 = SLOWMOD, 1 = FASTMOD.
+		//PlayMode: 0 = NOCD, 1 = NATMUS, 2 = RNDMUS.
+		if (exFMode < 0 || exFMode > 1) exFMode = 1;
+		if (PlayMode < 0 || PlayMode > 2) PlayMode = 2;
 
 		//Set last 'global resolution' according to current mode
 		if (window_mode)
@@ -702,19 +704,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	SetupGates();
 
 	LockGrid = false;
-
-#ifdef _WIN32
-	FILE* Fx = fopen("cew.dll", "r");
-	if (!Fx)
-	{
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error...", "CEW.DLL not found. Unable to run Cossacks.", nullptr);
-		return SDL_APP_FAILURE;
-	}
-	else
-	{
-		fclose(Fx);
-	}
-#endif // _WIN32 (cew.dll protection check)
 
 	//Init buffers for national units?
 	SetupNatList();
@@ -1343,8 +1332,8 @@ void PostDrawGameProcess()
 		else
 		{
 			//Live multiplayer is paced through WaitToTime/NeedCurrentTime;
-			//single player keeps the original free-run loop and replays
-			//are paced by the frame limiter (kSimTickInterval).
+			//single player and replays keep the original free-run loop
+			//(see the frame limiter at the end of this function).
 			PitchTicks = 0;
 		}
 	}
@@ -1385,9 +1374,12 @@ void PostDrawGameProcess()
 		if ( MaxPingTime && !PlayGameMode )CurrentStepTime -= CurrentStepTime >> 5;
 		RealGameLength = GetSDLTickCount() - RealStTime;
 
-#ifdef _WIN32
+		// Per-step multiplayer handler (mplayer.cpp): exchanges the
+		// execute-buffer turn data and gates the simulation on the other
+		// players' turns - the deterministic lockstep itself. Without this
+		// both peers run free-running, unsynchronized simulations
+		extern void HandleMultiplayer(); // mplayer.cpp: the deterministic lockstep
 		HandleMultiplayer();
-#endif // _WIN32 (mplayer.cpp not ported)
 
 		SYN.Copy( &SYN1 );
 
@@ -1544,15 +1536,20 @@ void PostDrawGameProcess()
 		prev_postdraw_time = GetSDLTickCount();
 	}
 
-	//Tick pacing: replays (PlayGameMode!=0) are paced here to the
-	//original 80ms sim tick (kSimTickInterval, 12.5 ticks/s) - the pace
-	//the recording was made at (recordings carry no timing of their own:
-	//single-player streams store all-zero PitchTicks bytes, so an
-	//original recording replayed at the free-run loop rate zips through
-	//several times too fast). Waiting here keeps the render path
-	//untouched - one render per tick, no render-inside-wait judder.
-	//Live multiplayer is paced by WaitToTime above and single player
-	//keeps the free-run loop (the fast feel this port has always had);
+	//Tick pacing: render cap only. Single player keeps the original
+	//free-run loop (the fast feel this port has always had); replays
+	//(PlayGameMode!=0) use the SAME pace so a recording plays back at the
+	//speed it was recorded at - the port records single-player games at
+	//the free-run rate (~60 ticks/s), so pacing replays to the original's
+	//80ms sim tick (12.5 ticks/s, what 3f736cc "Fix demo pace" did) made
+	//our own recordings play back several times too slow. Multiplayer
+	//lockstep recordings carry PitchTicks bytes that gate the sim in the
+	//tick code above, so they still pace themselves.
+	//TRADEOFF: original-era recordings made at the retail free-run pace
+	//(the idle demo, Demo\script01.rec) play back ~5x too fast at this
+	//rate (3f736cc "Fix demo pace" paced replays to 80ms for them -
+	//that made our own recordings several times too slow instead).
+	//Live multiplayer is paced by WaitToTime above;
 	//both get only the render cap.
 	//KNOWN BUG (docs/TODO.txt, "Ticks tick too fast in scenarios"): at
 	//the free-run rate the sim runs ~5x the 2001 pace (60+ ticks/s vs
@@ -1564,7 +1561,7 @@ void PostDrawGameProcess()
 	//decoupled from the sim tick (original: 12.5 ticks/s sim, smooth
 	//scrolling via DirectDraw overlays), and/or tying into the game speed
 	//slider (exFMode/SpeedSh).
-	unsigned int tick_interval = PlayGameMode ? kSimTickInterval : kPostDrawInterval;
+	unsigned int tick_interval = kPostDrawInterval;
 	unsigned long time_since_last_call = 0;
 	do
 	{
@@ -2040,6 +2037,12 @@ static BOOL doInit()
 	return FALSE;
 }
 
+//Decls for ClearModes: river-flow editing (river.cpp), the TexMap brush
+//toggle (interface.cpp) and the curve scratchpad (3dmaped.cpp)
+extern bool RiverEditMode;
+extern bool TexMapMod;
+void ClearCurve();
+
 void ClearModes()
 {
 	DrawPixMode = 0;
@@ -2048,12 +2051,10 @@ void ClearModes()
 	MEditMode = false;
 	LockMode = 0;
 	WaterEditMode = false;
-	#ifdef _WIN32
 	SetWallBuildMode( 0xFF, 0 );
 	TexMapMod = false;
 	RiverEditMode = 0;
 	ClearCurve();
-	#endif
 	TexPieceMode = 0;
 }
 
@@ -2087,8 +2088,7 @@ extern void ClearMStack();
 
 bool EnterChatMode = 0;
 
-// Multiplayer vote keys (multi.cpp) and chat keys (linux_stubs no-op
-// until the chat is ported).
+// Multiplayer vote keys (multi.cpp) and chat keys (interface.cpp)
 void ProcessVotingKeys();
 void ProcessChatKeys();
 
@@ -3517,7 +3517,6 @@ void WaitToTime( int Time )
 //Load ids, textures etc
 bool Loading()
 {
-	ReadClanData();
 	RivDir = NULL;
 
 	Init_GP_IMG();

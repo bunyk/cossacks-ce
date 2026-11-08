@@ -8,20 +8,18 @@ This project is an effort to migrate the classic game **Cossacks: Back to War** 
 
 ## Motivation
 
-**Cossacks: Back to War** is the greatest RTS game ever made, in my opinion.
+**Cossacks: Back to War** is one of the greates RTS games ever made.
 
-## Roadmap
+## Changes
+- Some dead code removed
+- ASM sections replaced with C++ code
 
-Done doesn't mean it's perfect, it just means it works.
-The list is not exhaustive and will be updated as the project progresses.
-
-| Description | Status | Comments |
-|-------------|--------|----------|
-| Remove Windows-specific symbols and types | ⏳ In Progress | Things left to be migrated: DLL loading, FS management, registry management, misc. |
-| Migrate from Winsock to cross-platform sockets | 🚧 Not Started ||
-| Remove or replace binary dependencies | 🚧 Not Started | Known so far: `Pinger.lib`, `gw_server.dll` |
-| Recreate the AI | ⏳ In Progress ||
-| Rewrite assembler code to C++ | 🚧 In progress | Over 200 places with inline assembly 😢, related mostly to rendering |
+## TODO:
+- Missions and campaigns (loading works, 2/106 mission modules ported - see docs/missions.md)
+- Networking
+- Ticks tick to fast in scenarios (fixed in replay, but made game way to slow).
+- Full screen loading is slower than window. Maybe go for maximized window by default?
+- Python for AI and missions? 
 
 ## Building
 
@@ -47,7 +45,7 @@ Configure:
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 ```
 
-Release build is configuredwithout debug symbols:
+Release build is configured without debug symbols:
 ```
 cmake -S . -B build
 ```
@@ -62,12 +60,12 @@ cmake --build build
 
 In debugger:
 ```bash
-gdb --args build/Debug/cossacks /window
+gdb --args build/Debug/cossacks --window
 ```
 
 Or run directly:
 ```bash
-build/Debug/cossacks /window
+build/Debug/cossacks --window
 ```
 
 ## Game data
@@ -90,6 +88,9 @@ printed to stderr since the 2026-11 port).
 sudo apt install unrar
 find gamedata/Missions -name '*.rar' -execdir unrar x -o+ {} \;
 ```
+
+### Intro videos
+Game used to play intro videos on startup. This was implemented by launcher Cossacks.exe, which played video and then run dmln.exe, which was actual game engine. This port is just engine, so use your favorite video player to watch intro videos.
 
 ## Contributing
 

@@ -149,10 +149,6 @@ void SetScreenPtr( void )
 	//RealScreenPtr = lpSurface;
 }
 
-#ifdef _WIN32
-void ClearScreen();
-#endif
-
 // Linux clean-room renderer for RLC sprites:
 // 4-byte header (short SizeX, SizeY), then per scanline a segment count
 // byte, and per segment (skip, count) followed by count pixel bytes.
@@ -337,12 +333,8 @@ int GetRLCWidth( RLCTable lpr, byte n )
 	};
 	if (n < lpr->SCount)
 	{
-#ifdef _WIN32
-		return ( *( (lpRLCHeader) ( (void*) ( lpr->OfsTable[n] ) ) ) ).SizeX;
-#else
 		// OfsTable holds unrebased 32-bit offsets on 64-bit (see LoadRLC)
 		return ( (lpRLCHeader) ( (char*) lpr + 4 + lpr->OfsTable[n] ) )->SizeX;
-#endif
 	}
 	else return 0;
 }
@@ -411,12 +403,8 @@ DLLEXPORT int GetRLCHeight( RLCTable lpr, byte n )
 	}
 	if (n < lpr->SCount)
 	{
-#ifdef _WIN32
-		return ( *( (lpRLCHeader) ( (void*) ( lpr->OfsTable[n] ) ) ) ).SizeY;
-#else
 		// OfsTable holds unrebased 32-bit offsets on 64-bit (see LoadRLC)
 		return ( (lpRLCHeader) ( (char*) lpr + 4 + lpr->OfsTable[n] ) )->SizeY;
-#endif
 	}
 	else
 	{
@@ -587,8 +575,7 @@ void LoadPalettes()//IMPORTANT: load color palettes for color masking
 	RBlockRead( f1, PAL7, 256 );
 	RClose( f1 );
 }
-#ifdef _WIN32
-
+//Loads a RLC font by file name (e.g. GETS()-resolved resource path)
 RLCFont::RLCFont( char* Name )
 {
 	int LOLD = LOADED;
@@ -598,7 +585,6 @@ RLCFont::RLCFont( char* Name )
 	Options = 0;
 	ShadowGP = -1;
 }
-#endif // _WIN32
 
 void RLCFont::SetRedColor()
 {

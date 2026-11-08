@@ -129,7 +129,9 @@ DLLIMPORT void ReportAliveState( int NPlayers, int* Profiles );
 
 void SETPLAYERNAME(char* name, bool);
 
-typedef unsigned long CDPID;
+// DirectPlay player ids were 32-bit DWORDs; keep that width so the
+// network command structs stay the same size as they were on Windows
+typedef DWORD CDPID;
 
 typedef struct
 {

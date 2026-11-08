@@ -18,6 +18,8 @@ When investigating code, feel free to leave comments about the code purpose,
 meaning of function parameters, possible values for enums, etc.
 So code is more readable than before, and requires less investigation later.
 
+Do not write comments like "un-guarded", "ported", especially for code that is deleted. We test and make sure it works, if it does not - we could compare with old code in git. 
+
 When in need to figure out how something happens we could use plain old printf to STDOUT.
 
 Once done, run `echo -ne '\007'` to notify me.

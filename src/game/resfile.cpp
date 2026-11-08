@@ -16,13 +16,6 @@
 
 bool InitDone = 0;
 
-#ifdef _WIN32
-#include "assert.h"
-void AText( char* str );
-//typedef LPGSCfile ResFile;
-typedef HANDLE ResFile;
-#endif
-
 CGSCset GSFILES;
 
 //Opening the resource file

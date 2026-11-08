@@ -30,35 +30,6 @@ BOOL CGSCarch::Open( LPCSTR lpcsArchFileName )
 	printf("Opening archive file: %s\n", lpcsArchFileName );
 	strcpy( m_ArchName, lpcsArchFileName );
 
-#ifdef _WIN32
-	m_hMapFile = CreateFile( m_ArchName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, 0 );
-	if (INVALID_HANDLE_VALUE == m_hMapFile)
-	{
-		GSC_OpenError();
-		return FALSE;
-	}
-
-	m_hMapping = CreateFileMapping( m_hMapFile, NULL, PAGE_READONLY, 0, 0, NULL );
-	if (!m_hMapping)
-	{
-		GSC_OpenError();
-		return FALSE;
-	}
-
-
-	m_pViewOfFile = (LPBYTE) MapViewOfFile( m_hMapping, FILE_MAP_READ, 0, 0, 0 );
-	if (!m_pViewOfFile)
-	{
-		GSC_OpenError();
-		return FALSE;
-	}
-
-	m_Header = (TGSCarchHDR*) ( m_pViewOfFile );
-	m_FAT = (TGSCarchFAT*) ( LPBYTE( m_pViewOfFile ) + sizeof( TGSCarchHDR ) );
-	m_Data = LPBYTE( m_pViewOfFile ) + sizeof( TGSCarchHDR )
-		+ ( m_Header->m_Entries * sizeof( TGSCarchFAT ) );
-#else
-
     m_MappedFile.open(lpcsArchFileName);
     if (!m_MappedFile.is_open()) {
         GSC_OpenError("mapped file could not be opened");
@@ -80,7 +51,6 @@ BOOL CGSCarch::Open( LPCSTR lpcsArchFileName )
         data + sizeof(TGSCarchHDR) + m_Header->m_Entries * sizeof(TGSCarchFAT)
     );
 
-#endif
     return true;
 }
 

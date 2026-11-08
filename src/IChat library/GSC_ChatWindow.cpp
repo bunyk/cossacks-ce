@@ -285,8 +285,6 @@ void IntersectWindows( int x0, int y0, int x1, int y1 )
 	WindLy = WindY1 - WindY + 1;
 }
 
-__declspec( dllimport ) void ShowClanString( int x, int y, char* s, byte State, RLCFont* Fn, RLCFont* Fn1, int DY );
-
 CustomBorder* CUBM;
 CustomBorder* CUBC;
 bool CM_Vis = 0;
@@ -330,7 +328,7 @@ void Draw_PLIST( int x, int y, int Lx, int Ly, int Index, byte Active, int param
 		strcpy( nickname, CSYS.CCH[CSYS.CurChannel].Players[Index].Nick );
 
 		RLCFont* FONT = Active == 2 ? &WhiteFont : &YellowFont;
-		ShowClanString( x + 6, y + 5, nickname, Active, FONT, nullptr, 0 );
+		ShowString( x + 6, y + 5, nickname, FONT );
 
 		if (CSYS.CCH[CSYS.CurChannel].Players[Index].Muted)
 		{
