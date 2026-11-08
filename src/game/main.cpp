@@ -788,8 +788,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 		PlayRandomTrack();
 	}
 
-	StartInternetExplorer();
-
 	#endif // _WIN32
 
 	// FIXME: need to be called only when focused on textboxes
@@ -1197,7 +1195,6 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result)
 
 	#ifdef _WIN32
 	FilesExit();
-	FinishInternetExplorer();
 	#endif // _WIN32 (FilesExit is called below unguarded too? keep parity)
 
 	StopPlayCD();
@@ -1316,8 +1313,6 @@ void ProcessNature();
 
 void PostDrawGameProcess()
 {
-	// Some networking logic
-	RGAME.TryToFlushNetworkStream( 0 );
 	if (PlayGameMode == 0 && NPlayers < 2)
 	{
 		PitchTicks = 0;
@@ -3624,7 +3619,7 @@ void PrepareToGame()
 {
 	if (!PlayGameMode)
 	{
-		if (NPlayers > 1 && ( IsGameActive() || use_gsc_network_protocol ) && !RecordMode)
+		if (NPlayers > 1 && IsGameActive() && !RecordMode)
 		{
 			RecordMode = true;
 			sprintf( RECFILE, "Autorecord\\%s", CurrentMap );

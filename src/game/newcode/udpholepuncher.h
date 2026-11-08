@@ -25,5 +25,4 @@ private:
 	sockaddr_in server_addr_;
 };
 
-// IntExplorer library exports this
-DLLIMPORT char* GetAccessKey( int Index );
+

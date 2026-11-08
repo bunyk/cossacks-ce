@@ -916,12 +916,6 @@ void CmdSelAllShips( byte NI )
 
 extern word NPlayers;
 
-// IChat library exports this
-DLLIMPORT void SendVictoryState( int ID, byte State );
-
-// without the IChat lobby DLL victory states go nowhere
-void SendVictoryState( int ID, byte State ) { (void)ID; (void)State; }
-
 bool ProcessMessages();
 
 extern byte PlayGameMode;
@@ -933,19 +927,6 @@ void CmdEndGame( byte NI, byte state, byte cause )
 	ExBuf[EBPos + 2] = state;
 	ExBuf[EBPos + 3] = cause;
 	EBPos += 4;
-
-	if ( use_gsc_network_protocol && !PlayGameMode )
-	{
-		for ( int i = 0; i < NPlayers; i++ )
-		{
-			if ( PINFO[i].ColorID == NI )
-			{
-				SendVictoryState( PINFO[i].ProfileID, state );
-				ProcessMessages();
-				break;
-			}
-		}
-	}
 }
 
 void CmdMoney( byte NI )
@@ -1287,7 +1268,6 @@ extern bool KeyPressed;
 extern SDL_Keycode LastKey;
 void UnPress();
 extern byte SpecCmd;
-void ExplorerOpenRef( int Index, char* ref );
 void ProcessVotingKeys()
 {
 	if ( VotingMode )
@@ -1335,11 +1315,7 @@ void ProcessVotingKeys()
 			sprintf( buf, GetTextByID( "PSR_ACCEPT" ) );
 			CreateTimedHintEx( buf, kSystemMessageDisplayTime, 32 );//All players have accepted the offer. This game will not be rated.
 			DontMakeRaiting();
-			if ( use_gsc_network_protocol )
-			{
-				ExplorerOpenRef( 0, "GW|norate" );
 			};
-		};
 		if ( GetSDLTickCount() - LastVotingTime > 60000 * 3 )
 		{
 			VotingMode = 0;
@@ -1647,15 +1623,7 @@ void __EndGame( byte NI, byte state )
 		}
 	}
 
-	if ( use_gsc_network_protocol && !PlayGameMode )
-	{
-		for ( int i = 0; i < NPlayers; i++ )if ( PINFO[i].ColorID == NI )
-		{
-			SendVictoryState( PINFO[i].ProfileID, state0 );
-			ProcessMessages();
-			break;
-		}
-	}
+
 }
 
 

@@ -87,31 +87,6 @@ public:
 extern PLAYERSBACKUP PBACK;
 extern RETRANS RETSYS;
 
-struct RoomInfo
-{
-	char Name[128];
-	char Nick[64];
-	char RoomIP[32];
-	DWORD Profile;
-	char GameID[64];
-	int MaxPlayers;
-
-	//Additional members to pass data from server to main exe / CommCore
-	long player_id; //Necessary for host to send udp hole punching packets
-	unsigned short port; //Udp hole punching port or real port of game host
-	unsigned udp_interval; //Udp hole punching packet interval
-	char udp_server[16]; //IP of udp hole punching server
-};
-extern RoomInfo GlobalRIF;
-
-extern bool use_gsc_network_protocol;
-
-// IChat library exports these
-DLLIMPORT int Process_GSC_ChatWindow( bool Active, RoomInfo* RIF );
-DLLIMPORT void LeaveGSCRoom();
-DLLIMPORT void StartGSCGame( char* Options, char* Map,
-	int NPlayers, int* Profiles, char** Nations, int* Teams, int* Colors );
-
 struct OnePlayerReport
 {
 	DWORD Profile;
@@ -122,10 +97,6 @@ struct OnePlayerReport
 	word NBornP;
 	word NBornUnits;
 };
-
-// IChat library exports these
-DLLIMPORT void ReportGSCGame( int time, int NPlayers, OnePlayerReport* OPR );
-DLLIMPORT void ReportAliveState( int NPlayers, int* Profiles );
 
 void SETPLAYERNAME(char* name, bool);
 

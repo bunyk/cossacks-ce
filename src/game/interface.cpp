@@ -92,25 +92,6 @@ bool IgnoreSlow = false;
 int CurrentCampagin = -1;
 int CurrentMission = -1;
 
-
-//Was used to distinguish between GameSpy and GSC-Game.Net
-//Probably obsolete, but could also be some sort of "game active" indicator
-bool use_gsc_network_protocol = false;
-
-#ifdef _WIN32
-RoomInfo GlobalRIF;
-
-int GetGSC_Profile()
-{
-	return GlobalRIF.Profile;
-}
-#else
-// no IChat lobby / RoomInfo on Linux: no profile
-int GetGSC_Profile()
-{
-	return 0;
-}
-#endif // _WIN32 (RoomInfo lobby state above; the trivia below are portable)
 byte RedColor2 = 0xBB;
 extern int CurrentAnswer;
 
@@ -136,7 +117,6 @@ void ShowLoading();
 //2 = Direct TCP/IP
 //3 = GSC-Game.Net Internet Game
 //Set in MPL_ChooseConnection()
-//When (3): use_gsc_network_protocol = true
 int selected_network_protocol = 0;
 
 extern char CHATSTRING[256];
@@ -318,31 +298,13 @@ int LastTimeReport_tmtmt = 0;
 extern int tmtmt;
 #ifdef _WIN32
 extern City CITY[8];
-void EndGSC_Reporting()
-{
-	NeedToReportInGameStats = 0;
-	NeedToPerformGSC_Report = 0;
-	LeaveGSCRoom();
-}
 
-void ProcessExplorer( int Index );
 bool PDIF_Inside = 0;
 extern int TIME1;
 int PrevProcTime = 0;
 extern City CITY[8];
 #endif // _WIN32
 extern CDPID MyDPID; // defined in mplayer.cpp
-#ifdef _WIN32
-//--------------------inserted from DIPLOMACY.H---------------//
-typedef void tpStartDownloadInternetFile( char* Name, char* Server, char* DestName );
-typedef void tpProcessDownloadInternetFiles();
-typedef void tpSendRecBuffer( byte* Data, int size, bool Final );
-
-extern tpStartDownloadInternetFile* StartDownloadInternetFile;
-extern tpProcessDownloadInternetFiles* ProcessDownloadInternetFiles;
-extern tpSendRecBuffer* SendRecBuffer;
-//-----------------------------------------------------------//
-#endif // _WIN32
 
 extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
 
@@ -361,105 +323,6 @@ DLLEXPORT bool ProcessMessages()
 	if ( !PrevProcTime )
 	{
 		PrevProcTime = TT;
-	}
-
-	if ( TT - PrevProcTime > 3000 )
-	{
-		PDIF_Inside = 1;
-		if ( ProcessDownloadInternetFiles )
-		{
-			ProcessDownloadInternetFiles();
-		}
-		ProcessExplorer( 16 );
-		PDIF_Inside = 0;
-		PrevProcTime = TT;
-	}
-
-	if ( NeedToPerformGSC_Report )
-	{
-		int T = GetSDLTickCount();
-		if ( !PrevReportTime )
-		{
-			PrevReportTime = T;
-		}
-		if ( T - PrevReportTime > 120000 )
-		{
-			int NZeros = 0;
-			int PROFS[8];
-			for ( int i = 0; i < NPlayers; i++ )
-			{
-				if ( !PINFO[i].ProfileID )
-				{
-					NZeros++;
-				}
-				PROFS[i] = PINFO[i].ProfileID;
-			}
-			if ( !NZeros )
-			{
-				ReportAliveState( NPlayers, PROFS );
-				PrevReportTime = T;
-			}
-		}
-	}
-
-	if ( NeedToReportInGameStats && use_gsc_network_protocol )
-	{
-		if ( tmtmt - LastTimeReport_tmtmt >= 256 )
-		{
-			int NMN[8] = { 0,0,0,0,0,0,0 };
-			for ( int i = 0; i < MAXOBJECT; i++ )
-			{
-				OneObject* OB = Group[i];
-				if ( OB && ( OB->Hidden || !OB->Sdoxlo ) && ( !OB->NewBuilding ) )
-				{
-					NMN[OB->NNUM]++;
-				}
-			}
-
-			OnePlayerReport OPR[8];
-			for ( int i = 0; i < NPlayers; i++ )
-			{
-				if ( PINFO[i].PlayerID == MyDPID )
-				{
-					int NI = PINFO[i].ColorID;
-					int NP = 0;
-					int NW = 0;
-					int NN = NATIONS[NI].NMon;
-					for ( int j = 0; j < NN; j++ )
-					{
-						NewMonster* NM = NATIONS[NI].Mon[j]->newMons;
-						if ( NM->Peasant )
-						{
-							NP += NATIONS[NI].NProduced[j];
-						}
-						else
-						{
-							if ( !NM->Building )
-							{
-								NW += NATIONS[NI].NProduced[j];
-							}
-						}
-					}
-
-					OPR[0].NBornP = NP;
-					OPR[0].NBornUnits = NW;
-					OPR[0].Population = NMN[PINFO[i].ColorID];
-					OPR[0].Profile = PINFO[i].ProfileID;
-					for ( int p = 0; p < 6; p++ )
-					{
-						OPR[i].ReachRes[p] = NATIONS[NI].ResTotal[p];
-					}
-					OPR[0].Score = CITY[NI].Account / 100;
-					OPR[0].State = NATIONS[NI].VictState;
-					for ( int q = 0; q < 6; q++ )
-					{
-						OPR[0].ReachRes[q] = NATIONS[NI].ResTotal[q];
-					}
-				}
-			}
-			ReportGSCGame( tmtmt, NPlayers, OPR );
-			LastTimeReport_tmtmt = tmtmt;
-		}
 	}
 
 	try
@@ -868,13 +731,10 @@ void LoadNation( char* fn, byte NIndex, byte );
 
 extern City CITY[8];
 
-extern char ROOMNAMETOCONNECT[128]; // 3drandmap.cpp lobby room name
-
 bool ProcessOneBattle( int BtlID );
 
-//Necessary for menu positioning in fullscreen. Export for IChat.dll
-DLLEXPORT int menu_x_off = 0;
-DLLEXPORT int menu_y_off = 0;
+int menu_x_off = 0;
+int menu_y_off = 0;
 int menu_hint_x = 18;
 int menu_hint_y = 701;
 
@@ -987,7 +847,6 @@ int MPL_ChooseConnection();
 void WaitWithMessage( char* Message );
 void NoWaitWithMessage( char* Message );
 
-int ProcessInternetConnection( bool Active );
 bool FindSessionAndJoin( char* Name, char* Nick, unsigned short port );
 bool CreateSession( char* SessName, char* Name, DWORD User2, int MaxPlayers );
 extern int GMTYPE;
@@ -1055,9 +914,7 @@ bool processMultiplayer()
 
 	case mcmJoin:
 		// Direct join to the address typed in MPL_ChooseConnection
-		// (DirectPlay session browsing is long gone; the GSC lobby path
-		// below used to fill IPADDR from the chat room instead)
-		if ( FindSessionAndJoin( ROOMNAMETOCONNECT, PlName, 0 ) )
+		if ( FindSessionAndJoin( nullptr, PlName, 0 ) )
 		{
 			WaitingJoinGame( GMTYPE );
 		}
@@ -1303,7 +1160,6 @@ void yield()
 
 int MM_ProcessSinglePlayer()
 {
-	use_gsc_network_protocol = false;
 	SFLB_LoadPlayerData();
 	LoadFog( 2 );
 	LocalGP BTNS( "Interface\\Single_Player" );
@@ -1720,13 +1576,6 @@ int MPL_ChooseConnection()
 	SlowUnLoadPalette( "2\\agew_1.pal" );
 
 
-	//No GameSpy option anymore, only GSC-Game.Net
-	use_gsc_network_protocol = false;
-	if ( selected_network_protocol == 3 )
-	{
-		use_gsc_network_protocol = true;
-	}
-
 	return ItemChoose;
 }
 
@@ -1976,8 +1825,6 @@ void WaitWithMessage( char* Message )
 	} while ( GetSDLTickCount() - T < 3000 && !KeyPressed );
 	KeyPressed = 0;
 }
-
-char ROOMNAMETOCONNECT[128];
 
 int NCHATS = 0;
 int MAXCHATS = 0;
@@ -2276,28 +2123,9 @@ void DecodeGS_Password( char* pass, char* result );
 
 bool INSIDE1 = 0;
 
-// IChat library exports this
-DLLIMPORT void SendPrivateMessage( char* Nick, char* MESSAGE );
-#ifndef _WIN32
-void SendPrivateMessage( char* Nick, char* MESSAGE ) { (void)Nick; (void)MESSAGE; }
-#endif
 bool CheckForPersonalChat( char* STR )
 {
-	if ( STR[0] == '-'&&STR[1] == '-'&&STR[2] == '>' )
-	{
-		char* SS = strchr( STR, ':' );
-		if ( SS )
-		{
-			int L = SS - STR - 3;
-			if ( L > 0 )
-			{
-				char SS3[256];
-				memcpy( SS3, STR + 3, L );
-				SS3[L] = 0;
-				SendPrivateMessage( SS3, SS + 1 );
-			}
-		}
-	}
+	(void)STR;
 	return false;
 }
 
@@ -2371,18 +2199,6 @@ void SavePersChat()
 	};
 };
 
-//Returns Process_GSC_ChatWindow()
-// Windows: pumps the IChat lobby DLL. Without it (Linux) the connection
-// poll reports "nothing happened".
-#ifdef _WIN32
-int ProcessInternetConnection( bool Active )
-{
-	return Process_GSC_ChatWindow( Active, &GlobalRIF );
-}
-#else
-int ProcessInternetConnection( bool Active ) { (void)Active; return 0; }
-#endif // _WIN32
-
 DLLEXPORT void SendPings();
 
 bool CheckPingsReady();
@@ -2428,9 +2244,6 @@ void DeepDeletePeer( DWORD ID );
 // GSC profile id (ir_main.cpp)
 int GetMyProfile();
 
-// IChat library exports this
-DLLIMPORT void ChatProcess();
-
 //Shows lobby interface for multiplayer deathmatch and single player random map
 // Multiplayer/network helpers that live in unported Windows blocks of this
 // file. Declarations needed by MPL_WaitingGame's shared event loop;
@@ -2441,7 +2254,6 @@ int  GetMaxRealPing();
 bool SendToAllPlayers( DWORD Size, LPVOID lpData );
 int  GetMapSUMM( char* Name );
 void CreateDiffStr( char* str );
-int  ProcessInternetConnection( bool Active );
 int  EncodeOptionsInNumber( int* selected_opt_values );
 bool GetPreview( char* Name, byte* Data );
 void DeepDeletePeer( DWORD ID );
@@ -2460,11 +2272,6 @@ extern bool RecordMode;
 
 bool MPL_WaitingGame( bool Host, bool SINGLE )
 {
-
-	if ( SINGLE )
-	{
-		use_gsc_network_protocol = false;
-	}
 
 	ServerDPID = 0;
 	int r0 = GetSDLTickCount();
@@ -2968,14 +2775,6 @@ ffe2:
 		CancelBtn->Hint = GetTextByID( "MOCANCEL" );
 	}
 
-	if ( use_gsc_network_protocol )
-	{
-		GP_Button* ENC = MENU.addGP_Button( nullptr, 862, 468, INCHAT.GPID, 9, 8 );
-		ENC->UserParam = 99;
-		ENC->OnUserClick = &MMItemChoose;
-		ENC->Hint = GetTextByID( "BACKINCHAT" );
-	}
-
 	ItemChoose = -1;
 
 	memset( PINFO, 0, sizeof PINFO );
@@ -3223,18 +3022,12 @@ ffe2:
 		bool settings_were_changed = false;
 
 #ifdef _WIN32
-		// GameSpy/GSC chat is Windows-only for now
-		if ( use_gsc_network_protocol )
+		//Call every iteration, UdpHolePuncher keeps track of intervals by itself
+		udp_hole_puncher.KeepAlive();
+
+		if ( CheckPersonality( CHATMESSAGE ) )
 		{
-			ChatProcess();
-
-			//Call every iteration, UdpHolePuncher keeps track of intervals by itself
-			udp_hole_puncher.KeepAlive();
-
-			if ( CheckPersonality( CHATMESSAGE ) )
-			{
-				CHATBOX->CursPos = strlen( CHATMESSAGE );
-			}
+			CHATBOX->CursPos = strlen( CHATMESSAGE );
 		}
 #endif
 
@@ -3347,14 +3140,7 @@ ffe2:
 			{
 				if ( CHATBOX->Active&&CHATMESSAGE[0] )
 				{
-					if ( use_gsc_network_protocol && strstr( CHATMESSAGE, "-->" ) )
-					{
-						CheckForPersonalChat( CHATMESSAGE );
-					}
-					else
-					{
-						SendChat( CHATMESSAGE, 0 );
-					}
+					SendChat( CHATMESSAGE, 0 );
 					AddChatString(
 						GetPlNameByID( MyDPID ),
 						CHATMESSAGE, 375,
@@ -4831,7 +4617,6 @@ ffe2:
 
 		if ( ItemChoose == 99 )
 		{
-			ProcessInternetConnection( 0 );
 			NCS0 = 0;
 
 			ItemChoose = -1;
@@ -5704,7 +5489,6 @@ bool MPL_WaitingBattleGame( bool Host, int BattleID )
 		}
 		if ( ItemChoose == 99 )
 		{
-			ProcessInternetConnection( 0 );
 			ItemChoose = -1;
 			if ( PlayerMenuMode != 1 )
 			{
@@ -5882,16 +5666,8 @@ bool processMultiplayer();
 
 int ProcessWars();         // battles screens at the end of this file (not ported yet)
 
-// IChat library exports this
-DLLIMPORT void GoHomeAnyway();
-#ifndef _WIN32
-// without the IChat lobby DLL there is no lobby to go back to
-void GoHomeAnyway() {}
-#endif // !_WIN32
-
 int MM_ProcessMultiPlayer()
 {
-	GoHomeAnyway();
 
 	LocalGP BTNS( "Interface\\Multi_Player" );
 	LocalGP HFONT( "rom10" );
@@ -8024,7 +7800,7 @@ int ProcessGMainMenu()
 	GP_Button* SaveBtn = GMM.addGP_Button( nullptr, 43, 70 + 31 * 1, BTNS.GPID, 7, 6 );
 	SaveBtn->UserParam = mcmSave;
 	SaveBtn->OnUserClick = &MMItemChoose;
-	if ( !( IsGameActive() || use_gsc_network_protocol ) )
+	if ( !IsGameActive() )
 	{
 		GP_Button* LoadBtn = GMM.addGP_Button( nullptr, 43, 70 + 31 * 2, BTNS.GPID, 5, 4 );
 		LoadBtn->UserParam = mcmLoad;
@@ -8701,7 +8477,6 @@ bool IngameYesNoDialog( char* dialog_text )
 bool Lobby = 0;
 void REPLAY();
 void LOOSEANDEXITFAST();
-void EndGSC_Reporting();
 
 extern int screen_width;
 extern int screen_height;
@@ -8850,11 +8625,6 @@ StartPlay://IMPORTANT: Main game loop
 		RGAME.Save();
 		RecordMode = 0;
 	}
-
-#ifdef _WIN32
-	EndGSC_Reporting();
-#endif
-	use_gsc_network_protocol = false;
 
 #ifdef _WIN32
 	if ( RetryVideo && !( RUNMAPEDITOR || RUNUSERMISSION ) )

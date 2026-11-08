@@ -1,4 +1,4 @@
-// TODO: this include forces IChat and IntExplorer to add SDL includes
+// TODO: this include forces IntExplorer to add SDL includes
 // Need to find a way to avoid this
 
 #ifdef _WIN32

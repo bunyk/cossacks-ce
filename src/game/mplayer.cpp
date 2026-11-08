@@ -3204,7 +3204,6 @@ void CmdLoadNetworkGame( byte NI, int ID, char* Name );
 int LastSynTime = 0;
 extern char LASTSAVEFILE[64];
 void DontMakeRaiting();
-void ExplorerOpenRef( int Index, char* ref );
 int PREVSYNC = 0;
 void SyncroDoctor()
 {
@@ -3228,11 +3227,6 @@ void SyncroDoctor()
 		// CmdLoadNetworkGame(MyNation,0,"SYNCRO.sav");
 		//};
 		if (!PREVSYNC)PREVSYNC = GetSDLTickCount() - 30000;
-		if (use_gsc_network_protocol && ( GetSDLTickCount() - PREVSYNC > 20000 ))
-		{
-			ExplorerOpenRef( 0, "GW|unsync" );
-			PREVSYNC = GetSDLTickCount();
-		};
 		LastSynTime = GetSDLTickCount();
 	};
 };
