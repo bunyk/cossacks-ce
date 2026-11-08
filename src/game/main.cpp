@@ -705,19 +705,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 
 	LockGrid = false;
 
-#ifdef _WIN32
-	FILE* Fx = fopen("cew.dll", "r");
-	if (!Fx)
-	{
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error...", "CEW.DLL not found. Unable to run Cossacks.", nullptr);
-		return SDL_APP_FAILURE;
-	}
-	else
-	{
-		fclose(Fx);
-	}
-#endif // _WIN32 (cew.dll protection check)
-
 	//Init buffers for national units?
 	SetupNatList();
 

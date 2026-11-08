@@ -117,16 +117,6 @@ LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool onlyInArchive )
 
 	if (!onlyInArchive)
 	{
-#ifdef _WIN32
-		HANDLE			hFindFile;
-		WIN32_FIND_DATA	FindData;
-		hFindFile = FindFirstFile( lpcsFileName, &FindData );
-		if (hFindFile != INVALID_HANDLE_VALUE)
-		{
-			inArchive = false;
-		}
-		FindClose( hFindFile );
-#else
 		// LOOSE FILES TAKE PRIORITY over archive entries, matching the
 		// Windows FindFirstFile check. Without this the game read the mod
 		// archive's stale MODE.DAT (WarSound=0) while the settings write
@@ -137,7 +127,6 @@ LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool onlyInArchive )
 		{
 			inArchive = false;
 		}
-#endif
 	}
 
 	if (inArchive)
@@ -207,18 +196,11 @@ VOID CGSCset::gCloseFile( LPGSCfile gFile )
 	{
 		gFile->m_Arch->CloseFileHandle( gFile );
 	}
-#ifdef _WIN32
-	else
-	{
-		CloseHandle( HANDLE( gFile->m_FileHandle ) );
-	}
-#else
 	else
 	{
 		fclose( gFile->m_fp );
 		delete gFile;
 	}
-#endif
 }
 
 VOID CGSCset::gReadFile( LPGSCfile gFile, LPBYTE lpbBuffer, DWORD dwSize )
@@ -231,11 +213,7 @@ VOID CGSCset::gReadFile( LPGSCfile gFile, LPBYTE lpbBuffer, DWORD dwSize )
 	}
 	else
 	{
-#ifdef _WIN32
-		ReadFile( HANDLE( gFile->m_FileHandle ), lpbBuffer, dwSize, &dwBytesRead, NULL );
-#else
 		fread( lpbBuffer, 1, dwSize, gFile->m_fp );
-#endif
 	};
 }
 
@@ -245,17 +223,10 @@ VOID CGSCset::gSeekFile( LPGSCfile gFile, DWORD dwPosition )
 	{
 		gFile->m_Position = dwPosition;
 	}
-#ifdef _WIN32
-	else
-	{
-		SetFilePointer( HANDLE( gFile->m_FileHandle ), dwPosition, NULL, FILE_BEGIN );
-	}
-#else
 	else
 	{
 		fseek( gFile->m_fp, dwPosition, SEEK_SET );
 	}
-#endif
 }
 
 DWORD CGSCset::gFilePos( LPGSCfile gFile )
@@ -264,17 +235,10 @@ DWORD CGSCset::gFilePos( LPGSCfile gFile )
 	{
 		return gFile->m_Position;
 	}
-#ifdef _WIN32
-	else
-	{
-		return SetFilePointer( HANDLE( gFile->m_FileHandle ), 0, NULL, FILE_BEGIN );
-	};
-#else
 	else
 	{
 		return (DWORD)ftell( gFile->m_fp );
 	}
-#endif
 	return 0;
 }
 
@@ -319,38 +283,7 @@ LPGSCFindInfo CGSCset::gFindFirst( LPCSTR lpcsMask )
 	strcpy( sUpMask, lpcsMask );
 	_strupr( sUpMask );
 
-#ifdef _WIN32
-	WIN32_FIND_DATA	FindData;
-	HANDLE	hFindFile;
-
-	hFindFile = FindFirstFile( sUpMask, &FindData );
-
-	if (hFindFile != INVALID_HANDLE_VALUE)
-	{
-		lpFindInfo = new TGSCFindInfo;
-		lpFindInfo->m_Pos = NULL;
-		lpFindInfo->m_FileList = NULL;
-
-		lpFileList = new TGSCFileList;
-		lpFindInfo->m_FileList = lpFileList;
-		lpFindInfo->m_Pos = lpFileList;
-		lpFileList->m_NextEntry = NULL;
-		strcpy( lpFileList->m_FileName, FindData.cFileName );
-		_strupr( FindData.cFileName );
-
-		while (FindNextFile( hFindFile, &FindData ))
-		{
-			lpFileList->m_NextEntry = new TGSCFileList;
-			lpFileList = lpFileList->m_NextEntry;
-			lpFileList->m_NextEntry = NULL;
-			strcpy( lpFileList->m_FileName, FindData.cFileName );
-			_strupr( FindData.cFileName );
-		};
-	};
-
-	FindClose( hFindFile );
-#else
-	// POSIX disk enumeration, mirroring the FindFirstFile block above:
+	// POSIX disk enumeration
 	// scan the mask's own directory and keep the entries whose name matches
 	// the up-cased mask (wildcards '*' and '?', case-insensitive). Without
 	// this, files that only exist on disk (e.g. generated *.m3d maps) are
@@ -387,7 +320,6 @@ LPGSCFindInfo CGSCset::gFindFirst( LPCSTR lpcsMask )
 			closedir( dirp );
 		}
 	}
-#endif // _WIN32 (disk enumeration; archives below are portable)
 
 	LPGSCArchList	pArchList = m_ArchList;
 	LPGSCFindData	pFindData;
@@ -641,14 +573,8 @@ BOOL CGSCset::gWriteFile( LPGSCfile gFile, LPBYTE lpbBuffer, DWORD dwSize )
 	}
 	else
 	{
-#ifdef _WIN32
-		DWORD dwBytesWritten;
-		WriteFile( HANDLE( gFile->m_FileHandle ), lpbBuffer, dwSize, &dwBytesWritten, NULL );
-		return TRUE;
-#else
 		fwrite( lpbBuffer, 1, dwSize, gFile->m_fp );
 		return TRUE;
-#endif
 	};
 }
 

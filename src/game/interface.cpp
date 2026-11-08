@@ -686,10 +686,6 @@ void CreateMapsList( ListBox* LB )
 	};
 };
 #ifdef _WIN32
-void InstallNewMap( ListBox* LB, WIN32_FIND_DATA* FD )
-{
-	LB->AddItem( FD->cFileName, 0 );
-};
 void CreateNewMapsList( ListBox* LB )
 {
 	TGSCFindInfo* FD = GSFILES.gFindFirst( "*.m3d" );

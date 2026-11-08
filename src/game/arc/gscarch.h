@@ -69,12 +69,7 @@ public:
 
 private:
 	LPBYTE m_pViewOfFile;
-#ifdef _WIN32
-	HANDLE m_hMapping;
-	HANDLE m_hMapFile;
-#else
 	boost::iostreams::mapped_file_source m_MappedFile;
-#endif // _WIN32
 	CHAR m_ArchName[128];
 	
 	
