@@ -26,6 +26,19 @@ struct GAMEOBJ;
 
 #define LOAD_FUNCTION(x) x=(tp##x*)LoadFunction(#x)
 
+// Extra engine exports used by the shared European land/Mediterranean
+// pipeline (common/european_land.h). Call once from the module's
+// AI_OnLoad alongside the regular LOAD_FUNCTION list.
+#define LOAD_FUNCTION_EUROPEAN() \
+	LOAD_FUNCTION(GetAINation); \
+	LOAD_FUNCTION(GetUnitCost); \
+	LOAD_FUNCTION(GetUpgradeCost); \
+	LOAD_FUNCTION(GetExtraction); \
+	LOAD_FUNCTION(GetTorgResult); \
+	LOAD_FUNCTION(GetMaxPeaceTime); \
+	LOAD_FUNCTION(GetPeaceTimeLeft); \
+	LOAD_FUNCTION(SafeRegisterUpgrade)
+
 // Resource ids for GetMoney/AI_Torg/SetUpgradeLock (engine order).
 #define WOOD  0
 #define GOLD  1

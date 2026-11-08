@@ -90,7 +90,7 @@ find gamedata/Missions -name '*.rar' -execdir unrar x -o+ {} \;
 ```
 
 ### Intro videos
-Game used to play intro videos on startup. This was implemented by launcher Cossacks.exe, which played video and then run dmln.exe, which was actual game engine. This port is just engine, so use your favorite video player to watch intro videos.
+Game used to play intro videos on startup. This was implemented by launcher Cossacks.exe, which played videos and then ran dmln.exe — a small stub that in turn launched dmcr.exe, the actual game engine (the "DMCR" engine). This port is just the engine, so use your favorite video player to watch intro videos.
 
 ## Contributing
 

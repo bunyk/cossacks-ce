@@ -138,14 +138,8 @@ void SFLB_CreateGamesList( ListBox* LB );
 
 char* GetTextByID( char* ID );
 
-#ifdef _WIN32
-void CreateRandomMap( char* Name );
-void RandomMapDialog( char* Result );
-void RandomMapDialog1( char* Result, int N, char* Nats );
 void PrepareGameMedia( byte myid, bool );
-bool CHKV( char* Name );
-void NewMap( int szX, int szY );
-#endif // _WIN32
+void RandomMapDialog( char* Result );
 bool WaitingHostGame( int ); // interface.cpp lobby wrappers
 bool WaitingJoinGame( int );
 bool CreateMultiplaterInterface(); // mplayer.cpp
@@ -1955,44 +1949,6 @@ extern char** NatNames;
 
 void GETCOUNTRY( char* code, char* res );
 
-typedef byte GR_ARR[8][32];
-int DrawGraph( Canvas* CAN, int y0, int Npt, GR_ARR Data, byte* Col, int N, word* Max, char* Text )
-{
-	byte COL = 0x7C;
-	byte COL1 = 0x88;
-	int L1 = 16;
-	int L2 = 102;
-	int L3 = L2 - 2;
-	int Lx = 391;
-	CAN->AddRect( 0, y0, Lx + 2, L1, COL );
-	CAN->AddText( 10, y0 + 2, Text, &SmallWhiteFont );
-	y0 += L1;
-
-	CAN->AddRect( 0, y0, Lx + 2, L2, COL );
-	CAN->AddBar( 1, y0 + 1, Lx, L2 - 2, COL1 );
-	int MaxV = 1;
-	for ( int i = 0; i < N; i++ )if ( Max[i] > MaxV )MaxV = Max[i];
-	int divisor = 100 * MaxV;
-	for ( int i = 0; i < N; i++ )
-	{
-		byte C = 0xD0 + Col[i] * 4;
-		byte* data = &Data[i][0];
-		int Maxi = Max[i];
-		for ( int j = 1; j < Npt; j++ )
-		{
-			int x0 = 1 + ( ( j - 1 )*Lx ) / Npt;
-			int x1 = 1 + ( j*Lx ) / Npt;
-			CAN->AddLine( 1 + ( ( j - 1 )*Lx ) / Npt,
-				y0 + 1 + L3 - ( int( data[j - 1] )*Maxi*( L3 - 2 ) ) / divisor,
-				1 + ( j*Lx ) / Npt,
-				y0 + 1 + L3 - ( int( data[j] )*Maxi*( L3 - 2 ) ) / divisor, C );
-		};
-	};
-	char cc[32];
-	sprintf( cc, "%d", MaxV );
-	CAN->AddText( 10, y0 + 2, cc, &SmallWhiteFont );
-	return L2 + L1;
-};
 int  RESPOND = 0;
 //1-ok
 //2-password
@@ -5548,7 +5504,6 @@ extern int RunMethod;
 void CreateNationalMaskForRandomMap( char* Name );
 void CreateMaskForSaveFile( char* Name );
 void CreateNationalMaskForMap( char* Name );
-void PrepareGameMedia( byte myid, bool SaveNR );
 void CenterScreen();
 void SetupEBufs();
 void InitGame();

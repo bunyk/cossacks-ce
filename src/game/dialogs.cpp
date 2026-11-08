@@ -13,7 +13,6 @@
 #include "lines.h"
 
 // cdirsnd.h (MaxSnd) + gsound.h: needed by GetSound/SimpleDialog::AssignSound,
-// now cross-platform (were _WIN32-only includes).
 #include "cdirsnd.h"
 #include "gsound.h"
 
@@ -38,9 +37,7 @@ extern char* SoundID[MaxSnd];
 extern word NSounds;
 extern byte LastAsciiKey;
 void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr );
-#ifdef _WIN32
 void ShowChar( int x, int y, char c, lpRLCFont lpf );
-#endif // _WIN32
 void PlayEffect( int n, int pan, int vol );
 void ClearKeyStack();
 extern int CurPalette;
@@ -67,9 +64,6 @@ DLLEXPORT void SetCurPtr( int v )
 
 DLLEXPORT int GetSound( char* Name )
 {
-	// Cross-platform: SearchStr + ErrM are portable. Was entirely
-	// _WIN32-guarded, which made it fall off the end of a non-void
-	// function on Linux and return garbage sound IDs.
 	if (!NSounds)return -1;
 	int ID = SearchStr( SoundID, Name, NSounds );
 	if (ID == -1)
@@ -179,208 +173,8 @@ Picture* DialogsSystem::addPicture(
 	return nullptr;
 };
 
-#ifdef _WIN32
-//-----------------class Canvas----------//
-bool CanvasDestroy( SimpleDialog* SD )
-{
-	Canvas* CAN = (Canvas*) SD;
-	if (CAN->DrawData)
-	{
-		free( CAN->DrawData );
-	};
-	return true;
-};
-#define CV_INT(x) (*(int*)(CAN->DrawData+pos+x))
-#define CV_BYTE(x) CAN->DrawData[pos+x]
-#endif //_WIN32
 DLLEXPORT void CBar( int x, int y, int Lx, int Ly, unsigned char c );
 void xLine( int x, int y, int x1, int y1, byte c );
-#ifdef _WIN32
-bool CanvasDraw( SimpleDialog* SD )
-{
-	if (!SD->Visible)return false;
-	TempWindow TW;
-	PushWindow( &TW );
-	Canvas* CAN = (Canvas*) SD;
-	if (!( CAN->L ))return true;
-	IntersectWindows( SD->x, SD->y, SD->x1, SD->y1 );
-	int ymin = SD->y1 - 500;
-	int ymax = SD->y1 + 500;
-	int pos = 0;
-	int x0 = CAN->x;
-	int y0 = CAN->y;
-	if (CAN->VS)
-	{
-		if (CAN->BottomY > CAN->y1 - CAN->y)
-		{
-			CAN->VS->Visible = 1;
-			CAN->VS->Enabled = 1;
-			CAN->VS->SMaxPos = CAN->BottomY - CAN->y1 + CAN->y + 1;
-			if (CAN->VS->SPos > CAN->VS->SMaxPos)CAN->VS->SPos = CAN->VS->SMaxPos;
-			y0 -= CAN->VS->SPos;
-		}
-		else
-		{
-			CAN->VS->Visible = 0;
-			CAN->VS->Enabled = 0;
-		};
-	};
-	byte* data = CAN->DrawData;
-	int YY;
-	do
-	{
-		switch (data[pos])
-		{
-		case 0://bar
-			YY = y0 + CV_INT( 5 );
-			if (YY > ymin)CBar( x0 + CV_INT( 1 ), YY, CV_INT( 9 ), CV_INT( 13 ), CV_BYTE( 17 ) );
-			if (YY > ymax)goto XXZ;
-			pos += 18;
-			break;
-		case 1://Line
-			YY = y0 + CV_INT( 5 );
-			if (YY > ymin)xLine( x0 + CV_INT( 1 ), YY, x0 + CV_INT( 9 ), y0 + CV_INT( 13 ), CV_BYTE( 17 ) );
-			if (YY > ymax)goto XXZ;
-			pos += 18;
-			break;
-		case 2://Rect
-			YY = y0 + CV_INT( 5 );
-			if (YY > ymin)Xbar( x0 + CV_INT( 1 ), YY, CV_INT( 9 ), CV_INT( 13 ), CV_BYTE( 17 ) );
-			if (YY > ymax)goto XXZ;
-			pos += 18;
-			break;
-		case 3://sprite
-			YY = y0 + CV_INT( 5 );
-			if (YY > ymin)GPS.ShowGP( x0 + CV_INT( 1 ), YY, CV_INT( 9 ), CV_INT( 13 ), 0 );
-			if (YY > ymax)goto XXZ;
-			pos += 17;
-			break;
-		case 4://text
-			YY = y0 + CV_INT( 5 );
-			if (YY > ymin)ShowString( x0 + CV_INT( 1 ), YY, (char*) ( CAN->DrawData + pos + 13 ), *( (RLCFont**) ( CAN->DrawData + pos + 9 ) ) );
-			if (YY > ymax)goto XXZ;
-			pos += strlen( (char*) ( CAN->DrawData + pos + 13 ) ) + 14;
-			break;
-		case 5://centered text
-		{
-			YY = y0 + CV_INT( 5 );
-			char* str = (char*) ( CAN->DrawData + pos + 13 );
-			if (YY > ymin)
-			{
-				RLCFont* RF = *( (RLCFont**) ( CAN->DrawData + pos + 9 ) );
-				int L = GetRLCStrWidth( str, RF ) >> 1;
-				ShowString( x0 + CV_INT( 1 ) - L, y0 + CV_INT( 5 ), str, RF );
-				if (y0 + CV_INT( 5 ) > ymax)goto XXZ;
-			};
-			pos += strlen( str ) + 14;
-		};
-		break;
-		default:
-			return false;
-		};
-	} while (pos < CAN->L);
-XXZ:;
-	PopWindow( &TW );
-	return true;
-};
-void Canvas::CheckSize( int sz )
-{
-	if (sz > MaxL - 100)
-	{
-		MaxL += 1024;
-		DrawData = (byte*) realloc( DrawData, MaxL );
-	};
-};
-#define CN_INT(x) (*(int*)(DrawData+L))=x;L+=4;
-#define CN_SHORT(x) (*(int*)(DrawData+L))=x;L+=2;
-#define CN_BYTE(x) DrawData[L]=x;L++;
-void Canvas::AddBar( int px, int py, int Lx, int Ly, byte c )
-{
-	CheckSize( L + 100 );
-	CN_BYTE( 0 );
-	CN_INT( px );
-	CN_INT( py );
-	CN_INT( Lx );
-	CN_INT( Ly );
-	CN_BYTE( c );
-};
-void Canvas::AddLine( int px, int py, int px1, int py1, byte c )
-{
-	CheckSize( L + 100 );
-	CN_BYTE( 1 );
-	CN_INT( px );
-	CN_INT( py );
-	CN_INT( px1 );
-	CN_INT( py1 );
-	CN_BYTE( c );
-};
-void Canvas::AddRect( int px, int py, int Lx, int Ly, byte c )
-{
-	CheckSize( L + 100 );
-	CN_BYTE( 2 );
-	CN_INT( px );
-	CN_INT( py );
-	CN_INT( Lx );
-	CN_INT( Ly );
-	CN_BYTE( c );
-};
-void Canvas::AddSprite( int px, int py, int GPIDX, int Sprite )
-{
-	CheckSize( L + 100 );
-	CN_BYTE( 3 );
-	CN_INT( px );
-	CN_INT( py );
-	CN_INT( GPIDX );
-	CN_INT( Sprite );
-};
-void Canvas::AddText( int px, int py, char* Text, RLCFont* Font )
-{
-	CheckSize( L + 100 );
-	CN_BYTE( 4 );
-	CN_INT( px );
-	CN_INT( py );
-	int V = int( Font );
-	CN_INT( V );
-	strcpy( (char*) ( DrawData + L ), Text );
-	L += 1 + strlen( Text );
-};
-void Canvas::AddCText( int px, int py, char* Text, RLCFont* Font )
-{
-	CheckSize( 13 + 1 + strlen( Text ) );
-	CN_BYTE( 5 );
-	CN_INT( px );
-	CN_INT( py );
-	int V = int( Font );
-	CN_INT( V );
-	strcpy( (char*) ( DrawData + L ), Text );
-	L += 1 + strlen( Text );
-};
-Canvas* DialogsSystem::AddCanvas( int x, int y, int Lx, int Ly )
-{
-	int i;
-	for (i = 0; i < MAXDLG&&DSS[i] != nullptr; i++);
-	if (i < MAXDLG)
-	{
-		Canvas* CAN = new Canvas;
-		DSS[i] = CAN;
-		CAN->x = x;
-		CAN->y = y;
-		CAN->x1 = x + Lx - 1;
-		CAN->y1 = y + Ly - 1;
-		CAN->Active = 0;
-		CAN->Parent = nullptr;
-		CAN->Enabled = 1;
-		CAN->DrawData = nullptr;
-		CAN->L = 0;
-		CAN->MaxL = 0;
-		CAN->Destroy = &CanvasDestroy;
-		CAN->OnDraw = &CanvasDraw;
-		CAN->VS = nullptr;
-		return CAN;
-	};
-	return 0;
-};
-#endif // _WIN32
 //-----------------class GPPicture
 bool GPPicture_OnMouseOver( SimpleDialog* SD )
 {
@@ -433,78 +227,6 @@ GPPicture* DialogsSystem::addGPPicture(
 	}
 	return nullptr;
 }
-
-#ifdef _WIN32
-//-----------------class RLCPicture
-bool RLCPicture_OnDraw( SimpleDialog* SD )
-{
-	if (!SD)
-		return false;
-
-	if (!SD->Visible)
-		return false;
-
-	RLCPicture* pic = (RLCPicture*) SD;
-	if (!pic->Enabled&&pic->DisabledPicture)
-	{
-		ShowRLCItem( pic->x, pic->y, pic->DisabledPicture, pic->dpic, 0 );
-		return true;
-	}
-
-	if (pic->MouseOver&&pic->ActivePicture)
-	{
-		ShowRLCItem( pic->x, pic->y, pic->ActivePicture, pic->apic, 0 );
-		return true;
-	}
-
-	if (pic->PassivePicture)
-	{
-		ShowRLCItem( pic->x, pic->y, pic->PassivePicture, pic->dpic, 0 );
-		return true;
-	}
-	return false;
-}
-
-RLCPicture* DialogsSystem::addRLCPicture(
-	SimpleDialog* Parent, int x, int y,
-	RLCTable* pActive, byte apic,
-	RLCTable* pPassive, byte ppic,
-	RLCTable* pDisabled, byte dpic
-)
-{
-	int i;
-	for (i = 0; i < MAXDLG&&DSS[i] != nullptr; i++);
-
-	if (i < MAXDLG)
-	{
-		RLCPicture* pic = new RLCPicture;
-		DSS[i] = pic;
-		if (pActive != pPassive)
-		{
-			pic->MouseOverActive = true;
-		}
-		pic->NeedToDraw = true;
-		pic->Parent = Parent;
-		pic->x = BaseX + x;
-		pic->y = BaseY + y;
-		pic->x1 = pic->x + GetRLCWidth( *pPassive, ppic );
-		pic->y1 = pic->y + GetRLCHeight( *pPassive, ppic );
-		pic->ActivePicture = pActive;
-		pic->apic = apic;
-		pic->PassivePicture = pPassive;
-		pic->ppic = ppic;
-		pic->DisabledPicture = pDisabled;
-		pic->dpic = dpic;
-		pic->OnDraw = &Picture_OnDraw;
-		pic->OnMouseOver = &Picture_OnMouseOver;
-		pic->Enabled = true;
-		pic->Active = false;
-		return pic;
-	}
-	return nullptr;
-}
-//------------end of the class Picture
-#endif // _WIN32
 
 
 //------------class TextButton

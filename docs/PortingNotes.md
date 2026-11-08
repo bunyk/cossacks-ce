@@ -1,6 +1,6 @@
 # Cossacks CE Linux Port - Working Notes
 
-State and findings as of 2026-10-09. Companion to `docs/Ubuntu.md` (build instructions).
+State and findings as of 2026-10-09. 
 
 ## Current state
 

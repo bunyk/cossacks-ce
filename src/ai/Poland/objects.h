@@ -175,3 +175,9 @@ GAMEOBJ GrenaderSHIELD4;
 GAMEOBJ GrenaderSHIELD5;
 GAMEOBJ GrenaderSHIELD6;
 GAMEOBJ GrenaderSHIELD7;
+
+// Per-game pick upgrade chains (SafeRegisterUpgrade slots of the
+// original DLLs; see common/european_land.h RegisterPickChains).
+// Order: ATTACK,ATTACK3..ATTACK7,SHIELD,SHIELD3..SHIELD7.
+GAMEOBJ mounted_pick_chain[12];
+GAMEOBJ shooter_pick_chain[12];
