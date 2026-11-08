@@ -15,14 +15,10 @@ This project is an effort to migrate the classic game **Cossacks: Back to War** 
 - ASM sections replaced with C++ code
 
 ## TODO:
-- Fix Bavaria freezing (when playing as Normal friendly AI with Prussia against France on Land 2x map). Probably worth checking if it happened before 4f7826839ed55ef8ed5c28da14bb4feb7fb0d497.
 - Missions and campaigns (loading works, 2/106 mission modules ported - see docs/missions.md)
 - Networking
-- Remove old entrypoint ddex1.cpp (replaced with main.cpp)
-- Ticks tick to fast in scenarios (fixed in replay, but made game way to slow). Could it be related to the speed slider?
-- Why some units just seem to freeze and do nothing? It's ok for army to wait for attack, but sometimes also workers freeze.
+- Ticks tick to fast in scenarios (fixed in replay, but made game way to slow).
 - Full screen loading is slower than window. Maybe go for maximized window by default?
-- Remove or replace binary dependencies. Known so far: `Pinger.lib`, `gw_server.dll`
 - Python for AI and missions? 
 
 ## Building
