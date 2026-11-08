@@ -149,10 +149,6 @@ void SetScreenPtr( void )
 	//RealScreenPtr = lpSurface;
 }
 
-#ifdef _WIN32
-void ClearScreen();
-#endif
-
 // Linux clean-room renderer for RLC sprites:
 // 4-byte header (short SizeX, SizeY), then per scanline a segment count
 // byte, and per segment (skip, count) followed by count pixel bytes.
@@ -337,12 +333,8 @@ int GetRLCWidth( RLCTable lpr, byte n )
 	};
 	if (n < lpr->SCount)
 	{
-#ifdef _WIN32
-		return ( *( (lpRLCHeader) ( (void*) ( lpr->OfsTable[n] ) ) ) ).SizeX;
-#else
 		// OfsTable holds unrebased 32-bit offsets on 64-bit (see LoadRLC)
 		return ( (lpRLCHeader) ( (char*) lpr + 4 + lpr->OfsTable[n] ) )->SizeX;
-#endif
 	}
 	else return 0;
 }
@@ -411,12 +403,8 @@ DLLEXPORT int GetRLCHeight( RLCTable lpr, byte n )
 	}
 	if (n < lpr->SCount)
 	{
-#ifdef _WIN32
-		return ( *( (lpRLCHeader) ( (void*) ( lpr->OfsTable[n] ) ) ) ).SizeY;
-#else
 		// OfsTable holds unrebased 32-bit offsets on 64-bit (see LoadRLC)
 		return ( (lpRLCHeader) ( (char*) lpr + 4 + lpr->OfsTable[n] ) )->SizeY;
-#endif
 	}
 	else
 	{

@@ -89,6 +89,9 @@ sudo apt install unrar
 find gamedata/Missions -name '*.rar' -execdir unrar x -o+ {} \;
 ```
 
+### Intro videos
+Game used to play intro videos on startup. This was implemented by launcher Cossacks.exe, which played video and then run dmln.exe, which was actual game engine. This port is just engine, so use your favorite video player to watch intro videos.
+
 ## Contributing
 
 Contributions from the community are welcomed! If you are interested in helping with the migration or have any suggestions, please feel free to open an issue or submit a pull request.

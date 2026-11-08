@@ -2373,19 +2373,6 @@ ListBox* DialogsSystem::addGP_ListBox( SimpleDialog* Parent, int x, int y, int N
 	return nullptr;
 };
 //-------------end of List Box---------------//
-#ifdef _WIN32
-//-----------class : InputBox----------------//
-void CutStringToLength( char* str, RLCFont* Fnt, int Lx )
-{
-	int L;
-	do
-	{
-		L = GetRLCStrWidth( str, Fnt );
-		if (L > Lx)str[strlen( str ) - 1] = 0;
-	} while (L > Lx);
-
-};
-#endif // _WIN32
 
 bool InputBox_OnDraw( SimpleDialog* SD )
 {
@@ -2393,7 +2380,6 @@ bool InputBox_OnDraw( SimpleDialog* SD )
 	if (!SD->Visible)return false;
 	if (SD)
 	{
-		//CutStringToLength(IB->Str,IB->AFont,IB->x1-IB->x);
 		int LL = IB->x1 - IB->x;
 		char base[2048];
 		strcpy( base, IB->Str );
@@ -3462,9 +3448,6 @@ bool BPXView_OnDraw( SimpleDialog* SD )
 	//editor pickers). The two original asm rep movsd row loops are
 	//translated to portable memcpy loops below; the Choosed/SSTAT overlay
 	//is the original C++.
-	//NOTE: this body used to sit entirely inside #ifdef _WIN32, so on
-	//Linux the view drew NOTHING (the map example window was always
-	//empty) and the function fell off its end without a return value.
 	if (!SD->Visible)
 	{
 		return false;

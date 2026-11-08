@@ -16,11 +16,6 @@
 
 bool InitDone = 0;
 
-#ifdef _WIN32
-//typedef LPGSCfile ResFile;
-typedef HANDLE ResFile;
-#endif
-
 CGSCset GSFILES;
 
 //Opening the resource file

@@ -71,12 +71,8 @@ extern RLCTable SimpleMaskB;
 extern RLCTable SimpleMaskC;
 extern RLCTable SimpleMaskD;
 static void* MaskOfs(RLCTable tbl,int id){
-#ifdef _WIN32
-	return (void*)(tbl->OfsTable[id]);
-#else
 	// OfsTable holds unrebased 32-bit offsets on 64-bit (see LoadRLC)
 	return (char*)tbl + 4 + tbl->OfsTable[id];
-#endif
 };
 void CopyMaskedBitmap(byte* Bits,int x,int y,int MaskID){
 	CopyMaskedBitmap64(Bits,x,y,   MaskOfs(SimpleMaskA,MaskID));

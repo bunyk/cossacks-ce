@@ -92,23 +92,6 @@ DLLEXPORT byte GetPaletteColor( int r, int g, int b )
 void* offScreenPtr;
 extern void* ScreenPtr; // is defined fastdraw.cpp
 
-#ifdef _WIN32
-// Flipping Pages
-extern int SCRSZY;
-
-void ClearRGB()
-{
-	if (!bActive)
-	{
-		return;
-	}
-
-	memset( RealScreenPtr, 0, RSCRSizeX*SCRSZY );
-}
-
-extern bool InGame;
-#endif // _WIN32
-
 extern void yield();
 
 // Letterboxed destination rect for the resizable window (see also

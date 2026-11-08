@@ -7818,9 +7818,6 @@ char* its1( int i )
 };
 void CreateTimedHint( char* s, int time );
 
-#ifdef _WIN32
-extern HGLOBAL PTR_MISS;
-#endif
 int rppx = 0;
 
 void LongProcesses()

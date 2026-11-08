@@ -704,57 +704,6 @@ extern "C" __declspec(dllexport) void ProcessAI()
 	}
 }
 
-#ifdef _WIN32
-BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved)
-{
-	switch (dwReason)
-	{
-	case DLL_PROCESS_ATTACH:
-		{
-			hLib = GetModuleHandleA("DMCR.EXE");
-			if (hLib == nullptr)
-			{
-				MessageBoxA(NULL, "Can not detect DMCR.EXE", "ERROR!", 0);
-				return TRUE;
-			}
-			LOAD_FUNCTION(RegisterUnitType);
-			LOAD_FUNCTION(RegisterUpgrade);
-			LOAD_FUNCTION(AI_Torg);
-			LOAD_FUNCTION(TryUnit);
-			LOAD_FUNCTION(TryUpgrade);
-			LOAD_FUNCTION(SetMineBalanse);
-			LOAD_FUNCTION(SetPDistribution);
-			LOAD_FUNCTION(AssignAmountOfMineUpgrades);
-			LOAD_FUNCTION(AssignMineUpgrade);
-			LOAD_FUNCTION(AssignMine);
-			LOAD_FUNCTION(AssignPeasant);
-			LOAD_FUNCTION(AssignHouse);
-			LOAD_FUNCTION(SET_MINE_CAPTURE_RADIUS);
-			LOAD_FUNCTION(SET_MINE_UPGRADE1_RADIUS);
-			LOAD_FUNCTION(SET_MINE_UPGRADE2_RADIUS);
-			LOAD_FUNCTION(SET_DEFAULT_MAX_WORKERS);
-			LOAD_FUNCTION(SET_MIN_PEASANT_BRIGADE);
-			LOAD_FUNCTION(GetMoney);
-			LOAD_FUNCTION(GetUnits);
-			LOAD_FUNCTION(GetReadyUnits);
-			LOAD_FUNCTION(UpgIsDone);
-			LOAD_FUNCTION(UpgIsRun);
-			LOAD_FUNCTION(FieldExist);
-			LOAD_FUNCTION(GetDifficulty);
-			LOAD_FUNCTION(GetStartRes);
-			LOAD_FUNCTION(GetLandType);
-			LOAD_FUNCTION(AssignFormUnit);
-			LOAD_FUNCTION(GetAIRegister);
-			LOAD_FUNCTION(SetAIRegister);
-			OnInit();
-		}
-		break;
-	default:
-		break;
-	}
-	return TRUE;
-};
-#else
 // Linux: this constructor runs at dlopen() time, like DllMain(DLL_PROCESS_ATTACH).
 __attribute__((constructor)) void AI_OnLoad()
 {
@@ -789,4 +738,3 @@ __attribute__((constructor)) void AI_OnLoad()
 	LOAD_FUNCTION(SetAIRegister);
 	OnInit();
 }
-#endif

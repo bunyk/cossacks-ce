@@ -207,9 +207,7 @@ void CmdRememSelection( byte NI, byte Index )
 	byte SHIFT = ( GetSDLKeyState( SDL_SCANCODE_LSHIFT ) ) != 0;
 	bool shift = 0 != SHIFT;
 	SelSet[NI * 10 + ( Index & 127 )].ImSelectMembers( NI, shift );
-	#ifdef _WIN32
 	ImCorrectBrigadesSelection( NI );
-	#endif // _WIN32
 	ExBuf[EBPos] = 8;
 	ExBuf[EBPos + 1] = NI + ( SHIFT * 32 );
 	ExBuf[EBPos + 2] = Index;
@@ -920,10 +918,9 @@ extern word NPlayers;
 
 // IChat library exports this
 DLLIMPORT void SendVictoryState( int ID, byte State );
-#ifndef _WIN32
+
 // without the IChat lobby DLL victory states go nowhere
 void SendVictoryState( int ID, byte State ) { (void)ID; (void)State; }
-#endif // !_WIN32
 
 bool ProcessMessages();
 

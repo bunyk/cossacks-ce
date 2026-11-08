@@ -607,8 +607,6 @@ void CurrentGame::AssignKick( char* pNick )
 	}
 }
 
-void SetNormAttr();
-
 void CurrentGame::SaveGameToFile()
 {
 	if (!Active)
@@ -648,7 +646,6 @@ void CurrentGame::SaveGameToFile()
 
 	RBlockWrite( F1, &S, 4 );
 	RClose( F1 );
-	SetNormAttr();
 }
 
 extern uint64_t GetSDLTickCount();
@@ -754,7 +751,6 @@ NEXTFILE:
 		Active = false;
 	}
 	RClose( F );
-	SetNormAttr();
 }
 
 void CurrentGame::DeleteThisGameFromFile()
@@ -773,7 +769,6 @@ void CurrentGame::DeleteThisGameFromFile()
 	int v = 0;
 	RBlockWrite( F, &v, 1 );
 	RClose( F );
-	SetNormAttr();
 };
 
 struct OneIChunk
@@ -1477,28 +1472,6 @@ bool CheckGameTime()
 	{
 		return false;
 	}
-}
-
-void SetNormAttr()
-{
-	// Anti-tamper helper: resets cew.dll's access/modify times back to
-	// their creation value (done in Win32 with GetFileTime/SetFileTime).
-#ifdef _WIN32
-	HANDLE H = CreateFile( "cew.dll",
-		GENERIC_WRITE, FILE_SHARE_READ, NULL,
-		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
-	if (H == INVALID_HANDLE_VALUE)
-	{
-		return;
-	}
-
-	FILETIME F1, F2, F3;
-	GetFileTime( H, &F1, &F2, &F3 );
-	F3 = F1;
-	F2 = F2;
-	SetFileTime( H, &F1, &F2, &F3 );
-	CloseHandle( H );
-#endif // _WIN32
 }
 
 bool TestHash1( char* s );
