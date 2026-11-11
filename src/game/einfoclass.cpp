@@ -218,6 +218,9 @@ GlobalEnemyInfo GNFO;
 
 
 
+//Rebuilds DINF[40]: the list of enemy towers (Usage==TowerID) with their
+//position (RealX/Y >> 4), height, attack radii (AttackRadius1/2[0]) and
+//upgrade level. Used by CheckPositionForDanger and super-mortar targeting.
 void EnemyInfo::CreateListOfDangerObjects() {
 	CreateWallsList();
 	NDINF = 0;
@@ -598,6 +601,8 @@ void EnemyInfo::InitInflMap() {
 	CurXip = 0;
 	MaxTowR = 0;
 };
+//Removes tower OB from the tracked list and subtracts its damage (TowDanger)
+//and mask bit from every InflMap cell it covered (rings Rarr[0..TowsMaxR)).
 void EnemyInfo::ClearTow(OneObject* OB) {
 	//return;
 	word MID = OB->Index;
@@ -643,6 +648,8 @@ void EnemyInfo::ClearTow(OneObject* OB) {
 	};
 	CheckSafeInfo();
 };
+//Registers OB as a tracked tower (Usage==TowerID buildings) in the first free
+//TowsID slot; called for every player building that can shoot.
 void EnemyInfo::AddTow(OneObject* OB) {
 	//return;
 	if (OB->NMask&Mask)return;
@@ -667,6 +674,12 @@ void EnemyInfo::AddTow(OneObject* OB) {
 	};
 };
 int CheckPointForDamageAbility(OneObject* OBJ, int x, int y, int z);
+//Incrementally paints one tower's firing arc into InflMap (one tower per call,
+//round-robin via CurTow; up to 20 cells per call via CurR/CurXip). Cells the
+//tower can hit get mask bit (1<<(CurTow+8)) and +TowDanger in the low byte;
+//when the tower's damage changes (CurDang = 500/PersonalDelay) the whole arc
+//is re-painted with the delta. Every 512 calls, cells whose low byte equals
+//the whole DWORD (no tower masks left) are zeroed.
 void EnemyInfo::ProcessTow() {
 	rando();
 	//return;

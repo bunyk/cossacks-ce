@@ -39,6 +39,8 @@ extern int DangLx;
 extern int DangSH;
 byte* DANGMAP;
 word* DCHTIME;
+//Resets the danger-object cache. NOTE: sizeof DANGMAP/DCHTIME is the pointer
+//size (8 bytes), so only the first few entries are actually cleared here.
 void InitDANGER() {
 	NDOBJ = 0;
 	DOBJLastTime = 0;
@@ -47,6 +49,9 @@ void InitDANGER() {
 	memset(DANGMAP, 0, sizeof DANGMAP);
 	memset(DCHTIME, 0, sizeof DCHTIME);
 };
+//Per-unit-type danger tables, indexed by NewMonster::Usage (see mapdiscr.h for
+//the *ID constants). OBJDANG[usage] = damage danger contributed to a cell;
+//OBJDTYPE[usage] != 0 marks objects that also threaten water (sets bit 7).
 byte OBJDANG[48] = { 0,0,0,0,0,0,0,0, 0,1,1,0,0,0,6,0,
 				   0,0,0,0,0,0,0,0, 0,3,0,2,1,0,1,0,
 				   0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0 };
@@ -55,6 +60,8 @@ byte OBJDTYPE[48] = { 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,2,0,
 				   0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0 };
 extern int tmtmt;
 int CheckDamageAbility(OneObject* OB, int x, int y, int z, byte Nation, int Soft);
+//Rebuilds DOBJ/DOBJSN — the list of living player-0 (NNUM==0) objects whose
+//Usage has nonzero OBJDANG — every ~256+rand(64) ticks.
 void CheckDOBJS() {
 	if (tmtmt - DOBJLastTime > 256 + (rando() & 63)) {
 		NDOBJ = 0;
@@ -72,6 +79,12 @@ void CheckDOBJS() {
 		DOBJLastTime = tmtmt;
 	};
 };
+//Danger byte for map cell (x,y) (cell = 128x128 px), cached in DANGMAP and
+//recomputed when the cache is older than 255 ticks (DCHTIME): sums OBJDANG of
+//all dangerous objects that can hit the cell center (CheckDamageAbility) and
+//sets bit 7 (128) if a water-threatening object (OBJDTYPE==2) can hit it.
+//NOTE: currently unused by AI decisions — callers in megapolis.cpp are
+//commented out; AI uses InflMap (towers) via FastCheckPosDanger instead.
 byte GetDangValue(int x, int y) {
 	CheckDOBJS();
 	int ofs = x + (y << DangSH);

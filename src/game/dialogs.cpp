@@ -29,7 +29,6 @@ extern int UNI_HINTDLY2;
 extern bool realLpressed;
 extern bool KeyPressed;
 extern SDL_Keycode LastKey;
-extern bool MUSTDRAW;
 extern int RealLx;
 extern int RealLy;
 // Used by GetSound/SimpleDialog::AssignSound (now cross-platform)
@@ -4162,193 +4161,6 @@ void ComboBox::AddComplexLine( char* Text )
 	} while (!All);
 	free( Tmp );
 }
-//---------------end of ComboBox-------------//
-#ifdef _WIN32
-//-----------------WinComboBox---------------//
-bool WinComboBox_OnDraw( SimpleDialog* SD )
-{
-	WinComboBox* CB = (WinComboBox*) SD;
-	if (!CB->Visible)return false;
-	if (!CB->NLines)return false;
-	bool CanChoose = GetSDLTickCount() - CB->LastChooseTime > 500;
-	if (!CB->CurBox)
-	{
-		int MouseOvList = mouseX >= CB->ListX0&&mouseX <= CB->ListX1&&mouseY >= CB->ListY0&&mouseY <= CB->ListY1;
-		if (!CB->Enabled)MouseOvList = false;
-		int Cur = -1;
-		int Ly = CB->y1 - CB->y;
-
-		if (CB->Enabled)
-		{
-			if (CanChoose || MouseOvList)
-			{
-				for (int i = 0; i < CB->NBox; i++)
-				{
-					if (CB->Group[i]->MouseOver)Cur = i;
-				};
-			}
-			else
-			{
-				for (int i = 0; i < CB->NBox; i++)
-				{
-					if (CB->Group[i]->ActiveLine != -1)
-						Cur = i;
-				};
-			};
-		};
-		if (Cur == -1)
-		{
-			if (!MouseOvList)
-			{
-				if (CanChoose)for (int i = 0; i < CB->NBox; i++)CB->Group[i]->ActiveLine = -1;
-			}
-			else
-			{
-				for (int i = 0; i < CB->NBox; i++)if (CB->Group[i]->ActiveLine != -1)Cur = i;
-				for (int i = 0; i < CB->NBox; i++)CB->Group[i]->ActiveLine = -1;
-				if (Cur != -1)
-				{
-					int yy = ( mouseY - CB->y ) / Ly;
-					CB->Group[Cur]->ActiveLine = yy;
-					if (Lpressed&&yy < CB->Group[Cur]->NLines)
-					{
-						CB->Group[Cur]->CurLine = yy;
-						CB->Group[Cur]->ActiveLine = -1;
-					};
-				};
-			};
-		}
-		else
-		{
-			if (CanChoose)
-			{
-				for (int i = 0; i < CB->NBox; i++)CB->Group[i]->ActiveLine = -1;
-				CB->Group[Cur]->ActiveLine = CB->Group[Cur]->CurLine;
-				CB->LastChooseTime = GetSDLTickCount();
-			};
-		};
-		for (int i = 0; i < CB->NBox; i++)
-		{
-			WinComboBox* WCB = CB->Group[i];
-			if (WCB->MouseOver)
-			{
-				ShowString( WCB->x, WCB->y, WCB->Message, WCB->ActiveFont );
-				if (Cur == -1)
-				{
-					ShowString( WCB->ListX0, WCB->y, WCB->Lines[WCB->CurLine], WCB->ActiveFont );
-				};
-			}
-			else
-			{
-				if (WCB->ActiveLine != -1 && MouseOvList)ShowString( WCB->x, WCB->y, WCB->Message, WCB->ActiveFont );
-				else ShowString( WCB->x, WCB->y, WCB->Message, WCB->PassiveFont );
-				if (Cur == -1)
-				{
-					ShowString( WCB->ListX0, WCB->y, WCB->Lines[WCB->CurLine], WCB->ActiveFont );
-				};
-			};
-			if (Cur == i)
-			{
-				for (int j = 0; j < WCB->NLines; j++)
-				{
-					if (j == WCB->ActiveLine)
-					{
-						ShowString( WCB->ListX0, WCB->ListY0 + j*Ly, WCB->Lines[j], WCB->ActiveFont );
-					}
-					else
-					{
-						ShowString( WCB->ListX0, WCB->ListY0 + j*Ly, WCB->Lines[j], WCB->PassiveFont );
-					};
-				};
-			};
-		};
-	};
-	return false;
-}
-
-bool WinComboBox_OnDestroy( SimpleDialog* SD )
-{
-	WinComboBox* CB = (WinComboBox*) SD;
-	CB->Clear();
-	return true;
-}
-
-WinComboBox* DialogsSystem::addWinComboBox(
-	SimpleDialog* Parent, char* pMessage, int x, int y, int Lx, int Ly,
-	int ListX, int ListY, int ListLx, int ListLy,
-	RLCFont* ActiveFont, RLCFont* PassiveFont,
-	WinComboBox** Group, int NInGroup, int CurBox
-)
-{
-	int i;
-	for (i = 0; i < MAXDLG&&DSS[i] != nullptr; i++);
-
-	if (i < MAXDLG)
-	{
-		WinComboBox* CB = new WinComboBox;
-		CB->NeedToDraw = true;
-		CB->Parent = Parent;
-		CB->x = x + BaseX;
-		CB->y = y + BaseY;
-		CB->x1 = CB->x + Lx - 1;
-		CB->y1 = CB->y + Ly - 1;
-		CB->ListX0 = ListX;
-		CB->ListY0 = ListY;
-		CB->ListX1 = ListX + ListLx - 1;
-		CB->ListY1 = ListY + ListLy - 1;
-		CB->ActiveFont = ActiveFont;
-		CB->PassiveFont = PassiveFont;
-		CB->Group = Group;
-		CB->NBox = NInGroup;
-		CB->CurLine = 0;
-		CB->ActiveLine = -1;
-		CB->Lines = nullptr;
-		CB->NLines = 0;
-		CB->Message = pMessage;
-		CB->CurBox = CurBox;
-		CB->OnDraw = &WinComboBox_OnDraw;
-		CB->Destroy = &WinComboBox_OnDestroy;
-		CB->Active = false;
-		CB->Enabled = true;
-		CB->Visible = true;
-		CB->LastChooseTime = 0;
-		DSS[i] = CB;
-		return CB;
-	}
-	return nullptr;
-}
-
-void WinComboBox::AddLine( char* Text )
-{
-	if (Lines)
-	{
-		Lines = (char**) realloc( Lines, ( NLines + 1 ) * sizeof(char*) );
-		Lines[NLines] = new char[strlen( Text ) + 1];
-		strcpy( Lines[NLines], Text );
-		NLines++;
-	}
-	else
-	{
-		Lines = (char**) malloc( sizeof(char*) );
-		Lines[0] = new char[strlen( Text ) + 1];
-		strcpy( Lines[0], Text );
-		NLines++;
-	}
-}
-
-void WinComboBox::Clear()
-{
-	if (Lines)
-	{
-		for (int i = 0; i < NLines; i++)free( Lines[i] );
-		free( Lines );
-		Lines = nullptr;
-		NLines = 0;
-		CurLine = 0;
-	}
-}
-//--------------end of WinComboBox-----------//
-#endif // _WIN32
 
 //-----------------PageControl---------------//
 bool GP_PageControl_OnDraw( SimpleDialog* SD )
@@ -4787,9 +4599,6 @@ SQPicture::SQPicture( char* Name )
 //-----end of pictures
 //--------------Handling dialog system----------------//
 void MFix();
-#ifdef _WIN32
-void RedrawGameBackground();
-#endif // _WIN32
 void DrawSD( SimpleDialog* SD )
 {
 	int DY = 0;
@@ -4812,17 +4621,6 @@ void DialogsSystem::ProcessDialogs()
 	{
 		return;
 	}
-
-#ifdef _WIN32
-	if (MUSTDRAW)
-	{
-		MUSTDRAW = false;
-
-		RedrawGameBackground();
-
-		MarkToDraw();
-	}
-#endif // _WIN32
 
 	bool UseMouse = true;
 	// Dropdown routing: while a combo's list is dropped open (ActiveParent),
@@ -5034,7 +4832,6 @@ void DialogsSystem::ProcessDialogs()
 		Hint = DefaultHint;
 	}
 
-#ifdef _WIN32
 	if (Hint && HintFont)
 	{
 		if (HintX == -1)
@@ -5178,7 +4975,6 @@ void DialogsSystem::ProcessDialogs()
 			} while (c);
 		};
 	};
-#endif // _WIN32
 
 	PopWindow( &TW );
 
@@ -5241,13 +5037,6 @@ void DialogsSystem::CloseDialogs()
 			{
 				free( Hint );
 			}
-#ifdef _WIN32
-			// Where this is used?
-			if (SD->AllocPtr)
-			{
-				free( SD->AllocPtr );
-			}
-#endif // _WIN32
 			SD->AllocPtr = nullptr;
 			if (SD->Destroy)
 			{

@@ -4852,17 +4852,20 @@ extern "C" DLLEXPORT bool TryUnit( GAMEOBJ* UnitType, int Max, byte CostPercent,
 			AIER( "TryUnit : invalid <Probability>" );
 			return 0;
 		}
-		if ( CCIT->NBestProjects >= 127 )
-		{
-			return false;
-		}
 		int UID = UnitType->Index;
 
 		GeneralObject* GO = CNAT->Mon[UID];
+		bool dbgTow = GO->newMons->Usage == TowerID; // TEMP DEBUG (printf per AGENTS.md)
+		if ( CCIT->NBestProjects >= 127 )
+		{
+			if ( dbgTow )printf( "TOWDBG TryUnit nat=%d tow BLOCK queue-full\n", CurAINation );
+			return false;
+		}
 		if ( CannonState == 1 )
 		{
 			if ( GO->newMons->Artilery || GO->newMons->Usage == TowerID )
 			{
+				if ( dbgTow )printf( "TOWDBG TryUnit nat=%d tow BLOCK cannonstate=%d\n", CurAINation, CannonState );
 				return false;
 			}
 		}
@@ -4893,6 +4896,13 @@ extern "C" DLLEXPORT bool TryUnit( GAMEOBJ* UnitType, int Max, byte CostPercent,
 					}
 				}
 			}
+		}
+		if ( dbgTow ) // TEMP DEBUG (printf per AGENTS.md)
+		{
+			word prid = CCIT->PRPIndex[UID];
+			printf( "TOWDBG TryUnit nat=%d tow REJECT max=%d have=%d prp=0x%04x perc=%d cp=%d prob=%d presproj=%d\n",
+				CurAINation, Max, CCIT->UnitAmount[UID], prid,
+				prid != 0xFFFF ? CCIT->Prop[prid].Percent : -1, CostPercent, Probability, (int)CCIT->PresentProject );
 		}
 		return false;
 	}

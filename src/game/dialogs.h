@@ -366,27 +366,6 @@ public:
 	bool EnableSelection;
 	VScrollBar* VSC;
 };
-class DIALOGS_API WinComboBox;
-class DIALOGS_API WinComboBox :public SimpleDialog {
-public:
-	RLCFont* ActiveFont;
-	RLCFont* PassiveFont;
-	int ListX0;
-	int ListY0;
-	int ListX1;
-	int ListY1;
-	char** Lines;
-	int CurLine;
-	int ActiveLine;
-	int NLines;
-	char* Message;
-	WinComboBox** Group;
-	int LastChooseTime;
-	int NBox;
-	int CurBox;
-	void AddLine(char* Text);
-	void Clear();
-};
 
 class DIALOGS_API ComboBox :public SimpleDialog 
 {
@@ -597,10 +576,6 @@ public:
 		int UpPart, int Center, int DownPart,
 		RLCFont* ActiveFont, RLCFont* PassiveFont,
 		char* Contence);
-	WinComboBox* addWinComboBox(SimpleDialog* Parent, char* Message, int x, int y, int Lx, int Ly,
-		int ListX, int ListY, int ListLx, int ListLy,
-		RLCFont* ActiveFont, RLCFont* PassiveFont,
-		WinComboBox** Group, int NInGroup, int CurBox);
 	GP_PageControl* addPageControl(SimpleDialog* Parent, int x, int y, int GF_File, int FirstIndex);
 	VScrollBar* addGP_ScrollBar(SimpleDialog* Parent, int x, int y,
 		int MaxPos, int Pos, int GP_File,

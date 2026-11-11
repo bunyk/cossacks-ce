@@ -1091,7 +1091,7 @@ public:
 	bool SafeWall : 1;
 	bool StandGround : 1;
 	bool Invisible : 1;
-	bool Zombi : 1;
+	bool Zombi : 1; // 1 = unit is remote-controlled by an AI army (AI_Army::SetZombi), no self-initiative
 
 	bool Transport : 1;
 	bool Absent : 1;

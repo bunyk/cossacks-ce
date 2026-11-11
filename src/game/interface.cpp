@@ -542,18 +542,6 @@ void CreateMapsList( ListBox* LB )
 		while ( GSFILES.gFindNext( FD ) )InstallMap( LB, FD->m_FileName );
 	};
 };
-#ifdef _WIN32
-void CreateNewMapsList( ListBox* LB )
-{
-	TGSCFindInfo* FD = GSFILES.gFindFirst( "*.m3d" );
-	if ( FD )
-	{
-		InstallMap( LB, FD->m_FileName );
-		while ( GSFILES.gFindNext( FD ) )InstallMap( LB, FD->m_FileName );
-	};
-}
-
-#endif // _WIN32
 //----------------Graphics menu----------------//
 bool InitScreen();
 void GSSetup800();
@@ -7405,51 +7393,6 @@ void ProcessGLoadMap()
 		PeaceMode = 1;
 	};
 	PopScreen( p );
-	/*
-	SQPicture Pan("Pan15.bpx");
-	SQPicture scr_U("scr_v_u.bpx");
-	SQPicture scr_D("scr_v_d.bpx");
-	SQPicture scr_V("scr_v.bpx");
-	SQPicture scr_Line("scr_15.bpx");
-	RLCFont gf24w(GETS("@SMFONT1"));
-	RLCFont gf24y(GETS("@SMFONT0"));
-	RLCFont ListF1(GETS("@CULISTF1"));
-	RLCFont ListF0(GETS("@CULISTF0"));
-	int mmlx=Pan.GetLx();
-	int mmly=Pan.GetLy();
-
-	DialogsSystem DSY(smapx+(nsmaplx<<4)-(mmlx>>1),smapy+(mul3(nsmaply)<<2)-(mmly>>1));
-	Picture* PIC1=DSY.addPicture(nullptr,0,0,&Pan,&Pan,&Pan);
-	//TextButton* LoadBtn=DSY.addTextButton(PIC1,352>>1,30,"ЗАГРУЗИТЬ КАРТУ",&FActive,&FPassive,&FDisable,1);
-	ListBox* LB=DSY.addListBox(PIC1,GETV("LMLSTX"),GETV("LMLSTY"),GETV("LMLSTNY"),GETV("LMLSTLX"),GETV("LMLSTLY"),&ListF1,&ListF0,nullptr);
-	VScrollBar* VS=DSY.addVScrollBar(PIC1,GETV("LMSCRX"),GETV("LMSCRY"),1000,4,&scr_U,&scr_U,&scr_U,&scr_D,&scr_D,&scr_D,&scr_Line,&scr_Line,&scr_V);
-	LB->VS=VS;
-	TextButton* OkBtn=DSY.addTextButton(PIC1,GETV("LMOKX"),GETV("LMOKY"),GETS("@LMOKSTR"),&gf24w,&gf24y,&gf24y,1);
-	OkBtn->UserParam=mcmOk;
-	OkBtn->OnUserClick=&MMItemChoose;
-	TextButton* CancelBtn=DSY.addTextButton(PIC1,GETV("LMNOX"),GETV("LMNOY"),GETS("@LMNOSTR"),&gf24w,&gf24y,&gf24y,1);
-	CancelBtn->UserParam=mcmCancel;
-	CancelBtn->OnUserClick=&MMItemChoose;
-	CreateNewMapsList(LB);
-	ItemChoose=-1;
-	do{
-		DSY.MarkToDraw();
-		ProcessMessages();
-		StdKeys();
-		if(LB->CurItem==-1){
-			OkBtn->Enabled=false;
-			if(ItemChoose==mcmOk)ItemChoose=-1;
-		}else OkBtn->Enabled=true;
-		DSY.ProcessDialogs();
-		DSY.MarkToDraw();
-		DSY.RefreshView();
-	}while(ItemChoose==-1);
-	if(ItemChoose==mcmOk&&LB->CurItem!=-1){
-		Load3DMap((LB->GetItem(LB->CurItem))->Message);
-		strcpy(GameName,(LB->GetItem(LB->CurItem))->Message);
-	};
-	//FreeNames();
-	*/
 };
 //-----------------OPTIONS---------------//
 
@@ -8817,73 +8760,6 @@ void EditGame()
 
 	IgnoreSlow = false;
 }
-
-#ifdef _WIN32
-void ShowFailure( int CreateGame )
-{
-	ClearScreen();
-	LoadFog( 0 );
-	LoadPalette( "0\\agew_1.pal" );
-	KeyPressed = 0;
-	bool NEEDDRAW = 1;
-	do
-	{
-		if ( bActive )
-		{
-			if ( NEEDDRAW )
-			{
-				CBar( 0, 0, RealLx, RealLy, 0 );
-				char* ss[5];
-				int NS = 0;
-				//if(CreateGame){
-				char ccx[256];
-				if ( CreateGame == 1 )
-				{
-					ss[0] = GetTextByID( "LOBUNC" );
-					ss[1] = GetTextByID( "LOBPR" );
-					NS = 2;
-				}
-				else if ( CreateGame == 0 )
-				{
-					ss[0] = GetTextByID( "LOBUNJ1" );
-					sprintf( ccx, GetTextByID( "LOBUNJ5" ), IPADDR );
-					ss[1] = GetTextByID( "LOBUNJ2" );
-					ss[2] = ccx;
-					ss[3] = GetTextByID( "LOBPR" );
-					NS = 4;
-				}
-				else
-				{
-					ss[0] = GetTextByID( "LOBUNJ3" );
-					sprintf( ccx, GetTextByID( "LOBUNJ5" ), IPADDR );
-					ss[1] = GetTextByID( "LOBUNJ4" );
-					ss[2] = ccx;
-					ss[3] = GetTextByID( "LOBPR" );
-					NS = 4;
-				};
-				int L = 0;
-				for ( int i = 0; i < NS; i++ )
-				{
-					int LL = GetRLCStrWidth( ss[i], &BigWhiteFont );
-					if ( LL > L )L = LL;
-				};
-				DrawStdBar( 512 - 32 - L / 2, 380 - NS * 15 - 15, 512 + 32 + L / 2, 380 + NS * 15 + 15 );
-				for ( int i = 0; i < NS; i++ )
-					ShowString( 512 - GetRLCStrWidth( ss[i], &BigWhiteFont ) / 2, 380 - NS * 15 + i * 30, ss[i], &BigWhiteFont );
-				FlipPages();
-			};
-			NEEDDRAW = 0;
-		}
-		else NEEDDRAW = true;
-		ProcessMessages();
-	} while ( !KeyPressed );
-	KeyPressed = 0;
-	ClearScreen();
-	LoadFog( 2 );
-	LoadPalette( "2\\agew_1.pal" );
-};
-void WaitWithMessage( char* Message );
-#endif // _WIN32
 
 int prevVid = -1;
 int prevVid1 = -1;

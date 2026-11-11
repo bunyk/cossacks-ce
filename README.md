@@ -15,6 +15,9 @@ This project is an effort to migrate the classic game **Cossacks: Back to War** 
 - ASM sections replaced with C++ code
 
 ## TODO:
+- test AI grenadeer attack fixed in GrenaderSuperman
+- Why Austria builds no towers on land?
+- Change numerical enums to named ones (with constants?)
 - Missions and campaigns (loading works, 2/106 mission modules ported - see docs/missions.md)
 - Networking
 - Ticks tick to fast in scenarios (fixed in replay, but made game way to slow).
