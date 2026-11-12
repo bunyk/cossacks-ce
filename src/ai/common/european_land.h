@@ -229,23 +229,10 @@ void LandTowers()
 	int minaretN = GetUnits(&minaret);
 	int minaretReady = GetReadyUnits(&minaret);
 	int bashniaN = GetUnits(&bashnia2);
-	int eq = (minaretN - minaretReady) - barackReady - bashniaReady + barackN + bashniaN;
-	// TEMP DEBUG (printf per AGENTS.md): trace the tower gate, remove after diagnosis
-	static int dbgTick = 0;
-	bool dbgNow = (++dbgTick % 100 == 1);
-	if (dbgNow)
-		printf("TOWDBG nat=%d land=%d peace=%d aka=%d/%d bar=%d/%d tow=%d/%d eq=%d freeproxy=%d money w%d g%d s%d f%d i%d c%d towcost w%d g%d s%d i%d c%d\n",
-			AI_NATION, AI_LAND, GetPeaceTimeLeft(),
-			minaretN, minaretReady, barackN, barackReady, bashniaN, bashniaReady, eq, AI_FREEPROXY,
-			GetMoney(WOOD), GetMoney(GOLD), GetMoney(STONE), GetMoney(FOOD), GetMoney(IRON), GetMoney(COAL),
-			GetUnitCost(AI_NATION, &bashnia2, WOOD), GetUnitCost(AI_NATION, &bashnia2, GOLD),
-			GetUnitCost(AI_NATION, &bashnia2, STONE), GetUnitCost(AI_NATION, &bashnia2, IRON),
-			GetUnitCost(AI_NATION, &bashnia2, COAL));
-	if (eq == 0 && AI_FREEPROXY > 40)
+	if (((minaretN - minaretReady) - barackReady) - bashniaReady + barackN + bashniaN == 0
+		&& AI_FREEPROXY > 40)
 	{
-		bool pr = TryUnit(&bashnia2, 4, 50, 100);
-		if (pr || dbgNow)
-			printf("TOWDBG nat=%d PROPOSE tow x4 -> %d (eq=%d freeproxy=%d)\n", AI_NATION, (int)pr, eq, AI_FREEPROXY);
+		TryUnit(&bashnia2, 4, 50, 100);
 		if (UpgIsRun(&KUZ03))
 			TryUnit(&bashnia2, 6, 50, 100);
 		if (UpgIsRun(&MAIN))
@@ -909,14 +896,6 @@ void ProcessMiddleSeaAI()
 	TryUpgrade(&bashnia_PAUSE5, 50, 50);
 	TryUpgrade(&bashnia_PAUSE6, 50, 50);
 	TryUpgrade(&bashnia_PAUSE7, 50, 50);
-	// TEMP DEBUG (printf per AGENTS.md): Mediterranean tower gate
-	{
-		static int dbgTickM = 0;
-		if (++dbgTickM % 100 == 1)
-			printf("TOWDBG-MED nat=%d land=%d peasants=%d tow=%d/%d gate=%d\n",
-				AI_NATION, AI_LAND, peasants, towers, towersReady,
-				(peasants > 35 && towers == towersReady) ? 1 : 0);
-	}
 	if (peasants > 35 && towers == towersReady)
 	{
 		TryUnit(&bashnia2, 1, 80, 10);
@@ -1073,12 +1052,6 @@ void EuropeanProcessAI()
 	AI_DIFF = GetDifficulty();
 	AI_STARTRES = GetStartRes();
 	AiTickPrologue();
-	// TEMP DEBUG (printf per AGENTS.md): which pipeline runs for this nation
-	{
-		static int dbgTickD = 0;
-		if (++dbgTickD % 200 == 1)
-			printf("TOWDBG nat=%d DISPATCH land=%d startres=%d diff=%d\n", AI_NATION, AI_LAND, AI_STARTRES, AI_DIFF);
-	}
 	SetMineBalanse(19, LAND_MINE_BALANCE);
 	ApplyMineUpgradeRules(AI_LAND);
 	SetMinesBuildingRules(MINES_BUILD_RULES, 27);

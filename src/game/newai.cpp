@@ -381,6 +381,9 @@ bool SearchPlace( int* xx1, int* yy1, SearchFunction* SFN, int r )
 };
 bool SearchTowerPlace( int* xx1, int* yy1, SearchFunction* SFN, int r, int xc, int yc, int xe, int ye )
 {
+	// NPORTS = count of the nation's existing towers of this type (filled by
+	// the caller). The first tower(s) use the strict enemy-facing topology
+	// search below; once 2+ towers exist, the plain SearchPlace ring is used.
 	if (NPORTS > 1)return SearchPlace( xx1, yy1, SFN, r );
 	SsMaxX = msx >> 2;
 	SsMaxY = msy >> 2;
@@ -393,6 +396,12 @@ bool SearchTowerPlace( int* xx1, int* yy1, SearchFunction* SFN, int r, int xc, i
 	};
 	int MyTop = GetTopology( x << 7, y << 7 );
 	if (MyTop >= 0xFFFE)return false;
+	// MyArea: the base's own topology area. Same-area candidates must count as
+	// distance 0 (the LinksDist diagonal is 0xFFFF, see ClearLinkInfo), as
+	// SearchPlace() already does - without this, a base sitting in a large or
+	// weakly-linked area can never place its first tower (NPORTS stays <= 1,
+	// so the NPORTS>1 fallback to plain SearchPlace is never reached).
+	int MyArea = MyTop;
 	MyTop *= NAreas;
 	int PrevTopDst = 0;
 	for (int i = 6; i < r; i++)
@@ -412,7 +421,11 @@ bool SearchTowerPlace( int* xx1, int* yy1, SearchFunction* SFN, int r, int xc, i
 					if (top < 0xFFFE)
 					{
 						int TDST = LinksDist[MyTop + top];
-						if (TDST - PrevTopDst < 14)
+						if (top == MyArea)TDST = 0;
+						// same distance slack as SearchPlace (<24); the original <14 made
+						// first-tower placement fail outright for bases whose area links
+						// start at distance >= 14 (e.g. a small area at a map edge)
+						if (TDST - PrevTopDst < 24)
 						{
 							if (TDST > PrevTopDst)PrevTopDst = TDST;
 							if (SFN( xx, yy ))
@@ -427,7 +440,12 @@ bool SearchTowerPlace( int* xx1, int* yy1, SearchFunction* SFN, int r, int xc, i
 			};
 		};
 	};
-	return false;
+	// The strict enemy-facing search above can still fail permanently (base area
+	// has no cell in the enemy-facing half-plane and no linked area within 24),
+	// and since it only runs while NPORTS <= 1, the nation would never build
+	// even one tower. Fall back to the plain ring search that towers 2+
+	// (NPORTS > 1) already use.
+	return SearchPlace( xx1, yy1, SFN, r );
 };
 bool FindCenter( int* xx, int *yy, byte NI )
 {

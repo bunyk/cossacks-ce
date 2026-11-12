@@ -1229,15 +1229,6 @@ word City::FindNeedProject()
 		CCIT = this;
 		CNAT = Nat;
 		CurAINation = Nat->NNUM;
-		// TEMP DEBUG (printf per AGENTS.md): nation index -> AI module mapping, once per nation
-		{
-			static bool dbgLogged[8] = {};
-			if ( Nat->NNUM < 8 && !dbgLogged[Nat->NNUM] )
-			{
-				dbgLogged[Nat->NNUM] = true;
-				printf( "TOWDBG nat=%d AIID=%s\n", Nat->NNUM, AIID );
-			}
-		}
 		NT->ProcessAIinDLL();
 		AiIsRunNow = false;
 		return NBestProjects;
@@ -1611,13 +1602,6 @@ bool City::FindApproximateBuildingPlace( GeneralObject* GO )
 			eyc /= ne;
 		};
 		Res = SearchTowerPlace( &xx, &yy, &CheckTower, 40, CenterX, CenterY, exc, eyc );
-		// TEMP DEBUG (printf per AGENTS.md): tower placement outcome
-		{
-			static int dbgTP = 0;
-			if ( Res || ++dbgTP % 50 == 1 )
-				printf( "TOWDBG nat=%d TOWERPLACE res=%d nports=%d exc=%d eyc=%d cx=%d cy=%d -> %d,%d\n",
-					NI, (int)Res, NPORTS, exc, eyc, CenterX, CenterY, xx, yy );
-		}
 	};
 	break;
 	case FarmID:
