@@ -3,9 +3,7 @@
 This is a walk-through of the coarse "area graph" that the game builds on top
 of the pixel map, and of everything that graph is used for. It assumes only
 general programming knowledge plus [unit_rendering.md](unit_rendering.md) for
-the coordinate vocabulary (length units, screen pixels, `RealX/RealY`). All
-code references are to this repository; the numbers from the skirmish example
-in section 7 are real, from a debug build's stdout.
+the coordinate vocabulary (length units, screen pixels, `RealX/RealY`). 
 
 ## 0. The 60-second version
 
@@ -22,7 +20,7 @@ raw map (msx x msy fine cells, MFIELDS / InfoMap / CantBuild)
         |    touching areas -> AddLink(a, b, Norma(center distance))
         v
 TopRef[x + y*TopLx] : word per coarse cell
-        0xFFFF = not yet assigned, 0xFFFE = impassable, <4096 = area id
+        0xFFFF = impassable/locked, 0xFFFE = free land (no area), <4096 = area id
         |
         |  CreateLinkInfo(): seed LinksDist/MotionLinks from direct links,
         |  relax with OneIteration() (at most 3 passes)
@@ -58,7 +56,7 @@ So the game derives a second, coarser map:
 |---|---|---|
 | grid | `msx x msy` cells (normal map: 512x512 fine cells) | `TopLx x TopLy` = `(MAPSX>>2)` = 256x256 cells |
 | cell size | 1 fine cell | 4x4 fine cells = 64 length units = 4 screen px |
-| values | passability/buildability bits | `word TopRef`: `0xFFFF` unassigned, `0xFFFE` impassable, else area id (<4096) |
+| values | passability/buildability bits | `word TopRef`: `0xFFFF` impassable/locked, `0xFFFE` free (no area), else area id (<4096) |
 | built by | map load + `CreateInfoMap()` | `CreateAreas()` once per map |
 | updated | continuously | incrementally, via `ProcessDynamicalTopology()` |
 
@@ -68,20 +66,24 @@ saves `gamedata/taras.sav` and `gamedata/test.sav` - both store
 .sav, see [sav_format.md](sav_format.md)), a large random map (`ADDSH=2`).
 `tools/m3d_areas.py` parses that `.m3d`'s `TOP1` chunk directly, so the areas,
 links and distances you see are the ones actually stored in the file, not a
-sketch. All figures are drawn in the game's own isometric (diamond)
-projection - array cell `(x, y)` maps to screen `(x - y, (x + y) / 2)`, the
-same transform the renderer applies to the map - so the landmass appears as
-the diamond you see in-game, not as a square. The arrays are *stored* in this
-diamond space: `TopRef` is indexed `x + (y << TopSH)` and `THMap` vertices get
-their odd-column half-cell shear at draw time (`GetTriX`/`GetTriY`,
-3dgraph.cpp), so no un-projection is needed to visualize them.
+sketch. All figures are plain square renders of the stored arrays - the same
+view the in-game minimap shows (isometric projection applies only to units
+and buildings, not to the map arrays; `TopRef` is indexed `x + (y << TopSH)`
+and drawn cell-per-pixel).
 
-![Raw height chunk with the impassable mask, and the coarse TopRef grid](figures/topo_map_passability.png)
+![Height chunk (FRUS) as a flat terrain relief with the impassable cells darkened](figures/topo_map_height.png)
 
-*Left: the `FRUS` height chunk (1024x1025 words, playable region 960x960 fine
-cells) with the `0xFFFE` impassable cells darkened. Right: the `TopRef`
-passability grid (480x480 playable cells inside the 512x512 array): dark =
-`0xFFFE`, white = `0xFFFF` unassigned border.*
+*The `FRUS` height chunk (1024x1025 words) in the matplotlib `terrain`
+colormap - water blue, lowland green, peaks brown/white - with the `0xFFFF`
+impassable/locked cells (water, ridges, map border) darkened (one TopRef cell
+= a 2x2 block of THMap vertices).*
+
+![TopRef passability grid](figures/topo_map_topref.png)
+
+*The `TopRef` grid (480x480 playable cells inside the 512x512 array): dark =
+`0xFFFF` impassable/locked (water plus the map border), light gray = area ids
+(passable land), white = the few `0xFFFE` free-but-unassigned cells (347 of
+262,144 cells on this map).*
 
 Map sizes are parameterized by `ADDSH`, taken from the map name digit in
 `CreateMapByName` (3drandmap.cpp:1563: normal=1, large=2, huge=3):
@@ -90,8 +92,8 @@ Map sizes are parameterized by `ADDSH`, taken from the map name digit in
 
 `GetTopology(x, y)` (brigade.cpp:512) is the lookup everyone uses: pixel
 coordinates in, `x >> 6` to cell, `TopRef[x + (y << TopSH)]` out. If the cell
-is impassable it scans rings up to radius 20 (`Rarr`) for the nearest valid
-area, so a unit standing on a locked cell still maps to an area.
+has no area id (`>= 0xFFFE`) it scans rings up to radius 20 (`Rarr`) for the
+nearest valid area, so a unit standing on a locked cell still maps to an area.
 `SafeTopRef` (mapdiscr.h:2116) is the bounds-checked raw variant.
 
 ## 2. Creating the areas: seeds, flood fill, links
@@ -101,10 +103,11 @@ area, so a unit standing on a locked cell still maps to an area.
 and before `CreateInfoMap()` - and the result is serialized into the save file
 (savenewmap.cpp / loadsave.cpp) and reloaded with it.
 
-**Step 1 - impassable cells.** `TopRef` is memset to `0xFFFF` ("unknown"), then
-every cell where `GetTCStatus(x,y)` is true is set to `0xFFFE` ("impassable").
-`GetTCStatus` checks a 4x4 block of the movement field (`MFIELDS->CheckBar`)
-plus an accurate 12-point `CheckPt` pattern - water, ridges, map border.
+**Step 1 - mark passable land.** `TopRef` is memset to `0xFFFF` (impassable /
+locked - this is what water, ridges and the outer border keep), then every
+cell where `GetTCStatus(x,y)` is true is set to `0xFFFE` (free land, no area
+yet). `GetTCStatus` returns true for passable land: a 4x4 block of the movement
+field (`MFIELDS->CheckBar`) plus an accurate 12-point `CheckPt` pattern.
 
 **Step 2 - seed areas.** Random points are rolled; a seed is accepted if its
 3x3 neighborhood is entirely `0xFFFE` (free land). `AddArea(x, y, Sliv)`
@@ -156,7 +159,8 @@ by construction):
 
 *Each color is one area of the real `RN1 6F99 ...` save; black dots are the
 area centers (`Area.x/y`) where `TopRef` stores the id; red rings mark areas
-with mine `Importance` bits. Dark cells are `0xFFFE`.*
+with mine `Importance` bits. Dark cells are `0xFFFF` (impassable: water,
+border); the few white cells are `0xFFFE` free-unassigned.*
 
 ## 3. The link matrices: `LinksDist` and `MotionLinks`
 
@@ -181,13 +185,12 @@ void CreateLinkInfo() {
 
 `OneIteration` is a Bellman-Ford-style pass over all pairs, relaxing
 `LinksDist[i][j] = min(..., LinksDist[N2][j] + linkWeight(i,N2))` and recording
-the next hop in `MotionLinks`. Two quirks worth knowing (both now documented in
-a comment at `ClearLinkInfo` in this repo):
+the next hop in `MotionLinks`. Two quirks worth knowing:
 
 1. **The diagonal is never written.** `OneIteration` skips `i == j`, and the
    memset leaves `LinksDist[a][a] = 0xFFFF`, not 0. Every caller that cares
    must special-case "same area" itself - `SearchPlace` does
-   (`if (top == REALMYTOP) TDST = 0;`), and after the bug in section 7 so does
+   (`if (top == REALMYTOP) TDST = 0;`), and after the bug in section 8 so does
    `SearchTowerPlace`.
 2. **Only up to 3 relaxation passes run** (`p < 3`), so pairs farther than
    what 3 Gauss-Seidel passes can propagate keep `0xFFFF` even when a path
@@ -207,15 +210,18 @@ same structure over `MFIELDS[1]` (water): `GTOP[1]` with `WTopRef`, `WTopMap`,
 labels are the stored link weights - note they are all small integers
 (center-distance metric).*
 
-![LinksDist heatmap from one top-edge area of the case-study map](figures/topo_map_dist.png)
+![LinksDist heatmap from Austria's base area of the case-study map](figures/topo_map_dist.png)
 
-*`LinksDist[225][*]` from the saved matrices, drawn over the map: distance 0
-is darkest, larger distances fade to yellow, gray = `0xFFFF` unreachable. The
-red ring is source area 225 at (187,9) - a top-edge area whose nearest linked
-area is 17 away (min link weight 17). You can also see the saved diagonal:
+*`LinksDist[83][*]` from the saved matrices, drawn over the map: distance 0
+is darkest, larger distances fade to bright, gray = `0xFFFF` unreachable,
+black = `0xFFFF` impassable cells, white = `0xFFFE` free-unassigned cells. The
+marked source is area 83 at (444,24) - Austria's base area in the top-right
+corner of the map, next to the mine fields (6 of its 7 linked areas are
+mine-bearing); only 84 of 960 areas are reachable from it, the nearest at
+distance 14 (min link weight 14). You can also see the saved diagonal:
 `LinksDist[a][a]` is `0xFFFF` for every area (740,797 of 921,600 matrix entries
 in this map are `0xFFFF` overall) - exactly the quirk that broke first-tower
-placement in section 7.*
+placement in section 8.*
 
 ## 4. Islands
 
@@ -239,7 +245,7 @@ struct StrategyInfo {
 
 Afterwards it propagates `SI_Near` to all directly linked areas, so the AI
 can tell "the neighboring area has a tower" without rescanning. The AI's
-attack/defense code in megapolis.cpp (e.g. lines 4488, 4816, 4959, 5044-5138)
+attack/defense code in megapolis.cpp 
 reads these to pick targets and to decide when an army can "connect" to an
 attack group (`MotionLinks[MyTop*NAreas + HisTop]`).
 
@@ -251,7 +257,7 @@ attack group (`MotionLinks[MyTop*NAreas + HisTop]`).
 | ship route | brigade.cpp:5052, einfoclass.cpp:1193 | `GTOP[1].MotionLinks` (water graph) |
 | can I capture this mine? | megapolis.cpp:3043 | mine's area reachable (`MotionLinks != 0xFFFF`) and within `MINE_CAPTURE_RADIUS` |
 | where to put the next farm | `City::GetNextPlaceForFarm` (megapolis.cpp:261) | ring search, accept cell if `LinksDist[townArea][cellArea] - min < 30` |
-| where to build | `SearchPlace` / `SearchTowerPlace` / `CheckTower` (newai.cpp) | ring search + `GetTopology` + `LinksDist` slack + `GetSafeVal` |
+| where to build | `SearchPlace` / `SearchTowerPlace` / `CheckTower` (newai.cpp) | ring search + `GetTopology` + `LinksDist` slack + `GetSafeVal` - see section 7 |
 | where is the nearest enemy | `GlobalEnemyInfo::FindNearestEnemy` (einfoclass.cpp:126) | ranks enemy armies/objects by `LinksDist[enemyArea][myArea]` |
 | is this cell safe to build on | `EnemyInfo::GetSafeVal` (einfoclass.cpp:829) | `SafeMAP` danger bitmap (built from enemy objects, dilated by 1 ring, refreshed every 256 ticks) |
 | attack/defense decisions | megapolis.cpp:4488+ | `MotionLinks` hops + `SINF` census |
@@ -267,30 +273,102 @@ locally (`OnePartIteration` on temporary matrices, `LimitedClearBadLinks`).
 So the graph - and therefore pathfinding, mine capture and placement - reacts
 to new buildings within a frame or two, without rebuilding the whole map.
 
-## 7. Case study: why Austria never built towers (and the fix)
+## 7. Building placement on the area graph: `SearchPlace` and the enemy-facing half-plane
 
-This section is the field report from an actual skirmish (land map, no peace
-time, Hungary vs Austria). The save files from those games -
-`gamedata/taras.sav` and `gamedata/test.sav` - both name the same map in their
-`SaveMap` block: `CurrentMap = "RN1 6F99 20210 000003JF 0000000.m3d"`, a
-large (`ADDSH=2`) random map whose stored `TOP1` chunk has `NAreas=960` -
-matching the `nareas=960` in the log below. (Area *ids* differ between the
-log and the saved file because the graph is rebuilt from the terrain at game
-start, so the runtime `mytop=83` is a different numbering of the same map;
-the figures in this chapter use the saved numbering.) With temporary printf
-instrumentation the logs showed:
+The most frequent consumer of the area graph is the AI's city planner.
+`City::FindApproximateBuildingPlace` (megapolis.cpp) picks what to build next
+(`NewMonster::Usage`: `MillID`, `CenterID`, `SkladID`, `PortID`, `TowerID`,
+`FarmID`) and, per type, calls `SearchPlace` with a type-specific predicate
+and a search radius:
 
+| building | predicate | radius `r` |
+|---|---|---|
+| mill (`MillID`) | `CheckMill` (5x5 block of empty cells) | 25 |
+| center / sklad (`CenterID`, `SkladID`) | `CheckStoneWoodSklad`, else `CheckWoodSklad` / `CheckStoneSklad` (next to trees/stones), else `CheckBuilding` | 10-30 |
+| port (`PortID`) | `CheckPort` (shoreline probe on `WaterDeep`) | 60 |
+| tower (`TowerID`) | `SearchTowerPlace` + `CheckTower` (see below) | 40 |
+| farm (`FarmID`) | `CheckBuilding` (2x2 empty cells) | 40 |
+
+All coordinates are **"search cells"** - the `InfoMap`/`CantBuild` grid
+indexed `x + y*VAL_SPRNX`, playable width `msx>>2 = 60<<ADDSH`. One search
+cell = 2 `TopRef` cells = 128 px, which is why the code converts with
+`GetTopology(x<<7, y<<7)` (it shifts `>>6` internally) and reads
+`TopRef[xx+xx + (yy<<(TopSH+1))]`. The search origin is the city center
+(`City::CenterX/CenterY`).
+
+`SearchPlace(xx1, yy1, SFN, r)` (newai.cpp) then works like this:
+
+1. Try the origin cell itself: `SFN(x, y)`.
+2. Map the origin to its topology area (`GetTopology`); if the origin is in
+   no valid area (`>= 0xFFFE`) the whole search fails.
+3. Scan rings `i = 1..r-1` of the precomputed offset table `Rarr[i]` (applied
+   on the search grid here, so ring `i` is `i` search cells = `2i` `TopRef`
+   cells from the origin). For each ring cell:
+   * skip if outside the playable map (`SsMaxX/SsMaxY = msx>>2, msy>>2`);
+   * skip if `GNFO.EINF[CURRENTAINATION]->GetSafeVal(xx,yy)` is nonzero - the
+     `SafeMAP` danger bitmap (one bitmap cell = 8 search cells, refreshed
+     every 256 ticks from enemy objects; einfoclass.cpp `RefreshSafeMap`);
+   * skip if the cell is in no valid area (`TopRef >= 0xFFFE`);
+   * compute `TDST = LinksDist[originArea*NAreas + cellArea]`, with the
+     same-area special case `TDST = 0` (the matrix diagonal stays `0xFFFF`,
+     see section 3), and keep the cell only if `TDST - PrevTopDst < 24`, where
+     `PrevTopDst` is the largest area distance accepted so far;
+   * run the building predicate `SFN(xx, yy)`; the first hit wins and is
+     written back to `*xx1/*yy1`.
+
+The `LinksDist` slack (`< 24`) is what makes the ring search "area-aware":
+the scan itself is in raw cell distance, but a cell only qualifies if its
+*area* is within 24 of the best area found so far on the area graph. That
+lets the search cross a gap (water, ridge) into a reachable area instead of
+rejecting everything outside the origin's own area, while `0xFFFF`
+("unreachable") fails the test by itself. Since rings are scanned in
+increasing radius, the first predicate hit is approximately the nearest
+acceptable cell.
+
+### The enemy-facing half-plane in `SearchTowerPlace`
+
+`SearchTowerPlace` (newai.cpp) is the tower-only variant, used while the
+nation has at most one tower (`NPORTS <= 1`; after that it just delegates to
+plain `SearchPlace`). It is the same ring search, but rings start at `i = 6`
+(so the tower is not built right on top of the town center), and each cell
+must additionally pass:
+
+```cpp
+(xx - xc)*(xe - xc) + (yy - yc)*(ye - yc) > 0
 ```
-TOWDBG nat=2 AIID=AUSTRIA.0
-TOWDBG nat=2 land=0 ... tow=0/0 eq=0 freeproxy=225 ...   <- AI gate passes, TryUnit accepted
-TOWDBG STP nat=2 FAIL at 223,14 enemy 59,61 mytop=83 nareas=960
-         same-area=0 ... top-ok=1187 tdst-ok=0 ... minTDST=14
-TOWDBG nat=2 TOWERPLACE res=0 nports=0 cx=223 cy=14 -> 223,14
-```
 
-Reading it against the code: the AI side was fine (identical script to
-Hungary's, proposal accepted). The tower died in `SearchTowerPlace`
-(newai.cpp:382), which is used **only for a nation's first tower(s)** - once
+That is a dot product: (cell - base center) . (enemy - base center) > 0, i.e.
+the cell lies on the enemy side of the line through the base center
+perpendicular to the base-to-enemy axis - the tower faces the enemy. The
+variables, all in search cells:
+
+* `xc, yc` - the base center, `City::CenterX/CenterY`, assigned by
+  `FindCenter` (newai.cpp): the **center of mass of the nation's peasant
+  units only** (`OB->newMons->Peasant`), averaged as `RealX>>4` then `>>7`
+  (megapolis.cpp:2601-2605);
+* `xe, ye` - the "enemy point", computed in the `TowerID` case of
+  `City::FindApproximateBuildingPlace` (megapolis.cpp:1576-1604): it loops
+  over all objects in `Group[]`, skips dead ones (`Sdoxlo`), files the
+  nation's own towers of this type into `NPORTS`/`PORTSX`/`PORTSY` (which
+  `CheckTower` uses to keep towers at least 9 cells apart), and for every
+  remaining object with `NNUM == 0` accumulates `exc += OB->RealX>>11`,
+  `eyc += OB->RealY>>11`, then divides by the count.
+
+So the enemy position **is a center of mass, but of all living objects of
+nation 0 - units and buildings alike, not just units** (`RealX>>11` is the
+same search-cell scale `FindCenter` produces: `RealX>>4` is the pixel
+coordinate, `>>7` more converts to search cells). `NNUM == 0` is hardcoded
+(it is original 2001 code): in single player the human is always nation 0, so
+"nation 0" means "the player". Elsewhere the AI does this properly per nation:
+`GlobalEnemyInfo::FindNearestEnemy` (einfoclass.cpp:126) tests
+`!(OB->NMask & EINF[NNUM]->Mask)` against the nation's enemy mask instead.
+Edge case: if no nation-0 object is alive, `ne == 0`, so `xe = ye = 0` and the
+half-plane degenerates to "the side away from the map corner (0,0)".
+
+## 8. Case study: why Austria never built towers (and the fix)
+
+This section is the field report from an actual skirmish on land map.
+The AI side was fine. The tower died in `SearchTowerPlace`, which is used **only for a nation's first tower(s)** - once
 `NPORTS > 1` (two or more existing towers) it switches to plain `SearchPlace`:
 
 ```cpp
@@ -300,20 +378,25 @@ if (NPORTS > 1) return SearchPlace( xx1, yy1, SFN, r );
 The strict path searches rings 6..39 around the town center, but only cells on
 the **enemy-facing half-plane** (`(xx-xc)*(xe-xc) + (yy-yc)*(ye-yc) > 0`),
 that are danger-free (`GetSafeVal`), in a valid area, and whose area distance
-passes `TDST - PrevTopDst < 14`. Austria's base sat at (223,14) - the top map
-edge - in area 83. The counters showed why every candidate failed:
+passes `TDST - PrevTopDst < 14`. Coordinates here are in "search units"
+(`SsMaxX = msx>>2 = 240`, one unit = 2 TopRef cells), so the logged
+`(223,14)` is TopRef cell (446,28) - area **83**, whose center (444,24) is the
+top-right corner of the map, right next to the mine fields (the enemy point
+`(59,61)` is TopRef (118,122), area 864, on the top-left). The counters showed
+why every candidate failed:
 
 * `same-area=0`: area 83 was so small that no cell of it lay in the searched
   half-plane, and - the original bug - same-area cells would have had
   `TDST = LinksDist[83*NAreas + 83] = 0xFFFF` (diagonal!) anyway;
-* `minTDST=14`: the nearest linked area was exactly 14 away, failing `< 14`.
+* `minTDST=14`: the nearest reachable area was exactly 14 away
+  (`LinksDist[83]` min over reachable entries), failing `< 14`.
 
 Result: `res=0` forever, `NPORTS` never exceeded 1, so the working
 `SearchPlace` path was never reached - a nation that **can never build its
 first tower**, purely because of where its base happened to generate. Hungary's
 base area was small and well-linked, so it passed.
 
-The fix (in this repo, newai.cpp) mirrors what `SearchPlace` already did:
+The fix (newai.cpp) mirrors what `SearchPlace` already did:
 
 ```cpp
 int MyArea = MyTop;               // before MyTop *= NAreas
@@ -326,23 +409,25 @@ return SearchPlace( xx1, yy1, SFN, r );   // last resort instead of return false
 ```
 
 After the fix the same map logs `TOWERPLACE res=1` and towers appear on the
-attack side of the base (south), as they should.
+enemy-facing side of the base, as they should.
 
-![Replay of the strict first-tower search from a top-edge area of the case-study map](figures/topo_map_search.png)
+![Replay of the strict first-tower search from Austria's base area of the case-study map](figures/topo_map_search.png)
 
-*`SearchTowerPlace` replayed from area 225 at (187,9) of `RN1 6F99 ...`, enemy
-taken as the centroid of all area centers (magenta line). Ring cells are
-colored by the furthest filter stage they pass: dot-product (yellow) -> valid
-area (orange) -> topology distance `< 24` with same-area = 0 (purple) ->
-distance ok (dark pink) -> `CheckTower` 2x2 walkable (green). The blue circles
-mark the search rings 6/20/39. Note this area's nearest link is 17 away: with
-the original `< 14` threshold no candidate would pass stage 3 at all - the
-exact case-study failure (`tdst-ok=0, minTDST=14` in the runtime log; area ids
-differ because the graph is rebuilt at game start, but the geometry is the
-same). With the fixed `< 24` slack, stages 4-5 do pass and a tower spot is
-found on the enemy-facing side.*
+*`SearchTowerPlace` replayed on `RN1 6F99 ...` exactly as the runtime did:
+origin TopRef (446,28) = logged search cell (223,14), in area 83 (center
+(444,24), top-right corner by the mines), enemy point TopRef (118,122) =
+logged (59,61), area 864 (magenta line). Ring cells (search rings 6..39, i.e.
+radius 12..78 TopRef cells; blue dots mark rings 6/20/39) on the enemy-facing
+half-plane are colored by the furthest filter stage they pass: impassable
+(yellow) -> topology distance rejected by `TDST - PrevTopDst < 24` with
+same-area = 0 (orange) -> `CheckTower` 2x2 walkable fails (purple) ->
+distance ok (dark pink) -> accepted (green). With the original `< 14`
+threshold and no same-area rule, area 83's nearest reachable distance is
+exactly 14, so *no* candidate could pass the distance stage - the exact
+case-study failure (`tdst-ok=0, minTDST=14`). With the fixed `< 24` slack,
+the green stage covers ~3000 cells and a tower spot is found.*
 
-## 8. Why it looks like this, and what it would be today
+## 9. Why it looks like this, and what it would be today
 
 The area graph is the 2001 answer to "pathfinding and strategy on a 512x512+
 grid in software, every tick". A coarse graph turns O(map) questions into
@@ -351,7 +436,7 @@ Floyd-Warshall/Bellman-Ford and next-hop table, capped at 3 passes because
 areas are grid-adjacent and the diameter is small. The `0xFFFF` sentinels and
 the missing diagonal are exactly the kind of thing that survives when the
 original authors special-case same-area at each *use site* (as einfoclass.cpp
-and `SearchPlace` do) and forget one - which is what section 7 caught.
+and `SearchPlace` do) and forget one - which is what section 8 caught.
 
 | technique here | modern equivalent |
 |---|---|

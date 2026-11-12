@@ -190,8 +190,7 @@ void InitGame();
 void MFix();
 
 #endif // _WIN32 (nsmaplx/ly, WarSound...; LoPanel moved out below - used by GSSetup800)
-// Sound volumes: DirectSound-style slider positions (0..100; see
-// common.h decls and gamesound.cpp playback). SDL_AppInit zeroes these
+// Sound volumes: DirectSound-style slider positions (0..100). SDL_AppInit zeroes these
 // before restoring mode.dat, so the zero-init only covers the very first
 // run before a mode.dat exists.
 int WarSound;

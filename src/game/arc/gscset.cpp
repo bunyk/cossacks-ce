@@ -394,90 +394,13 @@ BOOL CGSCset::gFindNext( LPGSCFindInfo gFindInfo )
 }
 void GSC_OpenError();
 
-//Loads specified *.gs1 and *.gsc archives
-//Priority order
-//1) mods02.gs1, mods01.gs1, mods.gs1
-//2) cossacks_revamp.gs1
-//3) patch02.gs1, patch01.gs1
-//4) A*.gsc
-
-// BUT why I see only override.gsc and resources.gsc being searched?
-
-#ifdef _WIN32
-BOOL CGSCset::gOpen()
-{
-	BOOL retval = TRUE;
-	printf("gOpen()\n");
-	HANDLE hFindFile;
-	WIN32_FIND_DATA FindData;
-	LPGSCArchList pArchList = nullptr;
-
-	m_ArchList = nullptr;
-
-	hFindFile = FindFirstFile( "override.gsc", &FindData );
-	if (INVALID_HANDLE_VALUE != hFindFile)
-	{
-		pArchList = new TGSCArchList;
-		m_ArchList = pArchList;
-		pArchList->m_NextArch = nullptr;
-		pArchList->m_Arch = new CGSCarch;
-		pArchList->m_Arch->Open( FindData.cFileName );
-
-		while (FindNextFile( hFindFile, &FindData ))
-		{
-			pArchList->m_NextArch = new TGSCArchList;
-			pArchList = pArchList->m_NextArch;
-
-			pArchList->m_Arch = new CGSCarch;
-			pArchList->m_NextArch = nullptr;
-			pArchList->m_Arch->Open( FindData.cFileName );
-		}
-	}
-	FindClose( hFindFile );
-
-	hFindFile = FindFirstFile( "resources.gsc", &FindData );
-	if (INVALID_HANDLE_VALUE != hFindFile)
-	{
-		if (nullptr == m_ArchList)
-		{
-			pArchList = new TGSCArchList;
-			m_ArchList = pArchList;
-		}
-		else
-		{
-			pArchList->m_NextArch = new TGSCArchList;
-			pArchList = pArchList->m_NextArch;
-		}
-
-		pArchList->m_NextArch = nullptr;
-		pArchList->m_Arch = new CGSCarch;
-		pArchList->m_Arch->Open( FindData.cFileName );
-
-		while (FindNextFile( hFindFile, &FindData ))
-		{
-			pArchList->m_NextArch = new TGSCArchList;
-			pArchList = pArchList->m_NextArch;
-			pArchList->m_Arch = new CGSCarch;
-			pArchList->m_NextArch = nullptr;
-			pArchList->m_Arch->Open( FindData.cFileName );
-		}
-	}
-	else
-	{
-		retval = FALSE;
-	}
-
-	FindClose( hFindFile );
-
-	return retval;
-}
-#else
 
 #include <filesystem>
 #include <iostream>
 
 namespace fs = std::filesystem;
 
+//Loads specified *.gs1 and *.gsc archives
 BOOL CGSCset::gOpen() {
     BOOL retval = TRUE;
 
@@ -512,7 +435,6 @@ BOOL CGSCset::gOpen() {
 
     return retval;
 }
-#endif // _WIN32
 
 VOID CGSCset::gClose()
 {
@@ -541,15 +463,11 @@ DWORD CGSCset::gFileSize( LPGSCfile gFile )
 	}
 	else
 	{
-#ifdef _WIN32
-		return GetFileSize( HANDLE( gFile->m_FileHandle ), NULL );
-#else
 		long cur = ftell( gFile->m_fp );
 		fseek( gFile->m_fp, 0, SEEK_END );
 		long size = ftell( gFile->m_fp );
 		fseek( gFile->m_fp, cur, SEEK_SET );
 		return (DWORD)size;
-#endif
 	};
 }
 
@@ -581,25 +499,6 @@ BOOL CGSCset::gWriteFile( LPGSCfile gFile, LPBYTE lpbBuffer, DWORD dwSize )
 LPGSCfile CGSCset::gWriteOpen( LPCSTR lpcsFileName )
 {
 	LPGSCfile gFile;
-#ifdef _WIN32
-	gFile = new TGSCfile;
-	gFile->m_Flags = 0;
-	gFile->m_Position = 0;
-	gFile->m_Arch = NULL;
-
-	gFile->m_FileHandle = DWORD( CreateFile( lpcsFileName,
-		GENERIC_READ | GENERIC_WRITE,
-		FILE_SHARE_READ,
-		NULL,
-		CREATE_ALWAYS,
-		FILE_ATTRIBUTE_NORMAL,
-		0 ) );
-	if (gFile->m_FileHandle == (DWORD) INVALID_HANDLE_VALUE)
-	{
-		delete gFile;
-		return NULL;
-	};
-#else
 	// Linux: plain stdio like gOpenFile's loose-file fallback (CREATE_ALWAYS -> "wb").
 	// Resolve case-insensitively so a re-save finds the file the game's
 	// case-insensitive reads already opened (instead of creating a
@@ -612,6 +511,5 @@ LPGSCfile CGSCset::gWriteOpen( LPCSTR lpcsFileName )
 	gFile->m_Position = 0;
 	gFile->m_Arch = nullptr;
 	gFile->m_fp = fp;
-#endif
 	return gFile;
 }

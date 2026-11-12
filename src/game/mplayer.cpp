@@ -1223,15 +1223,10 @@ bool CreateNamedSession( char* Name, DWORD User2, int Max )
 		NETWORK_INIT = 1;
 	};
 	DWORD dwNameSize = MAXNAMELEN;
-#ifdef _WIN32
-	if (!GetComputerName( szSessionName, &dwNameSize ))
-		strcpy( szSessionName, "Session" );
-#else
 	// szSessionName is only a fallback Name for the session; the
 	// ServerName argument to InitServer below is what actually gets used
 	if (gethostname( szSessionName, sizeof( szSessionName ) ) != 0)
 		strcpy( szSessionName, "Session" );
-#endif
 	// host a new session on this service provider
 	if (DoNewInet)
 	{

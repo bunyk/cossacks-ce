@@ -328,6 +328,30 @@ bool CheckPort( int x, int y )
 };
 extern int CURRENTAINATION;
 int GetTopology( int x, int y );
+//Finds a spot for a building near (x,y) by scanning rings around the origin.
+//All coordinates (xx1, yy1 in/out, SFN arguments) are "search cells" - the
+//InfoMap/CantBuild grid indexed as x + y*VAL_SPRNX, playable size
+//SsMaxX = msx>>2 = 60<<ADDSH cells. One search cell = 2 TopRef cells = 128 px:
+//that is why GetTopology() is called with x<<7 (it shifts >>6) and TopRef is
+//indexed as xx+xx + (yy<<(TopSH+1)).
+//  SFN - predicate (CheckMill/CheckBuilding/CheckTower/...) in search cells,
+//        true = cell is acceptable for the building;
+//  r   - max ring radius; Rarr[1..r-1] are scanned (Rarr[i] = offsets at
+//        integer radius i, applied here on the search grid, so ring i is
+//        i search cells = 2i TopRef cells away).
+//A ring cell is tested only if it is: inside the playable map, safe
+//(GetSafeVal==0 - SafeMAP danger bitmap of CURRENTAINATION's EnemyInfo,
+//nonzero = an enemy object can shoot there), in a valid topology area
+//(TopRef < 0xFFFE), and its area passes the distance slack
+//TDST - PrevTopDst < 24, where TDST = LinksDist[originArea*NAreas + cellArea].
+//Same area as the origin counts as TDST=0 because the LinksDist diagonal is
+//never written (stays 0xFFFF). PrevTopDst is the max area distance accepted so
+//far, so cells in areas up to 24 farther than the best area found are still
+//considered - this lets the search cross a gap (water/ridge) to a reachable
+//area instead of rejecting everything beyond the origin's own area.
+//Rings are scanned in increasing radius, so the first SFN hit is
+//approximately the nearest acceptable cell. Returns true and stores the spot
+//into *xx1/*yy1, or false if nothing within radius r-1 qualifies.
 bool SearchPlace( int* xx1, int* yy1, SearchFunction* SFN, int r )
 {
 	SsMaxX = msx >> 2;
@@ -379,6 +403,25 @@ bool SearchPlace( int* xx1, int* yy1, SearchFunction* SFN, int r )
 	};
 	return false;
 };
+//SearchPlace variant for the nation's first tower(s): same ring search, but
+//only cells on the enemy-facing side of the base are considered.
+//  xc, yc - base center (City::CenterX/CenterY): FindCenter() averages the
+//           positions of all the nation's PEASANT units, result in search
+//           cells (megapolis.cpp:2601-2605);
+//  xe, ye - "enemy point", computed by the caller
+//           (City::FindApproximateBuildingPlace, megapolis.cpp:1576-1604) as
+//           the center of mass of ALL living objects (units AND buildings,
+//           !Sdoxlo) with NNUM == 0 - nation index 0, i.e. the human player
+//           (hardcoded since the original 2001 code; in single player the
+//           human is always nation 0). Each contributes RealX>>11, RealY>>11
+//           = search cells (RealX>>4 = px, >>7 more = search cell). Own
+//           towers of this type are excluded (counted into NPORTS instead).
+//           If no nation-0 object exists, xe=ye=0 and the half-plane below
+//           degenerates to "the side away from map corner (0,0)".
+//The half-plane test (xx-xc)*(xe-xc)+(yy-yc)*(ye-yc) > 0 is a dot product:
+//candidate minus base center, dotted with enemy minus base center. >0 means
+//the candidate lies on the enemy side of the line through (xc,yc)
+//perpendicular to the base->enemy axis - i.e. towers face the enemy.
 bool SearchTowerPlace( int* xx1, int* yy1, SearchFunction* SFN, int r, int xc, int yc, int xe, int ye )
 {
 	// NPORTS = count of the nation's existing towers of this type (filled by
@@ -404,6 +447,8 @@ bool SearchTowerPlace( int* xx1, int* yy1, SearchFunction* SFN, int r, int xc, i
 	int MyArea = MyTop;
 	MyTop *= NAreas;
 	int PrevTopDst = 0;
+	// rings start at 6 (not 1 like SearchPlace) so the tower is not built
+	// right on top of the town center; ring i = i search cells from (x,y)
 	for (int i = 6; i < r; i++)
 	{
 		char* xi = Rarr[i].xi;
@@ -413,6 +458,7 @@ bool SearchTowerPlace( int* xx1, int* yy1, SearchFunction* SFN, int r, int xc, i
 		{
 			int xx = x + xi[j];
 			int yy = y + yi[j];
+			// enemy-facing half-plane: dot((cell - base center), (enemy - base center)) > 0
 			if (( xx - xc )*( xe - xc ) + ( yy - yc )*( ye - yc ) > 0 && xx > 0 && yy > 0 && xx < SsMaxX&&yy < SsMaxY)
 			{
 				if (!GNFO.EINF[CURRENTAINATION]->GetSafeVal( xx, yy ))
