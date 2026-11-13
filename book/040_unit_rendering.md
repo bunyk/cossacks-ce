@@ -57,7 +57,7 @@ everywhere is one byte, an index 0..255 into a 256-entry palette, and the
 palette says which RGB each index means. The in-game palette is
 `0\AGEW_1.PAL`: 768 raw bytes = 256 RGB triplets. "Drawing" in this engine
 means copying, recoloring and blending *indices*; color only appears at the
-very end, when the buffer becomes a texture. Section 9 explains what this
+very end, when the buffer becomes a texture. Section 10 explains what this
 bought the game in 2001; here it is enough to know that it is true.
 
 **The archive.** Almost all game data lives inside one big file,
@@ -586,25 +586,193 @@ That is the whole trip: a text file -> animation tables -> per-tick state
 machine -> one GP slot (six layers, mirrored if needed, recolored by
 nation) -> depth-sorted palette blit -> SDL texture.
 
-## 9. Why the format looks like this: RAM, bandwidth, 2001
+## 9. Same machinery, bigger canvas: the Victoria battleship (VIC.MD)
+
+Everything above was measured on a grenadier, a 36x54-pixel figure. The
+engine runs unchanged for the biggest sprites in the game: the ships. There
+are 14 of them (every `NewMonster` whose `.md` says `MEDIA WATER` - `she`,
+`link`, `vic`, `freg`, ...); `vic` is the Victoria, a first-rate ship of the
+line, and the largest. Its `VIC.MD` keeps the exact same skeleton as
+`GRE.MD` - `USERLC` pages, `#`/`@` animation lines, `GEOMETRY` - with three
+differences that matter for rendering: a much bigger anchor, 65 stored
+directions instead of 9, and animations that are mostly *one frame long*.
+
+```
+USERLC 0 vic      NONE -320 -458      <- anchor dx/dy (grenadier: -62 -91)
+USERLC 1 vicbui   NONE -320 -458      <- "bui" = under construction
+USERLC 2 ovic     NONE -320 -458      <- "o" = sheet with the nation flag layer
+USERLC 3 ovicbui  NONE -320 -458
+USERLC 5 vicdez   NONE -320 -458      <- sinking animation
+USERLC 6 ovicdez  NONE -320 -458
+MEDIA WATER
+LINEARSORT 128
+MOTIONSTYLE SHEEPS
+#STAND    65 1 0 0
+#MOTION_L 65 1 0 0
+#MOTION_R 65 1 0 0
+#MOTION_LB 65 1 0 0
+#MOTION_RB 65 1 0 0
+#DEATH     2 60  5 0  5 0  5 0 ... (60 pairs, all "5 0")
+#DEATHLIE1 2 1 5 1
+#ATTACK    65 3 0 0 0 0 0 0
+#BUILDLO_0 1  2  1 0  3 0
+...
+#PSTAND1   65 1  2 0
+MULTIWEAPON 360 418 0 19 245 450  255 437 ... (19 muzzle points)
+GEOMETRY 1 120 16
+RECTANGLE 0 62 232 240
+WEAPON 0 PPOINTTKOR
+ZALP 40
+WAVES 215 296 24 4  247 250 190 254  249 264 188 260  251 256 190 262
+```
+
+**Size in the archive:** `VIC.GP` alone is 1,829,733 bytes - larger than
+all seven grenadier sheets combined. The full page table and the
+stored-vs-raw comparison are merged into the size tables of section 10
+below.
+
+### Sprite size on screen
+
+The `USERLC ... NONE -320 -458` numbers are the frame's `dx/dy`: the sprite
+is drawn with its origin at (unit position + (-320, -458)), i.e. the map
+point sits at mid-hull, 458 px below the top of a nominal 640x916 canvas.
+The real pixels are smaller than that canvas - measured from the layers:
+
+| slot (of 65) | view | composed bbox | drawn px |
+|---|---|---|---|
+| 0 | bow-on | 244 x 432 | 45,925 |
+| 16 | quarter | 466 x 379 | 76,910 |
+| 32 | broadside | **597 x 330** | 79,043 |
+| max layer in file | - | 590 x 453 | - |
+
+A broadside Victoria covers a **597x330 px** rectangle - about 100x the
+bounding-box area of the standing grenadier (36x54) and ~93x its drawn
+pixels (846). That is why `RECTANGLE 0 62 232 240` exists: the click /
+selection box is a separate 232x240 rectangle, much smaller than the art.
+
+The layer chains are also simpler than a soldier's. Every `VIC.GP` slot is
+exactly **two layers** - type 5 (shadow) + type 0 (opaque body); there is no
+national-mask layer and no alpha tiers. The nation color lives only in the
+`o`-sheets: every `OVIC.GP` slot is three layers (5, 1, 0), and the type-1
+flag layer is tiny - 2,473 drawn pixels summed over all 65 directions.
+`VICBUI.GP` (under construction) uses layer type 42, the "big picture"
+LZ variant, for its hull-sized 384x298 frame. So the ship is drawn as:
+shadow LUT pass + one masked overwrite - cheaper per pixel than the
+grenadier, just over far more pixels.
+
+![Victoria layers](figures/fig13_victoria_layers.png)
+
+*The two layers of `VIC.GP` slot 32 (broadside): shadow blob, then the
+opaque hull. Last tile: the composed frame.*
+
+### Number of directions: 65 instead of 9
+
+`#STAND 65 1 0 0` says `Rotations = 65`. Plugging that into the same
+rotation code from section 6 (odd branch, newmon.cpp `ShowNewMonsters`):
+
+```cpp
+octs = ( 65 - 1 ) * 2;        // 128 direction buckets, 360/128 = 2.8125 deg
+oc2  = 64;  ocM = 64;  oc1 = 128;  sesize = 255 / 256 = 0;
+byte dir = ( ( ( RealDir + 64 ) & 255 ) * 128 ) >> 8;   // 0..127
+// dir < 64 : slot = 64 - dir + 65*frame + 4096  (mirrored, slots 64..1)
+// dir >= 64: slot = 64 - (128 - dir) + 65*frame   (plain,    slots 0..63)
+```
+
+So the renderer maps the byte-angle onto **128 buckets of 2.8 degrees**,
+filled by the **65 stored slots** - each of slots 1..63 serves one plain
+bucket and one mirrored bucket, so the 65 distinct images (~5.5 degrees
+apart) cover the full circle at 2.8-degree resolution. The grenadier's 9
+slots fill 16 buckets of 22.5 degrees the same way. `VIC.GP` has exactly 65 slots because one frame x 65 rotations
+fills the page: the whole sheet *is* the direction ring of a single pose.
+
+![Victoria directions](figures/fig12_victoria_directions.png)
+
+*Slots 0, 16, 32 of `VIC.GP` - three of the 65 stored directions, from
+bow-on (slot 0) through quarter view (slot 16) to broadside (slot 32), on a
+water-blue backdrop.*
+
+### Animations compared to the grenadier
+
+| animation | grenadier (`GRE.MD`) | Victoria (`VIC.MD`) |
+|---|---|---|
+| `STAND` | 9 rots x 1 frame (`GREP` slot 11) | 65 rots x 1 frame (`VIC` slot 0) |
+| `MOTION_L/R/LB/RB` | 9 rots x 10 frames each, contiguous ranges in `GREG` | 65 rots x **1 frame**, all the same slot as `STAND` |
+| `ATTACK` | 9 x 17 frames in `GREU`, `ATTACK2` 9 x 54 | 65 x 3 frames, **all the same slot** (`0 0 0 0`) |
+| `DEATH` | 9 x 20 frames in `GREH` | **2 rots x 60 frames of one slot** (`VICDEZ` slot 0) |
+| `DEATHLIE1` | 9 x 1 (corpse) | 2 x 1 (`VICDEZ` slot 1, the wreck) |
+| construction | - | `BUILDLO_0..3` on `VICBUI`/`OVICBUI` |
+| `PSTAND` | 9 x 1 (`GREY` slot 4) | `#PSTAND1`: 65 x 1 on `OVIC` (the flag-carrying sheet) |
+
+Three things follow from the table:
+
+* **The ship has no walk cycle.** `MOTION_L/R/LB/RB` all point at frame 0
+  of `VIC.GP`, so "moving" is expressed purely by changing position and
+  rotating through the 65 direction slots - there is nothing to bob. This
+  matches the movement code: `MOTIONSTYLE SHEEPS` selects
+  `PerformMotion2` (motion.cpp), a velocity-based mover (`RealVx/RealVy`,
+  not the frame-locked `OneStepDX/DY`), and calls `CreateTrace`
+  (shiptrace.cpp), which draws the wake ripples from the `WAVES` line (4
+  wave points around the hull). `GEOMETRY 1 120 16` gives `MotionDist = 16`
+  = 1 px per frame, half the grenadier's 2 px per frame (`MotionDist = 32`).
+* **The attack animation is a placeholder; the cannon fire is another
+  object.** `#ATTACK 65 3 0 0 0 0 0` replays the standing frame 3 times.
+  The actual broadside is `WEAPON 0 PPOINTTKOR` (cannonball) spawned at the
+  19 `MULTIWEAPON` muzzle points along the hull, `ZALP 40` shots per salvo
+  (`MaxZalp`, counted down in `NZalp`) - the same "projectile as a separate
+  game object" trick as the grenade, but with 19 spawn points instead of
+  one `ActivePt`.
+* **Death is a held frame, not a sequence.** `#DEATH 2 60 5 0 ...` lists
+  60 frames that all point at slot 0 of `VICDEZ.GP` (2 rotations): the
+  sinking ship is one static image shown for 60 ticks, and once
+  `Sdoxlo > 100` `ShowNewMonsters` files it with `AV_TRANSPARENT` - the
+  wreck fades into the water instead of playing frames. `DEATHLIE1` leaves
+  slot 1 as the permanent wreck.
+
+One more ship-only line: `LINEARSORT 128` sets `LinearLength`, and in
+`ShowNewMonsters` that switches `AddPoint` to `AddLine` - the sprite is
+inserted into the Z-buffer as a **line segment 128 px long along the
+facing** (`dx = 64*cos(dir)`, `dy = 64*sin(dir)/2`), so the 600-pixel hull
+is depth-sorted scanline by scanline along its length and other objects can
+correctly overlap the bow or the stern. A grenadier's 36-pixel figure is
+sorted as a single point; a battleship needs the line.
+
+## 10. Why the format looks like this: RAM, bandwidth, 2001
 
 The design is usually filed under "disk compression", but disk was the
 least of it. The real budgets of a 2001 software renderer were RAM,
 framebuffer bandwidth and CPU - and the format optimizes all three.
 
-**Memory footprint, measured.** Take the actual walking sheet,
-`GREG.GP`:
+**Memory footprint, measured.** Two real sheets, counted straight from
+`all.gsc` - the grenadier's walking sheet `GREG.GP` (180 slots) and the
+Victoria's direction ring `VIC.GP` (65 slots, see section 9):
 
-| representation | size |
-|---|---|
-| as stored: 180 slots, all layers compressed | 215 KB |
-| the same pixels as raw 8-bit indexed bitmaps | 1.27 MB (6x more) |
-| the same pixels as raw 32-bit RGBA | 5.09 MB (24x more) |
+| representation | `GREG.GP` | `VIC.GP` |
+|---|---|---|
+| as stored in the archive, all layers compressed | 215 KB | 1,786 KB |
+| the same pixels as raw 8-bit indexed bitmaps | 1.27 MB (6x more) | 15.2 MB (8.7x more) |
+| the same pixels as raw 32-bit RGBA | 5.09 MB (24x more) | 60.7 MB (35x more) |
+| bounding-box pixels of all layers, counted from the file | 1,333,928 | 15,910,888 |
+| actually drawn (per-line mask) | 12% | 28% |
 
-(Counted from the file itself: the bounding boxes of all layers of all 180
-slots total 1,333,928 pixels.) A "plain RGBA texture" version of one unit
-sheet would have been **24 times larger on disk and in RAM** - and the
-game carries hundreds of sheets, on machines with 64-128 MB of RAM. At the
+The Victoria's pages, all measured in the archive (`VIC.MD` references the
+six without the `T` suffix):
+
+| page | slots | size in archive | contents |
+|---|---|---|---|
+| `VIC.GP` | 65 | **1,829,733 B** | the ship, all directions |
+| `OVIC.GP` | 65 | 740,625 B | ship + nation-flag layer |
+| `OVICT.GP` | 65 | 740,625 B | byte-size twin of `OVIC.GP`; no unit `.md` references it |
+| `VICBUI.GP` | 4 | 226,509 B | construction stages |
+| `OVICBUI.GP` | 4 | 49,293 B | construction stages + flag |
+| `VICDEZ.GP` | 4 | 114,560 B | sinking / wreck |
+| `OVICDEZ.GP` | 4 | 53,597 B | sinking / wreck + flag |
+
+One ship page, `VIC.GP`, is 7.7x larger than the grenadier's biggest sheet
+(`GREU.GP`, 239 KB) and larger than all seven grenadier sheets combined
+(1.43 MB); the six pages `VIC.MD` references total ~3.0 MB. A "plain RGBA
+texture" version of one unit sheet would have been **24 times larger on
+disk and in RAM** (35x for the ship) - and the game carries hundreds of
+sheets, on machines with 64-128 MB of RAM. At the
 player's typical 1440x900 resolution, the *framebuffers alone* would cost
 5.2 MB each in RGBA versus 1.3 MB indexed - and the game keeps two of
 them.
@@ -614,7 +782,8 @@ written by the CPU across the memory bus. Indexed color quarters the bytes
 moved per pixel versus RGBA (one byte instead of four). On top of that,
 the per-line mask means skipped pixels cost *nothing at all* - no read, no
 write, no blend. For `GREG.GP` only **12% of the layers' bounding-box area
-is actually drawn**; the other 88% of the sprite rectangles never touch
+is actually drawn** (28% for `VIC.GP` - a hull fills its rectangle more
+than a running soldier); the rest of the sprite rectangles never touch
 memory. A naive RGBA blitter would read, blend and write every one of those
 pixels (even with alpha testing, it still reads the source and tests).
 
@@ -637,7 +806,7 @@ memory-mapped), and `LoadGP`'s cache unpacks only the frames that are
 actually drawn this frame - classic streaming for machines that could not
 hold even the indexed version of everything at once.
 
-## 10. The same ideas elsewhere
+## 11. The same ideas elsewhere
 
 Nothing here is exotic; this is what sprite engines of the era looked
 like, each solving the same problems (indexed color, player recoloring,

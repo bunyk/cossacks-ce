@@ -139,7 +139,6 @@ void SFLB_CreateGamesList( ListBox* LB );
 char* GetTextByID( char* ID );
 
 void PrepareGameMedia( byte myid, bool );
-void RandomMapDialog( char* Result );
 bool WaitingHostGame( int ); // interface.cpp lobby wrappers
 bool WaitingJoinGame( int );
 bool CreateMultiplaterInterface(); // mplayer.cpp
@@ -181,15 +180,7 @@ extern bool KeyPressed;
 bool GameNeedToDraw;
 int GameMode;
 
-#ifdef _WIN32
-extern int RES[8][8];
-extern byte mapPos[16];
-void PreLoadExtendedMap( char* s );
-void PostLoadExtendedMap( char* s );
-void InitGame();
-void MFix();
 
-#endif // _WIN32 (nsmaplx/ly, WarSound...; LoPanel moved out below - used by GSSetup800)
 // Sound volumes: DirectSound-style slider positions (0..100). SDL_AppInit zeroes these
 // before restoring mode.dat, so the zero-init only covers the very first
 // run before a mode.dat exists.
@@ -546,42 +537,6 @@ bool InitScreen();
 void GSSetup800();
 void DrawAllScreen();
 
-#ifdef _WIN32
-int OldSizeX;
-int OldSizeY;
-int mul3( int );
-//extern LPDIRECTDRAW lpDD;
-
-extern int COPYSizeX;
-extern int RealLx;
-extern int RealLy;
-void SERROR()
-{
-	PlayEffect( 0, 0, 0 );
-	int time = GetSDLTickCount();
-	do
-	{
-	} while ( GetSDLTickCount() - time < 1000 );
-};
-void SERROR1()
-{
-	PlayEffect( 1, 0, 0 );
-	int time = GetSDLTickCount();
-	do
-	{
-	} while ( GetSDLTickCount() - time < 1000 );
-};
-void SERROR2()
-{
-	PlayEffect( 2, 0, 0 );
-	int time = GetSDLTickCount();
-	do
-	{
-	} while ( GetSDLTickCount() - time < 1000 );
-};
-
-#endif // _WIN32
-
 extern int SCRSZY;
 void ClearScreen()
 {
@@ -718,107 +673,6 @@ int menu_x_off = 0;
 int menu_y_off = 0;
 int menu_hint_x = 18;
 int menu_hint_y = 701;
-
-#ifdef _WIN32
-bool MPL_JoinGame( int ID )
-{
-	LocalGP BTNS( "Interface\\Game_Select" );
-	LocalGP FONT1( "romw" );
-	LocalGP FONT2( "romw1" );
-	RLCFont FontA( FONT2.GPID );
-	RLCFont FontP( FONT1.GPID );
-	LoadFog( 2 );
-	SQPicture Back( "Interface\\Game_Select_Background.bmp" );
-	DialogsSystem MENU( menu_x_off, menu_y_off );
-	MENU.addPicture( nullptr, 0, 0, &Back, &Back, &Back );
-	GP_Button* Join = MENU.addGP_Button( nullptr, 93, 594, BTNS.GPID, 0, 1 );
-	Join->OnUserClick = &MMItemChoose;
-	Join->UserParam = mcmJoin;
-	GP_Button* Refresh = MENU.addGP_Button( nullptr, 238, 594, BTNS.GPID, 2, 3 );
-	Refresh->OnUserClick = &MMItemChoose;
-	Refresh->UserParam = mcmRefresh;
-	GP_Button* Cancel = MENU.addGP_Button( nullptr, 384, 594, BTNS.GPID, 4, 5 );
-	Cancel->OnUserClick = &MMItemChoose;
-	Cancel->UserParam = mcmCancel;
-	ListBox* LB = MENU.addGP_ListBox( nullptr, 92, 172, 15, BTNS.GPID, 6, 26, &WhiteFont, &YellowFont, nullptr );
-	LBEnumerateSessions( LB, ID );
-	LB->CurItem = -1;
-	LB->M_Over = 9;
-	if ( LB->NItems )
-	{
-		LB->CurItem = 0;
-	}
-StartJoin:;
-	int pp = 1;
-	do
-	{
-		ItemChoose = -1;
-		do
-		{
-			ProcessMessages();
-			if ( LB->CurItem == -1 )
-			{
-				Join->Enabled = false;
-			}
-			else
-			{
-				Join->Enabled = true;
-			}
-			MENU.MarkToDraw();
-			MENU.ProcessDialogs();
-			for ( int i = 0; i < LB->NItems; i++ )
-			{
-				char nps[16];
-				int ppr = ( LB->GetItem( i )->Param1 ) & 65535;
-				sprintf( nps, "%d/%d", ppr & 255, ppr >> 8 );
-				if ( LB->CurItem == i )
-				{
-					ShowString( LB->x + 364, LB->y + 6 + i * 26, nps, &WhiteFont );
-				}
-				else
-				{
-					ShowString( LB->x + 364, LB->y + 6 + i * 26, nps, &YellowFont );
-				}
-			}
-
-			MENU.RefreshView();
-
-			if ( ItemChoose == mcmRefresh )
-			{
-				LBEnumerateSessions( LB, ID );
-				ItemChoose = -1;
-				if ( !LB->NItems )
-				{
-					LB->CurItem = -1;
-				}
-			}
-
-			if ( pp )
-			{
-				SlowLoadPalette( "2\\agew_1.pal" );
-				pp = 0;
-			}
-		} while ( ItemChoose == -1 );
-
-		if ( ItemChoose == mcmJoin && LB->CurItem != -1 )
-		{
-			int BID = LB->GetItem( LB->CurItem )->Param1 >> 16;
-			if ( BID )
-			{
-				SlowUnLoadPalette( "2\\agew_1.pal" );
-				if ( !ProcessOneBattle( BID - 1 ) )
-				{
-					SlowUnLoadPalette( "2\\agew_1.pal" );
-					goto StartJoin;
-				}
-			}
-		}
-	} while ( ItemChoose != mcmCancel );
-	SlowUnLoadPalette( "2\\agew_1.pal" );
-	return false;
-}
-
-#endif // _WIN32
 
 //--------------------HOST THE SESSION---------------------//
 extern char IPADDR[128];
@@ -8681,9 +8535,7 @@ void EditGame()
 				strcpy( GameName, USERMISSPATH );
 				RUNMAPEDITOR = 0;
 			}
-			//SERROR2();
 			PreDrawGameProcess();
-			//SERROR1();
 
 			ProcessMessages();
 			//if(GameNeedToDraw){
@@ -8693,7 +8545,6 @@ void EditGame()
 
 			FastScreenProcess();
 			//DrawAllScreen();
-			//SERROR();
 
 			ProcessMessages();
 
@@ -11301,113 +11152,6 @@ void PrepareGameMedia( byte myid, bool SaveNR )
 		}
 	}
 }
-#ifdef _WIN32
-
-//----------------------RANDOM MAP GENERATING DIALOG------------------
-void RandomMapDialog( char* Result )
-{
-	DialogsSystem DSY( ( RealLx - 352 ) >> 1, ( RealLy - 352 ) >> 1 );
-	RLCFont FONT1( "rf32y.rlc" );
-	RLCFont FONT2( GETS( "@SMPASSIVE" ) );
-	RLCFont FONT3( GETS( "@SMACTIVE" ) );
-	DSY.addTextButton( nullptr, 352 >> 1, 20, GETS( "@RMIHEADER" ), &FONT1, &FONT1, &FONT1, 1 );
-	int y = 60;
-	int x0 = 20;
-	int x = 195;
-	RandomMapDesc RMP;
-	RMP.Load( "Terrain\\Res.dat" );
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMISTYLE" ), &FONT2, &FONT2, &FONT2, 0 );
-	ComboBox* CBSTYLE = DSY.addComboBox( nullptr, x, y, 144, 25, 20, 0, 255, &FONT2, &FONT3, nullptr );
-	for ( int p = 0; p < RMP.NSTY; p++ )
-	{
-		CBSTYLE->AddLine( RMP.STY[p].Name );
-	};
-	y += 40;
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMIMOUNTAINS" ), &FONT2, &FONT2, &FONT2, 0 );
-	ComboBox* CBMOUNT = DSY.addComboBox( nullptr, x, y, 144, 25, 20, 0, 255, &FONT2, &FONT3, nullptr );
-	for ( int p = 0; p < RMP.NRelief; p++ )
-	{
-		CBMOUNT->AddLine( RMP.Relief[p] );
-	};
-	y += 40;
-	int CurSty = 0;
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMIPLAYERS" ), &FONT2, &FONT2, &FONT2, 0 );
-	ComboBox* CBPLAY = DSY.addComboBox( nullptr, x, y, 144, 25, 20, 0, 255, &FONT2, &FONT3, nullptr );
-	for ( int p = 0; p < RMP.STY[CurSty].NPl; p++ )
-	{
-		char ccc[16];
-		sprintf( ccc, " %d", RMP.STY[CurSty].Players[p].NPlayers );
-		CBPLAY->AddLine( ccc );
-	};
-	y += 40;
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMIRESSTART" ), &FONT2, &FONT2, &FONT2, 0 );
-	ComboBox* CBRESST = DSY.addComboBox( nullptr, x, y, 144, 25, 20, 0, 255, &FONT2, &FONT3, nullptr );
-	for ( int p = 0; p < RMP.NRES; p++ )
-	{
-		CBRESST->AddLine( RMP.RES[p].Name );
-	};
-	y += 40;
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMIRESTOT" ), &FONT2, &FONT2, &FONT2, 0 );
-	ComboBox* CBRESTOT = DSY.addComboBox( nullptr, x, y, 144, 25, 20, 0, 255, &FONT2, &FONT3, nullptr );
-	for ( int p = 0; p < RMP.NMINES; p++ )
-	{
-		CBRESTOT->AddLine( RMP.MINES[p].Name );
-	};
-	y += 40;
-	DSY.addTextButton( nullptr, x0, y, "Code:", &FONT2, &FONT2, &FONT2, 0 );
-	char ccc[128];
-	sprintf( ccc, "%d", GetSDLTickCount() & 0b111111111111111);
-	InputBox* IB = DSY.addInputBox( nullptr, x, y, ccc, 20, 144, 28, &FONT2, &FONT2 );
-	y += 40;
-	TextButton* OkBtn = DSY.addTextButton( nullptr, 10 + 164 / 2, 315, "OK", &FONT2, &FONT3, &FONT3, 1 );
-	OkBtn->UserParam = mcmOk;
-	OkBtn->OnUserClick = &MMItemChoose;
-	TextButton* CancelBtn = DSY.addTextButton( nullptr, 180 + 164 / 2, 315, "ОТМЕНА", &FONT2, &FONT3, &FONT3, 1 );
-	CancelBtn->UserParam = mcmCancel;
-	CancelBtn->OnUserClick = &MMItemChoose;
-
-	ItemChoose = -1;
-	do
-	{
-		ProcessMessages();
-		if ( KeyPressed && ( LastKey == SDLK_RETURN || LastKey == SDLK_ESCAPE ) )
-		{
-			KeyPressed = false;
-			ItemChoose = mcmOk;
-		};
-		DrawStdBar( DSY.BaseX, DSY.BaseY, DSY.BaseX + 351, DSY.BaseY + 351 );
-		DSY.MarkToDraw();
-		DSY.ProcessDialogs();
-		DSY.RefreshView();
-		if ( CurSty != CBSTYLE->CurLine )
-		{
-			CurSty = CBSTYLE->CurLine;
-			CBPLAY->Clear();
-			for ( int p = 0; p < RMP.STY[CurSty].NPl; p++ )
-			{
-				char ccc[16];
-				sprintf( ccc, " %d", RMP.STY[CurSty].Players[p].NPlayers );
-				CBPLAY->AddLine( ccc );
-			};
-		};
-	} while ( ItemChoose == -1 );
-	UnPress();
-	if ( ItemChoose == mcmOk )
-	{
-		int r = GetSDLTickCount() & 0b1111111111111111;
-		sscanf( ccc, "%d", &r );
-		int q = CBSTYLE->CurLine + ( CBPLAY->CurLine << 4 ) + ( CBMOUNT->CurLine << 8 ) + ( CBRESST->CurLine << 12 ) +
-			( CBRESTOT->CurLine << 16 );
-		sprintf( Result, "RND %X %X 11111111.m3d", r, q );
-	}
-	else
-	{
-		Result[0] = 0;
-	}
-}
-
-#endif // _WIN32 (RandomMapDialog above has no callers; the random-map
-// presets defined below are shared data)
 
 // Random-map generator presets: terrain style index, starting resources
 // and resources-on-map index (values index RandomMapDesc tables).
@@ -11415,84 +11159,6 @@ int RM_LandType = 0;
 int RM_Resstart = 0;
 int RM_Restot = 0;
 
-#ifdef _WIN32
-void EnterRandomParams()
-{
-	DialogsSystem DSY( ( RealLx - 64 * 6 ) >> 1, ( RealLy - 64 * 5 ) >> 1 );
-	LocalGP vinB( "vinBig" );
-	LocalGP vin( "vin" );
-	RLCFont fnti( vinB.GPID );
-	RLCFont fntir( vinB.GPID );
-	fntir.SetRedColor();
-	RLCFont fntis( vin.GPID );
-	RLCFont fntisr( vin.GPID );
-	fntisr.SetRedColor();
-	DSY.addTextButton( nullptr, 32 * 6, 10, GetTextByID( "AIPARM" ), &BigYellowFont, &BigYellowFont, &BigYellowFont, 1 );
-	int y = 85;
-	int x0 = 10;
-	int x = 200;
-	RandomMapDesc RMP;
-	RMP.Load( "Terrain\\Res.dat" );
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMISTYLE" ), &fntis, &fntis, &fntis, 0 );
-	ComboBox* CBSTYLE = DSY.addComboBox( nullptr, x, y, 164, 25, 20, 0x3B, 255, &fntisr, &fntis, nullptr );
-	for ( int p = 0; p < RMP.NSTY; p++ )
-	{
-		CBSTYLE->AddLine( RMP.STY[p].Name );
-	};
-	CBSTYLE->CurLine = RM_LandType;
-	y += 50;
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMIRESSTART" ), &fntis, &fntis, &fntis, 0 );
-	ComboBox* CBRESST = DSY.addComboBox( nullptr, x, y, 164, 25, 20, 0x3B, 255, &fntisr, &fntis, nullptr );
-	for ( int p = 0; p < RMP.NRES; p++ )
-	{
-		CBRESST->AddLine( RMP.RES[p].Name );
-	};
-	CBRESST->CurLine = RM_Resstart;
-	y += 45;
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMIRESTOT" ), &fntis, &fntis, &fntis, 0 );
-	ComboBox* CBRESTOT = DSY.addComboBox( nullptr, x, y, 164, 25, 20, 0x3B, 255, &fntisr, &fntis, nullptr );
-	for ( int p = 0; p < RMP.NMINES; p++ )
-	{
-		CBRESTOT->AddLine( RMP.MINES[p].Name );
-	};
-	CBRESTOT->CurLine = RM_Restot;
-	y += 55;
-	TextButton* OkBtn = DSY.addTextButton( nullptr, 92 - 5, y, "OK", &fntir, &fnti, &fnti, 1 );
-	OkBtn->UserParam = mcmOk;
-	OkBtn->OnUserClick = &MMItemChoose;
-	TextButton* CancelBtn = DSY.addTextButton( nullptr, 180 + 82, y, "Cancel", &fntir, &fnti, &fnti, 1 );
-	CancelBtn->UserParam = mcmCancel;
-	CancelBtn->OnUserClick = &MMItemChoose;
-
-	ItemChoose = -1;
-	do
-	{
-		int x0 = ( RealLx - 64 * 6 ) >> 1;
-		int y0 = ( RealLy - 64 * 4 ) >> 1;
-		DrawPaperPanel( x0, y0, x0 + 64 * 6, y0 + 64 * 4 );
-		ProcessMessages();
-		DSY.MarkToDraw();
-		DSY.ProcessDialogs();
-		DSY.RefreshView();
-		if ( KeyPressed )
-		{
-			if ( LastKey == SDLK_RETURN )ItemChoose = mcmOk;
-			if ( LastKey == SDLK_ESCAPE )ItemChoose = mcmCancel;
-			KeyPressed = false;
-		};
-	} while ( ItemChoose == -1 );
-
-	if ( ItemChoose == mcmOk )
-	{
-		RM_LandType = CBSTYLE->CurLine;
-		RM_Resstart = CBRESST->CurLine;
-		RM_Restot = CBRESTOT->CurLine;
-	}
-
-	UnPress();
-}
-#endif // _WIN32 (RandomMapDialog/EnterRandomParams above have no callers;
-//the single-mission starter below is portable - dialog system + PrepareGameMedia)
 bool ProcessSingleMission( int n, int Diff )
 {
 	MaxPingTime = 0;

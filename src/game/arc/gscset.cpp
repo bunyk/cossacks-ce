@@ -7,11 +7,8 @@
 #include "gsctypes.h"
 #include "gscarch.h"
 #include "gscset.h"
-#ifndef _WIN32
 #include <unistd.h>
-#endif
 
-#ifndef _WIN32
 #include <string>
 #include <dirent.h>
 #include <ctype.h>
@@ -89,7 +86,6 @@ static bool WildMatchCI( const char* pat, const char* name )
     while (*p == '*') p++;
     return *p == 0;
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
@@ -146,30 +142,7 @@ LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool onlyInArchive )
 			pArchList = pArchList->m_NextArch;
 		}
 	}
-#ifdef _WIN32
-	else
-	{
-		gFile = new TGSCfile;
-		gFile->m_Flags = 0;
-		gFile->m_Position = 0;
-		gFile->m_Arch = NULL;
-
-		gFile->m_FileHandle = DWORD( CreateFile( lpcsFileName,
-			GENERIC_READ | GENERIC_WRITE,
-			FILE_SHARE_READ | FILE_SHARE_WRITE,
-			NULL,
-			OPEN_EXISTING,
-			FILE_ATTRIBUTE_NORMAL,
-			0 ) );
-
-		if (gFile->m_FileHandle == (DWORD) INVALID_HANDLE_VALUE)  // На всякий случай
-		{
-			delete gFile;
-			return NULL;
-		}
-	}
-#else
-	// Linux: fall back to plain stdio if not found in archive
+	// Fall back to plain stdio if not found in archive
 	{
 		std::string path = resolvePathCI( toLinuxPath( lpcsFileName ) );
 		FILE* fp = fopen( path.c_str(), "rb" );
@@ -180,7 +153,6 @@ LPGSCfile CGSCset::gOpenFile( LPCSTR lpcsFileName, bool onlyInArchive )
 		gFile->m_Arch = nullptr;
 		gFile->m_fp = fp;
 	}
-#endif
 
 	return gFile;
 }

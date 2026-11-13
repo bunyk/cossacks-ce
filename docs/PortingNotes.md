@@ -43,6 +43,11 @@ techniques, and the recurring-bug checklist for newly enabled code.
   (chunk stride = signature + 4 + size; FAT entry → `~m_Offset` +
   dataStart(14+81*N), XOR key 0x87) and compare with real signature positions.
   `tools/gsc_extract.py gamedata/all.gsc "PATH\\FILE"` pulls any archive file.
+  `build/Debug/gscbrowser` can do the same in C++ and render through the real
+  game renderer, headless: `--list <arch>`, `--export <arch> <file> <out>`,
+  `--render <arch> <file.gp> <out.ppm|.bmp> [frame|-1]` (all frames with -1;
+  .bmp re-encoded; .msp/.smp print their TSOC/PMAS structure). PPM/BMP are
+  written natively; `convert out.ppm out.png` for PNG.
 
 ## Recurring bug patterns (checklist for any newly enabled file)
 

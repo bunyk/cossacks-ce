@@ -8,8 +8,8 @@ full of pointers. All code references are to this repository; every byte
 example is real, decoded from `gamedata/taras.sav` (6,991,590 bytes,
 save name "taras", format version 285). The writer is `PreSaveGame` and
 the reader is `SFLB_PreLoadGame`, both in `src/game/loadsave.cpp`; the
-file itself is produced by `SaveGame` (loadsave.cpp:2959) and consumed
-by `SFLB_LoadGame` (loadsave.cpp:3183).
+file itself is produced by `SaveGame` and consumed
+by `SFLB_LoadGame`.
 
 ## 0. The 60-second version
 
@@ -20,8 +20,8 @@ is a fixed sequence of sections, written and read **in exactly the same
 order**:
 
 ```
-SaveGame(name, desc, ID)                    loadsave.cpp:2959
-  └─ PreSaveGame(SB, desc, ID)              loadsave.cpp:2865
+SaveGame(name, desc, ID)
+  └─ PreSaveGame(SB, desc, ID)
        header: "KASF", version, ID, players, save name, camera, player names
        ├─ SaveMap          msx,msy, map name, light; RLE-compressed overlay maps
        ├─ SaveNations      'NATI'  per-nation stats, units, upgrades, resources
@@ -37,11 +37,11 @@ SaveGame(name, desc, ID)                    loadsave.cpp:2959
        ├─ SaveActiveObjects          scenario active zones/groups
        ├─ SaveMission                campaign/scenario state
        └─ tail: economy struct, 0xFFFF marker, clocks, CURIGAME struct, ...
-  └─ SB.SaveToFile(f)  -> one RBlockWrite  (SaveBuf, loadsave.cpp:106)
+  └─ SB.SaveToFile(f)  -> one RBlockWrite  (`SaveBuf::SaveToFile`)
 
-SFLB_LoadGame(fnm, LoadNation)               loadsave.cpp:3183
+SFLB_LoadGame(fnm, LoadNation)
   └─ SB.LoadFromFile(f)  -> whole file into RAM, parse cursor
-  └─ SFLB_PreLoadGame(SB, LoadNation)        loadsave.cpp:2996 — same order
+  └─ SFLB_PreLoadGame(SB, LoadNation)        — same order
 ```
 
 Two ideas carry the whole design:
@@ -49,9 +49,9 @@ Two ideas carry the whole design:
 1. **Raw struct dumps.** Most sections are `xBlockWrite(SB, &someStruct,
    sizeof someStruct)` — the in-memory bytes are copied verbatim. The
    format is therefore locked to the exact struct layout *and* to
-   little-endian x86; that is what `sfVersion = 285` (main.cpp:554) is
-   for: the load menu only lists saves whose version field matches the
-   running build (`InstallName`, interface.cpp:6546).
+   little-endian x86; that is what `sfVersion = 285` is for in this
+   build: the load menu only lists saves whose version field matches the
+   running build (see `InstallName`).
 2. **Pointers are never stored.** Every pointer is replaced by an index
    or an offset before writing (object index into `Group[]`, animation
    offset relative to `newMons`, order function as a small table index,
@@ -61,7 +61,7 @@ Two ideas carry the whole design:
 
 ## 1. The container: `SaveBuf`, `xBlockWrite`, `xBlockRead`
 
-`SaveBuf` (loadsave.cpp:67) is just a growing byte buffer:
+`SaveBuf` is just a growing byte buffer:
 
 ```cpp
 class SaveBuf {
@@ -90,7 +90,7 @@ loader's `LOADMES` just skips 16 bytes. They are why strings like
 
 ```cpp
 xBlockWrite( SB, &sfHeader, 4 );    // static int sfHeader = 'FSAK';
-xBlockWrite( SB, &sfVersion, 4 );   // int sfVersion = 285 (main.cpp:554)
+xBlockWrite( SB, &sfVersion, 4 );   // sfVersion = 285 in this build
 xBlockWrite( SB, &ID, 4 );          // save serial
 xBlockWrite( SB, &NNN, 2 );         // number of players (non-empty PINFO names)
 xBlockWrite( SB, &LOADNATMASK, 4 ); // bitmask of nations present (multiplayer resume)
@@ -129,17 +129,17 @@ Decoded header of `gamedata/taras.sav` (first 0x8C = 140 bytes):
 Note the player names are fixed 32-byte fields, not length-prefixed —
 only the save description has a length byte. The load/save menu does
 not even read the name back for the list (the `RBlockRead` calls are
-commented out in `InstallName`, interface.cpp:6562-6566); it only
+commented out in `SFLB_CreateGamesList`); it only
 checks magic + version to decide whether to show the file at all, and
 adds `*.sav` files whose 4-byte version word equals `sfVersion`. Legacy
 saves with signature `'[CER'` / `']CER'` are treated as current.
-`CreateMaskForSaveFile` (loadsave.cpp:2830) similarly reads just offset
+`CreateMaskForSaveFile` similarly reads just offset
 14 to learn `LOADNATMASK` for multiplayer resume.
 
 ## 3. Section: the map — `SaveMap` / `LoadMap`
 
 ```cpp
-void SaveMap( SaveBuf* SB ) {                       // loadsave.cpp:760
+void SaveMap( SaveBuf* SB ) {
     xBlockWrite( SB, &msx, 4 );                     // map size in cells: 960, 960 in taras.sav
     xBlockWrite( SB, &msy, 4 );
     xBlockWrite( SB, CurrentMap, 64 );              // "RN1 6F99 20210 000003JF 0000000.m3d"
@@ -158,7 +158,7 @@ In `taras.sav` this section starts at 0x8C: `msx = msy = 960`,
 `CurrentMap = "RN1 6F99 20210 000003JF 0000000.m3d"`, light
 `(0, 142, 213)`, then the first RLE block whose raw-size field is
 `00 00 08 00` = **524288** = `MAPSY*BMSX` = 2048 x 256, i.e. this save
-was made on a "large" map (`ADDSH = 2`, loadsave.cpp:3464:
+was made on a "large" map (`ADDSH = 2`; in `SetupArrays`:
 `MAPSY = 512 << ADDSH`, `BMSX = 64 << ADDSH`).
 
 **The terrain itself is not in the .sav.** `LoadMap` calls
@@ -168,7 +168,7 @@ overlays* on top of the terrain: which cells are occupied
 (`UnitsField.MapV`) and the two motion/passability fields
 (`MFIELDS[0..1].MapV`), plus optionally the fish-amount map.
 
-**`SaveRLE1` / `LoadRLE1`** (loadsave.cpp:646/730) is a tiny
+**`SaveRLE1` / `LoadRLE1`** is a tiny
 byte-oriented RLE. Layout of one block:
 
 ```
@@ -250,7 +250,7 @@ xBlockWrite( SB, &pp, 4 );   // LoLayer as offset from newMons
 ```
 
 The raw slice from `NeedPath` to `Inside` is the whole POD prefix of
-`OneObject` (mapdiscr.h:1042): `Index`, `Serial`, `NIndex` (unit type
+`OneObject` (in `mapdiscr.h`): `Index`, `Serial`, `NIndex` (unit type
 within the nation), `NNUM` (nation), position `RealX/RealY`, facing
 `RealDir`, animation frame `NewCurSprite`, HP, resources carried, etc.
 Everything after `Inside` is pointers and gets rebuilt on load:
@@ -293,7 +293,7 @@ where they appear in `taras.sav`.
 | 11 | `LS_SaveTopology` | none | `NAreas`, per area raw `Area` + mines + links, `MotionLinks` and `LinksDist` (NAreas^2 words each), `TopRef` (TopLx*TopLy words), then the dynamic-topology update state (flags, changed-area list, bounds, temp matrices) |
 | 12 | `SaveActiveObjects` | none | `NAZones`, `NAGroups`, per zone/group the raw struct + length-prefixed name; groups also carry `Units[]` and `Serials[]` |
 | 13 | `SaveMission` | none | `CurrentMission`, scenario DLL handle, `PlName[64]`, player data, campaign/mission indices, `SCENINF` time/trigger/luminous-spot arrays, `TextDisable[26]`, saved scenario zones, unit groups, `Victory`/`LooseGame` bytes |
-| 14 | tail (in `PreSaveGame`) | `FF FF` marker | raw `ECO` economy struct (`GetEconomyData` = `sizeof(ECO)`, economy.cpp:530), `word 0xFFFF`, `rpos`(2), `REALTIME`(4), `tmtmt`(4), byte `1`, `CITY[i].Difficulty[8]`, `PeaceTimeLeft/MaxPeaceTime/PeaceTimeStage`(4 each), `CURTMTMT`(4), `GameTime`(4), `sz`(4) + raw `CURIGAME` struct (`GetCurGamePtr` = `sizeof(CURIGAME)`, ir_main.cpp:1394), 7 state ints (`BalloonState`, `CannonState`, `NoArtilleryState`, `XVIIIState`, `DipCentreState`, `ShipyardState`, `MarketState`), `MyNation` **written as 8 bytes**, `NatRefTBL`(8), byte `2`, `COMPSTART`(16), `SaveState`(1), `GMID[64]` (always empty) |
+| 14 | tail (in `PreSaveGame`) | `FF FF` marker | raw `ECO` economy struct (`GetEconomyData` = `sizeof(ECO)`, in economy.cpp), `word 0xFFFF`, `rpos`(2), `REALTIME`(4), `tmtmt`(4), byte `1`, `CITY[i].Difficulty[8]`, `PeaceTimeLeft/MaxPeaceTime/PeaceTimeStage`(4 each), `CURTMTMT`(4), `GameTime`(4), `sz`(4) + raw `CURIGAME` struct (`GetCurGamePtr` = `sizeof(CURIGAME)`, in ir_main.cpp), 7 state ints (`BalloonState`, `CannonState`, `NoArtilleryState`, `XVIIIState`, `DipCentreState`, `ShipyardState`, `MarketState`), `MyNation` **written as 8 bytes**, `NatRefTBL`(8), byte `2`, `COMPSTART`(16), `SaveState`(1), `GMID[64]` (always empty) |
 
 The tail of `taras.sav` matches this exactly: `... FF FF` (marker),
 `00 00` (rpos), `FF FF FF 00` (REALTIME), ... then near the end
@@ -302,8 +302,8 @@ The tail of `taras.sav` matches this exactly: `... FF FF` (marker),
 (`NatRefTBL`), `02`, the 16-byte `COMPSTART` starting `00 00 71 94
 72 13 ...`, `SaveState = 00`, and 64 zero bytes of `GMID`.
 
-The load side mirrors this order exactly in `SFLB_PreLoadGame`
-(loadsave.cpp:2996): `LoadMap, LoadNations, LoadObjects,
+The load side mirrors this order exactly in `SFLB_PreLoadGame`:
+`LoadMap, LoadNations, LoadObjects,
 LoadSelection, LoadWalls, LoadSprites, LoadAnmObj, Load3DBars,
 LoadCost, LoadAI, LS_LoadTopology, LoadActiveObjects, LoadMission`,
 then the tail. Two details worth knowing:
@@ -311,21 +311,21 @@ then the tail. Two details worth knowing:
 * After loading, the engine **recomputes derived state** rather than
   reading it: `ResearchIslands()`, `ResearchCurrentIsland(i)`,
   `SetMonstersInCells()`, `GNFO.Setup()`, `CreateMiniMap()`.
-* The `LoadNation` flag (single-player load passes 1,
-  interface.cpp:6773; multiplayer passes 0, mplayer.cpp:3199) only
+* The `LoadNation` flag (single-player load passes 1 from the menu code;
+  multiplayer passes 0 in `LoadSaveFile`) only
   controls whether the final `MyNation`/`NatRefTBL` block is applied —
   in multiplayer every client keeps its own nation.
 
 ## 7. How a save is triggered
 
-* Menu save: `SaveGame(fnm, Messtr, ID)` (interface.cpp:7254) ->
+* Menu save: `SaveGame(fnm, Messtr, ID)` from the save menu
+  (`ProcessGSaveGame`) ->
   `PreSaveGame` + `RRewrite` (file created/truncated); the `.sav`
-  extension is appended if missing (loadsave.cpp:2968).
-* Autosave: `SaveGame("AUTO.sav", "auto.sav", 0)` from the main loop
-  (main.cpp:1496).
+  extension is appended if missing (inside `SaveGame`).
+* Autosave: `SaveGame("AUTO.sav", "auto.sav", 0)` from the main loop.
 * Multiplayer sync saves go through `SaveGame(str, Name, ID)`
-  (multi.cpp:2942); `SFLB_LoadGame(SaveFileName, 0)` resumes them
-  (mplayer.cpp:3199).
+  (`SaveNetworkGame`); `SFLB_LoadGame(SaveFileName, 0)` resumes them
+  (`LoadSaveFile`).
 
 ## 8. Appendix: checklist for a naive .sav parser
 

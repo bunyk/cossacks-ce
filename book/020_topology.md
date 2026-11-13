@@ -28,6 +28,9 @@ TopRef[x + y*TopLx] : word per coarse cell
 LinksDist[a*NAreas + b]  : word, 0xFFFF = unreachable, diagonal stays 0xFFFF (!)
 MotionLinks[a*NAreas + b]: next hop area on the way to b
         |
+        |  ResearchIslands(): connected components of the link graph
+        |    -> TopIslands[area] = island id, NIslands, IslandX/Y, NearWater[]
+        |
         |  kept up to date at runtime: walls/buildings lock cells
         |  (DynamicalLockTopCell), main loop calls ProcessDynamicalTopology()
         v
@@ -39,6 +42,52 @@ consumers: army pathfinding (brigade.cpp), mine capture, farm placement,
 A normal map has a 256x256 topology grid and typically a few hundred to ~1000
 areas (a skirmish map we instrumented had `NAreas = 960`; the hard cap in
 `AddArea` is 1016).
+
+### Map types at a glance: what the `.m3d` name tells us
+
+Random-map names encode the generation parameters (`CreateMapByName`;
+the lobby dialog `MPL_WaitingGame` assembles the name from the combo-box
+choices):
+
+```
+"RN<size> <seed> <params> <nations> <extra>.m3d"
+ e.g. RN0 3909 20213 00000EC6 0000000.m3d
+```
+
+* `size` = `Name[2] - '0' + 1` = `ADDSH`: 0 -> normal (`ADDSH=1`,
+  `MAPSX=1024`, 256x256 `TopRef`), 1 -> large (`ADDSH=2`, 512x512), 2 -> huge
+  (`ADDSH=3`, 1024x1024) - the grid math is in section 1;
+* `params` (hex) packs the dialog choices: low nibble = **land type**
+  (`RM_LandType = x2 & 15`), then `players<<4`, `mountains<<8`,
+  `start-resources<<12`, `mines<<16`;
+* land types (the `LT_*` enum in `ai_common.h`, also the `GetLandType()` doc
+  comment in `activescenary.cpp`, and stored per map in the 12-byte `AIIA`
+  chunk written by `SaveAIParam`): **0=Land, 1=Mediterranean, 2=Peninsulas, 3=Islands,
+  4=Continents, 5=Continent**.
+
+The land type decides how many islands the topology will have (section 4
+computes them). Measured on the maps shipped in `gamedata/` with
+`tools/m3d_areas.py --islands` (NIslands = connected components of the area
+graph, areas per island in descending order):
+
+| land type | example maps | ADDSH | NAreas | NIslands (areas per island) |
+|---|---|---|---|---|
+| 0 Land | `1.m3d`, `2.m3d`, `3.m3d`, `test.m3d`, `MyFirst.m3d` | 1 | 387-519 | **1** (one big island) |
+| 0 Land | `RN1 6F99 ...` (the taras.sav/test.sav map) | 2 | 960 | 5 (931+22+5+1+1) |
+| 0 Land | `olena2.m3d` | 2 | 904 | 17 (766+73+37+...) |
+| 0 Land | `scene1.m3d` | 1 | 517 | 2 (516+1) |
+| 1 Mediterranean | `tarastest.m3d` | 1 | 428 | 2 (427+1) |
+| 3 Islands | `RN0 3909 ...` (the test2.sav.sav map, this chapter's sec. 4) | 1 | 236 | 6 (69+65+61+23+10+8) |
+| 3 Islands | `RN1 4371 ...` | 2 | 419 | 7 (128+120+109+42+12+5+3) |
+
+So a **Land map is essentially one big island** (occasionally with a few
+one-area islets), Mediterranean is one dominant landmass plus a couple of
+real islands, and an **Islands map is several comparable landmasses** - only
+there does "which island is the enemy on" become a real question, and ships
+(section 3's water graph) become mandatory. That question is answered by
+`ResearchIslands()`, next. How the generator itself decides where the sea
+and the land are (and hence how many islands a map has) is
+[map_generation.md](015_map_generation.md)'s topic.
 
 ## 1. Why two maps over one terrain
 
@@ -64,19 +113,25 @@ All figures below are rendered from the real map used by the case-study
 saves `gamedata/taras.sav` and `gamedata/test.sav` - both store
 `CurrentMap = "RN1 6F99 20210 000003JF 0000000.m3d"` (the `SaveMap` block of the
 .sav, see [sav_format.md](sav_format.md)), a large random map (`ADDSH=2`).
-`tools/m3d_areas.py` parses that `.m3d`'s `TOP1` chunk directly, so the areas,
+`tools/m3d_areas.py` parses that `.m3d`'s `TOP1` chunk directly (chunk tags are
+stored byte-reversed in the file - `TOP1` on disk is the C constant `'1POT'`,
+`SURF` is `'FRUS'`, `TOPW` is `'WPOT'`; see [010_m3d.md](010_m3d.md) section 1), so the areas,
 links and distances you see are the ones actually stored in the file, not a
 sketch. All figures are plain square renders of the stored arrays - the same
 view the in-game minimap shows (isometric projection applies only to units
 and buildings, not to the map arrays; `TopRef` is indexed `x + (y << TopSH)`
 and drawn cell-per-pixel).
 
-![Height chunk (FRUS) as a flat terrain relief with the impassable cells darkened](figures/topo_map_height.png)
+![Height chunk (SURF) as a flat terrain relief with the impassable cells darkened](figures/topo_map_height.png)
 
-*The `FRUS` height chunk (1024x1025 words) in the matplotlib `terrain`
-colormap - water blue, lowland green, peaks brown/white - with the `0xFFFF`
-impassable/locked cells (water, ridges, map border) darkened (one TopRef cell
-= a 2x2 block of THMap vertices).*
+*The `SURF` height chunk (1024x1025 words) in the matplotlib `terrain`
+colormap, normalized so the sea level (the modal height of the water cells,
+60 here - the flat ground base the generator leaves under water, since the
+sea itself is the separate `SEA2`/WaterDeep mask, see
+[map_generation.md](015_map_generation.md)) sits at the blue->green boundary:
+lowland green, peaks brown/white. The `0xFFFF` impassable/locked cells
+(water, ridges, map border) are darkened (one TopRef cell = a 2x2 block of
+THMap vertices).*
 
 ![TopRef passability grid](figures/topo_map_topref.png)
 
@@ -86,22 +141,52 @@ impassable/locked cells (water, ridges, map border) darkened (one TopRef cell
 262,144 cells on this map).*
 
 Map sizes are parameterized by `ADDSH`, taken from the map name digit in
-`CreateMapByName` (3drandmap.cpp:1563: normal=1, large=2, huge=3):
-`MAPSX = 512 << ADDSH` (loadsave.cpp:3456), `TopLx = MAPSX >> 2`,
-`TopSH = 7 + ADDSH`. So the topology grid is 256x256, 512x512 or 1024x1024.
+`CreateMapByName` (normal=1, large=2, huge=3). The grid sizes come from
+`SetupArrays`:
 
-`GetTopology(x, y)` (brigade.cpp:512) is the lookup everyone uses: pixel
-coordinates in, `x >> 6` to cell, `TopRef[x + (y << TopSH)]` out. If the cell
-has no area id (`>= 0xFFFE`) it scans rings up to radius 20 (`Rarr`) for the
-nearest valid area, so a unit standing on a locked cell still maps to an area.
-`SafeTopRef` (mapdiscr.h:2116) is the bounds-checked raw variant.
+```c
+MAPSX = MAPSY = 512 << ADDSH;
+BMSX = 64 << ADDSH;
+TopLx = TopLy = MAPSX >> 2;
+TopSH = 7 + ADDSH;
+```
+
+So the topology grid is 256x256, 512x512 or 1024x1024.
+
+`GetTopology(x, y)` is the lookup everyone uses: pixel coordinates in,
+`x >> 6` to a cell, `TopRef[x + (y << TopSH)]` out. If the cell has no area
+id (`>= 0xFFFE`) it scans rings up to radius 20 (`Rarr`) for the nearest
+valid area, so a unit standing on a locked cell still maps to an area:
+
+```c
+int GetTopology( int x, int y )               // pixel coords in, area id out
+{
+    int xc = x >> 6, yc = y >> 6;
+    word tr;
+    if ( xc < 0 || yc < 0 || xc >= TopLx || yc >= TopLy ) tr = 0xFFFF;
+    else tr = TopRef[xc + ( yc << TopSH )];
+    if ( tr < 0xFFFE ) return tr;             // cell has an area
+    for ( int i = 0; i < 20; i++ )            // else scan rings up to radius 20
+        for ( int j = 0; j < Rarr[i].N; j++ ) {
+            int xx = xc + Rarr[i].xi[j], yy = yc + Rarr[i].yi[j];
+            if ( xx >= 0 && yy >= 0 && xx < TopLx && yy < TopLy ) {
+                tr = TopRef[xx + ( yy << TopSH )];
+                if ( tr < 0xFFFE ) return tr;
+            }
+        }
+    return 0xFFFF;
+}
+```
+
+`SafeTopRef` (in `mapdiscr.h`) is the bounds-checked raw variant.
 
 ## 2. Creating the areas: seeds, flood fill, links
 
-`CreateAreas()` (topograf.cpp:161) runs once when the map is finalized -
-`CreateTotalLocking()` in 3dmaped.cpp:1144 calls it after `CreateMapLocking()`
-and before `CreateInfoMap()` - and the result is serialized into the save file
-(savenewmap.cpp / loadsave.cpp) and reloaded with it.
+`CreateAreas()` runs once when the map is finalized -
+`CreateTotalLocking()` calls it after `CreateMapLocking()`
+and before `CreateInfoMap()` - and the result is serialized into the map/save
+files (`SaveTopology` in the `.m3d`, `LS_SaveTopology` in the `.sav`) and
+reloaded with them.
 
 **Step 1 - mark passable land.** `TopRef` is memset to `0xFFFF` (impassable /
 locked - this is what water, ridges and the outer border keep), then every
@@ -111,7 +196,7 @@ field (`MFIELDS->CheckBar`) plus an accurate 12-point `CheckPt` pattern.
 
 **Step 2 - seed areas.** Random points are rolled; a seed is accepted if its
 3x3 neighborhood is entirely `0xFFFE` (free land). `AddArea(x, y, Sliv)`
-(topograf.cpp:67) either merges the seed into an existing area within
+either merges the seed into an existing area within
 `MinNorm` (7/10/15 cells for ADDSH 1/2/3 - averaging the center) or creates a
 new `Area`. Seeding stops after 50 consecutive failed rolls. `NAreas` is
 capped at 1016; `MaxArea` grows by 120 from 200. An `Area` is:
@@ -130,7 +215,7 @@ struct Area {                 // topograf.h
 
 **Step 3 - flood fill.** The loop `for (i = 1; i < RRad && Change; i++)` grows
 every area by ring `i` using `Rarr[i]` - the precomputed ring-offset table
-built by `CreateRadio()` (topograf.cpp:38): all (dx,dy) with
+built by `CreateRadio()`: all (dx,dy) with
 `int(sqrt(dx*dx+dy*dy)) == i`, for `RRad = 90`. A free cell (`0xFFFE`)
 adjacent (8-neighborhood) to area `j` becomes `j`. When a cell of area `ZZ`
 touches a cell of a *different* area `ZU`, both get a link:
@@ -141,8 +226,8 @@ AddLink( ZZ, ZU );   // and AddLink( ZU, ZZ )
 ```
 
 So the **edge weight is the distance between area centers**, measured with
-`Norma` - not Euclidean but the octagonal metric `(2*max + min)/2`
-(newmon.h:10). Finally `TopRef[area center] = area id`.
+`Norma` (defined in `newmon.h`) - not Euclidean but the octagonal metric
+`(2*max + min)/2`. Finally `TopRef[area center] = area id`.
 
 **Step 4 - resources.** Every map sprite with `IntResType < 8` (a mine or
 resource) is attached to the area containing its cell: `AR->NMines++`,
@@ -164,7 +249,7 @@ border); the few white cells are `0xFFFE` free-unassigned.*
 
 ## 3. The link matrices: `LinksDist` and `MotionLinks`
 
-After the flood fill, `CreateLinkInfo()` (topograf.cpp:395) builds two
+After the flood fill, `CreateLinkInfo()` builds two
 `NAreas x NAreas` word matrices, indexed `[from*NAreas + to]`:
 
 * `LinksDist[a][b]` - shortest known distance from area `a` to `b`;
@@ -198,11 +283,11 @@ the next hop in `MotionLinks`. Two quirks worth knowing:
    rarely matters - but "0xFFFF" therefore means "unknown/unreachable", not
    necessarily "no path".
 
-**Water gets its own copy.** `CreateWTopMap()` (topograf.cpp:1234) builds the
+**Water gets its own copy.** `CreateWTopMap()` builds the
 same structure over `MFIELDS[1]` (water): `GTOP[1]` with `WTopRef`, `WTopMap`,
 `WNAreas`, `WMotionLinks`, `WLinksDist`. Ships pathfind on it
-(brigade.cpp:5052, einfoclass.cpp:1193). In the save this is the separate
-`WPOT` chunk.
+(`MakeShipBattleLink`, `EnemyInfo::GetMaxForceOnTheWay`). In the save this is
+the separate `TOPW` chunk.
 
 ![The area graph of the case-study map: nodes at area centers, edges are the stored links, red labels are weights](figures/topo_map_graph.png)
 
@@ -225,15 +310,111 @@ placement in section 8.*
 
 ## 4. Islands
 
-`ResearchIslands()` (brigade.cpp:3663) runs a graph traversal (`ArrangeAreas`)
+`ResearchIslands()` runs a graph traversal (`ArrangeAreas`)
 over `Area::Link` and labels every area with an island id in `TopIslands[]`,
 then computes island centers. This is the answer to "is that enemy reachable
 by land at all" - if his area is on a different island, only ships can get
 there.
 
+**Is a land map one big island?** Mostly yes - see the table at the end of
+section 0: the `Land`-type maps in `gamedata/` come out as a single island
+(`1.m3d`: `NIslands=1` over all 519 areas; the large case-study map
+`RN1 6F99 ...`: 931 of 960 areas on one island, the rest tiny islets).
+Mediterranean adds a few genuine islands (`tarastest.m3d`: 2), and an
+Islands map - like this section's map, `RN0 3909 ...` from
+`gamedata/test2.sav.sav`, land type 3 - is several comparable landmasses
+(6 islands of 69/65/61/23/10/8 areas). So on Land/Continent maps
+`NIslands` is 1-5 and the island logic below is mostly a formality; on
+Islands/Mediterranean maps it decides who can attack whom by land.
+
+Concretely, `TopIslands` is a `word[NAreas]` memset to `0xFFFF` ("unvisited"),
+and islands are numbered from 0 in area-id scan order:
+
+```cpp
+void ArrangeAreas( int ID, byte IsID, int Deep ) {
+    TopIslands[ID] = IsID;
+    if ( Deep < 100 )                                  // recursion depth cap!
+        for ( int i = 0; i < AR->NLinks; i++ ) {
+            int D1 = AR->Link[i + i];                  // Link = {target, weight} pairs
+            if ( TopIslands[D1] == 0xFFFF ) ArrangeAreas( D1, IsID, Deep + 1 );
+        }
+}
+// ResearchIslands():
+for ( int j = 0; j < NAreas; j++ ) if ( TopIslands[j] == 0xFFFF ) {
+    ArrangeAreas( j, NIslands, 0 );
+    for ( int p = 0; p < NAreas; p++ ) if ( TopIslands[p] == NIslands )
+        ArrangeAreas( p, NIslands, 0 );                // 2nd pass, fresh depth budget
+    NIslands++;
+}
+```
+
+So an **island is a connected component of the area graph**. Two quirks: the
+DFS depth is capped at 100, and the second pass re-runs the traversal from
+every already-labeled area with the depth counter reset (that re-stitches
+components the cap split; anything still unvisited would later get its own
+island id from the outer loop). `NIslands` is asserted `< MaxIsl` (64), and
+each island gets a center `IslandX[i]/IslandY[i]` - the average of its areas'
+`x/y` centers. The same function then computes `NearWater[area]`: for every
+land cell it scans the 7x7 neighborhood in the water grid `WTopRef` (the
+separate `TOPW` chunk, section 3) and stores the water area whose center is
+nearest (`Norma`) to the land area's center - i.e. which water area a ship
+departing from this land area reaches first. `0xFFFF` = no water within 7
+cells (deep inland).
+
+Where islands are consumed:
+
+| question | code | uses |
+|---|---|---|
+| which island is this nation on? | `ResearchCurrentIsland` | counts the nation's units per `TopIslands[TopRef[unit cell]]`; `CITY[Nat].MyIsland` = the island with the most units; `IslPrs[isl]` = bitmask `1 << NNUM` of nations with live units there |
+| where may a transport land? | `FindCostPointEx` | a landing cost point is valid only on an island where some alive nation is present; cost points get `COSTPL[i].Island = TopIslands[Top]` (set in `CreateCostPlaces`) |
+| can I reach the player by land? | `CheckDiversants` | `if ( CT->MyIsland != CITY[0].MyIsland ) AGRESS = &CT->Settlers;` - different island, so no diversion attacks, only defense |
+| how big may a diversion be? | `MakeDiversionLink` | `IslPrs[CT->MyIsland] & 1` (the player is on my island) raises the member cap from 50 to 150 |
+| where to build the fishing port? | `ResearchBestPortToFish` | the port farthest (`Norma`) from `IslandX/Y[CITY[0].MyIsland]` - as far from the player's island as possible |
+
+The islands agree with the distance matrix by construction: links only connect
+areas that touch during the flood fill (section 2), so `LinksDist[a][b]` is
+`0xFFFF` for *every* cross-island pair - "different island" and "unreachable"
+are the same relation.
+
+The figures in this section come from a different save than the rest of the
+chapter: `gamedata/test2.sav.sav` stores `CurrentMap = "RN0 3909 20213 00000EC6 0000000.m3d"`,
+a normal `ADDSH=1` random map (256x256 `TopRef`, `NAreas=236`, water graph
+`WNAreas=208`). `tools/m3d_areas.py --islands` re-runs the algorithm above on
+the stored `TOP1` links (the save does not store `TopIslands` - the game
+recomputes it after loading: both `LS_LoadTopology` and the `.m3d` topology
+loader call `ResearchIslands()`):
+
+```
+Islands: NIslands=6 (MaxIsl cap is 64)  sizes desc=[69, 65, 61, 23, 10, 8]
+         maxDFSdepth=38  secondPassLabeled=0
+NearWater: areas with a water area within 7 cells=162/236
+cross-island LinksDist pairs: 42296/42296 are 0xFFFF
+same-island pairs reachable: 12273/13400 (236 are the 0xFFFF diagonal;
+         the other 891 are same-island pairs the 3-pass relaxation never
+         reached - the section 3 quirk)
+```
+
+![Islands of the test2 map: connected components of the area graph, colored by island id, island centers dotted](figures/topo_test2_islands.png)
+
+*The six islands of `RN0 3909 ...` recomputed from the saved links: three large
+ones (69 areas at center (89,176), bottom-left; 65 at (104,76), top-middle;
+61 at (188,117), right), a medium one on the left edge (23 areas, center
+(14,102)), and two small ones (8 areas top-right at (177,21); 10 bottom-right
+at (206,190)). Dark = `0xFFFF` impassable (water separating the islands, plus
+the map border). The DFS reached depth 38, well under the `Deep < 100` cap,
+so the second pass labeled nothing new on this map.*
+
+![Coastal areas of the test2 map: the areas themselves, each with a dot at its center - blue if NearWater is set (a water area within 7 TopRef cells), black otherwise](figures/topo_test2_nearwater.png)
+
+*`NearWater` from the `TOPW` water graph, drawn over the area map (same
+per-area colors as the sec. 2 figure, center dots like there): 162 of 236
+areas are "coastal" (blue dots) - the game uses this for port placement and
+for picking landing zones, so areas deep inland inside the big islands have
+black dots (`NearWater == 0xFFFF`).*
+
 ## 5. Per-area strategic census: `StrategyInfo`
 
-`CreateStrategyInfo()` (topograf.cpp:449) walks all objects, maps each to its
+`CreateStrategyInfo()` walks all objects, maps each to its
 area via `TopRef`, and fills `Area::SINF[nation]`:
 
 ```cpp
@@ -253,21 +434,21 @@ attack group (`MotionLinks[MyTop*NAreas + HisTop]`).
 
 | question | code | uses |
 |---|---|---|
-| army route between distant points | brigade.cpp:1120, 1226, 1512, 2999 | `MotionLinks[from][to]` as next hop, recursively |
-| ship route | brigade.cpp:5052, einfoclass.cpp:1193 | `GTOP[1].MotionLinks` (water graph) |
-| can I capture this mine? | megapolis.cpp:3043 | mine's area reachable (`MotionLinks != 0xFFFF`) and within `MINE_CAPTURE_RADIUS` |
-| where to put the next farm | `City::GetNextPlaceForFarm` (megapolis.cpp:261) | ring search, accept cell if `LinksDist[townArea][cellArea] - min < 30` |
+| army route between distant points | the `B_*Link` brigade orders: `B_GlobalSendToLink`, `B_CaptureMineLink`, `B_MakeBattleLink`, `B_HumanGlobalSendToLink` | `MotionLinks[from][to]` as next hop, recursively |
+| ship route | `MakeShipBattleLink`, `EnemyInfo::GetMaxForceOnTheWay` | `GTOP[1].MotionLinks` (water graph) |
+| can I capture this mine? | `TakeNewMineBrain` | mine's area reachable (`MotionLinks != 0xFFFF`) and within `MINE_CAPTURE_RADIUS` |
+| where to put the next farm | `City::GetNextPlaceForFarm` | ring search, accept cell if `LinksDist[townArea][cellArea] - min < 30` |
 | where to build | `SearchPlace` / `SearchTowerPlace` / `CheckTower` (newai.cpp) | ring search + `GetTopology` + `LinksDist` slack + `GetSafeVal` - see section 7 |
-| where is the nearest enemy | `GlobalEnemyInfo::FindNearestEnemy` (einfoclass.cpp:126) | ranks enemy armies/objects by `LinksDist[enemyArea][myArea]` |
-| is this cell safe to build on | `EnemyInfo::GetSafeVal` (einfoclass.cpp:829) | `SafeMAP` danger bitmap (built from enemy objects, dilated by 1 ring, refreshed every 256 ticks) |
-| attack/defense decisions | megapolis.cpp:4488+ | `MotionLinks` hops + `SINF` census |
-| resource claiming | mapsprites.cpp:969, 1366 | `LinksDist < 30 / < 20` reachability |
+| where is the nearest enemy | `GlobalEnemyInfo::FindNearestEnemy` | ranks enemy armies/objects by `LinksDist[enemyArea][myArea]` |
+| is this cell safe to build on | `EnemyInfo::GetSafeVal` | `SafeMAP` danger bitmap (built from enemy objects, dilated by 1 ring, refreshed every 256 ticks) |
+| attack/defense decisions | `ArmyConnectToArmyLink` and the city AI | `MotionLinks` hops + `SINF` census |
+| resource claiming | `FindResInCell`, `FindLimResInCell` | `LinksDist < 30 / < 20` reachability |
 
 **Dynamical updates.** When a wall or building is created/destroyed,
-walls.cpp calls `DynamicalLockTopCell` / `DynamicalUnLockTopCell`
-(topograf.cpp:590+): the cell flips between `0xFFFF` (locked) and `0xFFFE`
+walls.cpp calls `DynamicalLockTopCell` / `DynamicalUnLockTopCell`:
+the cell flips between `0xFFFF` (locked) and `0xFFFE`
 (free), and the area plus its neighbors are queued in `ChAreas`. Every frame
-the main loop calls `ProcessDynamicalTopology()` (main.cpp:1901), which remakes
+the main loop calls `ProcessDynamicalTopology()`, which remakes
 only the affected area groups (`RemakeGroupOfAreas`) and re-relaxes distances
 locally (`OnePartIteration` on temporary matrices, `LimitedClearBadLinks`).
 So the graph - and therefore pathfinding, mine capture and placement - reacts
@@ -343,11 +524,27 @@ perpendicular to the base-to-enemy axis - the tower faces the enemy. The
 variables, all in search cells:
 
 * `xc, yc` - the base center, `City::CenterX/CenterY`, assigned by
-  `FindCenter` (newai.cpp): the **center of mass of the nation's peasant
-  units only** (`OB->newMons->Peasant`), averaged as `RealX>>4` then `>>7`
-  (megapolis.cpp:2601-2605);
+  `FindCenter` (newai.cpp) - the **center of mass of the nation's peasant
+  units only** (`OB->newMons->Peasant`), averaged as `RealX>>4` then `>>7`:
+
+```c
+bool FindCenter( int* xx, int* yy, byte NI )  // nation NI's peasant center of mass
+{
+    int N = 0, x = 0, y = 0;
+    for (int i = 0; i < MAXOBJECT; i++) {
+        OneObject* OB = Group[i];
+        if ( OB && OB->NNUM == NI && OB->newMons->Peasant ) {
+            x += OB->RealX >> 4;
+            y += OB->RealY >> 4;
+            N++;
+        }
+    }
+    if ( N ) { *xx = ( x / N ) >> 7;  *yy = ( y / N ) >> 7;  return true; }
+    return false;
+}
+```
 * `xe, ye` - the "enemy point", computed in the `TowerID` case of
-  `City::FindApproximateBuildingPlace` (megapolis.cpp:1576-1604): it loops
+  `City::FindApproximateBuildingPlace`: it loops
   over all objects in `Group[]`, skips dead ones (`Sdoxlo`), files the
   nation's own towers of this type into `NPORTS`/`PORTSX`/`PORTSY` (which
   `CheckTower` uses to keep towers at least 9 cells apart), and for every
@@ -360,7 +557,7 @@ same search-cell scale `FindCenter` produces: `RealX>>4` is the pixel
 coordinate, `>>7` more converts to search cells). `NNUM == 0` is hardcoded
 (it is original 2001 code): in single player the human is always nation 0, so
 "nation 0" means "the player". Elsewhere the AI does this properly per nation:
-`GlobalEnemyInfo::FindNearestEnemy` (einfoclass.cpp:126) tests
+`GlobalEnemyInfo::FindNearestEnemy` tests
 `!(OB->NMask & EINF[NNUM]->Mask)` against the nation's enemy mask instead.
 Edge case: if no nation-0 object is alive, `ne == 0`, so `xe = ye = 0` and the
 half-plane degenerates to "the side away from the map corner (0,0)".

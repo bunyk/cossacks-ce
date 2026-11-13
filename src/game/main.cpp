@@ -40,6 +40,9 @@
 #include "topograf.h"
 #include "3dmaped.h"
 #include "mplayer.h"
+#include "multipl.h"
+#include "playerinfo.h"
+#include "activescenary.h"
 
 //Game version. Must match with other clients
 DLLEXPORT word dwVersion = 100;
@@ -316,6 +319,19 @@ void DoGen();
 void InitDeathList();
 char* GetTextByID( char* ID );
 void LoadBorders();
+
+//Defined in other files (or below in this file), used by init/quit/event
+//paths that were Windows-only before the SDL port
+void SaveScreen(); // below in this file: F11 screenshot
+void SaveGame( char* Name, char* Messtr, int ID ); // below in this file
+void ShowCentralText0( char* sss ); // mapa.cpp
+void ProcessUpdate(); // ir_main.cpp: periodic game/rating update
+void IAmLeft(); // mplayer.cpp: notify network peers that we left
+void LOOSEANDEXITFAST(); // ir_main.cpp: assign defeat + save on quit
+void UnLoading(); // loadsave.cpp: zero variables and pointers
+extern byte SaveState; // 3drandmap.cpp: autosave interval option
+extern PlayerInfo PINFO[8]; // interface.cpp
+extern CDPID MyDPID; // mplayer.cpp (mplayer.h only declares it under _WIN32)
 
 void SetupArrays();
 extern byte* RivDir;
@@ -729,16 +745,13 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	//Calculate XShift for... mirroring and water and stuff?
 	InitXShift();
 
-	//Read players.txt, load dialog resources
-	SFLB_InitDialogs();
 
 	//Water colors and buffers (realwater.cpp ported)
 	extern void InitWater();
 	InitWater();
 
-#ifndef _WIN32
+	//Read players.txt, load dialog resources
 	SFLB_InitDialogs();
-#endif
 
 	//Load fonts(?)
 	LoadRLC("xrcross.rlc", &RCross);
@@ -756,8 +769,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	LoadPalette("2\\agew_1.pal");
 
 	// Music autostart (PlayMode defaults to 2 = random music, ddex1.cpp).
-	// On Windows this call sits in the _WIN32 block below; nothing ever
-	// started music on Linux unless the user toggled the options combo.
 	extern int PlayMode;
 	bool PlayRandomTrack();
 	if (PlayMode)
@@ -765,8 +776,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 		PlayRandomTrack();
 	}
 
-	#ifdef _WIN32
-	//Init DirectPlay and DPInfo structure
+	//Init the network/connection state (SetupConnection: resets NPlayers,
+	//MyDPID, GameInProgress etc; portable, no DirectPlay on Linux)
 	SetupMultiplayer();
 
 	//Init variables
@@ -782,13 +793,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	KeyPressed = false;
 
 	OnMouseMoveRedraw();
-
-	if (PlayMode)
-	{
-		PlayRandomTrack();
-	}
-
-	#endif // _WIN32
 
 	// FIXME: need to be called only when focused on textboxes
 	// Fine on desktop, but not on mobile
@@ -1024,9 +1028,7 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
 		if (LastKey == SDLK_F11)
 		{
-			#ifdef _WIN32
 			SaveScreen();
-			#endif
 		}
 
 		/*
@@ -1073,18 +1075,15 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 		break;
 	}
 
-#ifdef _WIN32
 	case SDL_EVENT_QUIT:
-		//Leave game and assign defeat
+		//Leave the game and assign defeat: notify network peers that we
+		//left (no-op offline), mark defeat and save if a game is active.
 		IAmLeft();
 		LOOSEANDEXITFAST();
-		break;
-#else
-	case SDL_EVENT_QUIT:
-		//Leave game and assign defeat (Linux)
+		//Then unwind: GameExit stops the game loop and returning success
+		//makes SDL call SDL_AppQuit (saves settings).
 		GameExit = true;
 		return SDL_APP_SUCCESS;
-#endif
 	}
 
 	return SDL_APP_CONTINUE;
@@ -1139,13 +1138,13 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result)
 	delete AllGameCoroutine;
 	AllGameCoroutine = nullptr;
 
-	#ifdef _WIN32
 	ClearScreen();
 	//Zero variables and pointers
 	UnLoading();
 	CloseExplosions();
+	//Notify network peers that we left and shut the connection down
+	//(no-op when not in a network game)
 	ShutdownMultiplayer(1);
-	#endif // _WIN32 (cleanup: network/shutdown specifics not ported)
 
 	//Save settings before closing (portable, see the load in SDL_AppInit)
 	extern int WarSound;
@@ -1193,9 +1192,8 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result)
 		Gclose(rec_settings_file);
 	}
 
-	#ifdef _WIN32
+	//Close the .gsc archives opened by FilesInit()
 	FilesExit();
-	#endif // _WIN32 (FilesExit is called below unguarded too? keep parity)
 
 	StopPlayCD();
 	FreeDDObjects();
@@ -1430,8 +1428,7 @@ void PostDrawGameProcess()
 
 	int difTime = GetSDLTickCount() - AutoTime;
 
-	#ifdef _WIN32
-	ProcessUpdate(); // Some multiplayer updates
+	ProcessUpdate(); // Periodic game/rating update (ir_main.cpp)
 
 	// Autosave logic
 	int MaxDT = 60000;
@@ -1499,7 +1496,6 @@ void PostDrawGameProcess()
 		}
 		AutoTime = GetSDLTickCount();
 	}
-	#endif // _WIN32
 
 	static int PrevCheckTime = 0;
 	if (!PrevCheckTime)
@@ -2341,7 +2337,6 @@ bool DelCurrentAZone();
 void SelectNextGridMode();
 void ProcessMapOptions();
 void ResearchIslands();
-void EnterRandomParams();
 void GenerateRandomRoad( int idx );
 bool CheckCurve();
 void ClearCurve();
@@ -2640,27 +2635,20 @@ void EditorKeyCheck()
 			break;
 		case SDLK_S:
 			//ClearModes();
-			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			switch (LockMode)
 			{
-				//EnterRandomParams();
-			}
-			else
-			{
-				switch (LockMode)
-				{
-				case 0:
-					NeedToPopUp = 12;
-					break;
-				case 1:
-					NeedToPopUp = 13;
-					break;
-				case 2:
-					NeedToPopUp = 14;
-					break;
-				case 3:
-					NeedToPopUp = 1;
-					break;
-				};
+			case 0:
+				NeedToPopUp = 12;
+				break;
+			case 1:
+				NeedToPopUp = 13;
+				break;
+			case 2:
+				NeedToPopUp = 14;
+				break;
+			case 3:
+				NeedToPopUp = 1;
+				break;
 			};
 			break;
 		case SDLK_W:
@@ -2908,7 +2896,6 @@ void EditorKeyCheck()
 		};
 	};
 };
-void SERROR();
 
 //Many diffirent key checks for various game modes
 void GameKeyCheck()

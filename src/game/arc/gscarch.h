@@ -30,9 +30,7 @@ struct TGSCfile
  BYTE	m_Flags;
  DWORD	m_Position;
  LPGSCarch	m_Arch;
-#ifndef _WIN32
- FILE*	m_fp;  // stdio handle for plain-file access on Linux
-#endif
+ FILE*	m_fp;  // stdio handle for plain-file access
 };
 
 typedef TGSCfile* LPGSCfile;
@@ -68,7 +66,6 @@ public:
 	virtual ~CGSCarch();
 
 private:
-	LPBYTE m_pViewOfFile;
 	boost::iostreams::mapped_file_source m_MappedFile;
 	CHAR m_ArchName[128];
 	

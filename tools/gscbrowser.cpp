@@ -3,6 +3,19 @@
 // Usage:
 //   gscbrowser [archive.gsc]        (default: all.gsc)
 //
+// Headless CLI modes (no window):
+//   gscbrowser --list   <archive>                          list entry names
+//   gscbrowser --dump   <archive> <file>                   print preview info
+//   gscbrowser --export <archive> <file> <out>             raw entry bytes -> out
+//   gscbrowser --render <archive> <file> <out.ppm|.bmp> [frame|-1]
+//         .gp  -> render picture(s) with the REAL game renderer
+//                 (GPS.ShowGP into the scratch screen, game palette);
+//                 frame -1 writes one file per picture: out.f0.ppm, ...
+//         .bmp -> decode and re-encode
+//         .msp/.smp -> print the 'PMAS' block structure (use --export for raw)
+//   PPM/BMP are written natively (no extra libs); convert to PNG with
+//   e.g. `convert out.ppm out.png` (ImageMagick).
+//
 // UI:
 //   Left pane  - filterable list of files stored in the archive
 //   Right pane - preview of the selected file:
@@ -449,6 +462,159 @@ static void BuildAnimatedFrame( const Entry& e )
 
 	previewBmp = BmpImage();
 	RenderGpVariant( animFi, frame, 0, previewBmp, 400 );
+}
+
+static uint32_t RdU32( const uint8_t* p );
+static uint16_t RdU16( const uint8_t* p );
+
+// ---------------------------------------------------------------- image writers
+// Native PPM (P6) and 24-bit BMP writers - no external library needed.
+// For PNG: `convert out.ppm out.png`.
+
+static bool WritePpm( const char* path, const BmpImage& img )
+{
+	FILE* f = fopen( path, "wb" );
+	if ( !f ) return false;
+	fprintf( f, "P6\n%d %d\n255\n", img.w, img.h );
+	for ( uint32_t c : img.rgba )
+	{
+		uint8_t px[3] = { (uint8_t) ( ( c >> 16 ) & 0xFF ), (uint8_t) ( ( c >> 8 ) & 0xFF ), (uint8_t) ( c & 0xFF ) };
+		fwrite( px, 1, 3, f );
+	}
+	fclose( f );
+	return true;
+}
+
+static bool WriteBmp24( const char* path, const BmpImage& img )
+{
+	int w = img.w, h = img.h;
+	int rowSize = ( w * 3 + 3 ) & ~3;
+	uint32_t dataSize = rowSize * h;
+	uint32_t fileSize = 14 + 40 + dataSize;
+	uint8_t hdr[54] = { 0 };
+	hdr[0] = 'B'; hdr[1] = 'M';
+	*(uint32_t*) ( hdr + 2 ) = fileSize;
+	*(uint32_t*) ( hdr + 10 ) = 54;
+	*(uint32_t*) ( hdr + 14 ) = 40;
+	*(int32_t*) ( hdr + 18 ) = w;
+	*(int32_t*) ( hdr + 22 ) = h;          // positive = bottom-up
+	*(uint16_t*) ( hdr + 26 ) = 1;
+	*(uint16_t*) ( hdr + 28 ) = 24;
+	*(uint32_t*) ( hdr + 34 ) = dataSize;
+	FILE* f = fopen( path, "wb" );
+	if ( !f ) return false;
+	fwrite( hdr, 1, 54, f );
+	std::vector<uint8_t> row( rowSize, 0 );
+	for ( int y = h - 1; y >= 0; y-- )     // bottom-up
+	{
+		for ( int x = 0; x < w; x++ )
+		{
+			uint32_t c = img.rgba[(size_t) y * w + x];
+			row[x * 3 + 0] = (uint8_t) ( c & 0xFF );
+			row[x * 3 + 1] = (uint8_t) ( ( c >> 8 ) & 0xFF );
+			row[x * 3 + 2] = (uint8_t) ( ( c >> 16 ) & 0xFF );
+		}
+		fwrite( row.data(), 1, rowSize, f );
+	}
+	fclose( f );
+	return true;
+}
+
+static bool WriteImage( const char* path, const BmpImage& img )
+{
+	std::string p = path;
+	if ( p.size() >= 4 && strcasecmp( p.c_str() + p.size() - 4, ".bmp" ) == 0 )
+		return WriteBmp24( path, img );
+	return WritePpm( path, img );
+}
+
+// ---------------------------------------------------------------- headless render
+// Render one picture of a loaded .gp page through the game's own ShowGP at
+// native size (bounding box of drawn pixels over the checker background).
+static bool RenderGpFrame( int fi, int frame, BmpImage& out )
+{
+	for ( int y = 0; y < kScrH; y++ )
+		for ( int x = 0; x < kScrW; x++ )
+			scratch[y * kScrW + x] = ( ( ( x >> 3 ) + ( y >> 3 ) ) & 1 ) ? 48 : 68;
+	GPS.ShowGP( kScrW / 2, kScrH / 2, fi, frame, 0 );
+
+	int x0 = kScrW, y0 = kScrH, x1 = 0, y1 = 0;
+	for ( int y = 0; y < kScrH; y++ )
+	{
+		const uint8_t* row = scratch + y * kScrW;
+		for ( int x = 0; x < kScrW; x++ )
+			if ( row[x] != 48 && row[x] != 68 )   // not background
+			{
+				if ( x < x0 ) x0 = x;
+				if ( x > x1 ) x1 = x;
+				if ( y < y0 ) y0 = y;
+				if ( y > y1 ) y1 = y;
+			}
+	}
+	if ( x0 > x1 || y0 > y1 ) return false;
+
+	int bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+	out.ok = true;
+	out.w = bw;
+	out.h = bh;
+	out.rgba.resize( (size_t) bw * bh );
+	for ( int y = 0; y < bh; y++ )
+		for ( int x = 0; x < bw; x++ )
+		{
+			uint8_t idx = scratch[( y0 + y ) * kScrW + x0 + x];
+			out.rgba[(size_t) y * bw + x] = gamePalLoaded ? gamePal[idx] : 0xFF808080;
+		}
+	return true;
+}
+
+// Describe an .msp/.smp resource. .MSP style files start with a 'TSOC' chunk
+// (on disk "COST"): u32 N + N+1 u32 offsets; each blob is a TerrainData
+// (i16 Lx, Ly; u8 NPlaces, NIDS; u16 PLACES[8]; u8 PlayerID[8]; u32 CompSize;
+// RLE data - 3drandmap.cpp:3281). .SMP pieces start with 'PMAS' and contain
+// {sign,size,payload} blocks until -1 (RM_Load, 3drandmap.cpp:2616).
+static void DumpMspStructure( const std::vector<uint8_t>& d )
+{
+	if ( d.size() < 8 ) { printf( "too small\n" ); return; }
+	uint32_t first = RdU32( d.data() );
+	if ( first == 0x54534F43 )                                 // 'TSOC'
+	{
+		uint32_t n = RdU32( d.data() + 4 );
+		printf( "TSOC variant table: N=%u variants, %u bytes total\n", n, (uint32_t) d.size() );
+		for ( uint32_t v = 0; v < n && v < 8; v++ )
+		{
+			uint32_t o1 = RdU32( d.data() + 8 + v * 4 );
+			uint32_t o2 = RdU32( d.data() + 8 + ( v + 1 ) * 4 );
+			if ( o1 + 34 > d.size() ) break;
+			int lx = (int16_t) RdU16( d.data() + o1 );
+			int ly = (int16_t) RdU16( d.data() + o1 + 2 );
+			printf( "  variant %u: [%u..%u) TerrainData Lx=%d Ly=%d NPlaces=%u NIDS=%u CompSize=%u\n",
+				v, o1, o2, lx, ly, d[o1 + 4], d[o1 + 5], RdU32( d.data() + o1 + 30 ) );
+		}
+		if ( n > 8 ) printf( "  ...\n" );
+		return;
+	}
+	if ( first != 0x504D4153 )                                 // 'PMAS' (file bytes "SAMP")
+	{
+		printf( "not a TSOC (.msp) or PMAS (.smp) container\n" );
+		return;
+	}
+	size_t pos = 4;
+	while ( pos + 8 <= d.size() )
+	{
+		uint32_t sign = RdU32( d.data() + pos );
+		uint32_t size = RdU32( d.data() + pos + 4 );
+		if ( sign == 0xFFFFFFFF ) break;
+		char tag[5] = { (char) ( sign & 0xFF ), (char) ( ( sign >> 8 ) & 0xFF ),
+			(char) ( ( sign >> 16 ) & 0xFF ), (char) ( ( sign >> 24 ) & 0xFF ), 0 };
+		printf( "block '%s' (0x%08X) size %u", tag, sign, size );
+		if ( sign == 0x54525053 && pos + 12 <= d.size() )      // 'TRPS' (file "SPRT"): sprite list
+			printf( "  nsprites=%u", RdU32( d.data() + pos + 8 ));
+		if ( sign == 0x56455254 && pos + 12 <= d.size() )      // 'VERT': vertex list
+			printf( "  nverts=%u", RdU32( d.data() + pos + 8 ));
+		printf( "\n" );
+		if ( size < 8 ) break;              // size counts from the sign field
+		pos += size;
+	}
 }
 
 static void LoadGamePalette( CGSCarch& arch )
@@ -1044,10 +1210,24 @@ int main( int argc, char** argv )
 {
 	bool dumpMode = argc > 3 && !strcmp( argv[1], "--dump" );
 	bool listMode = argc > 2 && !strcmp( argv[1], "--list" );
+	bool exportMode = argc > 4 && !strcmp( argv[1], "--export" );
+	bool renderMode = argc > 4 && !strcmp( argv[1], "--render" );
 	const char* archPath = "all.gsc";
-	if ( dumpMode || listMode ) archPath = argc > 2 ? argv[2] : "all.gsc";
+	if ( dumpMode || listMode || exportMode || renderMode ) archPath = argc > 2 ? argv[2] : "all.gsc";
 	else if ( argc > 1 ) archPath = argv[1];
 
+	// The GamedataChdir static init may already have moved us into gamedata/;
+	// normalize an archive path that still carries that prefix
+	static std::string archPathNorm;
+	{
+		struct stat st;
+		if ( stat( archPath, &st ) != 0 )
+		{
+			const char* base = strrchr( archPath, '/' );
+			base = base ? base + 1 : archPath;
+			if ( stat( base, &st ) == 0 ) { archPathNorm = base; archPath = archPathNorm.c_str(); }
+		}
+	}
 
 	CGSCarch arch;
 	if ( !arch.Open( const_cast<char*>( archPath ) ) )
@@ -1072,6 +1252,15 @@ int main( int argc, char** argv )
 
 	// Palette for rendering GRD tables (falls back to hex if absent)
 	LoadGamePalette( arch );
+
+	// FilesInit() scans the CWD for .gsc archives - chdir to the archive's
+	// directory so the game file system (RReset/LoadGP) finds it headless too
+	{
+		std::string ap = archPath;
+		size_t slash = ap.find_last_of( "/\\" );
+		if ( slash != std::string::npos && slash > 0 )
+			chdir( ap.substr( 0, slash ).c_str() );
+	}
 
 	// Game renderer: registers archives in the game file system (GSFILES),
 	// loads the real fog/transform tables, sets up the scratch screen
@@ -1099,6 +1288,110 @@ int main( int argc, char** argv )
 	{
 		for ( const Entry& e : entries ) printf( "%s\n", e.name.c_str() );
 		return 0;
+	}
+
+	// Headless mode: gscbrowser --export <archive> <file> <out> -> raw bytes
+	if ( exportMode )
+	{
+		const char* want = argv[3];
+		const char* out = argv[4];
+		for ( const Entry& e : entries )
+		{
+			if ( strcasecmp( e.name.c_str(), want ) != 0 ) continue;
+			std::vector<uint8_t> data( e.size ? e.size : 1 );
+			LPGSCfile f = arch.GetFileHandle( const_cast<char*>( e.name.c_str() ) );
+			if ( !f ) { fprintf( stderr, "cannot open %s\n", e.name.c_str() ); return 1; }
+			if ( e.size ) arch.ReadFile( f, data.data(), e.size );
+			arch.CloseFileHandle( f );
+			FILE* o = fopen( out, "wb" );
+			if ( !o ) { fprintf( stderr, "cannot write %s\n", out ); return 1; }
+			fwrite( data.data(), 1, e.size, o );
+			fclose( o );
+			printf( "%s -> %s (%u bytes)\n", e.name.c_str(), out, e.size );
+			return 0;
+		}
+		fprintf( stderr, "%s not found in %s\n", want, archPath );
+		return 1;
+	}
+
+	// Headless mode: gscbrowser --render <archive> <file> <out.ppm|.bmp> [frame|-1]
+	if ( renderMode )
+	{
+		const char* want = argv[3];
+		const char* out = argv[4];
+		int frame = argc > 5 ? atoi( argv[5] ) : 0;
+		for ( const Entry& e : entries )
+		{
+			if ( strcasecmp( e.name.c_str(), want ) != 0 ) continue;
+
+			std::vector<uint8_t> data( e.size ? e.size : 1 );
+			LPGSCfile f = arch.GetFileHandle( const_cast<char*>( e.name.c_str() ) );
+			if ( f ) { if ( e.size ) arch.ReadFile( f, data.data(), e.size ); arch.CloseFileHandle( f ); }
+
+			if ( HasExt( e.name, ".gp" ) )
+			{
+				if ( !gameRendererReady )
+				{
+					fprintf( stderr, "game renderer not ready (no .gsc archives found in the archive dir?)\n" );
+					return 1;
+				}
+				std::string name = e.name;
+				name.resize( name.size() - 3 );           // strip ".gp"
+				int fi = GPS.PreLoadGPImage( const_cast<char*>( name.c_str() ) );
+				if ( fi < 0 || GPS.GPNFrames[fi] <= 0 )
+				{
+					fprintf( stderr, "cannot load GP page %s\n", name.c_str() );
+					return 1;
+				}
+				int np = GPS.GPNFrames[fi];
+				if ( frame < 0 )                          // all pictures
+				{
+					std::string base = out, ext;
+					size_t dot = base.find_last_of( '.' );
+					if ( dot != std::string::npos ) { ext = base.substr( dot ); base.resize( dot ); }
+					for ( int i = 0; i < np; i++ )
+					{
+						BmpImage img;
+						if ( !RenderGpFrame( fi, i, img ) ) continue;
+						char path[1024];
+						snprintf( path, sizeof path, "%s.f%d%s", base.c_str(), i, ext.c_str() );
+						if ( !WriteImage( path, img ) ) { fprintf( stderr, "cannot write %s\n", path ); return 1; }
+						printf( "%s frame %d: %dx%d -> %s\n", e.name.c_str(), i, img.w, img.h, path );
+					}
+				}
+				else
+				{
+					BmpImage img;
+					if ( !RenderGpFrame( fi, frame % np, img ) )
+					{
+						fprintf( stderr, "frame %d drew nothing\n", frame );
+						return 1;
+					}
+					if ( !WriteImage( out, img ) ) { fprintf( stderr, "cannot write %s\n", out ); return 1; }
+					printf( "%s frame %d/%d: %dx%d -> %s\n", e.name.c_str(), frame % np, np, img.w, img.h, out );
+				}
+				GPS.UnLoadGP( fi );
+				return 0;
+			}
+			else if ( HasExt( e.name, ".bmp" ) )
+			{
+				BmpImage img = TryDecodeBmp( data );
+				if ( !img.ok ) { fprintf( stderr, "not a decodable BMP\n" ); return 1; }
+				if ( !WriteImage( out, img ) ) { fprintf( stderr, "cannot write %s\n", out ); return 1; }
+				printf( "%s: %dx%d -> %s\n", e.name.c_str(), img.w, img.h, out );
+				return 0;
+			}
+			else if ( HasExt( e.name, ".msp" ) || HasExt( e.name, ".smp" ) )
+			{
+				printf( "%s (%u bytes), PMAS blocks (raw export: --export):\n", e.name.c_str(), e.size );
+				DumpMspStructure( data );
+				return 0;
+			}
+			fprintf( stderr, "don't know how to render %s (try .gp/.bmp, or --export)\n", e.name.c_str() );
+			return 1;
+		}
+		fprintf( stderr, "%s not found in %s\n", want, archPath );
+		return 1;
 	}
 
 	if ( !SDL_Init( SDL_INIT_VIDEO ) )
