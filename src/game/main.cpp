@@ -331,7 +331,6 @@ void LOOSEANDEXITFAST(); // ir_main.cpp: assign defeat + save on quit
 void UnLoading(); // loadsave.cpp: zero variables and pointers
 extern byte SaveState; // 3drandmap.cpp: autosave interval option
 extern PlayerInfo PINFO[8]; // interface.cpp
-extern CDPID MyDPID; // mplayer.cpp (mplayer.h only declares it under _WIN32)
 
 void SetupArrays();
 extern byte* RivDir;

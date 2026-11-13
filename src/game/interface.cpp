@@ -27,34 +27,6 @@
 #include "playerinfo.h"
 extern PlayerInfo PINFO[8];
 
-#ifdef _WIN32
-
-#include "mgraph.h"
-#include "menu.h"
-#include "multipl.h"
-#include "walls.h"
-#include "nucl.h"
-#include "megapolis.h"
-#include "gsound.h"
-#include "3dgraph.h"
-#include "3dmaped.h"
-#include "mapsprites.h"
-#include "newmon.h"
-#include "icontool.h"
-#include "drawform.h"
-#include "recorder.h"
-#include "topograf.h"
-#include "strategyresearch.h"
-#include "safety.h"
-#include "einfoclass.h"
-#include "mode.h"
-#include "ir.h"
-#include "bmptool.h"
-
-
-extern const int kChatMessageDisplayTime;
-extern const int kSystemMessageDisplayTime;
-#else // !_WIN32
 // Extra headers the single-player game start needs: City (megapolis.h),
 // HideFlags (mapsprites.h), GNFO (einfoclass.h)
 #include "icontool.h"   // IconSet (DrawZones' panels)
@@ -71,7 +43,6 @@ extern const int kSystemMessageDisplayTime;
 #include "3dgraph.h"
 #include "topograf.h"
 #include "bmptool.h"
-#endif // _WIN32
 
 extern bool RUNMAPEDITOR;
 extern bool RUNUSERMISSION;
@@ -973,11 +944,6 @@ int TM_Tan1;
 int TM_Height0 = 0;
 int TM_Height1 = 1024;
 bool TexMapMod = false;
-
-// (Windows-only region resumes: the mission code)
-#ifdef _WIN32
-void ProcessFranceMission();
-#endif // _WIN32
 
 bool SingleOptions();
 
@@ -6231,7 +6197,6 @@ int processMainMenu()
 			ItemChoose = mcmSingle;
 		}
 
-#ifdef _WIN32
 		if ( ItemChoose == mcmExit )
 		{
 			SlowUnLoadPalette( "2\\agew_1.pal" );
@@ -6257,7 +6222,6 @@ int processMainMenu()
 			ItemChoose = mcmSingle;
 			RUNUSERMISSION = 0;
 		}
-	#endif // _WIN32
 		break;
 	}
 
@@ -6630,46 +6594,6 @@ void ProcessGLoadGame()
 	ContinueGame = true;
 	FreeNames();
 	ClearMStack();
-}
-
-void ProcessFranceMission()
-{
-	SQPicture Pan1( "Interface\\Missions\\MTFrance_Back_1.bmp" );
-	SQPicture Pan2( "Interface\\Missions\\MTFrance_Back_2.bmp" );
-	SlowUnLoadPalette( "1\\agew_1.pal" );
-	Pan1.Draw( 0, 0 );
-	FlipPages();
-	SlowLoadPalette( "1\\agew_1.pal" );
-	int t0 = GetSDLTickCount();
-	KeyPressed = 0;
-	do
-	{
-		ProcessMessages();
-	} while ( !( GetSDLTickCount() - t0 > 15000 || Lpressed || KeyPressed ) );
-	if ( LastKey == SDLK_ESCAPE )return;
-	LastKey = SDLK_UNKNOWN;
-	SlowUnLoadPalette( "1\\agew_1.pal" );
-	Pan2.Draw( 0, 0 );
-	FlipPages();
-	SlowLoadPalette( "1\\agew_1.pal" );
-	t0 = GetSDLTickCount();
-	KeyPressed = 0;
-	do
-	{
-		ProcessMessages();
-	} while ( !( GetSDLTickCount() - t0 > 15000 || Lpressed || KeyPressed ) );
-	if ( LastKey == SDLK_ESCAPE )return;
-
-	strcpy( CurrentMap, MISSLIST.MISS[0].MapName );
-	CreateNationalMaskForMap( CurrentMap );
-	CurrentCampagin = -1;
-	CurrentMission = -1;
-	PrepareGameMedia( 0, 0 );
-	InitGame();
-	ItemChoose = mcmSingle;
-	//InitExplosions();
-	MISSLIST.CurrentMission = 0;
-	SCENINF.Load( MISSLIST.MISS[0].DLLPath, MISSLIST.MISS[0].Description );
 }
 
 void processMLoadGame()
@@ -8780,7 +8704,6 @@ void RedrawGameBackground()
 
 void ProcessHelp()
 {
-#ifdef _WIN32
 	if ( !SCENINF.hLib )return;
 	ResFile F = RReset( "miss.txt" );
 	int sz = 0;
@@ -8851,7 +8774,6 @@ void ProcessHelp()
 	} while ( ItemChoose == -1 );
 	ContinueGame = true;
 	UnPress();
-	#endif // _WIN32
 };
 
 // Mission dialogs (page text viewer + the question variants). Un-guarded
@@ -12036,7 +11958,6 @@ bool ProcessOneBattle( int BtlID )
 	SlowUnLoadPalette( "2\\agew_1.pal" );
 	return ItemChoose == mcmOk;
 };
-#ifdef _WIN32
 int ProcessWars()
 {
 	if ( !WARS.NWars )return false;
@@ -12204,8 +12125,6 @@ void SlideShow()
 		} while ( z == 1 );
 	};
 }
-
-#endif // _WIN32 (ProcessWars/SlideShow - battles screens, port separately)
 
 void ClearScreen();
 char* ROME[6] = { "II","III","IV","V","VI","VII" };

@@ -4984,9 +4984,6 @@ void DialogsSystem::ProcessDialogs()
 void RedrawOffScreenMouse();
 void OnMouseMoveRedraw();
 void PostRedrawMouse();
-void SERROR();
-void SERROR1();
-void SERROR2();
 extern bool InGame;
 extern bool RecordMode;
 

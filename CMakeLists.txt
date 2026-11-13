@@ -13,7 +13,14 @@ add_subdirectory(vendored/SDL_image EXCLUDE_FROM_ALL)
 
 add_compile_options(-Wno-write-strings) # Turn off warnings about string literals for now
 add_compile_options(-fpermissive) # Allow more casts for now
-add_compile_options(-w) # Inhibit all warnings for now 
+add_compile_options(-w) # Turn off warnings for now. Once stable, comment this and uncomment following block:
+# add_compile_options(-Wall -Wextra) # Warnings back on; noisy categories get targeted -Wno-* below
+# # Legacy-code noise, suppressed to keep the useful signals visible:
+# # multichar (four-char constants are intentional), switch (enums w/o default),
+# # unused-parameter, format-overflow (legacy sprintf usage), unknown-pragmas
+# # (MSVC pragmas), sized-deallocation, comment (nested /*), sign-compare.
+# add_compile_options(-Wno-multichar -Wno-switch -Wno-unused-parameter -Wno-format-overflow -Wno-unknown-pragmas -Wno-sized-deallocation -Wno-comment -Wno-sign-compare)
+# add_compile_options(-ffunction-sections -fdata-sections) # One section per function/global so the linker can GC unused ones
 
 add_executable(cossacks
     src/game/main.cpp

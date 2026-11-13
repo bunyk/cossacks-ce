@@ -152,9 +152,7 @@ typedef struct
 	DWORD		dwFlags;		// player or group flags
 } * CLPDPMSG_DESTROYPLAYERORGROUP;
 
-#ifdef _WIN32
 extern CDPID MyDPID;
-#endif
 extern PingSumm PSUMM;
 extern EXBUFFER EBufs[MaxPL];
 extern EXBUFFER EBufs1[MaxPL];

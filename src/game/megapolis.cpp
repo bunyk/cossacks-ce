@@ -1173,13 +1173,6 @@ void City::EnumProp()
 			if ( NU->Individual || NU->StageUp )
 			{
 				OneObject* POB = Group[Producer[i]];
-#ifdef CONQUEST
-				if ( NU->StageUp )
-				{
-					byte st = ( POB->StageState >> ( NU->Level * 3 ) ) & 7;
-					OKK = POB->Ready&&st != 2 && NU->Enabled;
-				};
-#endif
 				if ( NU->Individual )OKK = POB->Ready&&POB->SingleUpgLevel == NU->Level&&NU->Enabled;
 			}
 			else

@@ -11,16 +11,7 @@ When in need to figure out how something happens we could use plain old printf t
 Once done, run `echo -ne '\007'` to notify me.
 
 ## Code changes
-Try to minimize code changes, especially movements and try instead moving
-
-```
-#ifdef _WIN32
-...
-#endif // _WIN32
-```
-
-blocks. Or get rid of them if code verified to be cross-platform and working.
-We aim for short verifiable changes.
+Try to minimize code changes, especially movements and additions. We try to keep code same, but only required code.
 
 When investigating code, leave comments about the code purpose,
 meaning of function parameters, possible values for enums, etc. once you are 
