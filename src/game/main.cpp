@@ -450,7 +450,6 @@ static void EnterGameDataDir( int argc, char* argv[] )
 	}
 }
 
-#ifndef _WIN32
 //MissPack MISSLIST (activescenary.cpp) and other global objects open
 //resource files from their constructors. Those constructors run during
 //static initialization - BEFORE SDL_AppInit, so before its chdir() - and
@@ -486,7 +485,6 @@ static void EnterGameDataDirEarly()
 
 	EnterGameDataDir( Argc, Args );
 }
-#endif //_WIN32
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 {
@@ -574,16 +572,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	exRealLx = 1024;
 	exRealLy = 768;
 
-	// Declarations for globals that live in files not included here
-	// (previously only visible to the _WIN32-only settings block).
-	extern int WarSound;
-	extern int WorkSound;
-	extern int OrderSound;
-	extern int MidiSound;
 	extern int ScrollSpeed;
 	extern int PlayMode;
-	extern char RECFILE[128];
-	extern bool RecordMode;
 	void InitObjs3();
 
 	// Zero the volumes like the original (the mode.dat load below then
@@ -598,9 +588,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	//Zero 3D Bars variables (?)
 	InitObjs3();
 
-	// Load settings. Portable (Gopen); was _WIN32-only, so volumes,
-	// resolution, speed mode and the music preference never persisted
-	// across sessions on Linux.
 	GFILE* fff = Gopen("mode.dat", "rt");
 	ScrollSpeed = 5;
 	if (fff)
@@ -2896,6 +2883,8 @@ void EditorKeyCheck()
 	};
 };
 
+extern int WaitState;
+
 //Many diffirent key checks for various game modes
 void GameKeyCheck()
 {
@@ -2942,20 +2931,6 @@ void GameKeyCheck()
 			curdx = 0;
 			curdy = 0;
 			PauseMode = 0;
-			// Un-guarded (was _WIN32-only, the usual call-site trap): the
-			// mode resets AND the WaitState 1->2 advance - the latter is
-			// what lets ESC skip the Victory/Defeat "press ESC" message and
-			// proceed to the statistics screens (mapa.cpp CheckVictory sets
-			// GameExit/ShowStat once WaitState==2).
-			// Globals owned by game files not visible here (the decls sat
-			// in the guarded block).
-			extern bool SetDestMode;
-			extern bool GoAndAttackMode;
-			extern bool GUARDMODE;
-			extern bool PATROLMODE;
-			extern int WaitState;
-			extern int ShowGameScreen;
-			extern bool AttGrMode;
 			SetDestMode = false;
 			GoAndAttackMode = false;
 			GUARDMODE = 0;

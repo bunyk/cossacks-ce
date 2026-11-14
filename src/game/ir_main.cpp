@@ -16,7 +16,6 @@
 // conversion functions keep the record format byte-identical. The
 // FILETIME/LARGE_INTEGER math on time deltas is also part of the
 // original behavior and is replicated via time_t.
-#ifndef _WIN32
 struct SYSTEMTIME
 {
 	word wYear;
@@ -99,7 +98,6 @@ static bool FileTimeToSystemTime( const FILETIME* ft, SYSTEMTIME* st )
 	st->wDayOfWeek = t->tm_wday;
 	return true;
 }
-#endif // !_WIN32
 
 #define DOTRACE
 

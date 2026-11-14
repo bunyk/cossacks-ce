@@ -122,16 +122,12 @@ void Save3DMap( char* Map );
 void Load3DMap( char* Map );
 void EditMiniMap();
 extern short WheelDelta;
-#ifdef _WIN32
-void LoadMEDButtons();
 void processMLoadGame();
 extern char GameName[128];
 extern word rpos;
 
 int EncodeOptionsInNumber( int *selected_opt_values );
 int DecodeOptionsFromNumber( const int number, int *result );
-
-#endif _WIN32
 // replay map name, written by the map record format (recorder.cpp)
 char CurrentMap[64];
 // In-game screen globals shared with the menu system
@@ -140,6 +136,7 @@ int nsmaplx;
 int nsmaply;
 
 void CBar( int x, int y, int Lx, int Ly, unsigned char c );
+void Xbar( int x, int y, int lx, int ly, byte c ); // lines.cpp
 void PrepareEditMedia( byte myid );
 
 extern bool EditMapMode;
@@ -168,16 +165,8 @@ RLCTable TDisable;
 RLCFont FPassive;
 RLCFont FActive;
 RLCFont FDisable;
-#ifdef _WIN32
-
-extern bool CheapMode;
-int PanelLx;
-int PanelLy;
-#endif // _WIN32
 bool MultiplayerStart;
-#ifdef _WIN32
 extern bool ChoosePosition;
-#endif // _WIN32
 extern word NPlayers; // comes from mplayer.cpp
 void CloseMPL(); // comes from mplayer.cpp
 
@@ -251,14 +240,6 @@ bool NeedToReportInGameStats = 0;
 int PrevReportTime = 0;
 int LastTimeReport_tmtmt = 0;
 extern int tmtmt;
-#ifdef _WIN32
-extern City CITY[8];
-
-bool PDIF_Inside = 0;
-extern int TIME1;
-int PrevProcTime = 0;
-extern City CITY[8];
-#endif // _WIN32
 extern CDPID MyDPID; // defined in mplayer.cpp
 
 extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
@@ -267,125 +248,10 @@ extern uint64_t GetSDLTickCount();
 
 DLLEXPORT bool ProcessMessages()
 {
-#ifdef _WIN32
-	if ( PDIF_Inside )
-	{
-		return false;
-	}
-
-	int TT = GetSDLTickCount();
-
-	if ( !PrevProcTime )
-	{
-		PrevProcTime = TT;
-	}
-
-	try
-	{
-		int T1 = GetSDLTickCount();
-		if ( ( !PrevT ) || T1 - PrevT > 10 )
-		{
-			try
-			{
-				ProcessNewInternet();
-			}
-			catch ( ... )
-			{
-			}
-
-			if ( GetSDLKeyState( SDL_SCANCODE_LCTRL ) )
-			{
-				LastCTRLPressTime = GetSDLTickCount();
-			}
-
-			try
-			{
-				ProcessReceive();
-			}
-			catch ( ... )
-			{
-			}
-
-			try
-			{
-				ProcessNetCash();
-			}
-			catch ( ... )
-			{
-			}
-
-			PrevT = T1;
-
-			/*
-			if (bActive)
-			{
-				LastBActiveTime = T1;
-			}
-			else
-			{
-				if (GameInProgress && NPlayers > 1 && T1 - LastBActiveTime > 10000)
-				{
-					if (NATIONS[MyNation].VictState != 2)
-					{
-						IAmLeft();
-						SpecCmd = 199;
-						ShowOptMessage("#ALTTABDEFEAT", 0);//IMPORTANT: Alt tab defeat procedure
-					}
-				}
-			}
-			*/
-		}
-
-		BOOL ret = FALSE;
-		MSG msg;
-		while ( FALSE != ( ret = PeekMessage( &msg, nullptr, 0, 0, PM_REMOVE ) ) )
-		{
-			if ( -1 == ret )
-			{
-				continue;
-			}
-			if ( msg.message == WM_QUIT )
-			{
-				return true;
-			}
-			TranslateMessage( &msg );
-			DispatchMessage( &msg );
-		}
-
-		if ( GPROG.NWeights )
-		{
-			if ( ( !PrevProgStage ) || GetSDLTickCount() - PrevProgStage > 300 )
-			{
-				PrevProgStage = GetSDLTickCount();
-				if ( !PROGSTR )
-				{
-					PROGSTR = GetTextByID( "PROGSTR%s" );
-				}
-				char ccx[128];
-
-				char tmp[32];
-				DWORD CID = GPROG.StageID[GPROG.CurStage];
-
-				tmp[0] = CID >> 24;
-				tmp[1] = ( CID >> 16 ) & 255;
-				tmp[2] = ( CID >> 8 ) & 255;
-				tmp[3] = ( CID ) & 255;
-				tmp[4] = ' ';
-				tmp[5] = 0;
-
-				int cpr = GPROG.GetCurProgress();
-				sprintf( tmp + 5, "%d%%", cpr );
-				sprintf( ccx, PROGSTR, tmp );
-				ShowProgStr( ccx, cpr );
-			}
-		}
-	}
-	catch ( ... )
-	{
-	}
-
+	// Linux: input arrives through SDL_AppEvent (main.cpp), which sets
+	// KeyPressed/LastKey and the mouse globals directly; there is no
+	// Win32 message queue to pump here.
 	return false;
-#endif // _WIN32
 }
 
 extern bool EnterChatMode;
@@ -401,29 +267,6 @@ bool ProcessMessagesEx()
 		LastCTRLPressTime = GetSDLTickCount();
 	}
 
-#ifdef _WIN32
-	ProcessVotingKeys();
-
-	if ( EnterChatMode )
-	{
-		ProcessChatKeys();
-	}
-
-	MSG msg;
-
-	bool MSR = 0;
-	while ( PeekMessage( &msg, nullptr, 0, 0, PM_REMOVE ) )
-	{
-		if ( msg.message == WM_QUIT )
-		{
-			return true;
-		}
-		TranslateMessage( &msg );
-		DispatchMessage( &msg );
-		MSR = 1;
-	}
-	return MSR;
-#endif // _WIN32
 	return 0;
 }
 
@@ -746,10 +589,6 @@ int ProcessWars();
 // editor (menu case 31)
 char MapScenaryDLL[200] = "";
 char DEFPLNAMES[8][64];
-#ifdef _WIN32
-//--------------------MULTIPLAYER GAME---------------------//
-extern char SaveFileName[128];
-
 //---------------------Map options-------------------------//
 void ProcessMapOptions()
 {
@@ -794,7 +633,6 @@ void ProcessMapOptions()
 //--------------------RESOURCE EDITOR----------------------//
 // Editor dialog (menu case 31) for editing per-player resources, player
 // names, the scenario DLL path and random-map resource presets.
-#endif // _WIN32
 // Decls of data defined higher up in this file or in other units:
 // default player names and the scenario DLL path (blocks above), per-nation
 // resources and random-map presets (nature.cpp / its guard-split block above).
@@ -1055,10 +893,10 @@ bool MMChooseName( SimpleDialog* SD )
 	return false;
 }
 
-// cross-platform: CDGINIT_INIT1 sets SmartLink (NewMonsterSmartSendToLink
-// order dispatch), CDGINIT_INIT2 sets AttackLink (AttackObjLink). Both were
-// called only under _WIN32 - on Linux every smart-send/attack order jumped
-// into the uninitialized dummy pointers (building-placement crash).
+// CDGINIT_INIT1 sets SmartLink (NewMonsterSmartSendToLink order dispatch),
+// CDGINIT_INIT2 sets AttackLink (AttackObjLink); called from
+// SFLB_ReadFirstPlayerName so smart-send/attack orders never jump into the
+// uninitialized dummy pointers (building-placement crash).
 void CDGINIT_INIT2();
 void CDGINIT_INIT1();
 
@@ -1710,175 +1548,11 @@ void AddChatString( char* Nick, char* str, int MaxLx, lpRLCFont FONT,
 	};
 }
 
-#ifdef _WIN32
-
-bool DisableCreate = 0;
-extern bool UnderFirewall;
-
-void CheckProfileInit();
-
-int GetGerbByScore( int Score )
-{
-	if ( Score < 5 * 6 )return Score / 5;
-	Score -= 5 * 6;
-	if ( Score < 10 * 7 )return 6 + Score / 10;
-	Score -= 10 * 7;
-	if ( Score < 20 * 4 )return 13 + Score / 20;
-	Score -= 20 * 4;
-	if ( Score < 30 * 2 )return 17 + Score / 30;
-	Score -= 30 * 2;
-	if ( Score < 50 * 3 )return 19 + Score / 50;
-	Score -= 50 * 3;
-	if ( Score < 100 * 3 )return 22 + Score / 100;
-	Score -= 100 * 3;
-	if ( Score < 150 * 5 )return 25 + Score / 150;
-	Score -= 150 * 5;
-	int rr = 30 + Score / 200;
-	if ( rr > 41 )rr = 41;
-	return rr;
-}
-
-int GetRankByScore( int Score )
-{
-	int rr = GetGerbByScore( Score );
-	if ( rr < 5 )return 0;
-	if ( rr < 12 )return 1;
-	if ( rr < 16 )return 2;
-	if ( rr < 18 )return 3;
-	if ( rr < 21 )return 4;
-	if ( rr < 24 )return 5;
-	if ( rr < 29 )return 6;
-	if ( rr < 34 )return 7;
-	return 8;
-}
-
-extern char** NatNames;
-
-void GETCOUNTRY( char* code, char* res );
-
-int  RESPOND = 0;
-//1-ok
-//2-password
-//3-invalid version
-//4-room is full
-//5-not created
-//6-room is in the game
-DWORD  PASSHASH = 0;
-word JP_ver = 0;
-DWORD CalcPassHash( char* pass )
-{
-	int L = strlen( pass );
-	DWORD S = 0;
-	for ( int i = 0; i < L; i++ )S += pass[i];
-	for ( int i = 0; i < L - 1; i++ )S += pass[i] * pass[i + 1];
-	for ( int i = 0; i < L - 2; i++ )S += pass[i] * pass[i + 1] * pass[i + 2];
-	for ( int i = 0; i < L - 3; i++ )S += pass[i] * pass[i + 1] * pass[i + 2] * pass[i + 3];
-	for ( int i = 0; i < L - 4; i++ )S += pass[i] * pass[i + 1] * pass[i + 2] * pass[i + 3] * pass[i + 4];
-	for ( int i = 0; i < L - 5; i++ )S += pass[i] * pass[i + 1] * pass[i + 2] * pass[i + 3] * pass[i + 4] * pass[i + 5];
-	return S;
-};
-bool GetPLIP( char* Nick, char* IP );
-
-bool TryToJoinToPlayer( char* name )
-{
-	char Name[128];
-	strcpy( Name, name );
-	LocalGP BOR2( "Interface\\bor2" );
-	RESPOND = 0;
-	PASSHASH = 0;
-	JP_ver = 0;
-	int T0 = GetSDLTickCount();
-	DarkScreen();
-	ShowCentralMessage( GetTextByID( "ICJOIN" ), BOR2.GPID );
-	FlipPages();
-	int TT = GetSDLTickCount();
-	do
-	{
-		if ( GetSDLTickCount() - TT > 3000 )
-		{
-			TT = GetSDLTickCount();
-		}
-		ProcessMessages();
-	} while ( GetSDLTickCount() - T0 < 20000 && RESPOND == 0 );
-	char* ERR = nullptr;
-	switch ( RESPOND )
-	{
-	case 0:
-		ERR = GetTextByID( "JNPG_E3" );
-		break;
-	case 2:
-		if ( EnterPassword() )
-		{
-			DWORD V = CalcPassHash( SessPassword );
-			int T0 = GetSDLTickCount();
-			do
-			{
-				ProcessMessages();
-			} while ( GetSDLTickCount() - T0 < 1000 );
-			if ( V != PASSHASH )
-			{
-				ERR = GetTextByID( "JNPG_E6" );
-				return false;
-			};
-		}
-		else return false;
-		break;
-	case 3:
-		ERR = GetTextByID( "JNPG_E2" );
-		break;
-	case 4:
-		ERR = GetTextByID( "JNPG_E4" );
-		break;
-	case 5:
-		ERR = GetTextByID( "JNPG_E1" );
-		break;
-	case 6:
-		ERR = GetTextByID( "JNPG_E5" );
-		break;
-	};
-	if ( ERR )
-	{
-		DarkScreen();
-		ShowCentralMessage( ERR, BOR2.GPID );
-		FlipPages();
-		int T0 = GetSDLTickCount();
-		KeyPressed = 0;
-		do
-		{
-			ProcessMessages();
-		} while ( GetSDLTickCount() - T0 < 10000 && !KeyPressed );
-		return false;
-	};
-	return true;
-};
-#endif // _WIN32 (singleplayer random-map block above uses the multiplayer
-// helpers above it; RunHTTPC below is needed by ir_main.cpp stats on both
-// platforms)
 void RunHTTPC()
 {
-	// launches the stats uploader (upload.dat writer) minimized
-#ifdef _WIN32
-	STARTUPINFO			StartUpInfo;
-	PROCESS_INFORMATION		ProcessInformation;
-	memset( &StartUpInfo, 0x00, sizeof( STARTUPINFO ) );
-	StartUpInfo.cb = sizeof( STARTUPINFO );
-	StartUpInfo.wShowWindow = SW_SHOWMINNOACTIVE;
-	StartUpInfo.dwFlags = STARTF_USESHOWWINDOW;
-
-	CreateProcess( "httpc.exe",
-		nullptr,
-		nullptr,
-		nullptr,
-		FALSE,
-		0x00,
-		nullptr,
-		nullptr,
-		&StartUpInfo,
-		&ProcessInformation );
-#else
-	// run in background like the minimized Windows process did
+	// launches the stats uploader (upload.dat writer) in the background,
+	// like the minimized Windows process did
 	system( "httpc.exe >/dev/null 2>&1 &" );
-#endif // _WIN32
 };
 bool GetPLIP( char* Nick, char* IP );
 bool T100_cmd_done = 0;
@@ -2008,10 +1682,7 @@ void DeepDeletePeer( DWORD ID );
 int GetMyProfile();
 
 //Shows lobby interface for multiplayer deathmatch and single player random map
-// Multiplayer/network helpers that live in unported Windows blocks of this
-// file. Declarations needed by MPL_WaitingGame's shared event loop;
-// Linux definitions sit next to the original blocks above.
-#ifndef _WIN32
+// Declarations needed by MPL_WaitingGame's shared event loop.
 void SendChat( char* str, bool toall );
 int  GetMaxRealPing();
 bool SendToAllPlayers( DWORD Size, LPVOID lpData );
@@ -2031,30 +1702,15 @@ extern int CurrentMaxPing[8];
 extern bool DoNewInet;
 extern int PPTIME;
 extern bool RecordMode;
-#endif
 
 bool MPL_WaitingGame( bool Host, bool SINGLE )
 {
 
 	ServerDPID = 0;
 	int r0 = GetSDLTickCount();
-#ifdef _WIN32
-	ClearLPACK();
-
-	PPTIME = r0;
-
-	memset( CurrentMaxPing, 0xFF, 4 * 8 );
-
-	ReceiveAll();
-
-	CurStatus = 0;
-#endif
 	PitchTicks = 8;
 	MaxPingTime = 0;
 
-#ifdef _WIN32
-	ClearCTime();
-#endif
 	int NCHATS = 0;
 	CHATSTRING[0] = 0;
 	int MAXCHATS = 0;
@@ -2661,11 +2317,6 @@ ffe2:
 	}
 
 	KeyPressed = 0;
-#ifdef _WIN32
-	PSUMM.ClearPingInfo();
-	PBACK.Clear();
-	ReceiveAll();
-#endif // _WIN32
 
 	bool P1E;
 	bool P2E;
@@ -2683,14 +2334,6 @@ ffe2:
 	int CURSUMM = 0;
 	int NOMREADY = -1;
 	char* OLDV = GetTextByID( "OLDVER" );
-
-#ifdef _WIN32
-	char* NOCONN = GetTextByID( "$NOCONN" );
-	if ( NOCONN[0] == '$' )
-	{
-		NOCONN = _engNOCONN;
-	}
-#endif // _WIN32
 
 	int FInTime = GetSDLTickCount();
 	char* COMPTXT = "Computer";
@@ -2784,15 +2427,10 @@ ffe2:
 		//below must not cross its initialization (C++ forbids that, MSVC allowed it)
 		bool settings_were_changed = false;
 
-#ifdef _WIN32
-		//Call every iteration, UdpHolePuncher keeps track of intervals by itself
-		udp_hole_puncher.KeepAlive();
-
 		if ( CheckPersonality( CHATMESSAGE ) )
 		{
 			CHATBOX->CursPos = strlen( CHATMESSAGE );
 		}
-#endif
 
 		if ( Host )
 		{
@@ -5305,9 +4943,8 @@ bool GetPreview( char* Name, byte* Data );
 
 extern int RunMethod;
 
-#ifndef _WIN32
 // Single-player game start: declarations for pieces implemented in
-// not-yet-ported files (mplayer.cpp) or defined further below in this file.
+// mplayer.cpp or defined further below in this file.
 void CreateNationalMaskForRandomMap( char* Name );
 void CreateMaskForSaveFile( char* Name );
 void CreateNationalMaskForMap( char* Name );
@@ -5323,16 +4960,11 @@ extern int PGLOBALTIME;
 extern int EBPos;
 extern DWORD EBPos1;
 extern DWORD RealTime;
-#endif // !_WIN32
 
 bool SingleOptions()
 {
 	if ( MPL_WaitingGame( 1, 1 ) )
 	{
-#ifdef _WIN32
-		StartIGame( 1 );
-		return true;
-#else
 		// Offline single-player start. Same as StartIGame( SINGLE ) +
 		// ComeInGame() from mplayer.cpp, minus the DirectPlay send paths.
 		memcpy( NatRefTBL, MPL_NatRefTBL, 8 );
@@ -5405,7 +5037,6 @@ bool SingleOptions()
 		PGLOBALTIME = 0;
 
 		return true;
-#endif // _WIN32
 	}
 	else
 	{
@@ -6285,7 +5916,6 @@ bool GameExit;
 int MenuType;
 bool MakeMenu;
 
-#ifndef _WIN32
 // POSIX shim for the Win32 find-file API used by the save/load game dialogs.
 // HANDLE is void* (newcode/os.h); patterns accept Win32 backslash paths.
 #include <glob.h>
@@ -6326,7 +5956,6 @@ static void FindClose( HANDLE HF )
 	globfree( &st->g );
 	delete st;
 }
-#endif
 //Pool of save-game file names for the load/save list boxes. InstallName()
 //validates a file against the current save format version (sfVersion)
 //before adding it; FreeNames() releases the list between dialog runs.
@@ -8228,7 +7857,6 @@ StartPlay://IMPORTANT: Main game loop
 				case 1:
 					if ( mcmExit == ProcessGMainMenu() && IngameYesNoDialog( GetTextByID( "CONFIRM" ) ) )
 					{
-						#ifdef _WIN32
 						// Is it some kind of multiplayer?
 						if ( NPlayers > 1 && !NATIONS[MyNation].VictState )
 						{
@@ -8248,7 +7876,6 @@ StartPlay://IMPORTANT: Main game loop
 								ProcessMessages();
 							} while ( GetSDLTickCount() - t0 < 500 );
 						}
-#endif // _WIN32 (multiplayer exit block)
 						GameExit = true;
 						CloseMPL();
 					}
@@ -8301,7 +7928,6 @@ StartPlay://IMPORTANT: Main game loop
 		RecordMode = 0;
 	}
 
-#ifdef _WIN32
 	if ( RetryVideo && !( RUNMAPEDITOR || RUNUSERMISSION ) )
 	{
 		GFILE* f = Gopen( "Demo\\demo.run", "r" );
@@ -8336,7 +7962,6 @@ StartPlay://IMPORTANT: Main game loop
 			RetryVideo = 0;
 		}
 	}
-#endif // _WIN32
 
 	IgnoreSlow = true;
 
@@ -11252,8 +10877,6 @@ bool ProcessSingleMission( int n, int Diff )
 
 	return true;
 }
-// (the _WIN32 region that used to cover the battles screens machinery was
-// closed above ProcessSingleMission; mission/campaign code below is portable)
 bool ProcessSingleCampagin( int n )
 {
 	KeyPressed = 0;
@@ -11485,14 +11108,7 @@ AddMissionsPack::AddMissionsPack()
 					strcpy( c1, ".dsc" );
 					strcpy( Pack[NMiss].Preview, ccc );
 					strcpy( c1, ".bmp" );
-#ifdef _WIN32
-					FILE* F1 = fopen( ccc, "r " );
-					if ( F1 )
-					{
-						strcpy( Pack[NMiss].Bitmap, ccc );
-						fclose( F1 );
-					};
-#else
+
 					// Linux: raw fopen() cannot open backslash paths -
 					// use the engine's RReset (case-insensitive loose
 					// files or the GSC archive) for the bitmap check.
@@ -11502,7 +11118,6 @@ AddMissionsPack::AddMissionsPack()
 						strcpy( Pack[NMiss].Bitmap, ccc );
 						RClose( F1 );
 					};
-#endif
 				};
 				Gclose( F );
 				NMiss++;
@@ -15773,18 +15388,8 @@ void CreateNEWMAP()
 	}
 	free( p );
 }
-// (Windows-only region resumes: the AI-check export and the error
-// dialog helper below sit outside the map editor UI)
-#ifdef _WIN32
-
-void WaitWithError4( char* ID, int GPID );
-
-void ERRMESSAGE( char* STR )
-{
-	LocalGP BOR2( "Interface\\bor2" );
-	WaitWithError4( STR, BOR2.GPID );
-}
-
+// DLLEXPORT: scenario/mission DLLs call this to know whether any AI
+// nation is present (e.g. to decide if the mission is a pure script).
 DLLEXPORT bool CheckUsingAI()
 {
 	for ( int i = 0; i < 8; i++ )
@@ -15796,5 +15401,3 @@ DLLEXPORT bool CheckUsingAI()
 	}
 	return false;
 }
-
-#endif // _WIN32

@@ -16,6 +16,7 @@ This project is an effort to migrate the classic game **Cossacks: Back to War** 
 - AI grenader attack fixed in GrenaderSuperman
 
 ## TODO:
+- Get rid of fake windows.h types and of os.h in general
 - Change numerical enums to named ones (with constants?)
 - Missions and campaigns (loading works, 2/106 mission modules ported - see docs/missions.md)
 - Networking

@@ -17,10 +17,7 @@ struct GAMEOBJ;
 #include <stddef.h>
 
 // Export marker for OnInit/ProcessScenary (same shim the AI modules use).
-#ifndef _WIN32
 #define __declspec(x) __attribute__((visibility("default")))
-#endif
-
 
 // Engine integer typedefs (engine units.h) used in the signatures.
 typedef unsigned char byte;
