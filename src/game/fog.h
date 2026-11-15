@@ -4,3 +4,4 @@ void ProcessFog();
 void LoadFog(int);
 void ShowFoggedBattle();
 void AcceptMiniMap();
+void FogBlurPass();

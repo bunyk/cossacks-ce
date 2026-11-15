@@ -1391,7 +1391,6 @@ extern word rpos;
 word PreRpos;
 void ShowPulse();
 void AddPulse( word ObjID, byte c );
-void ProcessFog1();
 void CreateFogImage();
 void SyncroDoctor();
 void PrepareSound();
@@ -1852,7 +1851,7 @@ void GFieldShow()
 	{
 		if (NOPAUSE && !( LockFog || NoPFOG ))
 		{
-			ProcessFog1();
+			FogBlurPass();
 		}
 
 		CreateFogImage();

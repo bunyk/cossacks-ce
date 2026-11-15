@@ -100,3 +100,15 @@ Object position in 1/16-pixel units: `RealX>>4` is the pixel coordinate (the
 unit `GetTopology` and the `Norma` distance calls use), `RealX>>11` is the
 search cell. Example: a tower's search-cell position is stored as
 `OB->RealX >> (4+7)` in `PORTSX[]`.
+
+## Fog of war
+
+The player-facing hidden-map system, all in `fog.cpp`; see
+[050_fog_of_war.md](050_fog_of_war.md). State lives in `fmap`, a low-res
+grid of words (one per 128x128 map pixels, `LX_fmap^2` cells, 3-cell
+border): 0 = unexplored, 8000 (`kFogRevealValue`) = freshly revealed by
+`FogSpot`, decayed each frame by the `FogBlurPass` blur. Rendering is a
+post-pass over the finished frame (`DrawFog` -> `ShowSuperFluentFog32_160_16`
+-> `darkfog[level*256 + pixel]`), plus `DrawMiniFog` on the minimap.
+Queries go through `GetFog(x, y<<1) < 900`; only sounds and click hints
+use it - the AI never reads the fog.

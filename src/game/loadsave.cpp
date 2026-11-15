@@ -3419,8 +3419,6 @@ void SetFractalTexture()
 
 void TEST_GM();
 
-void SetupFog();
-
 void SetupArrays()
 {
 	if (ADDSH == ACTUAL_ADDSH)
@@ -3624,7 +3622,6 @@ void SetupArrays()
 	Init3DMapSystem();
 	//SetFractalTexture();
 	TEST_GM();
-	SetupFog();
 }
 
 extern byte* NatDeals;
