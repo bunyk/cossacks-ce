@@ -4636,188 +4636,9 @@ void ShowVisualLess( int yend )
 };
 bool PInside( int x, int y, int x1, int y1, int xp, int yp );
 extern int tmtmt;
-#ifdef CONQUEST
-void QShowFiresEx( OneObject* OB, int x0, int y0, int FirIDX, NewAnimation** PreFires, NewAnimation** FiresAnm, int NFiresAnm, int FIndex )
-{
-	if ( !NFiresAnm )return;
-	//determining the current stage
-	word ms = OB->StageState;
-	int curst = 0;
-	NewMonster* NM = OB->newMons;
-	int LF0 = 0;
-	int LF1 = OB->Ref.General->MoreCharacter->Life;
-	int LF00 = LF0;
-	int LF10 = LF1;
-	for ( int i = 0; i < MaxAStages; i++ )
-	{
-		LF0 = LF1;
-		word ms1 = ( ms >> ( i * 3 ) ) & 7;
-		if ( ms1 == 2 )
-		{
-			LF1 += NM->CompxCraft->Stages[i].AddPoints;
-			curst = i + 1;
-			LF00 = LF0;
-			LF10 = LF1;
-		};
-	};
-	int NFir;
-	if ( curst )NFir = NM->CompxCraft->Stages[curst - 1].NFires[FirIDX];
-	else NFir = NM->NFires[FirIDX];
-
-	int scdy = mapy << 4;
-	AdvCharacter* ADC = OB->Ref.General->MoreCharacter;
-	if ( NFir )
-	{
-		int L2 = ( LF10 - LF00 ) >> 1;
-		int LM = ( LF10 + LF00 ) >> 1;
-
-		//L2+=L2>>1;
-		if ( OB->Life >= LM )return;
-
-		int NOG = NFir*( LM - OB->Life ) / L2;
-		if ( NOG > NFir )NOG = NFir;
-		FireInfo* GFIN = OB->IFire;
-		if ( GFIN&&GFIN->BStage != curst )
-		{
-			GFIN->Erase();
-			free( GFIN );
-			OB->IFire = nullptr;
-			GFIN = nullptr;
-		};
-		if ( !GFIN )
-		{
-			GFIN = new FireInfo;
-			for ( int k = 0; k < 2; k++ )GFIN->Objs[k] = 0;
-			OB->IFire = GFIN;
-			GFIN->BStage = curst;
-		};
-		FireObjectInfo* FIN = GFIN->Objs[FIndex];
-		if ( !FIN )
-		{
-			FIN = new FireObjectInfo;
-			GFIN->Objs[FIndex] = FIN;
-			FIN->FireSprite = new byte[NFir];
-			FIN->FireStage = new byte[NFir];
-			FIN->NeedFires = NOG;
-			FIN->RealFires = 0;
-			FIN->delay = 8 + ( rand() & 7 );
-			/*
-			if(NOG>4){
-				FIN->RealFires=NOG;
-				for(int i=0;i<NOG;i++){
-					NewAnimation* NANM=FiresAnm[div(i,NFiresAnm).rem];
-					if(NANM->NFrames){
-						FIN->FireStage[i]=2;
-						FIN->FireSprite[i]=div(i*133+tmtmt,NANM->NFrames).rem;
-						FIN->delay=8+(rand()&15);
-					};
-				};
-			};
-			*/
-		}
-		else
-		{
-			FIN->NeedFires = NOG;
-		};
-		if ( FIN->NeedFires > FIN->RealFires )
-		{
-			int J = FIN->RealFires;
-			if ( FIN->delay )FIN->delay--;
-			else
-			{
-				FIN->RealFires++;
-				NewAnimation* NANM = PreFires[J%NFiresAnm];
-				if ( NANM )
-				{
-					FIN->FireStage[J] = 1;
-					FIN->FireSprite[J] = 0;
-				}
-				else
-				{
-					FIN->FireStage[J] = 2;
-					FIN->FireSprite[J] = 0;
-				};
-				FIN->delay = 8 + ( rand() & 15 );
-			};
-			for ( int p = 0; p < J; p++ )if ( FIN->FireStage[p] == 3 )
-			{
-				FIN->FireStage[p] = 2;
-				FIN->FireSprite[p] = 0;
-			};
-		};
-		if ( FIN->NeedFires < FIN->RealFires )
-		{
-			FIN->RealFires = FIN->NeedFires;
-		};
-		for ( int i = 0; i < FIN->RealFires; i++ )
-		{
-			int ANI = div( i, NFiresAnm ).rem;
-			byte sta = FIN->FireStage[i];
-			NewAnimation* NANM = nullptr;
-			FIN->FireSprite[i]++;
-			switch ( sta )
-			{
-			case 1:
-				NANM = PreFires[ANI];
-				if ( FIN->FireSprite[i] == NANM->NFrames )
-				{
-					FIN->FireSprite[i] = 0;
-					FIN->FireStage[i] = 2;
-					sta = 2;
-				};
-				break;
-			case 2:
-				NANM = FiresAnm[ANI];
-				if ( FIN->FireSprite[i] == NANM->NFrames )
-				{
-					FIN->FireSprite[i] = 0;
-				};
-				break;
-			};
-			switch ( sta )
-			{
-			case 1:
-				NANM = PreFires[ANI];
-				break;
-			case 2:
-				NANM = FiresAnm[ANI];
-				break;
-			case 3:
-				NANM = PostFires[0][ANI];
-			};
-			if ( NANM&&NANM->NFrames )
-			{
-				int csp = FIN->FireSprite[i];
-				NewFrame* NF = &NANM->Frames[csp];
-				int x = x0; +NM->FireX[FIndex][i];
-				int y = y0; +NM->FireY[FIndex][i];
-				if ( curst == 0 )
-				{
-					x += NM->FireX[FIndex][i];
-					y += NM->FireY[FIndex][i];
-				}
-				else
-				{
-					x += NM->CompxCraft->Stages[curst - 1].FireX[FIndex][i];
-					y += NM->CompxCraft->Stages[curst - 1].FireY[FIndex][i];
-				};
-				PlayAnimation( NANM, csp, x + ( mapx << 5 ), y + ( mapy << 4 ) );
-				AddPoint( x, ( OB->RealY >> 5 ) - scdy + 200 + i, x + NF->dx, y + NF->dy, nullptr, NF->FileID, NF->SpriteID, 0, 0 );
-			};
-		};
-	};
-};
-#endif
 void QShowFires( OneObject* OB, int x0, int y0, int FirIDX, NewAnimation** PreFires, NewAnimation** FiresAnm, int NFiresAnm, int FIndex )
 {
 	if ( !NFiresAnm )return;
-#ifdef CONQUEST
-	if ( OB->StageState )
-	{
-		QShowFiresEx( OB, x0, y0, FirIDX, PreFires, FiresAnm, NFiresAnm, FIndex );
-		return;
-	};
-#endif
 	int NFir = OB->newMons->NFires[FirIDX];
 	NewMonster* NM = OB->newMons;
 	int scdy = mapy << 4;
@@ -9152,12 +8973,6 @@ int Nation::CreateNewMonsterAt( int rx, int ry, int n, bool Anyway )
 	G->AutoKill = false;
 	G->StandGround = NM->AutoStandGround;
 	G->NoSearchVictim = NM->AutoNoAttack;
-#ifdef CONQUEST
-	if ( NM->CompxCraft )
-	{
-		G->StageState = 32768;
-	};
-#endif
 	if ( GO->newMons->Building && !NM->Wall )G->NewBuilding = true;
 	else
 	{
@@ -11558,16 +11373,7 @@ void AttackObjLink( OneObject* OBJ )
 	bool DELAY;
 	bool CANSETDELAY = 1;
 	bool NEEDSLOWRECHARGE = 0;
-#ifdef CONQUEST
-	DELAY = OBJ->delay;
-	if ( DELAY )
-	{
-		if ( NMN->NoWaitMask&( 1 << ( nst - 1 ) ) )DELAY = 0;
-		CANSETDELAY = 0;
-	};
-#else
 	DELAY = 0 != OBJ->delay;
-#endif
 	if ( DELAY&&NMN->SlowRecharge )
 	{
 		NEEDSLOWRECHARGE = 1;

@@ -343,6 +343,12 @@ void CreateAreas() {
 	CreateCostPlaces();
 }
 
+// LinksDist/MotionLinks: NAreas x NAreas matrices indexed [from*NAreas + to].
+// 0xFFFF = unreachable. Only direct area links are seeded here (link weight =
+// distance between the two areas' centers, see AddChTop); OneIteration() then
+// relaxes them into all-pairs shortest paths. The diagonal is never written,
+// so LinksDist[a*NAreas + a] stays 0xFFFF - callers that need "same area = 0"
+// must special-case it themselves (SearchPlace does, SearchTowerPlace now does).
 void ClearLinkInfo() {
 	memset(MotionLinks, 0xFFFF, NAreas*NAreas * 2);
 	memset(LinksDist, 0xFFFF, NAreas*NAreas * 2);

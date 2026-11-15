@@ -240,3 +240,33 @@ tpGetUnitsByUsage* GetUnitsByUsage = nullptr;
 // unit coordinates), otherwise a time-seeded counter.
 typedef int tpGetRandomIndex();
 tpGetRandomIndex* GetRandomIndex = nullptr;
+
+// The AI nation index the engine is currently servicing (callable only
+// from ProcessAI). The original DLLs cache it in a .data slot at the top
+// of every tick and index their per-nation flag arrays with it.
+typedef int tpGetAINation();
+tpGetAINation* GetAINation = nullptr;
+
+// Cost of one unit / one research in a single resource
+// (0=wood 1=gold 2=stone 3=food 4=iron 5=coal). The original land AIs
+// use these to decide market conversions while hoarding for an upgrade.
+typedef int tpGetUnitCost(unsigned char Nat, GAMEOBJ* UnitType, unsigned char ResID);
+tpGetUnitCost* GetUnitCost = nullptr;
+typedef int tpGetUpgradeCost(unsigned char Nat, GAMEOBJ* Upgrade, unsigned char ResID);
+tpGetUpgradeCost* GetUpgradeCost = nullptr;
+
+// Current extraction rate (per tick) of a resource from all mines.
+typedef int tpGetExtraction(unsigned char ResID);
+tpGetExtraction* GetExtraction = nullptr;
+
+// Market preview: how much BuyRes selling SellAmount of SellRes yields.
+typedef int tpGetTorgResult(unsigned char SellRes, unsigned char BuyRes, int SellAmount);
+tpGetTorgResult* GetTorgResult = nullptr;
+
+// Peace-time configuration: total peace duration and remaining time.
+// The original land AIs switch to the attack pipeline when
+// GetPeaceTimeLeft() drops below 3-5.
+typedef int tpGetMaxPeaceTime();
+tpGetMaxPeaceTime* GetMaxPeaceTime = nullptr;
+typedef int tpGetPeaceTimeLeft();
+tpGetPeaceTimeLeft* GetPeaceTimeLeft = nullptr;

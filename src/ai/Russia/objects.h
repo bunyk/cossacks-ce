@@ -152,3 +152,27 @@ GAMEOBJ dragun18_SHIELD5;
 GAMEOBJ dragun18_SHIELD6;
 GAMEOBJ dragun18_SHIELD7;
 
+
+// Per-game pick upgrade chains (SafeRegisterUpgrade slots of the
+// original DLLs; see common/european_land.h RegisterPickChains).
+// Order: ATTACK,ATTACK3..ATTACK7,SHIELD,SHIELD3..SHIELD7.
+GAMEOBJ mounted_pick_chain[12];
+GAMEOBJ shooter_pick_chain[12];
+
+// Slots the shared land pipeline (common/european_land.h) references; in
+// Russia.dll both dragoon slots are "Dragun_18(RU)" and the "Dragun(RU)..."
+// upgrade names are dead SafeRegisterUpgrade slots (not in RUSSIA.NDS).
+GAMEOBJ Melnica_GETRES2;
+GAMEOBJ dragun17;
+GAMEOBJ dragun_ATTACK;
+GAMEOBJ dragun_ATTACK3;
+GAMEOBJ dragun_ATTACK4;
+GAMEOBJ dragun_ATTACK5;
+GAMEOBJ dragun_ATTACK6;
+GAMEOBJ dragun_ATTACK7;
+GAMEOBJ dragun_SHIELD;
+GAMEOBJ dragun_SHIELD3;
+GAMEOBJ dragun_SHIELD4;
+GAMEOBJ dragun_SHIELD5;
+GAMEOBJ dragun_SHIELD6;
+GAMEOBJ dragun_SHIELD7;

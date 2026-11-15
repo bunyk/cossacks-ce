@@ -43,25 +43,6 @@ extern PlayerInfo PINFO[8];
 
 extern const int kChatMessageDisplayTime;
 
-//--------------------inserted from DIPLOMACY.H---------------//
-typedef void tpStartDownloadInternetFile( char* Name, char* Server, char* DestName );
-typedef void tpProcessDownloadInternetFiles();
-typedef void tpSendRecBuffer( byte* Data, int size, bool Final );
-
-#ifdef _WIN32
-extern tpStartDownloadInternetFile* StartDownloadInternetFile;
-extern tpProcessDownloadInternetFiles* ProcessDownloadInternetFiles;
-extern tpSendRecBuffer* SendRecBuffer;
-#else
-// IntExplorer exchange DLL is not ported: the pointers stay NULL, which
-// disables the map-record upload/download path below (every call site
-// checks them first)
-tpStartDownloadInternetFile* StartDownloadInternetFile = NULL;
-tpProcessDownloadInternetFiles* ProcessDownloadInternetFiles = NULL;
-tpSendRecBuffer* SendRecBuffer = NULL;
-#endif
-//-----------------------------------------------------------//
-//#include "diplomacy.h"
 byte RecFormatID = 0;
 
 RecordGame RGAME;
@@ -861,14 +842,12 @@ void RecordGame::ReadStream( char* Name )
 	}
 }
 
-int RunSize0 = 0;
 int RunDataSize = 0;
 byte RunData[2048];
 void RecordGame::Save()
 {
 	if ( RecName[0] )
 	{
-		RGAME.TryToFlushNetworkStream( 1 );
 		ResFile F = RRewrite( RecName );
 		if ( F != INVALID_HANDLE_VALUE )
 		{
@@ -903,49 +882,8 @@ void RecordGame::Save()
 		RGAME.Size = 0;
 		RGAME.MaxSize = 0;
 		RGAME.Pos = 0;
-		RGAME.LastSentPos = 0;
 		RGAME.RecName[0] = 0;
 		RGAME.MapName[0] = 0;
-	}
-}
-
-void RecordGame::TryToFlushNetworkStream( bool Final )
-{
-	if ( !RecordMode )
-	{
-		return;
-	}
-
-	if ( Size - LastSentPos > 500 || Final )
-	{
-		if ( SendRecBuffer )
-		{
-			if ( !LastSentPos )
-			{
-				const int buf_size = 16384;// 4096; //BUGFIX: increase buffer size to prevent overflows
-				byte TMPB[buf_size];
-				int SIGN = ']CER';
-				memcpy( TMPB, &SIGN, 4 );
-				memcpy( TMPB + 4, MapName, 64 );
-				SIGN = ']';
-				memcpy( TMPB + 4 + 64, &SIGN, 1 );
-				memcpy( TMPB + 4 + 64 + 1, &RunMethod, 4 );
-				memcpy( TMPB + 4 + 64 + 1 + 4, &RunDataSize, 4 );
-				memcpy( TMPB + 4 + 64 + 1 + 4 + 4, &RunData, RunDataSize );
-				RunSize0 = 4 + 64 + 1 + 4 + 4 + RunDataSize;
-				if ( Size >= buf_size - RunSize0 )
-				{
-					Size = buf_size - RunSize0 - 1;//BUGFIX: prevent buffer overflow and cut the stream short
-				}
-				memcpy( TMPB + RunSize0, Stream, Size );
-				SendRecBuffer( TMPB, Size + RunSize0, Final );
-			}
-			else
-			{
-				SendRecBuffer( Stream + LastSentPos, Size - LastSentPos, Final );
-			}
-		}
-		LastSentPos = Size;
 	}
 }
 
@@ -978,7 +916,6 @@ bool InternetStream::Open( char* Name )
 		Server[2] = 0;
 		strcpy( StreamName, Name + 3 );
 		GetFHashName( Name, HashName );
-		if ( StartDownloadInternetFile )StartDownloadInternetFile( StreamName, Server, HashName );
 		CurPosition = 0;
 		LocalFile = 0;
 		return true;
@@ -1132,11 +1069,9 @@ int InternetStream::Error()
 void UnLoading();
 extern word PlayerMenuMode;
 extern int ItemChoose;
-extern bool use_gsc_network_protocol;
 
 DLLEXPORT void PlayRecfile( char* RecFile )
 {
-	int LOG = use_gsc_network_protocol;
 	ShowLoading();
 	FlipPages();
 	RGAME.RunRecordedGame( RecFile );
@@ -1145,5 +1080,4 @@ DLLEXPORT void PlayRecfile( char* RecFile )
 	UnLoading();
 	ItemChoose = -1;
 	PlayerMenuMode = 1;
-	use_gsc_network_protocol = ( 0 != LOG );
 }

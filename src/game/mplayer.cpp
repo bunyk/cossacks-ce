@@ -1223,15 +1223,10 @@ bool CreateNamedSession( char* Name, DWORD User2, int Max )
 		NETWORK_INIT = 1;
 	};
 	DWORD dwNameSize = MAXNAMELEN;
-#ifdef _WIN32
-	if (!GetComputerName( szSessionName, &dwNameSize ))
-		strcpy( szSessionName, "Session" );
-#else
 	// szSessionName is only a fallback Name for the session; the
 	// ServerName argument to InitServer below is what actually gets used
 	if (gethostname( szSessionName, sizeof( szSessionName ) ) != 0)
 		strcpy( szSessionName, "Session" );
-#endif
 	// host a new session on this service provider
 	if (DoNewInet)
 	{
@@ -3204,7 +3199,6 @@ void CmdLoadNetworkGame( byte NI, int ID, char* Name );
 int LastSynTime = 0;
 extern char LASTSAVEFILE[64];
 void DontMakeRaiting();
-void ExplorerOpenRef( int Index, char* ref );
 int PREVSYNC = 0;
 void SyncroDoctor()
 {
@@ -3228,11 +3222,6 @@ void SyncroDoctor()
 		// CmdLoadNetworkGame(MyNation,0,"SYNCRO.sav");
 		//};
 		if (!PREVSYNC)PREVSYNC = GetSDLTickCount() - 30000;
-		if (use_gsc_network_protocol && ( GetSDLTickCount() - PREVSYNC > 20000 ))
-		{
-			ExplorerOpenRef( 0, "GW|unsync" );
-			PREVSYNC = GetSDLTickCount();
-		};
 		LastSynTime = GetSDLTickCount();
 	};
 };

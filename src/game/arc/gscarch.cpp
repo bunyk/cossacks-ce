@@ -56,18 +56,6 @@ BOOL CGSCarch::Open( LPCSTR lpcsArchFileName )
 
 BOOL CGSCarch::Close()
 {
-#ifdef _WIN32
-	if (m_pViewOfFile)
-	{
-		UnmapViewOfFile( m_pViewOfFile );
-	}
-
-	if (m_hMapFile != INVALID_HANDLE_VALUE)
-	{
-		CloseHandle( m_hMapFile );
-	}
-
-#endif
 	return TRUE;
 }
 

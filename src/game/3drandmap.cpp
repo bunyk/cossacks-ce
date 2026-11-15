@@ -1497,7 +1497,6 @@ void GenerateRelief( int Style )
 	InitHillAmp();
 	GMAP.Free();
 };
-void RandomMapDialog( char* Result );
 extern int RES[8][8];
 extern int NNations;
 void CreateNationalMaskForRandomMap( char* Name )

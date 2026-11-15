@@ -100,16 +100,6 @@ public:
 	bool Transparent;
 	Picture() : SimpleDialog() { }
 };
-class DIALOGS_API RLCPicture :public SimpleDialog {
-public:
-	RLCTable* PassivePicture;
-	byte ppic;
-	RLCTable* ActivePicture;
-	byte apic;
-	RLCTable* DisabledPicture;
-	byte dpic;
-};
-
 class DIALOGS_API GPPicture :public SimpleDialog {
 public:
 	int dx, dy;
@@ -230,21 +220,6 @@ public:
 	int FirstVisItem;
 	int param;
 	VScrollBar* VS;
-};
-class DIALOGS_API Canvas :public SimpleDialog {
-public:
-	int BottomY;
-	int L;
-	int MaxL;
-	VScrollBar* VS;
-	byte* DrawData;
-	void AddLine(int x, int y, int x1, int y1, byte c);
-	void AddSprite(int x, int y, int GPidx, int Sprite);
-	void AddBar(int x, int y, int Lx, int Ly, byte c);
-	void AddRect(int x, int y, int Lx, int Ly, byte c);
-	void AddText(int x, int y, char* Text, RLCFont* Font);
-	void AddCText(int x, int y, char* Text, RLCFont* Font);
-	void CheckSize(int sz);
 };
 class DIALOGS_API CustomBox :public SimpleDialog {
 public:
@@ -391,27 +366,6 @@ public:
 	bool EnableSelection;
 	VScrollBar* VSC;
 };
-class DIALOGS_API WinComboBox;
-class DIALOGS_API WinComboBox :public SimpleDialog {
-public:
-	RLCFont* ActiveFont;
-	RLCFont* PassiveFont;
-	int ListX0;
-	int ListY0;
-	int ListX1;
-	int ListY1;
-	char** Lines;
-	int CurLine;
-	int ActiveLine;
-	int NLines;
-	char* Message;
-	WinComboBox** Group;
-	int LastChooseTime;
-	int NBox;
-	int CurBox;
-	void AddLine(char* Text);
-	void Clear();
-};
 
 class DIALOGS_API ComboBox :public SimpleDialog 
 {
@@ -528,10 +482,6 @@ public:
 		SQPicture* Disabled);
 	GPPicture* addGPPicture(SimpleDialog* Parent,
 		int dx, int dy, int FileID, int SpriteID);
-	RLCPicture* addRLCPicture(SimpleDialog* Parent, int x, int y,
-		RLCTable* Active, byte apic,
-		RLCTable* Passive, byte ppic,
-		RLCTable* Disabled, byte dpic);
 	TextMessage* addTextMessage(SimpleDialog* Parent, int x, int y, char* str, RLCFont* Font, byte Align);
 	TextMessage* addsTextMessage(SimpleDialog* Parent, int x, int y, char* str);
 	TextButton* addTextButton(SimpleDialog* Parent, int x, int y, char* str,
@@ -626,10 +576,6 @@ public:
 		int UpPart, int Center, int DownPart,
 		RLCFont* ActiveFont, RLCFont* PassiveFont,
 		char* Contence);
-	WinComboBox* addWinComboBox(SimpleDialog* Parent, char* Message, int x, int y, int Lx, int Ly,
-		int ListX, int ListY, int ListLx, int ListLy,
-		RLCFont* ActiveFont, RLCFont* PassiveFont,
-		WinComboBox** Group, int NInGroup, int CurBox);
 	GP_PageControl* addPageControl(SimpleDialog* Parent, int x, int y, int GF_File, int FirstIndex);
 	VScrollBar* addGP_ScrollBar(SimpleDialog* Parent, int x, int y,
 		int MaxPos, int Pos, int GP_File,
@@ -646,7 +592,6 @@ public:
 	ChatViewer* addChatViewer(SimpleDialog* Parent, int x, int y, int Ny, int OneLy, int OneLx
 		, char*** Mess, char*** Name, int* Nchats);
 	SimpleDialog* addClipper(int x0, int y0, int x1, int y1);
-	Canvas* AddCanvas(int x, int y, int Lx, int Ly);
 	BorderEx* addBorder(int x, int y, int x1, int y1, int Ymid, byte Style);
 	//--------------------New style elements---------------//
 	UniversalButton* addUniversalButton(int x, int y, int Lx, char* str, int GP_File,

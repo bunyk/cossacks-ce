@@ -13,8 +13,11 @@ This project is an effort to migrate the classic game **Cossacks: Back to War** 
 ## Changes
 - Some dead code removed
 - ASM sections replaced with C++ code
+- AI grenader attack fixed in GrenaderSuperman
 
 ## TODO:
+- Get rid of fake windows.h types and of os.h in general
+- Change numerical enums to named ones (with constants?)
 - Missions and campaigns (loading works, 2/106 mission modules ported - see docs/missions.md)
 - Networking
 - Ticks tick to fast in scenarios (fixed in replay, but made game way to slow).
@@ -90,7 +93,7 @@ find gamedata/Missions -name '*.rar' -execdir unrar x -o+ {} \;
 ```
 
 ### Intro videos
-Game used to play intro videos on startup. This was implemented by launcher Cossacks.exe, which played video and then run dmln.exe, which was actual game engine. This port is just engine, so use your favorite video player to watch intro videos.
+Game used to play intro videos on startup. This was implemented by launcher Cossacks.exe, which played videos and then ran dmln.exe — a small stub that in turn launched dmcr.exe, the actual game engine (the "DMCR" engine). This port is just the engine, so use your favorite video player to watch intro videos.
 
 ## Contributing
 

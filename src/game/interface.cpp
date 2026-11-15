@@ -27,34 +27,6 @@
 #include "playerinfo.h"
 extern PlayerInfo PINFO[8];
 
-#ifdef _WIN32
-
-#include "mgraph.h"
-#include "menu.h"
-#include "multipl.h"
-#include "walls.h"
-#include "nucl.h"
-#include "megapolis.h"
-#include "gsound.h"
-#include "3dgraph.h"
-#include "3dmaped.h"
-#include "mapsprites.h"
-#include "newmon.h"
-#include "icontool.h"
-#include "drawform.h"
-#include "recorder.h"
-#include "topograf.h"
-#include "strategyresearch.h"
-#include "safety.h"
-#include "einfoclass.h"
-#include "mode.h"
-#include "ir.h"
-#include "bmptool.h"
-
-
-extern const int kChatMessageDisplayTime;
-extern const int kSystemMessageDisplayTime;
-#else // !_WIN32
 // Extra headers the single-player game start needs: City (megapolis.h),
 // HideFlags (mapsprites.h), GNFO (einfoclass.h)
 #include "icontool.h"   // IconSet (DrawZones' panels)
@@ -71,7 +43,6 @@ extern const int kSystemMessageDisplayTime;
 #include "3dgraph.h"
 #include "topograf.h"
 #include "bmptool.h"
-#endif // _WIN32
 
 extern bool RUNMAPEDITOR;
 extern bool RUNUSERMISSION;
@@ -92,25 +63,6 @@ bool IgnoreSlow = false;
 int CurrentCampagin = -1;
 int CurrentMission = -1;
 
-
-//Was used to distinguish between GameSpy and GSC-Game.Net
-//Probably obsolete, but could also be some sort of "game active" indicator
-bool use_gsc_network_protocol = false;
-
-#ifdef _WIN32
-RoomInfo GlobalRIF;
-
-int GetGSC_Profile()
-{
-	return GlobalRIF.Profile;
-}
-#else
-// no IChat lobby / RoomInfo on Linux: no profile
-int GetGSC_Profile()
-{
-	return 0;
-}
-#endif // _WIN32 (RoomInfo lobby state above; the trivia below are portable)
 byte RedColor2 = 0xBB;
 extern int CurrentAnswer;
 
@@ -136,7 +88,6 @@ void ShowLoading();
 //2 = Direct TCP/IP
 //3 = GSC-Game.Net Internet Game
 //Set in MPL_ChooseConnection()
-//When (3): use_gsc_network_protocol = true
 int selected_network_protocol = 0;
 
 extern char CHATSTRING[256];
@@ -158,14 +109,7 @@ void SFLB_CreateGamesList( ListBox* LB );
 
 char* GetTextByID( char* ID );
 
-#ifdef _WIN32
-void CreateRandomMap( char* Name );
-void RandomMapDialog( char* Result );
-void RandomMapDialog1( char* Result, int N, char* Nats );
 void PrepareGameMedia( byte myid, bool );
-bool CHKV( char* Name );
-void NewMap( int szX, int szY );
-#endif // _WIN32
 bool WaitingHostGame( int ); // interface.cpp lobby wrappers
 bool WaitingJoinGame( int );
 bool CreateMultiplaterInterface(); // mplayer.cpp
@@ -178,16 +122,12 @@ void Save3DMap( char* Map );
 void Load3DMap( char* Map );
 void EditMiniMap();
 extern short WheelDelta;
-#ifdef _WIN32
-void LoadMEDButtons();
 void processMLoadGame();
 extern char GameName[128];
 extern word rpos;
 
 int EncodeOptionsInNumber( int *selected_opt_values );
 int DecodeOptionsFromNumber( const int number, int *result );
-
-#endif _WIN32
 // replay map name, written by the map record format (recorder.cpp)
 char CurrentMap[64];
 // In-game screen globals shared with the menu system
@@ -196,6 +136,7 @@ int nsmaplx;
 int nsmaply;
 
 void CBar( int x, int y, int Lx, int Ly, unsigned char c );
+void Xbar( int x, int y, int lx, int ly, byte c ); // lines.cpp
 void PrepareEditMedia( byte myid );
 
 extern bool EditMapMode;
@@ -207,17 +148,8 @@ extern bool KeyPressed;
 bool GameNeedToDraw;
 int GameMode;
 
-#ifdef _WIN32
-extern int RES[8][8];
-extern byte mapPos[16];
-void PreLoadExtendedMap( char* s );
-void PostLoadExtendedMap( char* s );
-void InitGame();
-void MFix();
 
-#endif // _WIN32 (nsmaplx/ly, WarSound...; LoPanel moved out below - used by GSSetup800)
-// Sound volumes: DirectSound-style slider positions (0..100; see
-// common.h decls and gamesound.cpp playback). SDL_AppInit zeroes these
+// Sound volumes: DirectSound-style slider positions (0..100). SDL_AppInit zeroes these
 // before restoring mode.dat, so the zero-init only covers the very first
 // run before a mode.dat exists.
 int WarSound;
@@ -233,16 +165,8 @@ RLCTable TDisable;
 RLCFont FPassive;
 RLCFont FActive;
 RLCFont FDisable;
-#ifdef _WIN32
-
-extern bool CheapMode;
-int PanelLx;
-int PanelLy;
-#endif // _WIN32
 bool MultiplayerStart;
-#ifdef _WIN32
 extern bool ChoosePosition;
-#endif // _WIN32
 extern word NPlayers; // comes from mplayer.cpp
 void CloseMPL(); // comes from mplayer.cpp
 
@@ -316,33 +240,7 @@ bool NeedToReportInGameStats = 0;
 int PrevReportTime = 0;
 int LastTimeReport_tmtmt = 0;
 extern int tmtmt;
-#ifdef _WIN32
-extern City CITY[8];
-void EndGSC_Reporting()
-{
-	NeedToReportInGameStats = 0;
-	NeedToPerformGSC_Report = 0;
-	LeaveGSCRoom();
-}
-
-void ProcessExplorer( int Index );
-bool PDIF_Inside = 0;
-extern int TIME1;
-int PrevProcTime = 0;
-extern City CITY[8];
-#endif // _WIN32
 extern CDPID MyDPID; // defined in mplayer.cpp
-#ifdef _WIN32
-//--------------------inserted from DIPLOMACY.H---------------//
-typedef void tpStartDownloadInternetFile( char* Name, char* Server, char* DestName );
-typedef void tpProcessDownloadInternetFiles();
-typedef void tpSendRecBuffer( byte* Data, int size, bool Final );
-
-extern tpStartDownloadInternetFile* StartDownloadInternetFile;
-extern tpProcessDownloadInternetFiles* ProcessDownloadInternetFiles;
-extern tpSendRecBuffer* SendRecBuffer;
-//-----------------------------------------------------------//
-#endif // _WIN32
 
 extern bool GetSDLKeyState(SDL_Scancode scancode, bool leftright = true);
 
@@ -350,224 +248,10 @@ extern uint64_t GetSDLTickCount();
 
 DLLEXPORT bool ProcessMessages()
 {
-#ifdef _WIN32
-	if ( PDIF_Inside )
-	{
-		return false;
-	}
-
-	int TT = GetSDLTickCount();
-
-	if ( !PrevProcTime )
-	{
-		PrevProcTime = TT;
-	}
-
-	if ( TT - PrevProcTime > 3000 )
-	{
-		PDIF_Inside = 1;
-		if ( ProcessDownloadInternetFiles )
-		{
-			ProcessDownloadInternetFiles();
-		}
-		ProcessExplorer( 16 );
-		PDIF_Inside = 0;
-		PrevProcTime = TT;
-	}
-
-	if ( NeedToPerformGSC_Report )
-	{
-		int T = GetSDLTickCount();
-		if ( !PrevReportTime )
-		{
-			PrevReportTime = T;
-		}
-		if ( T - PrevReportTime > 120000 )
-		{
-			int NZeros = 0;
-			int PROFS[8];
-			for ( int i = 0; i < NPlayers; i++ )
-			{
-				if ( !PINFO[i].ProfileID )
-				{
-					NZeros++;
-				}
-				PROFS[i] = PINFO[i].ProfileID;
-			}
-			if ( !NZeros )
-			{
-				ReportAliveState( NPlayers, PROFS );
-				PrevReportTime = T;
-			}
-		}
-	}
-
-	if ( NeedToReportInGameStats && use_gsc_network_protocol )
-	{
-		if ( tmtmt - LastTimeReport_tmtmt >= 256 )
-		{
-			int NMN[8] = { 0,0,0,0,0,0,0 };
-			for ( int i = 0; i < MAXOBJECT; i++ )
-			{
-				OneObject* OB = Group[i];
-				if ( OB && ( OB->Hidden || !OB->Sdoxlo ) && ( !OB->NewBuilding ) )
-				{
-					NMN[OB->NNUM]++;
-				}
-			}
-
-			OnePlayerReport OPR[8];
-			for ( int i = 0; i < NPlayers; i++ )
-			{
-				if ( PINFO[i].PlayerID == MyDPID )
-				{
-					int NI = PINFO[i].ColorID;
-					int NP = 0;
-					int NW = 0;
-					int NN = NATIONS[NI].NMon;
-					for ( int j = 0; j < NN; j++ )
-					{
-						NewMonster* NM = NATIONS[NI].Mon[j]->newMons;
-						if ( NM->Peasant )
-						{
-							NP += NATIONS[NI].NProduced[j];
-						}
-						else
-						{
-							if ( !NM->Building )
-							{
-								NW += NATIONS[NI].NProduced[j];
-							}
-						}
-					}
-
-					OPR[0].NBornP = NP;
-					OPR[0].NBornUnits = NW;
-					OPR[0].Population = NMN[PINFO[i].ColorID];
-					OPR[0].Profile = PINFO[i].ProfileID;
-					for ( int p = 0; p < 6; p++ )
-					{
-						OPR[i].ReachRes[p] = NATIONS[NI].ResTotal[p];
-					}
-					OPR[0].Score = CITY[NI].Account / 100;
-					OPR[0].State = NATIONS[NI].VictState;
-					for ( int q = 0; q < 6; q++ )
-					{
-						OPR[0].ReachRes[q] = NATIONS[NI].ResTotal[q];
-					}
-				}
-			}
-			ReportGSCGame( tmtmt, NPlayers, OPR );
-			LastTimeReport_tmtmt = tmtmt;
-		}
-	}
-
-	try
-	{
-		int T1 = GetSDLTickCount();
-		if ( ( !PrevT ) || T1 - PrevT > 10 )
-		{
-			try
-			{
-				ProcessNewInternet();
-			}
-			catch ( ... )
-			{
-			}
-
-			if ( GetSDLKeyState( SDL_SCANCODE_LCTRL ) )
-			{
-				LastCTRLPressTime = GetSDLTickCount();
-			}
-
-			try
-			{
-				ProcessReceive();
-			}
-			catch ( ... )
-			{
-			}
-
-			try
-			{
-				ProcessNetCash();
-			}
-			catch ( ... )
-			{
-			}
-
-			PrevT = T1;
-
-			/*
-			if (bActive)
-			{
-				LastBActiveTime = T1;
-			}
-			else
-			{
-				if (GameInProgress && NPlayers > 1 && T1 - LastBActiveTime > 10000)
-				{
-					if (NATIONS[MyNation].VictState != 2)
-					{
-						IAmLeft();
-						SpecCmd = 199;
-						ShowOptMessage("#ALTTABDEFEAT", 0);//IMPORTANT: Alt tab defeat procedure
-					}
-				}
-			}
-			*/
-		}
-
-		BOOL ret = FALSE;
-		MSG msg;
-		while ( FALSE != ( ret = PeekMessage( &msg, nullptr, 0, 0, PM_REMOVE ) ) )
-		{
-			if ( -1 == ret )
-			{
-				continue;
-			}
-			if ( msg.message == WM_QUIT )
-			{
-				return true;
-			}
-			TranslateMessage( &msg );
-			DispatchMessage( &msg );
-		}
-
-		if ( GPROG.NWeights )
-		{
-			if ( ( !PrevProgStage ) || GetSDLTickCount() - PrevProgStage > 300 )
-			{
-				PrevProgStage = GetSDLTickCount();
-				if ( !PROGSTR )
-				{
-					PROGSTR = GetTextByID( "PROGSTR%s" );
-				}
-				char ccx[128];
-
-				char tmp[32];
-				DWORD CID = GPROG.StageID[GPROG.CurStage];
-
-				tmp[0] = CID >> 24;
-				tmp[1] = ( CID >> 16 ) & 255;
-				tmp[2] = ( CID >> 8 ) & 255;
-				tmp[3] = ( CID ) & 255;
-				tmp[4] = ' ';
-				tmp[5] = 0;
-
-				int cpr = GPROG.GetCurProgress();
-				sprintf( tmp + 5, "%d%%", cpr );
-				sprintf( ccx, PROGSTR, tmp );
-				ShowProgStr( ccx, cpr );
-			}
-		}
-	}
-	catch ( ... )
-	{
-	}
-
+	// Linux: input arrives through SDL_AppEvent (main.cpp), which sets
+	// KeyPressed/LastKey and the mouse globals directly; there is no
+	// Win32 message queue to pump here.
 	return false;
-#endif // _WIN32
 }
 
 extern bool EnterChatMode;
@@ -583,29 +267,6 @@ bool ProcessMessagesEx()
 		LastCTRLPressTime = GetSDLTickCount();
 	}
 
-#ifdef _WIN32
-	ProcessVotingKeys();
-
-	if ( EnterChatMode )
-	{
-		ProcessChatKeys();
-	}
-
-	MSG msg;
-
-	bool MSR = 0;
-	while ( PeekMessage( &msg, nullptr, 0, 0, PM_REMOVE ) )
-	{
-		if ( msg.message == WM_QUIT )
-		{
-			return true;
-		}
-		TranslateMessage( &msg );
-		DispatchMessage( &msg );
-		MSR = 1;
-	}
-	return MSR;
-#endif // _WIN32
 	return 0;
 }
 
@@ -685,58 +346,10 @@ void CreateMapsList( ListBox* LB )
 		while ( GSFILES.gFindNext( FD ) )InstallMap( LB, FD->m_FileName );
 	};
 };
-#ifdef _WIN32
-void CreateNewMapsList( ListBox* LB )
-{
-	TGSCFindInfo* FD = GSFILES.gFindFirst( "*.m3d" );
-	if ( FD )
-	{
-		InstallMap( LB, FD->m_FileName );
-		while ( GSFILES.gFindNext( FD ) )InstallMap( LB, FD->m_FileName );
-	};
-}
-
-#endif // _WIN32
 //----------------Graphics menu----------------//
 bool InitScreen();
 void GSSetup800();
 void DrawAllScreen();
-
-#ifdef _WIN32
-int OldSizeX;
-int OldSizeY;
-int mul3( int );
-//extern LPDIRECTDRAW lpDD;
-
-extern int COPYSizeX;
-extern int RealLx;
-extern int RealLy;
-void SERROR()
-{
-	PlayEffect( 0, 0, 0 );
-	int time = GetSDLTickCount();
-	do
-	{
-	} while ( GetSDLTickCount() - time < 1000 );
-};
-void SERROR1()
-{
-	PlayEffect( 1, 0, 0 );
-	int time = GetSDLTickCount();
-	do
-	{
-	} while ( GetSDLTickCount() - time < 1000 );
-};
-void SERROR2()
-{
-	PlayEffect( 2, 0, 0 );
-	int time = GetSDLTickCount();
-	do
-	{
-	} while ( GetSDLTickCount() - time < 1000 );
-};
-
-#endif // _WIN32
 
 extern int SCRSZY;
 void ClearScreen()
@@ -868,116 +481,12 @@ void LoadNation( char* fn, byte NIndex, byte );
 
 extern City CITY[8];
 
-extern char ROOMNAMETOCONNECT[128]; // 3drandmap.cpp lobby room name
-
 bool ProcessOneBattle( int BtlID );
 
-//Necessary for menu positioning in fullscreen. Export for IChat.dll
-DLLEXPORT int menu_x_off = 0;
-DLLEXPORT int menu_y_off = 0;
+int menu_x_off = 0;
+int menu_y_off = 0;
 int menu_hint_x = 18;
 int menu_hint_y = 701;
-
-#ifdef _WIN32
-bool MPL_JoinGame( int ID )
-{
-	LocalGP BTNS( "Interface\\Game_Select" );
-	LocalGP FONT1( "romw" );
-	LocalGP FONT2( "romw1" );
-	RLCFont FontA( FONT2.GPID );
-	RLCFont FontP( FONT1.GPID );
-	LoadFog( 2 );
-	SQPicture Back( "Interface\\Game_Select_Background.bmp" );
-	DialogsSystem MENU( menu_x_off, menu_y_off );
-	MENU.addPicture( nullptr, 0, 0, &Back, &Back, &Back );
-	GP_Button* Join = MENU.addGP_Button( nullptr, 93, 594, BTNS.GPID, 0, 1 );
-	Join->OnUserClick = &MMItemChoose;
-	Join->UserParam = mcmJoin;
-	GP_Button* Refresh = MENU.addGP_Button( nullptr, 238, 594, BTNS.GPID, 2, 3 );
-	Refresh->OnUserClick = &MMItemChoose;
-	Refresh->UserParam = mcmRefresh;
-	GP_Button* Cancel = MENU.addGP_Button( nullptr, 384, 594, BTNS.GPID, 4, 5 );
-	Cancel->OnUserClick = &MMItemChoose;
-	Cancel->UserParam = mcmCancel;
-	ListBox* LB = MENU.addGP_ListBox( nullptr, 92, 172, 15, BTNS.GPID, 6, 26, &WhiteFont, &YellowFont, nullptr );
-	LBEnumerateSessions( LB, ID );
-	LB->CurItem = -1;
-	LB->M_Over = 9;
-	if ( LB->NItems )
-	{
-		LB->CurItem = 0;
-	}
-StartJoin:;
-	int pp = 1;
-	do
-	{
-		ItemChoose = -1;
-		do
-		{
-			ProcessMessages();
-			if ( LB->CurItem == -1 )
-			{
-				Join->Enabled = false;
-			}
-			else
-			{
-				Join->Enabled = true;
-			}
-			MENU.MarkToDraw();
-			MENU.ProcessDialogs();
-			for ( int i = 0; i < LB->NItems; i++ )
-			{
-				char nps[16];
-				int ppr = ( LB->GetItem( i )->Param1 ) & 65535;
-				sprintf( nps, "%d/%d", ppr & 255, ppr >> 8 );
-				if ( LB->CurItem == i )
-				{
-					ShowString( LB->x + 364, LB->y + 6 + i * 26, nps, &WhiteFont );
-				}
-				else
-				{
-					ShowString( LB->x + 364, LB->y + 6 + i * 26, nps, &YellowFont );
-				}
-			}
-
-			MENU.RefreshView();
-
-			if ( ItemChoose == mcmRefresh )
-			{
-				LBEnumerateSessions( LB, ID );
-				ItemChoose = -1;
-				if ( !LB->NItems )
-				{
-					LB->CurItem = -1;
-				}
-			}
-
-			if ( pp )
-			{
-				SlowLoadPalette( "2\\agew_1.pal" );
-				pp = 0;
-			}
-		} while ( ItemChoose == -1 );
-
-		if ( ItemChoose == mcmJoin && LB->CurItem != -1 )
-		{
-			int BID = LB->GetItem( LB->CurItem )->Param1 >> 16;
-			if ( BID )
-			{
-				SlowUnLoadPalette( "2\\agew_1.pal" );
-				if ( !ProcessOneBattle( BID - 1 ) )
-				{
-					SlowUnLoadPalette( "2\\agew_1.pal" );
-					goto StartJoin;
-				}
-			}
-		}
-	} while ( ItemChoose != mcmCancel );
-	SlowUnLoadPalette( "2\\agew_1.pal" );
-	return false;
-}
-
-#endif // _WIN32
 
 //--------------------HOST THE SESSION---------------------//
 extern char IPADDR[128];
@@ -987,7 +496,6 @@ int MPL_ChooseConnection();
 void WaitWithMessage( char* Message );
 void NoWaitWithMessage( char* Message );
 
-int ProcessInternetConnection( bool Active );
 bool FindSessionAndJoin( char* Name, char* Nick, unsigned short port );
 bool CreateSession( char* SessName, char* Name, DWORD User2, int MaxPlayers );
 extern int GMTYPE;
@@ -1055,9 +563,7 @@ bool processMultiplayer()
 
 	case mcmJoin:
 		// Direct join to the address typed in MPL_ChooseConnection
-		// (DirectPlay session browsing is long gone; the GSC lobby path
-		// below used to fill IPADDR from the chat room instead)
-		if ( FindSessionAndJoin( ROOMNAMETOCONNECT, PlName, 0 ) )
+		if ( FindSessionAndJoin( nullptr, PlName, 0 ) )
 		{
 			WaitingJoinGame( GMTYPE );
 		}
@@ -1083,10 +589,6 @@ int ProcessWars();
 // editor (menu case 31)
 char MapScenaryDLL[200] = "";
 char DEFPLNAMES[8][64];
-#ifdef _WIN32
-//--------------------MULTIPLAYER GAME---------------------//
-extern char SaveFileName[128];
-
 //---------------------Map options-------------------------//
 void ProcessMapOptions()
 {
@@ -1131,7 +633,6 @@ void ProcessMapOptions()
 //--------------------RESOURCE EDITOR----------------------//
 // Editor dialog (menu case 31) for editing per-player resources, player
 // names, the scenario DLL path and random-map resource presets.
-#endif // _WIN32
 // Decls of data defined higher up in this file or in other units:
 // default player names and the scenario DLL path (blocks above), per-nation
 // resources and random-map presets (nature.cpp / its guard-split block above).
@@ -1282,11 +783,6 @@ int TM_Height0 = 0;
 int TM_Height1 = 1024;
 bool TexMapMod = false;
 
-// (Windows-only region resumes: the mission code)
-#ifdef _WIN32
-void ProcessFranceMission();
-#endif // _WIN32
-
 bool SingleOptions();
 
 bool SelectSingleMission();
@@ -1303,7 +799,6 @@ void yield()
 
 int MM_ProcessSinglePlayer()
 {
-	use_gsc_network_protocol = false;
 	SFLB_LoadPlayerData();
 	LoadFog( 2 );
 	LocalGP BTNS( "Interface\\Single_Player" );
@@ -1398,10 +893,10 @@ bool MMChooseName( SimpleDialog* SD )
 	return false;
 }
 
-// cross-platform: CDGINIT_INIT1 sets SmartLink (NewMonsterSmartSendToLink
-// order dispatch), CDGINIT_INIT2 sets AttackLink (AttackObjLink). Both were
-// called only under _WIN32 - on Linux every smart-send/attack order jumped
-// into the uninitialized dummy pointers (building-placement crash).
+// CDGINIT_INIT1 sets SmartLink (NewMonsterSmartSendToLink order dispatch),
+// CDGINIT_INIT2 sets AttackLink (AttackObjLink); called from
+// SFLB_ReadFirstPlayerName so smart-send/attack orders never jump into the
+// uninitialized dummy pointers (building-placement crash).
 void CDGINIT_INIT2();
 void CDGINIT_INIT1();
 
@@ -1720,13 +1215,6 @@ int MPL_ChooseConnection()
 	SlowUnLoadPalette( "2\\agew_1.pal" );
 
 
-	//No GameSpy option anymore, only GSC-Game.Net
-	use_gsc_network_protocol = false;
-	if ( selected_network_protocol == 3 )
-	{
-		use_gsc_network_protocol = true;
-	}
-
 	return ItemChoose;
 }
 
@@ -1977,8 +1465,6 @@ void WaitWithMessage( char* Message )
 	KeyPressed = 0;
 }
 
-char ROOMNAMETOCONNECT[128];
-
 int NCHATS = 0;
 int MAXCHATS = 0;
 char** ChatMess = nullptr;
@@ -2062,213 +1548,11 @@ void AddChatString( char* Nick, char* str, int MaxLx, lpRLCFont FONT,
 	};
 }
 
-#ifdef _WIN32
-
-bool DisableCreate = 0;
-extern bool UnderFirewall;
-
-void CheckProfileInit();
-
-int GetGerbByScore( int Score )
-{
-	if ( Score < 5 * 6 )return Score / 5;
-	Score -= 5 * 6;
-	if ( Score < 10 * 7 )return 6 + Score / 10;
-	Score -= 10 * 7;
-	if ( Score < 20 * 4 )return 13 + Score / 20;
-	Score -= 20 * 4;
-	if ( Score < 30 * 2 )return 17 + Score / 30;
-	Score -= 30 * 2;
-	if ( Score < 50 * 3 )return 19 + Score / 50;
-	Score -= 50 * 3;
-	if ( Score < 100 * 3 )return 22 + Score / 100;
-	Score -= 100 * 3;
-	if ( Score < 150 * 5 )return 25 + Score / 150;
-	Score -= 150 * 5;
-	int rr = 30 + Score / 200;
-	if ( rr > 41 )rr = 41;
-	return rr;
-}
-
-int GetRankByScore( int Score )
-{
-	int rr = GetGerbByScore( Score );
-	if ( rr < 5 )return 0;
-	if ( rr < 12 )return 1;
-	if ( rr < 16 )return 2;
-	if ( rr < 18 )return 3;
-	if ( rr < 21 )return 4;
-	if ( rr < 24 )return 5;
-	if ( rr < 29 )return 6;
-	if ( rr < 34 )return 7;
-	return 8;
-}
-
-extern char** NatNames;
-
-void GETCOUNTRY( char* code, char* res );
-
-typedef byte GR_ARR[8][32];
-int DrawGraph( Canvas* CAN, int y0, int Npt, GR_ARR Data, byte* Col, int N, word* Max, char* Text )
-{
-	byte COL = 0x7C;
-	byte COL1 = 0x88;
-	int L1 = 16;
-	int L2 = 102;
-	int L3 = L2 - 2;
-	int Lx = 391;
-	CAN->AddRect( 0, y0, Lx + 2, L1, COL );
-	CAN->AddText( 10, y0 + 2, Text, &SmallWhiteFont );
-	y0 += L1;
-
-	CAN->AddRect( 0, y0, Lx + 2, L2, COL );
-	CAN->AddBar( 1, y0 + 1, Lx, L2 - 2, COL1 );
-	int MaxV = 1;
-	for ( int i = 0; i < N; i++ )if ( Max[i] > MaxV )MaxV = Max[i];
-	int divisor = 100 * MaxV;
-	for ( int i = 0; i < N; i++ )
-	{
-		byte C = 0xD0 + Col[i] * 4;
-		byte* data = &Data[i][0];
-		int Maxi = Max[i];
-		for ( int j = 1; j < Npt; j++ )
-		{
-			int x0 = 1 + ( ( j - 1 )*Lx ) / Npt;
-			int x1 = 1 + ( j*Lx ) / Npt;
-			CAN->AddLine( 1 + ( ( j - 1 )*Lx ) / Npt,
-				y0 + 1 + L3 - ( int( data[j - 1] )*Maxi*( L3 - 2 ) ) / divisor,
-				1 + ( j*Lx ) / Npt,
-				y0 + 1 + L3 - ( int( data[j] )*Maxi*( L3 - 2 ) ) / divisor, C );
-		};
-	};
-	char cc[32];
-	sprintf( cc, "%d", MaxV );
-	CAN->AddText( 10, y0 + 2, cc, &SmallWhiteFont );
-	return L2 + L1;
-};
-int  RESPOND = 0;
-//1-ok
-//2-password
-//3-invalid version
-//4-room is full
-//5-not created
-//6-room is in the game
-DWORD  PASSHASH = 0;
-word JP_ver = 0;
-DWORD CalcPassHash( char* pass )
-{
-	int L = strlen( pass );
-	DWORD S = 0;
-	for ( int i = 0; i < L; i++ )S += pass[i];
-	for ( int i = 0; i < L - 1; i++ )S += pass[i] * pass[i + 1];
-	for ( int i = 0; i < L - 2; i++ )S += pass[i] * pass[i + 1] * pass[i + 2];
-	for ( int i = 0; i < L - 3; i++ )S += pass[i] * pass[i + 1] * pass[i + 2] * pass[i + 3];
-	for ( int i = 0; i < L - 4; i++ )S += pass[i] * pass[i + 1] * pass[i + 2] * pass[i + 3] * pass[i + 4];
-	for ( int i = 0; i < L - 5; i++ )S += pass[i] * pass[i + 1] * pass[i + 2] * pass[i + 3] * pass[i + 4] * pass[i + 5];
-	return S;
-};
-bool GetPLIP( char* Nick, char* IP );
-
-bool TryToJoinToPlayer( char* name )
-{
-	char Name[128];
-	strcpy( Name, name );
-	LocalGP BOR2( "Interface\\bor2" );
-	RESPOND = 0;
-	PASSHASH = 0;
-	JP_ver = 0;
-	int T0 = GetSDLTickCount();
-	DarkScreen();
-	ShowCentralMessage( GetTextByID( "ICJOIN" ), BOR2.GPID );
-	FlipPages();
-	int TT = GetSDLTickCount();
-	do
-	{
-		if ( GetSDLTickCount() - TT > 3000 )
-		{
-			TT = GetSDLTickCount();
-		}
-		ProcessMessages();
-	} while ( GetSDLTickCount() - T0 < 20000 && RESPOND == 0 );
-	char* ERR = nullptr;
-	switch ( RESPOND )
-	{
-	case 0:
-		ERR = GetTextByID( "JNPG_E3" );
-		break;
-	case 2:
-		if ( EnterPassword() )
-		{
-			DWORD V = CalcPassHash( SessPassword );
-			int T0 = GetSDLTickCount();
-			do
-			{
-				ProcessMessages();
-			} while ( GetSDLTickCount() - T0 < 1000 );
-			if ( V != PASSHASH )
-			{
-				ERR = GetTextByID( "JNPG_E6" );
-				return false;
-			};
-		}
-		else return false;
-		break;
-	case 3:
-		ERR = GetTextByID( "JNPG_E2" );
-		break;
-	case 4:
-		ERR = GetTextByID( "JNPG_E4" );
-		break;
-	case 5:
-		ERR = GetTextByID( "JNPG_E1" );
-		break;
-	case 6:
-		ERR = GetTextByID( "JNPG_E5" );
-		break;
-	};
-	if ( ERR )
-	{
-		DarkScreen();
-		ShowCentralMessage( ERR, BOR2.GPID );
-		FlipPages();
-		int T0 = GetSDLTickCount();
-		KeyPressed = 0;
-		do
-		{
-			ProcessMessages();
-		} while ( GetSDLTickCount() - T0 < 10000 && !KeyPressed );
-		return false;
-	};
-	return true;
-};
-#endif // _WIN32 (singleplayer random-map block above uses the multiplayer
-// helpers above it; RunHTTPC below is needed by ir_main.cpp stats on both
-// platforms)
 void RunHTTPC()
 {
-	// launches the stats uploader (upload.dat writer) minimized
-#ifdef _WIN32
-	STARTUPINFO			StartUpInfo;
-	PROCESS_INFORMATION		ProcessInformation;
-	memset( &StartUpInfo, 0x00, sizeof( STARTUPINFO ) );
-	StartUpInfo.cb = sizeof( STARTUPINFO );
-	StartUpInfo.wShowWindow = SW_SHOWMINNOACTIVE;
-	StartUpInfo.dwFlags = STARTF_USESHOWWINDOW;
-
-	CreateProcess( "httpc.exe",
-		nullptr,
-		nullptr,
-		nullptr,
-		FALSE,
-		0x00,
-		nullptr,
-		nullptr,
-		&StartUpInfo,
-		&ProcessInformation );
-#else
-	// run in background like the minimized Windows process did
+	// launches the stats uploader (upload.dat writer) in the background,
+	// like the minimized Windows process did
 	system( "httpc.exe >/dev/null 2>&1 &" );
-#endif // _WIN32
 };
 bool GetPLIP( char* Nick, char* IP );
 bool T100_cmd_done = 0;
@@ -2276,28 +1560,9 @@ void DecodeGS_Password( char* pass, char* result );
 
 bool INSIDE1 = 0;
 
-// IChat library exports this
-DLLIMPORT void SendPrivateMessage( char* Nick, char* MESSAGE );
-#ifndef _WIN32
-void SendPrivateMessage( char* Nick, char* MESSAGE ) { (void)Nick; (void)MESSAGE; }
-#endif
 bool CheckForPersonalChat( char* STR )
 {
-	if ( STR[0] == '-'&&STR[1] == '-'&&STR[2] == '>' )
-	{
-		char* SS = strchr( STR, ':' );
-		if ( SS )
-		{
-			int L = SS - STR - 3;
-			if ( L > 0 )
-			{
-				char SS3[256];
-				memcpy( SS3, STR + 3, L );
-				SS3[L] = 0;
-				SendPrivateMessage( SS3, SS + 1 );
-			}
-		}
-	}
+	(void)STR;
 	return false;
 }
 
@@ -2371,18 +1636,6 @@ void SavePersChat()
 	};
 };
 
-//Returns Process_GSC_ChatWindow()
-// Windows: pumps the IChat lobby DLL. Without it (Linux) the connection
-// poll reports "nothing happened".
-#ifdef _WIN32
-int ProcessInternetConnection( bool Active )
-{
-	return Process_GSC_ChatWindow( Active, &GlobalRIF );
-}
-#else
-int ProcessInternetConnection( bool Active ) { (void)Active; return 0; }
-#endif // _WIN32
-
 DLLEXPORT void SendPings();
 
 bool CheckPingsReady();
@@ -2428,20 +1681,13 @@ void DeepDeletePeer( DWORD ID );
 // GSC profile id (ir_main.cpp)
 int GetMyProfile();
 
-// IChat library exports this
-DLLIMPORT void ChatProcess();
-
 //Shows lobby interface for multiplayer deathmatch and single player random map
-// Multiplayer/network helpers that live in unported Windows blocks of this
-// file. Declarations needed by MPL_WaitingGame's shared event loop;
-// Linux definitions sit next to the original blocks above.
-#ifndef _WIN32
+// Declarations needed by MPL_WaitingGame's shared event loop.
 void SendChat( char* str, bool toall );
 int  GetMaxRealPing();
 bool SendToAllPlayers( DWORD Size, LPVOID lpData );
 int  GetMapSUMM( char* Name );
 void CreateDiffStr( char* str );
-int  ProcessInternetConnection( bool Active );
 int  EncodeOptionsInNumber( int* selected_opt_values );
 bool GetPreview( char* Name, byte* Data );
 void DeepDeletePeer( DWORD ID );
@@ -2456,35 +1702,15 @@ extern int CurrentMaxPing[8];
 extern bool DoNewInet;
 extern int PPTIME;
 extern bool RecordMode;
-#endif
 
 bool MPL_WaitingGame( bool Host, bool SINGLE )
 {
 
-	if ( SINGLE )
-	{
-		use_gsc_network_protocol = false;
-	}
-
 	ServerDPID = 0;
 	int r0 = GetSDLTickCount();
-#ifdef _WIN32
-	ClearLPACK();
-
-	PPTIME = r0;
-
-	memset( CurrentMaxPing, 0xFF, 4 * 8 );
-
-	ReceiveAll();
-
-	CurStatus = 0;
-#endif
 	PitchTicks = 8;
 	MaxPingTime = 0;
 
-#ifdef _WIN32
-	ClearCTime();
-#endif
 	int NCHATS = 0;
 	CHATSTRING[0] = 0;
 	int MAXCHATS = 0;
@@ -2968,14 +2194,6 @@ ffe2:
 		CancelBtn->Hint = GetTextByID( "MOCANCEL" );
 	}
 
-	if ( use_gsc_network_protocol )
-	{
-		GP_Button* ENC = MENU.addGP_Button( nullptr, 862, 468, INCHAT.GPID, 9, 8 );
-		ENC->UserParam = 99;
-		ENC->OnUserClick = &MMItemChoose;
-		ENC->Hint = GetTextByID( "BACKINCHAT" );
-	}
-
 	ItemChoose = -1;
 
 	memset( PINFO, 0, sizeof PINFO );
@@ -3099,11 +2317,6 @@ ffe2:
 	}
 
 	KeyPressed = 0;
-#ifdef _WIN32
-	PSUMM.ClearPingInfo();
-	PBACK.Clear();
-	ReceiveAll();
-#endif // _WIN32
 
 	bool P1E;
 	bool P2E;
@@ -3121,14 +2334,6 @@ ffe2:
 	int CURSUMM = 0;
 	int NOMREADY = -1;
 	char* OLDV = GetTextByID( "OLDVER" );
-
-#ifdef _WIN32
-	char* NOCONN = GetTextByID( "$NOCONN" );
-	if ( NOCONN[0] == '$' )
-	{
-		NOCONN = _engNOCONN;
-	}
-#endif // _WIN32
 
 	int FInTime = GetSDLTickCount();
 	char* COMPTXT = "Computer";
@@ -3222,21 +2427,10 @@ ffe2:
 		//below must not cross its initialization (C++ forbids that, MSVC allowed it)
 		bool settings_were_changed = false;
 
-#ifdef _WIN32
-		// GameSpy/GSC chat is Windows-only for now
-		if ( use_gsc_network_protocol )
+		if ( CheckPersonality( CHATMESSAGE ) )
 		{
-			ChatProcess();
-
-			//Call every iteration, UdpHolePuncher keeps track of intervals by itself
-			udp_hole_puncher.KeepAlive();
-
-			if ( CheckPersonality( CHATMESSAGE ) )
-			{
-				CHATBOX->CursPos = strlen( CHATMESSAGE );
-			}
+			CHATBOX->CursPos = strlen( CHATMESSAGE );
 		}
-#endif
 
 		if ( Host )
 		{
@@ -3347,14 +2541,7 @@ ffe2:
 			{
 				if ( CHATBOX->Active&&CHATMESSAGE[0] )
 				{
-					if ( use_gsc_network_protocol && strstr( CHATMESSAGE, "-->" ) )
-					{
-						CheckForPersonalChat( CHATMESSAGE );
-					}
-					else
-					{
-						SendChat( CHATMESSAGE, 0 );
-					}
+					SendChat( CHATMESSAGE, 0 );
 					AddChatString(
 						GetPlNameByID( MyDPID ),
 						CHATMESSAGE, 375,
@@ -4831,7 +4018,6 @@ ffe2:
 
 		if ( ItemChoose == 99 )
 		{
-			ProcessInternetConnection( 0 );
 			NCS0 = 0;
 
 			ItemChoose = -1;
@@ -5704,7 +4890,6 @@ bool MPL_WaitingBattleGame( bool Host, int BattleID )
 		}
 		if ( ItemChoose == 99 )
 		{
-			ProcessInternetConnection( 0 );
 			ItemChoose = -1;
 			if ( PlayerMenuMode != 1 )
 			{
@@ -5758,13 +4943,11 @@ bool GetPreview( char* Name, byte* Data );
 
 extern int RunMethod;
 
-#ifndef _WIN32
 // Single-player game start: declarations for pieces implemented in
-// not-yet-ported files (mplayer.cpp) or defined further below in this file.
+// mplayer.cpp or defined further below in this file.
 void CreateNationalMaskForRandomMap( char* Name );
 void CreateMaskForSaveFile( char* Name );
 void CreateNationalMaskForMap( char* Name );
-void PrepareGameMedia( byte myid, bool SaveNR );
 void CenterScreen();
 void SetupEBufs();
 void InitGame();
@@ -5777,16 +4960,11 @@ extern int PGLOBALTIME;
 extern int EBPos;
 extern DWORD EBPos1;
 extern DWORD RealTime;
-#endif // !_WIN32
 
 bool SingleOptions()
 {
 	if ( MPL_WaitingGame( 1, 1 ) )
 	{
-#ifdef _WIN32
-		StartIGame( 1 );
-		return true;
-#else
 		// Offline single-player start. Same as StartIGame( SINGLE ) +
 		// ComeInGame() from mplayer.cpp, minus the DirectPlay send paths.
 		memcpy( NatRefTBL, MPL_NatRefTBL, 8 );
@@ -5859,7 +5037,6 @@ bool SingleOptions()
 		PGLOBALTIME = 0;
 
 		return true;
-#endif // _WIN32
 	}
 	else
 	{
@@ -5882,16 +5059,8 @@ bool processMultiplayer();
 
 int ProcessWars();         // battles screens at the end of this file (not ported yet)
 
-// IChat library exports this
-DLLIMPORT void GoHomeAnyway();
-#ifndef _WIN32
-// without the IChat lobby DLL there is no lobby to go back to
-void GoHomeAnyway() {}
-#endif // !_WIN32
-
 int MM_ProcessMultiPlayer()
 {
-	GoHomeAnyway();
 
 	LocalGP BTNS( "Interface\\Multi_Player" );
 	LocalGP HFONT( "rom10" );
@@ -6659,7 +5828,6 @@ int processMainMenu()
 			ItemChoose = mcmSingle;
 		}
 
-#ifdef _WIN32
 		if ( ItemChoose == mcmExit )
 		{
 			SlowUnLoadPalette( "2\\agew_1.pal" );
@@ -6685,7 +5853,6 @@ int processMainMenu()
 			ItemChoose = mcmSingle;
 			RUNUSERMISSION = 0;
 		}
-	#endif // _WIN32
 		break;
 	}
 
@@ -6749,7 +5916,6 @@ bool GameExit;
 int MenuType;
 bool MakeMenu;
 
-#ifndef _WIN32
 // POSIX shim for the Win32 find-file API used by the save/load game dialogs.
 // HANDLE is void* (newcode/os.h); patterns accept Win32 backslash paths.
 #include <glob.h>
@@ -6790,7 +5956,6 @@ static void FindClose( HANDLE HF )
 	globfree( &st->g );
 	delete st;
 }
-#endif
 //Pool of save-game file names for the load/save list boxes. InstallName()
 //validates a file against the current save format version (sfVersion)
 //before adding it; FreeNames() releases the list between dialog runs.
@@ -7058,46 +6223,6 @@ void ProcessGLoadGame()
 	ContinueGame = true;
 	FreeNames();
 	ClearMStack();
-}
-
-void ProcessFranceMission()
-{
-	SQPicture Pan1( "Interface\\Missions\\MTFrance_Back_1.bmp" );
-	SQPicture Pan2( "Interface\\Missions\\MTFrance_Back_2.bmp" );
-	SlowUnLoadPalette( "1\\agew_1.pal" );
-	Pan1.Draw( 0, 0 );
-	FlipPages();
-	SlowLoadPalette( "1\\agew_1.pal" );
-	int t0 = GetSDLTickCount();
-	KeyPressed = 0;
-	do
-	{
-		ProcessMessages();
-	} while ( !( GetSDLTickCount() - t0 > 15000 || Lpressed || KeyPressed ) );
-	if ( LastKey == SDLK_ESCAPE )return;
-	LastKey = SDLK_UNKNOWN;
-	SlowUnLoadPalette( "1\\agew_1.pal" );
-	Pan2.Draw( 0, 0 );
-	FlipPages();
-	SlowLoadPalette( "1\\agew_1.pal" );
-	t0 = GetSDLTickCount();
-	KeyPressed = 0;
-	do
-	{
-		ProcessMessages();
-	} while ( !( GetSDLTickCount() - t0 > 15000 || Lpressed || KeyPressed ) );
-	if ( LastKey == SDLK_ESCAPE )return;
-
-	strcpy( CurrentMap, MISSLIST.MISS[0].MapName );
-	CreateNationalMaskForMap( CurrentMap );
-	CurrentCampagin = -1;
-	CurrentMission = -1;
-	PrepareGameMedia( 0, 0 );
-	InitGame();
-	ItemChoose = mcmSingle;
-	//InitExplosions();
-	MISSLIST.CurrentMission = 0;
-	SCENINF.Load( MISSLIST.MISS[0].DLLPath, MISSLIST.MISS[0].Description );
 }
 
 void processMLoadGame()
@@ -7674,51 +6799,6 @@ void ProcessGLoadMap()
 		PeaceMode = 1;
 	};
 	PopScreen( p );
-	/*
-	SQPicture Pan("Pan15.bpx");
-	SQPicture scr_U("scr_v_u.bpx");
-	SQPicture scr_D("scr_v_d.bpx");
-	SQPicture scr_V("scr_v.bpx");
-	SQPicture scr_Line("scr_15.bpx");
-	RLCFont gf24w(GETS("@SMFONT1"));
-	RLCFont gf24y(GETS("@SMFONT0"));
-	RLCFont ListF1(GETS("@CULISTF1"));
-	RLCFont ListF0(GETS("@CULISTF0"));
-	int mmlx=Pan.GetLx();
-	int mmly=Pan.GetLy();
-
-	DialogsSystem DSY(smapx+(nsmaplx<<4)-(mmlx>>1),smapy+(mul3(nsmaply)<<2)-(mmly>>1));
-	Picture* PIC1=DSY.addPicture(nullptr,0,0,&Pan,&Pan,&Pan);
-	//TextButton* LoadBtn=DSY.addTextButton(PIC1,352>>1,30,"ЗАГРУЗИТЬ КАРТУ",&FActive,&FPassive,&FDisable,1);
-	ListBox* LB=DSY.addListBox(PIC1,GETV("LMLSTX"),GETV("LMLSTY"),GETV("LMLSTNY"),GETV("LMLSTLX"),GETV("LMLSTLY"),&ListF1,&ListF0,nullptr);
-	VScrollBar* VS=DSY.addVScrollBar(PIC1,GETV("LMSCRX"),GETV("LMSCRY"),1000,4,&scr_U,&scr_U,&scr_U,&scr_D,&scr_D,&scr_D,&scr_Line,&scr_Line,&scr_V);
-	LB->VS=VS;
-	TextButton* OkBtn=DSY.addTextButton(PIC1,GETV("LMOKX"),GETV("LMOKY"),GETS("@LMOKSTR"),&gf24w,&gf24y,&gf24y,1);
-	OkBtn->UserParam=mcmOk;
-	OkBtn->OnUserClick=&MMItemChoose;
-	TextButton* CancelBtn=DSY.addTextButton(PIC1,GETV("LMNOX"),GETV("LMNOY"),GETS("@LMNOSTR"),&gf24w,&gf24y,&gf24y,1);
-	CancelBtn->UserParam=mcmCancel;
-	CancelBtn->OnUserClick=&MMItemChoose;
-	CreateNewMapsList(LB);
-	ItemChoose=-1;
-	do{
-		DSY.MarkToDraw();
-		ProcessMessages();
-		StdKeys();
-		if(LB->CurItem==-1){
-			OkBtn->Enabled=false;
-			if(ItemChoose==mcmOk)ItemChoose=-1;
-		}else OkBtn->Enabled=true;
-		DSY.ProcessDialogs();
-		DSY.MarkToDraw();
-		DSY.RefreshView();
-	}while(ItemChoose==-1);
-	if(ItemChoose==mcmOk&&LB->CurItem!=-1){
-		Load3DMap((LB->GetItem(LB->CurItem))->Message);
-		strcpy(GameName,(LB->GetItem(LB->CurItem))->Message);
-	};
-	//FreeNames();
-	*/
 };
 //-----------------OPTIONS---------------//
 
@@ -8024,7 +7104,7 @@ int ProcessGMainMenu()
 	GP_Button* SaveBtn = GMM.addGP_Button( nullptr, 43, 70 + 31 * 1, BTNS.GPID, 7, 6 );
 	SaveBtn->UserParam = mcmSave;
 	SaveBtn->OnUserClick = &MMItemChoose;
-	if ( !( IsGameActive() || use_gsc_network_protocol ) )
+	if ( !IsGameActive() )
 	{
 		GP_Button* LoadBtn = GMM.addGP_Button( nullptr, 43, 70 + 31 * 2, BTNS.GPID, 5, 4 );
 		LoadBtn->UserParam = mcmLoad;
@@ -8701,7 +7781,6 @@ bool IngameYesNoDialog( char* dialog_text )
 bool Lobby = 0;
 void REPLAY();
 void LOOSEANDEXITFAST();
-void EndGSC_Reporting();
 
 extern int screen_width;
 extern int screen_height;
@@ -8778,7 +7857,6 @@ StartPlay://IMPORTANT: Main game loop
 				case 1:
 					if ( mcmExit == ProcessGMainMenu() && IngameYesNoDialog( GetTextByID( "CONFIRM" ) ) )
 					{
-						#ifdef _WIN32
 						// Is it some kind of multiplayer?
 						if ( NPlayers > 1 && !NATIONS[MyNation].VictState )
 						{
@@ -8798,7 +7876,6 @@ StartPlay://IMPORTANT: Main game loop
 								ProcessMessages();
 							} while ( GetSDLTickCount() - t0 < 500 );
 						}
-#endif // _WIN32 (multiplayer exit block)
 						GameExit = true;
 						CloseMPL();
 					}
@@ -8851,12 +7928,6 @@ StartPlay://IMPORTANT: Main game loop
 		RecordMode = 0;
 	}
 
-#ifdef _WIN32
-	EndGSC_Reporting();
-#endif
-	use_gsc_network_protocol = false;
-
-#ifdef _WIN32
 	if ( RetryVideo && !( RUNMAPEDITOR || RUNUSERMISSION ) )
 	{
 		GFILE* f = Gopen( "Demo\\demo.run", "r" );
@@ -8891,7 +7962,6 @@ StartPlay://IMPORTANT: Main game loop
 			RetryVideo = 0;
 		}
 	}
-#endif // _WIN32
 
 	IgnoreSlow = true;
 
@@ -9014,9 +8084,7 @@ void EditGame()
 				strcpy( GameName, USERMISSPATH );
 				RUNMAPEDITOR = 0;
 			}
-			//SERROR2();
 			PreDrawGameProcess();
-			//SERROR1();
 
 			ProcessMessages();
 			//if(GameNeedToDraw){
@@ -9026,7 +8094,6 @@ void EditGame()
 
 			FastScreenProcess();
 			//DrawAllScreen();
-			//SERROR();
 
 			ProcessMessages();
 
@@ -9092,73 +8159,6 @@ void EditGame()
 
 	IgnoreSlow = false;
 }
-
-#ifdef _WIN32
-void ShowFailure( int CreateGame )
-{
-	ClearScreen();
-	LoadFog( 0 );
-	LoadPalette( "0\\agew_1.pal" );
-	KeyPressed = 0;
-	bool NEEDDRAW = 1;
-	do
-	{
-		if ( bActive )
-		{
-			if ( NEEDDRAW )
-			{
-				CBar( 0, 0, RealLx, RealLy, 0 );
-				char* ss[5];
-				int NS = 0;
-				//if(CreateGame){
-				char ccx[256];
-				if ( CreateGame == 1 )
-				{
-					ss[0] = GetTextByID( "LOBUNC" );
-					ss[1] = GetTextByID( "LOBPR" );
-					NS = 2;
-				}
-				else if ( CreateGame == 0 )
-				{
-					ss[0] = GetTextByID( "LOBUNJ1" );
-					sprintf( ccx, GetTextByID( "LOBUNJ5" ), IPADDR );
-					ss[1] = GetTextByID( "LOBUNJ2" );
-					ss[2] = ccx;
-					ss[3] = GetTextByID( "LOBPR" );
-					NS = 4;
-				}
-				else
-				{
-					ss[0] = GetTextByID( "LOBUNJ3" );
-					sprintf( ccx, GetTextByID( "LOBUNJ5" ), IPADDR );
-					ss[1] = GetTextByID( "LOBUNJ4" );
-					ss[2] = ccx;
-					ss[3] = GetTextByID( "LOBPR" );
-					NS = 4;
-				};
-				int L = 0;
-				for ( int i = 0; i < NS; i++ )
-				{
-					int LL = GetRLCStrWidth( ss[i], &BigWhiteFont );
-					if ( LL > L )L = LL;
-				};
-				DrawStdBar( 512 - 32 - L / 2, 380 - NS * 15 - 15, 512 + 32 + L / 2, 380 + NS * 15 + 15 );
-				for ( int i = 0; i < NS; i++ )
-					ShowString( 512 - GetRLCStrWidth( ss[i], &BigWhiteFont ) / 2, 380 - NS * 15 + i * 30, ss[i], &BigWhiteFont );
-				FlipPages();
-			};
-			NEEDDRAW = 0;
-		}
-		else NEEDDRAW = true;
-		ProcessMessages();
-	} while ( !KeyPressed );
-	KeyPressed = 0;
-	ClearScreen();
-	LoadFog( 2 );
-	LoadPalette( "2\\agew_1.pal" );
-};
-void WaitWithMessage( char* Message );
-#endif // _WIN32
 
 int prevVid = -1;
 int prevVid1 = -1;
@@ -9329,7 +8329,6 @@ void RedrawGameBackground()
 
 void ProcessHelp()
 {
-#ifdef _WIN32
 	if ( !SCENINF.hLib )return;
 	ResFile F = RReset( "miss.txt" );
 	int sz = 0;
@@ -9400,7 +8399,6 @@ void ProcessHelp()
 	} while ( ItemChoose == -1 );
 	ContinueGame = true;
 	UnPress();
-	#endif // _WIN32
 };
 
 // Mission dialogs (page text viewer + the question variants). Un-guarded
@@ -11701,113 +10699,6 @@ void PrepareGameMedia( byte myid, bool SaveNR )
 		}
 	}
 }
-#ifdef _WIN32
-
-//----------------------RANDOM MAP GENERATING DIALOG------------------
-void RandomMapDialog( char* Result )
-{
-	DialogsSystem DSY( ( RealLx - 352 ) >> 1, ( RealLy - 352 ) >> 1 );
-	RLCFont FONT1( "rf32y.rlc" );
-	RLCFont FONT2( GETS( "@SMPASSIVE" ) );
-	RLCFont FONT3( GETS( "@SMACTIVE" ) );
-	DSY.addTextButton( nullptr, 352 >> 1, 20, GETS( "@RMIHEADER" ), &FONT1, &FONT1, &FONT1, 1 );
-	int y = 60;
-	int x0 = 20;
-	int x = 195;
-	RandomMapDesc RMP;
-	RMP.Load( "Terrain\\Res.dat" );
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMISTYLE" ), &FONT2, &FONT2, &FONT2, 0 );
-	ComboBox* CBSTYLE = DSY.addComboBox( nullptr, x, y, 144, 25, 20, 0, 255, &FONT2, &FONT3, nullptr );
-	for ( int p = 0; p < RMP.NSTY; p++ )
-	{
-		CBSTYLE->AddLine( RMP.STY[p].Name );
-	};
-	y += 40;
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMIMOUNTAINS" ), &FONT2, &FONT2, &FONT2, 0 );
-	ComboBox* CBMOUNT = DSY.addComboBox( nullptr, x, y, 144, 25, 20, 0, 255, &FONT2, &FONT3, nullptr );
-	for ( int p = 0; p < RMP.NRelief; p++ )
-	{
-		CBMOUNT->AddLine( RMP.Relief[p] );
-	};
-	y += 40;
-	int CurSty = 0;
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMIPLAYERS" ), &FONT2, &FONT2, &FONT2, 0 );
-	ComboBox* CBPLAY = DSY.addComboBox( nullptr, x, y, 144, 25, 20, 0, 255, &FONT2, &FONT3, nullptr );
-	for ( int p = 0; p < RMP.STY[CurSty].NPl; p++ )
-	{
-		char ccc[16];
-		sprintf( ccc, " %d", RMP.STY[CurSty].Players[p].NPlayers );
-		CBPLAY->AddLine( ccc );
-	};
-	y += 40;
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMIRESSTART" ), &FONT2, &FONT2, &FONT2, 0 );
-	ComboBox* CBRESST = DSY.addComboBox( nullptr, x, y, 144, 25, 20, 0, 255, &FONT2, &FONT3, nullptr );
-	for ( int p = 0; p < RMP.NRES; p++ )
-	{
-		CBRESST->AddLine( RMP.RES[p].Name );
-	};
-	y += 40;
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMIRESTOT" ), &FONT2, &FONT2, &FONT2, 0 );
-	ComboBox* CBRESTOT = DSY.addComboBox( nullptr, x, y, 144, 25, 20, 0, 255, &FONT2, &FONT3, nullptr );
-	for ( int p = 0; p < RMP.NMINES; p++ )
-	{
-		CBRESTOT->AddLine( RMP.MINES[p].Name );
-	};
-	y += 40;
-	DSY.addTextButton( nullptr, x0, y, "Code:", &FONT2, &FONT2, &FONT2, 0 );
-	char ccc[128];
-	sprintf( ccc, "%d", GetSDLTickCount() & 0b111111111111111);
-	InputBox* IB = DSY.addInputBox( nullptr, x, y, ccc, 20, 144, 28, &FONT2, &FONT2 );
-	y += 40;
-	TextButton* OkBtn = DSY.addTextButton( nullptr, 10 + 164 / 2, 315, "OK", &FONT2, &FONT3, &FONT3, 1 );
-	OkBtn->UserParam = mcmOk;
-	OkBtn->OnUserClick = &MMItemChoose;
-	TextButton* CancelBtn = DSY.addTextButton( nullptr, 180 + 164 / 2, 315, "ОТМЕНА", &FONT2, &FONT3, &FONT3, 1 );
-	CancelBtn->UserParam = mcmCancel;
-	CancelBtn->OnUserClick = &MMItemChoose;
-
-	ItemChoose = -1;
-	do
-	{
-		ProcessMessages();
-		if ( KeyPressed && ( LastKey == SDLK_RETURN || LastKey == SDLK_ESCAPE ) )
-		{
-			KeyPressed = false;
-			ItemChoose = mcmOk;
-		};
-		DrawStdBar( DSY.BaseX, DSY.BaseY, DSY.BaseX + 351, DSY.BaseY + 351 );
-		DSY.MarkToDraw();
-		DSY.ProcessDialogs();
-		DSY.RefreshView();
-		if ( CurSty != CBSTYLE->CurLine )
-		{
-			CurSty = CBSTYLE->CurLine;
-			CBPLAY->Clear();
-			for ( int p = 0; p < RMP.STY[CurSty].NPl; p++ )
-			{
-				char ccc[16];
-				sprintf( ccc, " %d", RMP.STY[CurSty].Players[p].NPlayers );
-				CBPLAY->AddLine( ccc );
-			};
-		};
-	} while ( ItemChoose == -1 );
-	UnPress();
-	if ( ItemChoose == mcmOk )
-	{
-		int r = GetSDLTickCount() & 0b1111111111111111;
-		sscanf( ccc, "%d", &r );
-		int q = CBSTYLE->CurLine + ( CBPLAY->CurLine << 4 ) + ( CBMOUNT->CurLine << 8 ) + ( CBRESST->CurLine << 12 ) +
-			( CBRESTOT->CurLine << 16 );
-		sprintf( Result, "RND %X %X 11111111.m3d", r, q );
-	}
-	else
-	{
-		Result[0] = 0;
-	}
-}
-
-#endif // _WIN32 (RandomMapDialog above has no callers; the random-map
-// presets defined below are shared data)
 
 // Random-map generator presets: terrain style index, starting resources
 // and resources-on-map index (values index RandomMapDesc tables).
@@ -11815,84 +10706,6 @@ int RM_LandType = 0;
 int RM_Resstart = 0;
 int RM_Restot = 0;
 
-#ifdef _WIN32
-void EnterRandomParams()
-{
-	DialogsSystem DSY( ( RealLx - 64 * 6 ) >> 1, ( RealLy - 64 * 5 ) >> 1 );
-	LocalGP vinB( "vinBig" );
-	LocalGP vin( "vin" );
-	RLCFont fnti( vinB.GPID );
-	RLCFont fntir( vinB.GPID );
-	fntir.SetRedColor();
-	RLCFont fntis( vin.GPID );
-	RLCFont fntisr( vin.GPID );
-	fntisr.SetRedColor();
-	DSY.addTextButton( nullptr, 32 * 6, 10, GetTextByID( "AIPARM" ), &BigYellowFont, &BigYellowFont, &BigYellowFont, 1 );
-	int y = 85;
-	int x0 = 10;
-	int x = 200;
-	RandomMapDesc RMP;
-	RMP.Load( "Terrain\\Res.dat" );
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMISTYLE" ), &fntis, &fntis, &fntis, 0 );
-	ComboBox* CBSTYLE = DSY.addComboBox( nullptr, x, y, 164, 25, 20, 0x3B, 255, &fntisr, &fntis, nullptr );
-	for ( int p = 0; p < RMP.NSTY; p++ )
-	{
-		CBSTYLE->AddLine( RMP.STY[p].Name );
-	};
-	CBSTYLE->CurLine = RM_LandType;
-	y += 50;
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMIRESSTART" ), &fntis, &fntis, &fntis, 0 );
-	ComboBox* CBRESST = DSY.addComboBox( nullptr, x, y, 164, 25, 20, 0x3B, 255, &fntisr, &fntis, nullptr );
-	for ( int p = 0; p < RMP.NRES; p++ )
-	{
-		CBRESST->AddLine( RMP.RES[p].Name );
-	};
-	CBRESST->CurLine = RM_Resstart;
-	y += 45;
-	DSY.addTextButton( nullptr, x0, y, GETS( "@RMIRESTOT" ), &fntis, &fntis, &fntis, 0 );
-	ComboBox* CBRESTOT = DSY.addComboBox( nullptr, x, y, 164, 25, 20, 0x3B, 255, &fntisr, &fntis, nullptr );
-	for ( int p = 0; p < RMP.NMINES; p++ )
-	{
-		CBRESTOT->AddLine( RMP.MINES[p].Name );
-	};
-	CBRESTOT->CurLine = RM_Restot;
-	y += 55;
-	TextButton* OkBtn = DSY.addTextButton( nullptr, 92 - 5, y, "OK", &fntir, &fnti, &fnti, 1 );
-	OkBtn->UserParam = mcmOk;
-	OkBtn->OnUserClick = &MMItemChoose;
-	TextButton* CancelBtn = DSY.addTextButton( nullptr, 180 + 82, y, "Cancel", &fntir, &fnti, &fnti, 1 );
-	CancelBtn->UserParam = mcmCancel;
-	CancelBtn->OnUserClick = &MMItemChoose;
-
-	ItemChoose = -1;
-	do
-	{
-		int x0 = ( RealLx - 64 * 6 ) >> 1;
-		int y0 = ( RealLy - 64 * 4 ) >> 1;
-		DrawPaperPanel( x0, y0, x0 + 64 * 6, y0 + 64 * 4 );
-		ProcessMessages();
-		DSY.MarkToDraw();
-		DSY.ProcessDialogs();
-		DSY.RefreshView();
-		if ( KeyPressed )
-		{
-			if ( LastKey == SDLK_RETURN )ItemChoose = mcmOk;
-			if ( LastKey == SDLK_ESCAPE )ItemChoose = mcmCancel;
-			KeyPressed = false;
-		};
-	} while ( ItemChoose == -1 );
-
-	if ( ItemChoose == mcmOk )
-	{
-		RM_LandType = CBSTYLE->CurLine;
-		RM_Resstart = CBRESST->CurLine;
-		RM_Restot = CBRESTOT->CurLine;
-	}
-
-	UnPress();
-}
-#endif // _WIN32 (RandomMapDialog/EnterRandomParams above have no callers;
-//the single-mission starter below is portable - dialog system + PrepareGameMedia)
 bool ProcessSingleMission( int n, int Diff )
 {
 	MaxPingTime = 0;
@@ -12064,8 +10877,6 @@ bool ProcessSingleMission( int n, int Diff )
 
 	return true;
 }
-// (the _WIN32 region that used to cover the battles screens machinery was
-// closed above ProcessSingleMission; mission/campaign code below is portable)
 bool ProcessSingleCampagin( int n )
 {
 	KeyPressed = 0;
@@ -12297,14 +11108,7 @@ AddMissionsPack::AddMissionsPack()
 					strcpy( c1, ".dsc" );
 					strcpy( Pack[NMiss].Preview, ccc );
 					strcpy( c1, ".bmp" );
-#ifdef _WIN32
-					FILE* F1 = fopen( ccc, "r " );
-					if ( F1 )
-					{
-						strcpy( Pack[NMiss].Bitmap, ccc );
-						fclose( F1 );
-					};
-#else
+
 					// Linux: raw fopen() cannot open backslash paths -
 					// use the engine's RReset (case-insensitive loose
 					// files or the GSC archive) for the bitmap check.
@@ -12314,7 +11118,6 @@ AddMissionsPack::AddMissionsPack()
 						strcpy( Pack[NMiss].Bitmap, ccc );
 						RClose( F1 );
 					};
-#endif
 				};
 				Gclose( F );
 				NMiss++;
@@ -12770,7 +11573,6 @@ bool ProcessOneBattle( int BtlID )
 	SlowUnLoadPalette( "2\\agew_1.pal" );
 	return ItemChoose == mcmOk;
 };
-#ifdef _WIN32
 int ProcessWars()
 {
 	if ( !WARS.NWars )return false;
@@ -12938,8 +11740,6 @@ void SlideShow()
 		} while ( z == 1 );
 	};
 }
-
-#endif // _WIN32 (ProcessWars/SlideShow - battles screens, port separately)
 
 void ClearScreen();
 char* ROME[6] = { "II","III","IV","V","VI","VII" };
@@ -16588,18 +15388,8 @@ void CreateNEWMAP()
 	}
 	free( p );
 }
-// (Windows-only region resumes: the AI-check export and the error
-// dialog helper below sit outside the map editor UI)
-#ifdef _WIN32
-
-void WaitWithError4( char* ID, int GPID );
-
-void ERRMESSAGE( char* STR )
-{
-	LocalGP BOR2( "Interface\\bor2" );
-	WaitWithError4( STR, BOR2.GPID );
-}
-
+// DLLEXPORT: scenario/mission DLLs call this to know whether any AI
+// nation is present (e.g. to decide if the mission is a pure script).
 DLLEXPORT bool CheckUsingAI()
 {
 	for ( int i = 0; i < 8; i++ )
@@ -16611,5 +15401,3 @@ DLLEXPORT bool CheckUsingAI()
 	}
 	return false;
 }
-
-#endif // _WIN32

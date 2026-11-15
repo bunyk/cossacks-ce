@@ -43,6 +43,12 @@ int MINE_UPG_RULES_C[27] = {
 #define USAGE_IAXTA		0x1C
 #define USAGE_PAROM		0x1F
 
+// Per-nation pick-slot mapping for common/european_land.h:
+#define AI_MOUNTED_PICK tiagoli
+#define AI_SHOOTER_PICK strelec18
+#include "../common/european_land.h"
+
+
 
 // Registers Russia's units/upgrades with the game. Names must match the
 // per-nation script RUSSIA.NDS (listed in Nations.lst, packed in all.gsc):
@@ -67,15 +73,22 @@ int MINE_UPG_RULES_C[27] = {
 //   Port          -> PorR, Shebeka -> Fregat (mid-tier warship)
 // The water-map AI (ProcessWaterAI, land types 2/3/4) and the land-type
 // routing are ported from the Ghidra decompilation of the original
-// Russia.dll; see the comment above ProcessWaterAI. Not yet ported from
-// Russia.dll: the full land pipeline (FUN_10006af0/6b50, currently the
-// Turkey-lineage ProcessLandAI runs instead) and the full Mediterranean
-// handler (ProcessMiddleSeaAI; ProcessNonLandAI keeps the Turkey lineage
-// with the original Med port/MAIN values patched in). AKA16/AKA17/AKA27
-// are dropped: registered by the Algeria/Turkey AIs but NOT by
-// Russia.dll (its academy set is AKA01..15, 20, 23, 24, 28..36).
+// The land pipeline, the Mediterranean handler and the dispatcher now
+// come from the shared European skeleton in common/european_land.h
+// (ported 1:1 from the Ghidra decompilation of the 94208-byte DLL family;
+// token-verified identical across Russia/Austria/Bavaria).
 void RegisterRussia()
 {
+	// Per-game rand flag (original InitAI: GetRandomIndex() & 0x80,
+	// stored per nation in a .data array; one module serves one
+	// nation, so fill all slots). Must precede the pick GetRandomIndex
+	// calls below, as in the original.
+	{
+		int randFlag = GetRandomIndex() & 0x80;
+		for (int fi = 0; fi < 8; fi++)
+			aiRandFlag[fi] = randFlag;
+	}
+
 	RegisterUnitType(&pikiner, "Pik_rus(RU)");
 	RegisterUnitType(&krestian, "Kreposnoi(RU)");
 	RegisterUnitType(&pehota, "Strelec(RU)");
@@ -179,6 +192,7 @@ void RegisterRussia()
 	RegisterUnitType(&bashnia2, "Bashnia_2(RU)");
 	RegisterUnitType(&yahta, "Yahta(RU)");
 	RegisterUnitType(&dragun18, "Dragun_18(RU)");
+	RegisterUnitType(&dragun17, "Dragun_18(RU)"); // second dragoon slot, same unit in Russia.dll
 	RegisterUnitType(&dragun18_dip, "Dragun_18_DIP(RU)");
 	RegisterUnitType(&gusar, "Gusar_evro(RU)");
 	RegisterUnitType(&sveshenik, "Sveshenik_ukr(RU)");
@@ -188,11 +202,14 @@ void RegisterRussia()
 	// either Mushketer or Grenader as the second 18th c. musketeer:
 	// (r & 0x18) == 8 -> Mushketer, else Grenader.
 	int r = GetRandomIndex();
-	RegisterUnitType(&tiagoli, ((r & 6) == 2) ? "Tiagoli_kozak(RU)" : "Tiagoli_koval_rus(RU)");
-	RegisterUnitType(&strelec18, ((r & 0x18) == 8) ? "Mushketer(RU)" : "Grenader(RU)");
-	// Note: the original also SafeRegisterUpgrade()s twelve "Dragun(RU)ATTACK/
-	// SHIELD..." upgrades; those names do not exist in RUSSIA.NDS (the call
-	// fails silently), so they are not ported.
+	const char* mountedPick = ((r & 6) == 2) ? "Tiagoli_kozak(RU)" : "Tiagoli_koval_rus(RU)";
+	const char* shooterPick = ((r & 0x18) == 8) ? "Mushketer(RU)" : "Grenader(RU)";
+	RegisterUnitType(&tiagoli, mountedPick);
+	RegisterUnitType(&strelec18, shooterPick);
+	// The original also SafeRegisterUpgrade()s the 12+12 "<pick>ATTACK/SHIELD..."
+	// slots (the shared land pipeline references them); names that do not
+	// exist in RUSSIA.NDS fail silently.
+	RegisterPickChains(mountedPick, shooterPick);
 	RegisterUpgrade(&KUZ04, "KUZ04RU");
 	RegisterUpgrade(&AKA35, "AKA35RU");
 	RegisterUpgrade(&AKA36, "AKA36RU");
@@ -213,6 +230,19 @@ void RegisterRussia()
 	RegisterUpgrade(&bashnia_PAUSE6, "Bashnia_2(RU)PAUSE6");
 	RegisterUpgrade(&bashnia_PAUSE7, "Bashnia_2(RU)PAUSE7");
 	RegisterUpgrade(&barabanshik_SHIELD, "Barabanshik_1(RU)SHIELD");
+	RegisterUpgrade(&Melnica_GETRES2, "Melnica_rus(RU)GETRES2");
+	SafeRegisterUpgrade(&dragun_ATTACK, "Dragun(RU)ATTACK");
+	SafeRegisterUpgrade(&dragun_ATTACK3, "Dragun(RU)ATTACK3");
+	SafeRegisterUpgrade(&dragun_ATTACK4, "Dragun(RU)ATTACK4");
+	SafeRegisterUpgrade(&dragun_ATTACK5, "Dragun(RU)ATTACK5");
+	SafeRegisterUpgrade(&dragun_ATTACK6, "Dragun(RU)ATTACK6");
+	SafeRegisterUpgrade(&dragun_ATTACK7, "Dragun(RU)ATTACK7");
+	SafeRegisterUpgrade(&dragun_SHIELD, "Dragun(RU)SHIELD");
+	SafeRegisterUpgrade(&dragun_SHIELD3, "Dragun(RU)SHIELD3");
+	SafeRegisterUpgrade(&dragun_SHIELD4, "Dragun(RU)SHIELD4");
+	SafeRegisterUpgrade(&dragun_SHIELD5, "Dragun(RU)SHIELD5");
+	SafeRegisterUpgrade(&dragun_SHIELD6, "Dragun(RU)SHIELD6");
+	SafeRegisterUpgrade(&dragun_SHIELD7, "Dragun(RU)SHIELD7");
 	RegisterUpgrade(&dragun18_ATTACK, "Dragun_18(RU)ATTACK");
 	RegisterUpgrade(&dragun18_ATTACK3, "Dragun_18(RU)ATTACK3");
 	RegisterUpgrade(&dragun18_ATTACK4, "Dragun_18(RU)ATTACK4");
@@ -255,538 +285,6 @@ extern "C" __declspec(dllexport) void InitAI()
 extern "C" __declspec(dllexport) void OnInit()
 {
 	InitAI();
-}
-
-void ProcessNonLandAI(int landType)
-{
-	SetMineBalanse(19, LAND_MINE_BALANCE);
-
-	int wood = GetMoney(0);
-	int gold = GetMoney(1);
-	int stone = GetMoney(2);
-	int food = GetMoney(3);
-	int iron = GetMoney(4);
-	int coal = GetMoney(5);
-	int stoneLast = stone;
-
-	TryUnit(&melnica, 1, 100, 100);
-	if (GetUnits(&melnica))
-	{
-		TryUnit(&center, 2, 100, 100);
-		if (GetUnits(&center))
-		{
-			TryUnit(&kuznia, 1, 100, 100);
-			TryUnit(&barack, 1, 100, 100);
-			if (GetUnits(&minaret))
-			{
-				TryUnit(&barack, 2, 100, 100);
-				if (GetUnits(&center) > 1)
-				{
-					if (food > 1000)
-					{
-						TryUnit(&barack, 3, 100, 100);
-					}
-					TryUnit(&barack, 4, 50, 100);
-					TryUnit(&barack, 5, 30, 100);
-				}
-			}
-			TryUnit(&sclad, 1, 100, 100);
-			if (FieldExist())
-			{
-				if (food > 1200)
-				{
-					TryUnit(&sclad, 3, 10, 2);
-					if (food > 2000)
-					{
-						TryUnit(&sclad, 5, 10, 1);
-						TryUnit(&sclad, 6, 3, 1);
-						TryUnit(&sclad, 7, 2, 1);
-						TryUnit(&rinok, 1, 100, 100);
-					}
-				}
-			}
-			if (GetUnits(&minaret) && GetUnits(&barack) > 1)
-			{
-				TryUnit(&konushnia, 2, 100, 100);
-				TryUnit(&konushnia, 3, 90, 100);
-				TryUnit(&konushnia, 4, 90, 100);
-				TryUnit(&konushnia, 5, 90, 100);
-				TryUnit(&art_depo, 1, 100, 100);
-			}
-			TryUnit(&minaret, 1, 90, 100);
-			// Original Russia.dll ProcessMiddleSeaAI: three ports, no extra
-			// gate (the konushnia requirement was a Turkey-lineage artifact).
-			TryUnit(&port, 1, 50, 90);
-			TryUnit(&port, 2, 20, 50);
-			TryUnit(&port, 3, 10, 50);
-			if (GetUnits(&barack))
-				TryUnit(&melnica, 2, 10, 10);
-			TryUnit(&diplomatic, 1, 90, 10);
-			stone = stoneLast;
-		}
-	}
-	TryUpgrade(&Melnica_tuGETRES, 100, 100);
-	if (UpgIsRun(&Melnica_tuGETRES))
-	{
-		if (food > 700)
-		{
-			if (landType == LT_MEDITERRANEAN && GetUnits(&pehota) < 100)
-			{
-				TryUnit(&pikiner, 400, 20, 40);
-				TryUnit(&pehota, 200, 10, 100);
-			}
-			else if (landType == LT_MEDITERRANEAN)
-			{
-				TryUnit(&strelec, 800, 20, 60);
-				TryUnit(&pikiner, 800, 20, 100);
-			}
-			else
-			{
-				TryUnit(&strelec, 400, 20, 60);
-				TryUnit(&pikiner, 400, 20, 100);
-			}
-		}
-		if (food > 250)
-			TryUnit(&krestian, 1000, 100, 100);
-		if (food > 300)
-		{
-			TryUnit(&mameluk, 400, 20, 100);
-			TryUnit(&mameluk, 400, 20, 100);
-			if (gold > 1000)
-				TryUnit(&grenader, 70, 100, 100);
-		}
-		TryUpgrade(&AKA01, 99, 100);
-		TryUpgrade(&KUZ01, 99, 100);
-	}
-	if (landType == LT_MEDITERRANEAN && GetUnits(&krestian) > 45)
-	{
-		TryUpgrade(&pehota_ATTACK, 30, 50);
-		TryUpgrade(&pehota_ATTACK3, 30, 50);
-		TryUpgrade(&pehota_ATTACK4, 30, 50);
-		TryUpgrade(&pehota_SHIELD, 30, 50);
-		TryUpgrade(&pehota_SHIELD3, 30, 50);
-		TryUpgrade(&pehota_SHIELD4, 30, 50);
-	}
-	TryUpgrade(&KUZ03, 100, 100);
-	TryUpgrade(&AKA08, 98, 100);
-	TryUpgrade(&AKA23, 99, 100);
-	TryUpgrade(&AKA04, 99, 100);
-	TryUpgrade(&AKA01, 99, 100);
-	TryUpgrade(&AKA02, 99, 100);
-	TryUpgrade(&AKA03, 99, 100);
-	TryUpgrade(&AKA30, 100, 100);
-	TryUpgrade(&AKA06, 99, 100);
-	if (UpgIsDone(&KUZ03))
-	{
-		if (landType == 1)
-		{
-			TryUnit(&mortira_b, 40, 10, 50);
-		}
-		TryUpgrade(&AKA24, 99, 100);
-		TryUpgrade(&AKA07, 99, 100);
-		if (UpgIsDone(&AKA07))
-		{
-			TryUnit(&lodka, 40, 10, 50);
-			TryUpgrade(&AKA05, 99, 100);
-		}
-		TryUpgrade(&KUZ05, 95, 100);
-		if (landType == LT_MEDITERRANEAN)
-		{
-			TryUpgrade(&pushka_BUILD, 30, 50);
-			TryUpgrade(&pushka_BUILD3, 30, 50);
-			TryUpgrade(&pushka_BUILD4, 30, 50);
-			TryUpgrade(&pushka_BUILD5, 30, 50);
-		}
-		TryUpgrade(&mortira_BUILD, 30, 50);
-		TryUpgrade(&mortira_BUILD3, 30, 50);
-		TryUpgrade(&mortira_BUILD4, 30, 50);
-		TryUpgrade(&mortira_BUILD5, 30, 50);
-		if (UpgIsDone(&mortira_BUILD5))
-		{
-			TryUnit(&mortira, 10, 10, 50);
-		}
-		if (UpgIsDone(&pushka_BUILD5))
-		{
-			TryUnit(&pushka, 12, 10, 50);
-		}
-		TryUnit(&mortira_b, 20, 10, 50);
-		TryUpgrade(&pikiner_ATTACK, 60, 100);
-		TryUpgrade(&pikiner_ATTACK3, 60, 100);
-		TryUpgrade(&pikiner_ATTACK4, 60, 100);
-		TryUpgrade(&pikiner_ATTACK5, 20, 100);
-		TryUpgrade(&pikiner_ATTACK6, 10, 100);
-		TryUpgrade(&pikiner_SHIELD, 60, 100);
-		TryUpgrade(&pikiner_SHIELD3, 60, 100);
-		TryUpgrade(&pikiner_SHIELD4, 60, 100);
-		TryUpgrade(&pikiner_SHIELD5, 20, 100);
-		TryUpgrade(&pikiner_SHIELD6, 10, 100);
-		if (landType == LT_MEDITERRANEAN)
-		{
-			TryUpgrade(&pehota_ATTACK, 30, 50);
-			TryUpgrade(&pehota_ATTACK3, 30, 50);
-			TryUpgrade(&pehota_ATTACK4, 30, 50);
-			TryUpgrade(&pehota_SHIELD, 30, 50);
-			TryUpgrade(&pehota_SHIELD3, 30, 50);
-			TryUpgrade(&pehota_SHIELD4, 30, 50);
-		}
-		TryUpgrade(&mameluk_ATTACK, 30, 50);
-		TryUpgrade(&mameluk_ATTACK3, 30, 50);
-		TryUpgrade(&mameluk_ATTACK4, 30, 50);
-		TryUpgrade(&mameluk_ATTACK5, 30, 50);
-		TryUpgrade(&mameluk_ATTACK6, 30, 50);
-		TryUpgrade(&mameluk_ATTACK7, 30, 50);
-		TryUpgrade(&mameluk_SHIELD, 30, 50);
-		TryUpgrade(&mameluk_SHIELD3, 30, 50);
-		TryUpgrade(&mameluk_SHIELD4, 30, 50);
-		TryUpgrade(&mameluk_SHIELD5, 30, 50);
-		TryUpgrade(&mameluk_SHIELD6, 30, 50);
-		TryUpgrade(&mameluk_SHIELD7, 30, 50);
-	}
-	TryUnit(&lodka, 3, 50, 50);
-	if (landType == LT_MEDITERRANEAN)
-	{
-		TryUnit(&shebeka, 6, 99, 10);
-		TryUnit(&shebeka, 12, 60, 10);
-		TryUnit(&galera, 6, 90, 20);
-	}
-	else
-	{
-		TryUnit(&peres_kor, 3, 90, 50);
-		TryUnit(&shebeka, 6, 99, 10);
-		TryUnit(&shebeka, 12, 60, 10);
-		TryUnit(&shebeka, 15, 50, 10);
-		TryUnit(&galera, 6, 90, 20);
-	}
-	// market
-	if (GetReadyUnits(&rinok))
-	{
-		if (stone > 100000)
-		{
-			AI_Torg(STONE, GOLD, 90000);
-		}
-		if (wood > 1000000)
-		{
-			AI_Torg(WOOD, GOLD, 90000);
-		}
-		if (food < 300)
-		{
-			if (coal > 12000)
-			{
-				AI_Torg(COAL, FOOD, 1000);
-			}
-			else if (gold > 3000)
-			{
-				AI_Torg(GOLD, FOOD, 1000);
-			}
-			else if (stone > 1500)
-			{
-				AI_Torg(STONE, FOOD, 1500);
-			}
-			else if (wood > 1500)
-			{
-				AI_Torg(WOOD, FOOD, 1000);
-			}
-		}
-		if (!UpgIsDone(&AKA08) && gold > 800)
-		{
-			if (coal > 9000)
-				AI_Torg(COAL, FOOD, 3000);
-			if (iron > 9000)
-				AI_Torg(IRON, FOOD, 3000);
-		}
-	}
-	if (!FieldExist())
-	{
-		SetPDistribution(10, 5, 2);
-	}
-	else
-	{
-		if (GetUnits(&krestian) >= 20 || food >= 2000)
-		{
-			if (UpgIsDone(&AKA03) && food >= 15000)
-			{
-				SetPDistribution(10, 6, 4);
-			}
-			else
-			{
-				SetPDistribution(10, 4, 4);
-			}
-		}
-		else
-		{
-			SetPDistribution(10, 5, 2);
-		}
-	}
-	if (UpgIsDone(&AKA30))
-	{
-		SetPDistribution(6, 7, 3);
-		TryUnit(&galera, 7, 70, 50);
-		TryUpgrade(&KUZ02, 95, 100);
-		TryUpgrade(&AKA09, 95, 100);
-		TryUpgrade(&AKA20, 95, 100);
-		if (UpgIsDone(&AKA20))
-		{
-			TryUpgrade(&AKA28, 90, 100);
-		}
-	}
-	else
-	{
-		TryUnit(&galera, 3, 100, 50);
-	}
-}
-
-void ProcessLandAI()
-{
-	SetMineBalanse(19, LAND_MINE_BALANCE);
-	int foodLast = GetMoney(FOOD);
-	int goldLast = GetMoney(GOLD);
-	TryUnit(&melnica, 1, 100, 100);
-	if (GetUnits(&melnica))
-	{
-		TryUnit(&center, 2, 100, 100);
-		if (GetUnits(&center))
-		{
-			TryUnit(&kuznia, 1, 100, 100);
-			TryUnit(&barack, 1, 100, 100);
-			if (GetUnits(&minaret))
-			{
-				TryUnit(&barack, 2, 100, 100);
-				if (GetUnits(&center) > 1)
-				{
-					if (foodLast > 1000)
-					{
-						TryUnit(&barack, 3, 100, 100);
-					}
-					TryUnit(&barack, 4, 60, 100);
-					TryUnit(&barack, 5, 60, 100);
-				}
-			}
-			TryUnit(&sclad, 1, 100, 100);
-			if (FieldExist() && foodLast > 1200)
-			{
-				TryUnit(&sclad, 3, 10, 2);
-				if (foodLast > 2000)
-				{
-					TryUnit(&sclad, 5, 10, 1);
-					TryUnit(&sclad, 6, 3, 1);
-					TryUnit(&sclad, 7, 2, 1);
-				}
-				if (GetUnits(&krestian) > 24)
-				{
-					TryUnit(&rinok, 1, 100, 100);
-				}
-			}
-			if (GetUnits(&minaret) && GetUnits(&barack) > 1)
-			{
-				TryUnit(&konushnia, 2, 100, 100);
-				TryUnit(&konushnia, 3, 90, 100);
-				TryUnit(&konushnia, 4, 90, 100);
-				TryUnit(&konushnia, 5, 90, 100);
-				TryUnit(&art_depo, 1, 100, 100);
-			}
-			TryUnit(&minaret, 1, 90, 100);
-			// The original Russia.dll land pipeline never proposes ports
-			// (the old block here was Turkey-lineage code).
-			if (GetUnits(&barack))
-			{
-				TryUnit(&melnica, 2, 10, 10);
-			}
-			TryUnit(&diplomatic, 1, 90, 10);
-		}
-	}
-	TryUpgrade(&Melnica_tuGETRES, 100, 100);
-	if (UpgIsRun(&Melnica_tuGETRES))
-	{
-		if (foodLast > 700)
-		{
-			if (GetUnits(&strelec) >= 420)
-			{
-				TryUnit(&strelec, 600, 5, 100);
-				if (GetUnits(&pikiner) > 250)
-				{
-					TryUnit(&strelec, 800, 20, 60);
-				}
-				TryUnit(&pikiner, 800, 20, 100);
-			}
-			else
-			{
-				TryUnit(&pikiner, 400, 20, 40);
-				TryUnit(&strelec, 600, 5, 100);
-			}
-		}
-		if (foodLast > 250)
-		{
-			TryUnit(&krestian, 1000, 100, 100);
-		}
-		if (foodLast > 300)
-		{
-			TryUnit(&mameluk, 400, 20, 100);
-			TryUnit(&mameluk, 400, 20, 100);
-			if (goldLast > 1500)
-			{
-				TryUnit(&grenader, 70, 100, 100);
-			}
-		}
-		TryUpgrade(&AKA01, 99, 100);
-		TryUpgrade(&KUZ01, 99, 100);
-	}
-
-	TryUpgrade(&KUZ03, 100, 100);
-	TryUpgrade(&AKA08, 98, 100);
-	TryUpgrade(&AKA23, 99, 100);
-	TryUpgrade(&AKA04, 99, 100);
-	TryUpgrade(&AKA01, 99, 100);
-	TryUpgrade(&AKA02, 99, 100);
-	TryUpgrade(&AKA03, 99, 100);
-	TryUpgrade(&AKA30, 100, 100);
-	if (UpgIsDone(&KUZ03))
-	{
-		TryUpgrade(&KUZ05, 95, 100);
-		TryUpgrade(&pushka_BUILD, 30, 50);
-		TryUpgrade(&pushka_BUILD3, 30, 50);
-		TryUpgrade(&pushka_BUILD4, 30, 50);
-		TryUpgrade(&pushka_BUILD5, 30, 50);
-		TryUpgrade(&mortira_BUILD, 30, 50);
-		TryUpgrade(&mortira_BUILD3, 30, 50);
-		TryUpgrade(&mortira_BUILD4, 30, 50);
-		TryUpgrade(&mortira_BUILD5, 30, 50);
-		if (UpgIsDone(&mortira_BUILD5))
-		{
-			TryUnit(&mortira, 10, 10, 50);
-		}
-		if (UpgIsDone(&pushka_BUILD5))
-		{
-			TryUnit(&pushka, 12, 10, 50);
-		}
-		TryUnit(&mortira_b, 50, 10, 50);
-		TryUpgrade(&mameluk_ATTACK, 30, 50);
-		TryUpgrade(&mameluk_ATTACK3, 30, 50);
-		TryUpgrade(&mameluk_ATTACK4, 30, 50);
-		TryUpgrade(&mameluk_ATTACK5, 30, 50);
-		TryUpgrade(&mameluk_ATTACK6, 30, 50);
-		TryUpgrade(&mameluk_ATTACK7, 30, 50);
-		TryUpgrade(&mameluk_SHIELD, 30, 50);
-		TryUpgrade(&mameluk_SHIELD3, 30, 50);
-		TryUpgrade(&mameluk_SHIELD4, 30, 50);
-		TryUpgrade(&mameluk_SHIELD5, 30, 50);
-		TryUpgrade(&mameluk_SHIELD6, 30, 50);
-		TryUpgrade(&mameluk_SHIELD7, 30, 50);
-	}
-	if (GetUnits(&krestian) > 35)
-	{
-		TryUpgrade(&pikiner_ATTACK, 90, 100);
-		TryUpgrade(&pikiner_ATTACK3, 90, 100);
-		TryUpgrade(&pikiner_ATTACK4, 90, 100);
-		TryUpgrade(&pikiner_ATTACK5, 90, 100);
-		TryUpgrade(&pikiner_ATTACK6, 90, 100);
-		TryUpgrade(&pikiner_SHIELD, 90, 100);
-		TryUpgrade(&pikiner_SHIELD3, 90, 100);
-		TryUpgrade(&pikiner_SHIELD4, 90, 100);
-		TryUpgrade(&pikiner_SHIELD5, 90, 100);
-		TryUpgrade(&pikiner_SHIELD6, 90, 100);
-	}
-	// market
-	if (GetReadyUnits(&rinok))
-	{
-		int wood = GetMoney(WOOD);
-		int stone = GetMoney(STONE);
-		int iron = GetMoney(IRON);
-		int coal = GetMoney(COAL);
-		int gold = GetMoney(GOLD);
-		int food = GetMoney(FOOD);
-		if (food < 150)
-		{
-			if (stone > 5000)
-			{
-				AI_Torg(STONE, FOOD, 3000);
-			}
-			else if (stone > 1000)
-			{
-				AI_Torg(STONE, FOOD, 900);
-			}
-			else if (wood > 5000)
-			{
-				AI_Torg(WOOD, FOOD, 3000);
-			}
-			else if (wood > 1000)
-			{
-				AI_Torg(WOOD, FOOD, 900);
-			}
-			else if (coal > 2000)
-			{
-				AI_Torg(COAL, FOOD, 800);
-			}
-			else if (iron > 2000)
-			{
-				AI_Torg(IRON, FOOD, 800);
-			}
-			else if (gold > 1000)
-			{
-				AI_Torg(GOLD, FOOD, 500);
-			}
-		}
-		if (GetReadyUnits(&minaret) && gold > 1000 && !UpgIsRun(&AKA08))
-		{
-			if (iron > 3000)
-			{
-				AI_Torg(IRON, FOOD, 2000);
-			}
-			if (coal > 4000)
-			{
-				AI_Torg(COAL, FOOD, 3000);
-			}
-		}
-		if (GetMoney(STONE) > 120000)
-		{
-			AI_Torg(STONE, GOLD, 100000);
-		}
-		if (GetMoney(WOOD) > 100000)
-		{
-			AI_Torg(WOOD, GOLD, 90000);
-		}
-		if (GetUnits(&kuznia) && !UpgIsRun(&KUZ03))
-		{
-			if (GetMoney(COAL) > 9000 && GetMoney(WOOD) && GetMoney(GOLD) < 4000)
-			{
-				if (GetMoney(COAL) > 12000)
-				{
-					AI_Torg(COAL, GOLD, 3000);
-				}
-				if (GetMoney(IRON) > 8000)
-				{
-					AI_Torg(IRON, GOLD, 2000);
-				}
-				if (GetMoney(STONE) > 20000)
-				{
-					AI_Torg(STONE, GOLD, 12000);
-				}
-				if (GetMoney(FOOD) > 30000)
-				{
-					AI_Torg(FOOD, GOLD, 15000);
-				}
-			}
-			if (GetMoney(COAL) > 9000 && GetMoney(GOLD) && GetMoney(GOLD) > 4000)
-			{
-				if (GetMoney(COAL) > 12000)
-				{
-					AI_Torg(COAL, IRON, 3000);
-				}
-				if (GetMoney(STONE) > 20000)
-				{
-					AI_Torg(STONE, IRON, 12000);
-				}
-				if (GetMoney(FOOD) > 30000)
-				{
-					AI_Torg(FOOD, IRON, 15000);
-				}
-			}
-		}
-		if (!GetAIRegister(1))
-		{
-			AI_Torg(COAL, FOOD, 4000);
-			SetAIRegister(1, 1);
-		}
-	}
 }
 
 // Original Russia.dll FUN_10003140: pike and tower upgrade chain, proposed
@@ -1267,72 +765,10 @@ void ProcessWaterAI()
 
 extern "C" __declspec(dllexport) void ProcessAI()
 {
-	int land = GetLandType();
-
-	// Per-tick economy setup (original: FUN_10002f50 prologue + FUN_10006540).
-	// With the lowest start resources the second mines-building rule is
-	// raised to 4, as in the original.
-	if (GetStartRes() == 0)
-	{
-		MINES_BUILD_RULES[1] = 4;
-	}
-	ApplyMineUpgradeRules(land);
-	SetMinesBuildingRules(MINES_BUILD_RULES, 27);
-
-	switch (land)
-	{
-	case LT_LAND:
-	case LT_CONTINENT:
-		// Original dispatcher runs the land pipeline for land types 0 and 5
-		SetMineBalanse(19, LAND_MINE_BALANCE);
-		ProcessLandAI();
-		// Original land path (FUN_100059a0/FUN_10006860): research the
-		// XVIII century, then keep up to five 18th c. barracks
-		TryUpgrade(&MAIN, 98, 100);
-		if (UpgIsDone(&MAIN))
-		{
-			TryUnit(&kazarma, 5, 100, 100);
-		}
-		break;
-	case LT_MEDITERRANEAN:
-		SetMineBalanse(19, LAND_MINE_BALANCE);
-		ProcessNonLandAI(land);
-		// Original ProcessMiddleSeaAI: XVIII century + two barracks
-		TryUpgrade(&MAIN, 99, 100);
-		if (UpgIsDone(&MAIN))
-		{
-			TryUnit(&kazarma, 1, 90, 20);
-			TryUnit(&kazarma, 2, 80, 5);
-		}
-		break;
-	case LT_PENINSULAS:
-	case LT_ISLANDS:
-	case LT_CONTINENTS:
-		// The original dispatcher re-arms the mine radii and switches to
-		// the water mine balance before running the water-map script
-		SET_MINE_CAPTURE_RADIUS(290);
-		SET_MINE_UPGRADE1_RADIUS(90);
-		SET_MINE_UPGRADE2_RADIUS(90);
-		SetMineBalanse(19, WATER_MINE_BALANCE);
-		ProcessWaterAI();
-		break;
-	default:
-		break;
-	}
-
-	// Officers for the pike formations (original FUN_100030d0):
-	// land types 0 and 1 only
-	if (land == LT_LAND || land == LT_MEDITERRANEAN)
-	{
-		int units = GetUnits(&pikiner);
-		if (units / 36 > 0)
-		{
-			TryUnit(&oficer, units / 36, 50, 50);
-			TryUnit(&barabanshik, units / 36, 20, 50);
-		}
-	}
-
-	// Original ProcessAI wrapper: always aim for five 17th c. barracks
+	// Original dispatcher FUN_10006d20 (shared European skeleton),
+	// including the real land pipeline and Mediterranean handler.
+	EuropeanProcessAI();
+	// Original Russia.dll ProcessAI wrapper tail: five 17th c. barracks.
 	TryUnit(&barack, 5, 100, 100);
 }
 
@@ -1377,5 +813,6 @@ __attribute__((constructor)) void AI_OnLoad()
 	LOAD_FUNCTION(GetUnitsByUsage);
 	LOAD_FUNCTION(GetRandomIndex);
 	LOAD_FUNCTION(AssignWall);
+	LOAD_FUNCTION_EUROPEAN();
 	OnInit();
 }

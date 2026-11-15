@@ -40,6 +40,9 @@
 #include "topograf.h"
 #include "3dmaped.h"
 #include "mplayer.h"
+#include "multipl.h"
+#include "playerinfo.h"
+#include "activescenary.h"
 
 //Game version. Must match with other clients
 DLLEXPORT word dwVersion = 100;
@@ -317,6 +320,18 @@ void InitDeathList();
 char* GetTextByID( char* ID );
 void LoadBorders();
 
+//Defined in other files (or below in this file), used by init/quit/event
+//paths that were Windows-only before the SDL port
+void SaveScreen(); // below in this file: F11 screenshot
+void SaveGame( char* Name, char* Messtr, int ID ); // below in this file
+void ShowCentralText0( char* sss ); // mapa.cpp
+void ProcessUpdate(); // ir_main.cpp: periodic game/rating update
+void IAmLeft(); // mplayer.cpp: notify network peers that we left
+void LOOSEANDEXITFAST(); // ir_main.cpp: assign defeat + save on quit
+void UnLoading(); // loadsave.cpp: zero variables and pointers
+extern byte SaveState; // 3drandmap.cpp: autosave interval option
+extern PlayerInfo PINFO[8]; // interface.cpp
+
 void SetupArrays();
 extern byte* RivDir;
 void Init_GP_IMG();
@@ -435,7 +450,6 @@ static void EnterGameDataDir( int argc, char* argv[] )
 	}
 }
 
-#ifndef _WIN32
 //MissPack MISSLIST (activescenary.cpp) and other global objects open
 //resource files from their constructors. Those constructors run during
 //static initialization - BEFORE SDL_AppInit, so before its chdir() - and
@@ -471,7 +485,6 @@ static void EnterGameDataDirEarly()
 
 	EnterGameDataDir( Argc, Args );
 }
-#endif //_WIN32
 
 SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 {
@@ -559,16 +572,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	exRealLx = 1024;
 	exRealLy = 768;
 
-	// Declarations for globals that live in files not included here
-	// (previously only visible to the _WIN32-only settings block).
-	extern int WarSound;
-	extern int WorkSound;
-	extern int OrderSound;
-	extern int MidiSound;
 	extern int ScrollSpeed;
 	extern int PlayMode;
-	extern char RECFILE[128];
-	extern bool RecordMode;
 	void InitObjs3();
 
 	// Zero the volumes like the original (the mode.dat load below then
@@ -583,9 +588,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	//Zero 3D Bars variables (?)
 	InitObjs3();
 
-	// Load settings. Portable (Gopen); was _WIN32-only, so volumes,
-	// resolution, speed mode and the music preference never persisted
-	// across sessions on Linux.
 	GFILE* fff = Gopen("mode.dat", "rt");
 	ScrollSpeed = 5;
 	if (fff)
@@ -729,16 +731,13 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	//Calculate XShift for... mirroring and water and stuff?
 	InitXShift();
 
-	//Read players.txt, load dialog resources
-	SFLB_InitDialogs();
 
 	//Water colors and buffers (realwater.cpp ported)
 	extern void InitWater();
 	InitWater();
 
-#ifndef _WIN32
+	//Read players.txt, load dialog resources
 	SFLB_InitDialogs();
-#endif
 
 	//Load fonts(?)
 	LoadRLC("xrcross.rlc", &RCross);
@@ -756,8 +755,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	LoadPalette("2\\agew_1.pal");
 
 	// Music autostart (PlayMode defaults to 2 = random music, ddex1.cpp).
-	// On Windows this call sits in the _WIN32 block below; nothing ever
-	// started music on Linux unless the user toggled the options combo.
 	extern int PlayMode;
 	bool PlayRandomTrack();
 	if (PlayMode)
@@ -765,8 +762,8 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 		PlayRandomTrack();
 	}
 
-	#ifdef _WIN32
-	//Init DirectPlay and DPInfo structure
+	//Init the network/connection state (SetupConnection: resets NPlayers,
+	//MyDPID, GameInProgress etc; portable, no DirectPlay on Linux)
 	SetupMultiplayer();
 
 	//Init variables
@@ -782,15 +779,6 @@ SDL_AppResult SDL_AppInit(void** appstate, int argc, char** argv)
 	KeyPressed = false;
 
 	OnMouseMoveRedraw();
-
-	if (PlayMode)
-	{
-		PlayRandomTrack();
-	}
-
-	StartInternetExplorer();
-
-	#endif // _WIN32
 
 	// FIXME: need to be called only when focused on textboxes
 	// Fine on desktop, but not on mobile
@@ -851,6 +839,128 @@ static void ScaleMouseToLogical(int* x, int* y)
 			if (*y >= RealLy) *y = RealLy - 1;
 		}
 	}
+}
+
+// Debug helper (Ctrl+` in game): dump the selected units' full state and a
+// per-nation census of motion-locked (UnlimitedMotion) units to stdout.
+// Used to investigate frozen AI workers - PUSE() excludes such units from
+// every city pool, so if their ClearUnlimited order is lost they stand
+// forever.
+extern ReportFn* ORDLIST[32]; // loadsave.cpp order-kind table
+static const char* DBG_ORDNAME[32] = {
+	"BuildObj", "ProduceObj", "AttackObj", "TakeRes", "PerformUpgrade",
+	"GoToMine", "LeaveMine", "TakeResFromSprite", "NewMonsterSendTo",
+	"DeleteBlock", "SetUnlimited", "ClearUnlimited", "WaterSendTo",
+	"Absorb", "LeaveShip", "BuildWall", "WaterAttack", "LeaveTransport",
+	"GoToTransport", "Fishing", "CreateGates", "SmartSendTo",
+	"AI_AttackPoint", "GrenaderSuperman", "GotoFinePosition",
+	"PreciseSendTo", "RotUnit", "Patrol", "RotateShipAndDie", "SearchArmy",
+	"NewAttackPoint", "MakeOneShot"
+};
+static const char* DBG_OrderName( ReportFn* fn )
+{
+	for ( int i = 0; i < 32; i++ )if ( ORDLIST[i] == fn )return DBG_ORDNAME[i];
+	return "?";
+}
+extern City CITY[8];
+extern PlayerInfo PINFO[8];
+bool CheckBar( int x, int y, int Lx, int Ly );
+static const char* DBG_PoolName( City* CT, word brig )
+{
+	if ( brig == 0xFFFF )return "none";
+	struct { Brigade* B; const char* N; } pools[] = {
+		{ &CT->Free, "Free" }, { &CT->OnField, "OnField" }, { &CT->OnWood, "OnWood" },
+		{ &CT->OnStone, "OnStone" }, { &CT->Builders, "Builders" }, { &CT->FreeArmy, "FreeArmy" },
+		{ &CT->Guards, "Guards" }, { &CT->Defenders, "Defenders" }, { &CT->Agressors, "Agressors" },
+		{ &CT->Settlers, "Settlers" }
+	};
+	for ( auto& p : pools )if ( p.B->ID == brig )return p.N;
+	return "Brigs[]";
+}
+void DumpSelectedUnits()
+{
+	printf( "=== DumpSelectedUnits: MyNation=%d NSL=%d ===\n", MyNation, NSL[MyNation] );
+	for ( int i = 0; i < 8; i++ )
+	{
+		if ( NATIONS[i].NMask || PINFO[i].name[0] )
+		{
+			City* CT = &CITY[i];
+			printf( "  nation %d: name='%s' AI=%d Difficulty=%d pools Free=%u OnField=%u OnWood=%u OnStone=%u Builders=%u FreeArmy=%u Guards=%u Defenders=%u Agressors=%u\n",
+				i, PINFO[i].name, int( NATIONS[i].AI_Enabled ), CITY[i].Difficulty,
+				CT->Free.ID, CT->OnField.ID, CT->OnWood.ID, CT->OnStone.ID, CT->Builders.ID,
+				CT->FreeArmy.ID, CT->Guards.ID, CT->Defenders.ID, CT->Agressors.ID );
+		}
+	}
+	int umc[8] = { 0 }, umNoOrd[8] = { 0 };
+	for ( int i = 0; i < ULIMIT; i++ )
+	{
+		OneObject* OB = Group[i];
+		if ( OB && OB->UnlimitedMotion )
+		{
+			umc[OB->NNUM]++;
+			if ( !OB->LocalOrder )umNoOrd[OB->NNUM]++;
+		}
+	}
+	for ( int i = 0; i < 8; i++ )
+	{
+		if ( umc[i] )
+		{
+			printf( "  nation %d: UID_PEASANT=%u UnlimitedMotion units=%d (no orders=%d)\n",
+				i, NATIONS[i].UID_PEASANT, umc[i], umNoOrd[i] );
+			// list up to 20 motion-locked units without orders (the frozen candidates)
+			int shown = 0;
+			for ( int k = 0; k < ULIMIT && shown < 20; k++ )
+			{
+				OneObject* OB = Group[k];
+				if ( OB && OB->NNUM == i && OB->UnlimitedMotion && !OB->LocalOrder )
+				{
+					printf( "    frozen? idx=%u NIndex=%u peasant=%d pos=(%d,%d) NInside=%d Brig=%u DoNotCall=%d\n",
+						OB->Index, OB->NIndex, int( OB->NIndex == NATIONS[i].UID_PEASANT ),
+						OB->x, OB->y, OB->NInside, OB->BrigadeID, int( OB->DoNotCall ) );
+					shown++;
+				}
+			}
+		}
+	}
+	int N = NSL[MyNation];
+	word* smn = Selm[MyNation];
+	word* ssn = SerN[MyNation];
+	for ( int j = 0; j < N; j++ )
+	{
+		word MID = smn[j];
+		if ( MID == 0xFFFF )continue;
+		OneObject* OB = Group[MID];
+		if ( !OB || OB->Serial != ssn[j] )
+		{
+			printf( "  sel[%d] MID=%u STALE\n", j, MID );
+			continue;
+		}
+		printf( "  sel[%d] idx=%u nat=%d NIndex=%u pos=(%d,%d) real=(%d,%d) Lx=%d\n",
+			j, OB->Index, OB->NNUM, OB->NIndex, OB->x, OB->y, OB->RealX, OB->RealY, OB->Lx );
+		printf( "    UM=%d DoNotCall=%d InArmy=%d Sdoxlo=%d Hidden=%d NewBld=%d NInside=%d EnemyID=%u Brig=%u(%s) BrIdx=%u\n",
+			int( OB->UnlimitedMotion ), int( OB->DoNotCall ), int( OB->InArmy ), OB->Sdoxlo,
+			int( OB->Hidden ), int( OB->NewBuilding ), OB->NInside, OB->EnemyID,
+			OB->BrigadeID, DBG_PoolName( &CITY[OB->NNUM], OB->BrigadeID ), OB->BrIndex );
+		printf( "    PUSE=%d (UM=%d boxed=%d) peasant=%d UID_PEASANT=%u\n",
+			int( OB->UnlimitedMotion || CheckBar( OB->x, OB->y, OB->Lx, OB->Lx ) ),
+			int( OB->UnlimitedMotion ), int( CheckBar( OB->x, OB->y, OB->Lx, OB->Lx ) ),
+			int( OB->NIndex == NATIONS[OB->NNUM].UID_PEASANT ), NATIONS[OB->NNUM].UID_PEASANT );
+		if ( OB->BrigadeID != 0xFFFF )
+		{
+			Brigade* BR = &CITY[OB->NNUM].Brigs[OB->BrigadeID];
+			printf( "    brigade %u: Enabled=%d NMemb=%d BOrder=%s msg='%s' BrigDelay=%d WarType=%d ArmyID=%u CFN=%s\n",
+				OB->BrigadeID, int( BR->Enabled ), BR->NMemb, BR->BOrder ? "yes" : "NO",
+				BR->BOrder ? ( BR->BOrder->Message ? BR->BOrder->Message : "" ) : "",
+				BR->BrigDelay, BR->WarType, BR->ArmyID, BR->CFN ? "yes" : "no" );
+		}
+		int no = 0;
+		for ( Order1* OR = OB->LocalOrder; OR; OR = OR->NextOrder )
+		{
+			printf( "    order[%d] type=%d %s\n", no++, OR->OrderType, DBG_OrderName( OR->DoLink ) );
+		}
+		if ( !no )printf( "    (no orders)\n" );
+	}
+	fflush( stdout );
 }
 
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
@@ -1026,9 +1136,14 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 
 		if (LastKey == SDLK_F11)
 		{
-			#ifdef _WIN32
 			SaveScreen();
-			#endif
+		}
+
+		// Debug: Ctrl+PrintScreen dumps selected units + UnlimitedMotion census to stdout
+		if (LastKey == SDLK_PRINTSCREEN)
+		{
+			const bool* ks = SDL_GetKeyboardState( NULL );
+			if ( ks[SDL_SCANCODE_LCTRL] || ks[SDL_SCANCODE_RCTRL] )DumpSelectedUnits();
 		}
 
 		/*
@@ -1075,18 +1190,15 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 		break;
 	}
 
-#ifdef _WIN32
 	case SDL_EVENT_QUIT:
-		//Leave game and assign defeat
+		//Leave the game and assign defeat: notify network peers that we
+		//left (no-op offline), mark defeat and save if a game is active.
 		IAmLeft();
 		LOOSEANDEXITFAST();
-		break;
-#else
-	case SDL_EVENT_QUIT:
-		//Leave game and assign defeat (Linux)
+		//Then unwind: GameExit stops the game loop and returning success
+		//makes SDL call SDL_AppQuit (saves settings).
 		GameExit = true;
 		return SDL_APP_SUCCESS;
-#endif
 	}
 
 	return SDL_APP_CONTINUE;
@@ -1141,13 +1253,13 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result)
 	delete AllGameCoroutine;
 	AllGameCoroutine = nullptr;
 
-	#ifdef _WIN32
 	ClearScreen();
 	//Zero variables and pointers
 	UnLoading();
 	CloseExplosions();
+	//Notify network peers that we left and shut the connection down
+	//(no-op when not in a network game)
 	ShutdownMultiplayer(1);
-	#endif // _WIN32 (cleanup: network/shutdown specifics not ported)
 
 	//Save settings before closing (portable, see the load in SDL_AppInit)
 	extern int WarSound;
@@ -1195,10 +1307,8 @@ void SDL_AppQuit(void* appstate, SDL_AppResult result)
 		Gclose(rec_settings_file);
 	}
 
-	#ifdef _WIN32
+	//Close the .gsc archives opened by FilesInit()
 	FilesExit();
-	FinishInternetExplorer();
-	#endif // _WIN32 (FilesExit is called below unguarded too? keep parity)
 
 	StopPlayCD();
 	FreeDDObjects();
@@ -1316,8 +1426,6 @@ void ProcessNature();
 
 void PostDrawGameProcess()
 {
-	// Some networking logic
-	RGAME.TryToFlushNetworkStream( 0 );
 	if (PlayGameMode == 0 && NPlayers < 2)
 	{
 		PitchTicks = 0;
@@ -1435,8 +1543,7 @@ void PostDrawGameProcess()
 
 	int difTime = GetSDLTickCount() - AutoTime;
 
-	#ifdef _WIN32
-	ProcessUpdate(); // Some multiplayer updates
+	ProcessUpdate(); // Periodic game/rating update (ir_main.cpp)
 
 	// Autosave logic
 	int MaxDT = 60000;
@@ -1504,7 +1611,6 @@ void PostDrawGameProcess()
 		}
 		AutoTime = GetSDLTickCount();
 	}
-	#endif // _WIN32
 
 	static int PrevCheckTime = 0;
 	if (!PrevCheckTime)
@@ -2346,7 +2452,6 @@ bool DelCurrentAZone();
 void SelectNextGridMode();
 void ProcessMapOptions();
 void ResearchIslands();
-void EnterRandomParams();
 void GenerateRandomRoad( int idx );
 bool CheckCurve();
 void ClearCurve();
@@ -2645,27 +2750,20 @@ void EditorKeyCheck()
 			break;
 		case SDLK_S:
 			//ClearModes();
-			if (GetSDLKeyState( SDL_SCANCODE_LCTRL ))
+			switch (LockMode)
 			{
-				//EnterRandomParams();
-			}
-			else
-			{
-				switch (LockMode)
-				{
-				case 0:
-					NeedToPopUp = 12;
-					break;
-				case 1:
-					NeedToPopUp = 13;
-					break;
-				case 2:
-					NeedToPopUp = 14;
-					break;
-				case 3:
-					NeedToPopUp = 1;
-					break;
-				};
+			case 0:
+				NeedToPopUp = 12;
+				break;
+			case 1:
+				NeedToPopUp = 13;
+				break;
+			case 2:
+				NeedToPopUp = 14;
+				break;
+			case 3:
+				NeedToPopUp = 1;
+				break;
 			};
 			break;
 		case SDLK_W:
@@ -2913,7 +3011,8 @@ void EditorKeyCheck()
 		};
 	};
 };
-void SERROR();
+
+extern int WaitState;
 
 //Many diffirent key checks for various game modes
 void GameKeyCheck()
@@ -2961,20 +3060,6 @@ void GameKeyCheck()
 			curdx = 0;
 			curdy = 0;
 			PauseMode = 0;
-			// Un-guarded (was _WIN32-only, the usual call-site trap): the
-			// mode resets AND the WaitState 1->2 advance - the latter is
-			// what lets ESC skip the Victory/Defeat "press ESC" message and
-			// proceed to the statistics screens (mapa.cpp CheckVictory sets
-			// GameExit/ShowStat once WaitState==2).
-			// Globals owned by game files not visible here (the decls sat
-			// in the guarded block).
-			extern bool SetDestMode;
-			extern bool GoAndAttackMode;
-			extern bool GUARDMODE;
-			extern bool PATROLMODE;
-			extern int WaitState;
-			extern int ShowGameScreen;
-			extern bool AttGrMode;
 			SetDestMode = false;
 			GoAndAttackMode = false;
 			GUARDMODE = 0;
@@ -3624,7 +3709,7 @@ void PrepareToGame()
 {
 	if (!PlayGameMode)
 	{
-		if (NPlayers > 1 && ( IsGameActive() || use_gsc_network_protocol ) && !RecordMode)
+		if (NPlayers > 1 && IsGameActive() && !RecordMode)
 		{
 			RecordMode = true;
 			sprintf( RECFILE, "Autorecord\\%s", CurrentMap );

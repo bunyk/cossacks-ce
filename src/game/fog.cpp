@@ -8,76 +8,125 @@
 #include "mode.h"
 #include "3dgraph.h"
 
+// Fog of war module. Two layers:
+//  - fmap: a low-res grid of fog cells (one word per 128x128 map pixels),
+//    LX_fmap x LX_fmap cells with a kFogOffset-cell border. 0 = unexplored,
+//    FogSpot() writes kFogRevealValue into visited cells, FogBlurPass()
+//    blurs+decays the grid every frame. GetFog() answers "is this point
+//    visible to the player" for sounds/hints; DrawMiniFog() paints it.
+//  - The byte tables below: precomputed 8-bit lookup tables loaded from
+//    .grd/.pal files in LoadFog(). The renderer never computes a shade, it
+//    only indexes these tables, so their sizes are fixed by the palette:
+//      256   = one palette row (a remap of all 256 color indices)
+//      8192  = 32 shade levels x 256 = a ".grd" gradient table
+//      40960 = 160 darkness levels x 256 = darkfog (fog overlay + terrain)
+//      65536 = 256 x 256 = a full 2D blend LUT indexed [a*256 + b]
+//      3072  = 12 water shades x 256 = refl (water reflections)
+const int kPaletteRowSize = 256;
+const int kShadeLevels = 32;
+const int kGrdTableSize = kShadeLevels * kPaletteRowSize;       // 8192
+const int kFogGuardBytes = 4 * kPaletteRowSize;                 // 1024, see fog[]
+const int kDarkFogLevels = 160;
+const int kDarkFogTableSize = kDarkFogLevels * kPaletteRowSize; // 40960
+const int kBlendTableSize = kPaletteRowSize * kPaletteRowSize;  // 65536
+const int kReflLevels = 12;
+const int kReflTableSize = kReflLevels * kPaletteRowSize;       // 3072
+
+// Fog cell geometry and value thresholds (fmap words):
+const int kFogCellSize = 128;        // one fog cell covers 128x128 map pixels
+const int kFogRevealValue = 8000;    // value FogSpot() writes into a visited cell
+const int kFogVisibleThreshold = 900;  // GetFog() < this means "fogged"
+const int kMiniFogThreshold = 1300;    // DrawMiniFog() <= this means "fogged"
+
 //Offset for fog coordinates calculation
 const int kFogOffset = 3;
 
+// fmap row stride in words / bytes: LX_fmap = FMSX = 134 << (ADDSH-1),
+// set together with the fmap allocation in loadsave.cpp (ADDSH = map size,
+// 1..3). FMSX2 is the same stride in bytes (2 bytes per word).
 int FMSX;
 int FMSX2;
 
+// Low-res fog grid (LX_fmap x LX_fmap words) + scratch copy for the
+// diffusion pass: FogBlurPass() reads fmap1 and writes fmap.
 word* fmap;
 word* fmap1;
 
-#define MaxShad 4528
+// 32-level x 256-entry shade tables used to recolor sprites for special
+// effects (pulsing/glow/gradient) - see AVBlendTable in zbuffer.cpp and
+// the encoding switch in gp_draw.cpp. fog[] carries kFogGuardBytes extra
+// bytes in front: they duplicate the first 4 levels of the loaded block so
+// that base pointers like fog+1024 (AV_DARK) stay valid for negative level
+// offsets down to -4 levels.
+byte fog[kGrdTableSize + kFogGuardBytes]; // dark shade table (agew_1d.grd)
+byte wfog[kGrdTableSize];  // white shade table (agew_1w.grd)
+byte yfog1[kGrdTableSize]; // legacy second yellow table, extern in ctables.h, never loaded
+byte rfog[kGrdTableSize];  // blue shade table (ageb.grd)
 
-byte fog[8192 + 1024];
-byte wfog[8192];
-byte yfog1[8192];
-byte rfog[8192];
+// Extra 32-level palette-encoded shade tables (orange.grd etc.) for
+// multi-palette sprite layers; selected by LoadOptionalTable(n = 3..5).
+byte Optional1[kGrdTableSize];
+byte Optional2[kGrdTableSize];
+byte Optional3[kGrdTableSize];
 
-byte Optional1[8192];
-byte Optional2[8192];
-byte Optional3[8192];
+// 160-level darkness remap: darkfog[level*256 + pixel] -> darkened pixel.
+// Used by the fog overlay (ShowSuperFluentFog32_160_16) and by the terrain
+// rasterizers (3dgraph.cpp, which start at offset 16384 = level 64).
+byte darkfog[kDarkFogTableSize];
+byte yfog[kGrdTableSize];  // red shade table (agew_1r.grd)
+// Full 256x256 blend LUTs indexed [a*256 + b]:
+byte trans4[kBlendTableSize];  // transparency blend, 4-bit mask sprites
+byte trans8[kBlendTableSize];  // transparency blend, 8-bit mask sprites
+byte AlphaR[kBlendTableSize];  // alpha blend, red-tinted sprites (AlphaYR.grd)
+byte AlphaW[kBlendTableSize];  // alpha blend, white sprites (AlphaW.grd)
+byte refl[kReflTableSize];     // 12-level water reflection remap (refl.grd)
+byte WaterCost[kBlendTableSize]; // animated-water shore blend/cost table
+                                   // (wcost.grd), indexed [dstPixel*256 + band|color]
+                                   // by realwater.cpp
+byte GraySet[kPaletteRowSize]; // grayscale palette (agew_1gc.pal), interface themes
+byte Bright[kGrdTableSize];    // bright/white shade table (agew_1br.grd)
 
-byte darkfog[40960];
-byte yfog[8192];
-byte trans4[65536];
-byte trans8[65536];
-byte AlphaR[65536];
-byte AlphaW[65536];
-byte refl[3072];
-byte WaterCost[65536];
-byte GraySet[256];
-byte Bright[8192];
-
+// Resets both fog grids to "unexplored" (all zero) - called when a game is
+// loaded/started (loadsave.cpp).
 void ClearFog()
 {
 	memset( fmap, 0, LX_fmap*LX_fmap * 2 );
 	memset( fmap1, 0, LX_fmap*LX_fmap * 2 );
 }
 
+// Loads one of the Optional1..3 tables (n = 3..5) from an arbitrary file.
 void LoadOptionalTable( int n, char* Name )
 {
 	ResFile F = RReset( Name );
 	switch ( n )
 	{
 	case 3:
-		RBlockRead( F, Optional1, 8192 );
+		RBlockRead( F, Optional1, kGrdTableSize );
 		break;
 	case 4:
-		RBlockRead( F, Optional2, 8192 );
+		RBlockRead( F, Optional2, kGrdTableSize );
 		break;
 	case 5:
-		RBlockRead( F, Optional3, 8192 );
+		RBlockRead( F, Optional3, kGrdTableSize );
 		break;
 	};
 	RClose( F );
 }
 
-int mul3( int );
-
 // Fog mode: 0 = off, 1 = on (options / PrepareToGame set it)
 int FogMode;
 
-// Fog diffusion pass (the "new fog"): out = (sum4 >> 2) - (sum4 >> 10) -
-// a 5-point blur with decay; sums wrap to 16 bits like the asm dx register.
-// Applied to the active sub-rect (cols/rows 1..mlx-1/mly-1 of the
-// (msx/4+6) x (msy/4+6) region). The three Windows asm variants below are
-// IDENTICAL except for the row stride constant FMSX2_C (in BYTES), which
-// is 2*FMSX_C with FMSX_C = 134 << (ADDSH-1) - i.e. the fmap row stride
-// in words. This shared translation covers all three (S = row stride in
-// WORDS; the asm starts at byte offset 2+FMSX2_C = word index S+1).
-static void FogBlurPass( int S )
-{
+// One diffusion step of the fog grid (the "new fog"), for the current map
+// size: copy fmap -> fmap1, then blur+decay fmap in place. Per cell:
+// out = (sum of 4 neighbours >> 2) - (sum >> 10) - a 5-point blur with
+// decay; sums wrap to 16 bits like the asm dx register. Applied to the
+// active sub-rect (cols/rows 1..mlx-1/mly-1 of the (msx/4+6) x (msy/4+6)
+// region). S = fmap row stride in WORDS (= LX_fmap = 134 << (ADDSH-1));
+// the pass starts at word index S+1, i.e. byte offset 2+2*S like the
+// original asm.
+void FogBlurPass() {
+	memcpy( fmap1, fmap, LX_fmap*LX_fmap * 2 );
+	int S = 134 << ( ADDSH - 1 );
 	const word* src = fmap1;
 	word* dst = fmap;
 	int idx = S + 1;
@@ -95,65 +144,17 @@ static void FogBlurPass( int S )
 	}
 }
 
-#define FMSX_C 134
-#define FMSX2_C (2*FMSX_C)
-
-void ProcessFog1_1()
-{
-	memcpy( fmap1, fmap, LX_fmap*LX_fmap * 2 );
-	FogBlurPass( 134 );
-}
-
-#undef FMSX_C
-#undef FMSX2_C
-
-#define FMSX_C (134<<1)
-#define FMSX2_C (2*FMSX_C)
-
-void ProcessFog1_2()
-{
-	memcpy( fmap1, fmap, LX_fmap*LX_fmap * 2 );
-	FogBlurPass( 134 << 1 );
-}
-
-
-#undef FMSX_C
-#undef FMSX2_C
-
-#define FMSX_C (134<<2)
-#define FMSX2_C (2*FMSX_C)
-
-void ProcessFog1_3()
-{
-	memcpy( fmap1, fmap, LX_fmap*LX_fmap * 2 );
-	FogBlurPass( 134 << 2 );
-}
-
-
-
-void ProcessFog1()
-{
-	switch ( ADDSH )
-	{
-	case 1:
-		ProcessFog1_1();
-		break;
-	case 2:
-		ProcessFog1_2();
-		break;
-	case 3:
-		ProcessFog1_3();
-		break;
-	}
-}
-
-int FOGOFFS[1024];
 void LoadBlobs();
 
 DLLEXPORT int CurPalette = 0;
 extern int CurrentCursorGP;
-byte graysc[256];
+byte graysc[kPaletteRowSize]; // grayscale palette (0\gray.set), disabled icons
 
+// Loads every precomputed shading table the renderer needs. That is why so
+// many files: each one is a LUT the software renderer indexes instead of
+// computing (see the size constants at the top of this file). Files named
+// "%d\..." exist once per palette set (set = 0/1/2, chosen by the game
+// options) so each set can recolor the same effects; the rest are global.
 DLLEXPORT void LoadFog( int set )
 {
 	CurrentCursorGP = set + 5;
@@ -161,82 +162,73 @@ DLLEXPORT void LoadFog( int set )
 	char cc[128];
 	sprintf( cc, "%d\\agew_1d.grd", set );
 	ResFile fx = RReset( cc );
-	RBlockRead( fx, &fog[1024], 8192 );
-	memcpy( &fog[0], &fog[1024], 256 );
-	memcpy( &fog[256], &fog[1024], 256 );
-	memcpy( &fog[512], &fog[1024], 256 );
-	memcpy( &fog[512 + 256], &fog[1024], 256 );
+	RBlockRead( fx, &fog[kFogGuardBytes], kGrdTableSize );
+	// Duplicate the first 4 levels of the block into the guard area in
+	// front of it (see the comment on fog[] above).
+	memcpy( &fog[0], &fog[kFogGuardBytes], kPaletteRowSize );
+	memcpy( &fog[256], &fog[kFogGuardBytes], kPaletteRowSize );
+	memcpy( &fog[512], &fog[kFogGuardBytes], kPaletteRowSize );
+	memcpy( &fog[512 + 256], &fog[kFogGuardBytes], kPaletteRowSize );
 	RClose( fx );
 	fx = RReset( "0\\gray.set" );
-	RBlockRead( fx, &graysc, 256 );
+	RBlockRead( fx, &graysc, kPaletteRowSize );
 	RClose( fx );
 	sprintf( cc, "%d\\orange.grd", set );
 	fx = RReset( cc );
-	RBlockRead( fx, &Optional1, 8192 );
+	RBlockRead( fx, &Optional1, kGrdTableSize );
 	RClose( fx );
 	sprintf( cc, "%d\\agew_1w.grd", set );
 	fx = RReset( cc );
-	RBlockRead( fx, &wfog, 8192 );
+	RBlockRead( fx, &wfog, kGrdTableSize );
 	RClose( fx );
 	sprintf( cc, "%d\\agew_1br.grd", set );
 	fx = RReset( cc );
-	RBlockRead( fx, &Bright, 8192 );
+	RBlockRead( fx, &Bright, kGrdTableSize );
 	RClose( fx );
 	fx = RReset( "ageb.grd" );
-	RBlockRead( fx, &rfog, 8192 );
+	RBlockRead( fx, &rfog, kGrdTableSize );
 	RClose( fx );
 	sprintf( cc, "%d\\agew_1r.grd", set );
 	fx = RReset( cc );
-	RBlockRead( fx, &yfog, 8192 );
+	RBlockRead( fx, &yfog, kGrdTableSize );
 	RClose( fx );
 	fx = RReset( "0\\agew_1dr.grd" );
-	RBlockRead( fx, &darkfog, 40960 );
+	RBlockRead( fx, &darkfog, kDarkFogTableSize );
 	RClose( fx );
 	sprintf( cc, "%d\\agew_tr.grd", set );
 	fx = RReset( cc );
-	RBlockRead( fx, &trans8, 65536 );
+	RBlockRead( fx, &trans8, kBlendTableSize );
 	RClose( fx );
 	sprintf( cc, "%d\\agew_tr4.grd", set );
 	fx = RReset( cc );
-	RBlockRead( fx, &trans4, 65536 );
+	RBlockRead( fx, &trans4, kBlendTableSize );
 	RClose( fx );
 	fx = RReset( "wcost.grd" );
-	RBlockRead( fx, &WaterCost, 65536 );
+	RBlockRead( fx, &WaterCost, kBlendTableSize );
 	RClose( fx );
 	fx = RReset( "refl.grd" );
-	RBlockRead( fx, &refl, 3072 );
+	RBlockRead( fx, &refl, kReflTableSize );
 	RClose( fx );
 	fx = RReset( "AlphaYR.grd" );
-	RBlockRead( fx, &AlphaR, 65536 );
+	RBlockRead( fx, &AlphaR, kBlendTableSize );
 	RClose( fx );
 	fx = RReset( "AlphaW.grd" );
-	RBlockRead( fx, &AlphaW, 65536 );
+	RBlockRead( fx, &AlphaW, kBlendTableSize );
 	RClose( fx );
 	fx = RReset( "agew_1gc.pal" );
-	RBlockRead( fx, &GraySet, 256 );
+	RBlockRead( fx, &GraySet, kPaletteRowSize );
 	RClose( fx );
-	for ( int i = 0; i < 1024; i++ )
-	{
-		FOGOFFS[i] = i*FMSX;
-	}
 	//Blob/wake data (shiptrace.cpp) - part of the same water visual set:
 	//Wave1.pix frames + the wave.grd blend table used to melt foam wakes
 	//into the water palette. See the comment above the Blob class there.
 	LoadBlobs();
 }
 
-void SetupFog()
-{
-	for ( int i = 0; i < 1024; i++ )
-	{
-		FOGOFFS[i] = i * FMSX;
-	}
-}
 
-
-
-#define zmin 0
-#define zmax 32
+// Darkness levels (as returned by GetF) at which a fog block is treated as
+// fully visible (nothing to draw) or fully fogged (painted solid black).
+const int kFogLevelVisible = 63;
+const int kFogLevelBlack = 96;
 
 // Renders one 32x16-pixel fog block with bilinearly interpolated fog
 // values (z1..z4 = corners, 16.16 after the <<16 below; high = dark).
@@ -250,20 +242,18 @@ void ShowSuperFluentFog32_160_16( int x, int y, int z1x, int z2x, int z3x, int z
 		return;
 	}
 
-	int z1 = z1x * 65536;
-	int	z2 = z2x * 65536;
-	int z3 = z3x * 65536;
-	int	z4 = z4x * 65536;
+	const int kFixShift = 65536; // 16.16 fixed point: level << 16
+	int z1 = z1x * kFixShift;
+	int	z2 = z2x * kFixShift;
+	int z3 = z3x * kFixShift;
+	int	z4 = z4x * kFixShift;
 
-	int scrof = int( ScreenPtr ) + x + y * SCRSizeX;
-	int adds = SCRSizeX - 32;
-
-	if ( z1x <= 63 && z2x <= 63 && z3x <= 63 && z4x <= 63 )
+	if ( z1x <= kFogLevelVisible && z2x <= kFogLevelVisible && z3x <= kFogLevelVisible && z4x <= kFogLevelVisible )
 	{
 		return;
 	}
 
-	if ( z1x >= 96 && z2x >= 96 && z3x >= 96 && z4x >= 96 )
+	if ( z1x >= kFogLevelBlack && z2x >= kFogLevelBlack && z3x >= kFogLevelBlack && z4x >= kFogLevelBlack )
 	{
 		// Full fog: fill the 32x16 block with color 0
 		byte* dst = ScreenPtr + x + y * SCRSizeX;
@@ -276,7 +266,7 @@ void ShowSuperFluentFog32_160_16( int x, int y, int z1x, int z2x, int z3x, int z
 	}
 	else
 	{
-		int a, b, p;
+		int b, p;
 		int c = ( z3 - z1 ) >> 4;
 		int d = ( z1 + z4 - z3 - z2 ) >> 9;
 		// Bilinear corner interpolation: per-row fog start p (= z1 + row*c),
@@ -302,8 +292,15 @@ void ShowSuperFluentFog32_160_16( int x, int y, int z1x, int z2x, int z3x, int z
 }
 
 
+// Knee and scale of the fog-word -> darkness-level curve below:
+// shf = knee distance below fmin where the curve saturates at the max
+// darkness, fmin = fog value from which a cell counts as fully visible.
 #define shf 300
 #define fmin 1500
+// fden[i] = darkness level for a fog word of (fmin - i): 5 at i = 0
+// (freshly revealed), growing to 158 (max darkness) beyond i = shf.
+// 8192 entries cover every possible (fmin - k) for k >= 0... k is a word,
+// so k < fmin gives i < 1500, well inside the table.
 byte fden[8192];
 
 void makeFden()
@@ -316,6 +313,8 @@ void makeFden()
 			fden[i] = 5 + div( i * 153, shf ).quot;
 	}
 }
+// Maps a raw fmap word to a darkness level 5..158 (5 = fully visible,
+// 158 = pitch black) used as the level index into darkfog.
 int GetF( word k )
 {
 	if ( k >= fmin )
@@ -342,6 +341,13 @@ void FogSpot( int x, int y );
 
 int GetHeight( int x, int y );
 
+// Reveals the fog around a unit. Called for every ready own unit each frame
+// (newmon.cpp) and for scenario light spots (ScenaryLights in
+// activescenary.cpp). NM->VisionType (0..8, from the unit's GRE.MD entry)
+// selects the vision pattern: how many FogSpot() calls and how far they
+// reach - type 0 is a single spot at the unit, types 1..8 add spots on a
+// cross/diagonal pattern out to 2..7 fog cells (of 128 map pixels each);
+// type 8 is the Ukrainian peasant's wide 7-cell vision.
 void UnitLight( OneObject* OB )
 {
 	if ( !OB->Ready )
@@ -439,8 +445,11 @@ void UnitLight( OneObject* OB )
 }
 
 //New fog of war
+// WFSC: per-screen-pixel fog values for the currently visible area
+// (smaplx x smaply pixels, max 128x128), upsampled from fmap by
+// CreateFogImage(); DrawFog reads the 4 corners of each 32x16 block from it.
 word WFSC[128 * 128];
-int maxWFX;
+int maxWFX; // WFSC bounds in screen pixels (= smaplx/smaply)
 int maxWFY;
 
 void SetWF( int x, int y, word w )
@@ -453,8 +462,13 @@ void SetWF( int x, int y, word w )
 	WFSC[x + ( y * 128 )] = w;
 }
 
-int maxFX, maxFY;
+int maxFX, maxFY; // fog grid bounds in fog cells: (msx/4)+kFogOffset etc.,
+                  // set by CreateFogImage, used to clamp FogSpot/GetFog
 
+// Upsamples the low-res fmap into WFSC for the visible screen rectangle:
+// each fog cell covers 4x4 screen pixels, expanded through a 5x5 control
+// grid with bilinear (halving) interpolation, so the fog edges come out
+// smooth instead of blocky.
 void CreateFogImage()
 {
 	maxWFX = smaplx;
@@ -550,6 +564,10 @@ void CreateFogImage()
 	}
 }
 
+// Paints the fog overlay over the visible screen area, one 32x16-pixel
+// block per iteration; the 4 corner darkness levels come from WFSC.
+// Called each rendered frame after terrain and units are drawn (mapa.cpp),
+// so fogged enemy units are simply covered by the dark overlay.
 void DrawFog()
 {
 	for ( int y = 0; y < smaply; y++ )
@@ -571,10 +589,13 @@ void DrawFog()
 	}
 }
 
+// Marks the fog cell containing map point (x, y) as revealed. The +64 is
+// rounding to the nearest cell (half of kFogCellSize); result clamped to
+// the valid grid [1..maxFX]x[1..maxFY].
 void FogSpot( int x, int y )
 {
-	int fx = ( ( x + 64 ) / 128 ) + kFogOffset;
-	int fy = ( ( y + 64 ) / 128 ) + kFogOffset;
+	int fx = ( ( x + kFogCellSize / 2 ) / kFogCellSize ) + kFogOffset;
+	int fy = ( ( y + kFogCellSize / 2 ) / kFogCellSize ) + kFogOffset;
 
 	if ( fx < 1 )
 	{
@@ -596,17 +617,17 @@ void FogSpot( int x, int y )
 		fy = maxFY;
 	}
 
-	fmap[FOGOFFS[fy] + fx] = 8000;
+	fmap[fy*FMSX + fx] = kFogRevealValue;
 }
 
 //Checks if the given coordinates are concealed through fog of war
-//Return value < 900 means 'fogged', everything above - 'visible'
+//Return value < kFogVisibleThreshold means 'fogged', everything above - 'visible'
 //Beware: y coordinate must be multiplied by 2?
-//Example: if (GetFog(x, y << 1) < 900 && FogMode) //true if fogged
+//Example: if (GetFog(x, y << 1) < kFogVisibleThreshold && FogMode) //true if fogged
 word GetFog( int x, int y )
 {
-	int fx = ( ( x + 64 ) / 128 ) + kFogOffset;
-	int fy = ( ( y + 64 ) / 128 ) + kFogOffset;
+	int fx = ( ( x + kFogCellSize / 2 ) / kFogCellSize ) + kFogOffset;
+	int fy = ( ( y + kFogCellSize / 2 ) / kFogCellSize ) + kFogOffset;
 
 	if ( fx < 1 )
 	{
@@ -628,18 +649,14 @@ word GetFog( int x, int y )
 		fy = maxFY;
 	}
 
-	return fmap[FOGOFFS[fy] + fx];
+	return fmap[fy*FMSX + fx];
 }
 
 extern int MiniLx;
 extern int MiniLy;
 extern int MiniX, MiniY;
 
-// Blacks out fogged cells on the minimap: fmap <= 1300 (the asm's unsigned
-// "ja" skips visible cells) paints the pixel AND the one one row below.
-// 64-BIT FIX: the original computed byte offsets via int(ScreenPtr)/
-// int(fmap); the translation uses real pointers (fp is a WORD pointer, so
-// the asm's byte strides DDDX/F_add halve).
+// Blacks out fogged cells on the minimap where fmap <= kMiniFogThreshold
 void DrawMiniFog()
 {
 	byte* scr = ScreenPtr + minix + miniy * ScrWidth;
@@ -647,7 +664,7 @@ void DrawMiniFog()
 
 	int MMSX = ( MiniLx / 2 );
 	int MMSY = ( MiniLy / 2 );
-	int addscr = ScrWidth + ScrWidth - MMSX - MMSX;
+	int addscr = ScrWidth + ScrWidth - MMSX - MMSX; // distance from right side of minimap to the left side in next row
 	int F_add = ( FMSX2 << ( ADDSH - 1 ) ) - ( MMSX << ADDSH );
 	int DDDX = 1 << ADDSH;
 
@@ -655,10 +672,10 @@ void DrawMiniFog()
 	{
 		for ( int x = 0; x < MMSX; x++ )
 		{
-			if ( *fp <= 1300 )
+			if ( *fp <= kMiniFogThreshold )
 			{
-				*(word*)scr = 0;
-				*(word*)( scr + ScrWidth ) = 0;
+				*(word*)scr = 0; // zero 2 bytes of screen
+				*(word*)( scr + ScrWidth ) = 0; // and 2 bytes under them
 			}
 			fp += DDDX >> 1;
 			scr += 2;

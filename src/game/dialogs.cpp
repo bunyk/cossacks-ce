@@ -13,7 +13,6 @@
 #include "lines.h"
 
 // cdirsnd.h (MaxSnd) + gsound.h: needed by GetSound/SimpleDialog::AssignSound,
-// now cross-platform (were _WIN32-only includes).
 #include "cdirsnd.h"
 #include "gsound.h"
 
@@ -30,7 +29,6 @@ extern int UNI_HINTDLY2;
 extern bool realLpressed;
 extern bool KeyPressed;
 extern SDL_Keycode LastKey;
-extern bool MUSTDRAW;
 extern int RealLx;
 extern int RealLy;
 // Used by GetSound/SimpleDialog::AssignSound (now cross-platform)
@@ -38,9 +36,7 @@ extern char* SoundID[MaxSnd];
 extern word NSounds;
 extern byte LastAsciiKey;
 void ShowCharUNICODE( int x, int y, byte* strptr, lpRLCFont lpr );
-#ifdef _WIN32
 void ShowChar( int x, int y, char c, lpRLCFont lpf );
-#endif // _WIN32
 void PlayEffect( int n, int pan, int vol );
 void ClearKeyStack();
 extern int CurPalette;
@@ -67,9 +63,6 @@ DLLEXPORT void SetCurPtr( int v )
 
 DLLEXPORT int GetSound( char* Name )
 {
-	// Cross-platform: SearchStr + ErrM are portable. Was entirely
-	// _WIN32-guarded, which made it fall off the end of a non-void
-	// function on Linux and return garbage sound IDs.
 	if (!NSounds)return -1;
 	int ID = SearchStr( SoundID, Name, NSounds );
 	if (ID == -1)
@@ -179,208 +172,8 @@ Picture* DialogsSystem::addPicture(
 	return nullptr;
 };
 
-#ifdef _WIN32
-//-----------------class Canvas----------//
-bool CanvasDestroy( SimpleDialog* SD )
-{
-	Canvas* CAN = (Canvas*) SD;
-	if (CAN->DrawData)
-	{
-		free( CAN->DrawData );
-	};
-	return true;
-};
-#define CV_INT(x) (*(int*)(CAN->DrawData+pos+x))
-#define CV_BYTE(x) CAN->DrawData[pos+x]
-#endif //_WIN32
 DLLEXPORT void CBar( int x, int y, int Lx, int Ly, unsigned char c );
 void xLine( int x, int y, int x1, int y1, byte c );
-#ifdef _WIN32
-bool CanvasDraw( SimpleDialog* SD )
-{
-	if (!SD->Visible)return false;
-	TempWindow TW;
-	PushWindow( &TW );
-	Canvas* CAN = (Canvas*) SD;
-	if (!( CAN->L ))return true;
-	IntersectWindows( SD->x, SD->y, SD->x1, SD->y1 );
-	int ymin = SD->y1 - 500;
-	int ymax = SD->y1 + 500;
-	int pos = 0;
-	int x0 = CAN->x;
-	int y0 = CAN->y;
-	if (CAN->VS)
-	{
-		if (CAN->BottomY > CAN->y1 - CAN->y)
-		{
-			CAN->VS->Visible = 1;
-			CAN->VS->Enabled = 1;
-			CAN->VS->SMaxPos = CAN->BottomY - CAN->y1 + CAN->y + 1;
-			if (CAN->VS->SPos > CAN->VS->SMaxPos)CAN->VS->SPos = CAN->VS->SMaxPos;
-			y0 -= CAN->VS->SPos;
-		}
-		else
-		{
-			CAN->VS->Visible = 0;
-			CAN->VS->Enabled = 0;
-		};
-	};
-	byte* data = CAN->DrawData;
-	int YY;
-	do
-	{
-		switch (data[pos])
-		{
-		case 0://bar
-			YY = y0 + CV_INT( 5 );
-			if (YY > ymin)CBar( x0 + CV_INT( 1 ), YY, CV_INT( 9 ), CV_INT( 13 ), CV_BYTE( 17 ) );
-			if (YY > ymax)goto XXZ;
-			pos += 18;
-			break;
-		case 1://Line
-			YY = y0 + CV_INT( 5 );
-			if (YY > ymin)xLine( x0 + CV_INT( 1 ), YY, x0 + CV_INT( 9 ), y0 + CV_INT( 13 ), CV_BYTE( 17 ) );
-			if (YY > ymax)goto XXZ;
-			pos += 18;
-			break;
-		case 2://Rect
-			YY = y0 + CV_INT( 5 );
-			if (YY > ymin)Xbar( x0 + CV_INT( 1 ), YY, CV_INT( 9 ), CV_INT( 13 ), CV_BYTE( 17 ) );
-			if (YY > ymax)goto XXZ;
-			pos += 18;
-			break;
-		case 3://sprite
-			YY = y0 + CV_INT( 5 );
-			if (YY > ymin)GPS.ShowGP( x0 + CV_INT( 1 ), YY, CV_INT( 9 ), CV_INT( 13 ), 0 );
-			if (YY > ymax)goto XXZ;
-			pos += 17;
-			break;
-		case 4://text
-			YY = y0 + CV_INT( 5 );
-			if (YY > ymin)ShowString( x0 + CV_INT( 1 ), YY, (char*) ( CAN->DrawData + pos + 13 ), *( (RLCFont**) ( CAN->DrawData + pos + 9 ) ) );
-			if (YY > ymax)goto XXZ;
-			pos += strlen( (char*) ( CAN->DrawData + pos + 13 ) ) + 14;
-			break;
-		case 5://centered text
-		{
-			YY = y0 + CV_INT( 5 );
-			char* str = (char*) ( CAN->DrawData + pos + 13 );
-			if (YY > ymin)
-			{
-				RLCFont* RF = *( (RLCFont**) ( CAN->DrawData + pos + 9 ) );
-				int L = GetRLCStrWidth( str, RF ) >> 1;
-				ShowString( x0 + CV_INT( 1 ) - L, y0 + CV_INT( 5 ), str, RF );
-				if (y0 + CV_INT( 5 ) > ymax)goto XXZ;
-			};
-			pos += strlen( str ) + 14;
-		};
-		break;
-		default:
-			return false;
-		};
-	} while (pos < CAN->L);
-XXZ:;
-	PopWindow( &TW );
-	return true;
-};
-void Canvas::CheckSize( int sz )
-{
-	if (sz > MaxL - 100)
-	{
-		MaxL += 1024;
-		DrawData = (byte*) realloc( DrawData, MaxL );
-	};
-};
-#define CN_INT(x) (*(int*)(DrawData+L))=x;L+=4;
-#define CN_SHORT(x) (*(int*)(DrawData+L))=x;L+=2;
-#define CN_BYTE(x) DrawData[L]=x;L++;
-void Canvas::AddBar( int px, int py, int Lx, int Ly, byte c )
-{
-	CheckSize( L + 100 );
-	CN_BYTE( 0 );
-	CN_INT( px );
-	CN_INT( py );
-	CN_INT( Lx );
-	CN_INT( Ly );
-	CN_BYTE( c );
-};
-void Canvas::AddLine( int px, int py, int px1, int py1, byte c )
-{
-	CheckSize( L + 100 );
-	CN_BYTE( 1 );
-	CN_INT( px );
-	CN_INT( py );
-	CN_INT( px1 );
-	CN_INT( py1 );
-	CN_BYTE( c );
-};
-void Canvas::AddRect( int px, int py, int Lx, int Ly, byte c )
-{
-	CheckSize( L + 100 );
-	CN_BYTE( 2 );
-	CN_INT( px );
-	CN_INT( py );
-	CN_INT( Lx );
-	CN_INT( Ly );
-	CN_BYTE( c );
-};
-void Canvas::AddSprite( int px, int py, int GPIDX, int Sprite )
-{
-	CheckSize( L + 100 );
-	CN_BYTE( 3 );
-	CN_INT( px );
-	CN_INT( py );
-	CN_INT( GPIDX );
-	CN_INT( Sprite );
-};
-void Canvas::AddText( int px, int py, char* Text, RLCFont* Font )
-{
-	CheckSize( L + 100 );
-	CN_BYTE( 4 );
-	CN_INT( px );
-	CN_INT( py );
-	int V = int( Font );
-	CN_INT( V );
-	strcpy( (char*) ( DrawData + L ), Text );
-	L += 1 + strlen( Text );
-};
-void Canvas::AddCText( int px, int py, char* Text, RLCFont* Font )
-{
-	CheckSize( 13 + 1 + strlen( Text ) );
-	CN_BYTE( 5 );
-	CN_INT( px );
-	CN_INT( py );
-	int V = int( Font );
-	CN_INT( V );
-	strcpy( (char*) ( DrawData + L ), Text );
-	L += 1 + strlen( Text );
-};
-Canvas* DialogsSystem::AddCanvas( int x, int y, int Lx, int Ly )
-{
-	int i;
-	for (i = 0; i < MAXDLG&&DSS[i] != nullptr; i++);
-	if (i < MAXDLG)
-	{
-		Canvas* CAN = new Canvas;
-		DSS[i] = CAN;
-		CAN->x = x;
-		CAN->y = y;
-		CAN->x1 = x + Lx - 1;
-		CAN->y1 = y + Ly - 1;
-		CAN->Active = 0;
-		CAN->Parent = nullptr;
-		CAN->Enabled = 1;
-		CAN->DrawData = nullptr;
-		CAN->L = 0;
-		CAN->MaxL = 0;
-		CAN->Destroy = &CanvasDestroy;
-		CAN->OnDraw = &CanvasDraw;
-		CAN->VS = nullptr;
-		return CAN;
-	};
-	return 0;
-};
-#endif // _WIN32
 //-----------------class GPPicture
 bool GPPicture_OnMouseOver( SimpleDialog* SD )
 {
@@ -433,78 +226,6 @@ GPPicture* DialogsSystem::addGPPicture(
 	}
 	return nullptr;
 }
-
-#ifdef _WIN32
-//-----------------class RLCPicture
-bool RLCPicture_OnDraw( SimpleDialog* SD )
-{
-	if (!SD)
-		return false;
-
-	if (!SD->Visible)
-		return false;
-
-	RLCPicture* pic = (RLCPicture*) SD;
-	if (!pic->Enabled&&pic->DisabledPicture)
-	{
-		ShowRLCItem( pic->x, pic->y, pic->DisabledPicture, pic->dpic, 0 );
-		return true;
-	}
-
-	if (pic->MouseOver&&pic->ActivePicture)
-	{
-		ShowRLCItem( pic->x, pic->y, pic->ActivePicture, pic->apic, 0 );
-		return true;
-	}
-
-	if (pic->PassivePicture)
-	{
-		ShowRLCItem( pic->x, pic->y, pic->PassivePicture, pic->dpic, 0 );
-		return true;
-	}
-	return false;
-}
-
-RLCPicture* DialogsSystem::addRLCPicture(
-	SimpleDialog* Parent, int x, int y,
-	RLCTable* pActive, byte apic,
-	RLCTable* pPassive, byte ppic,
-	RLCTable* pDisabled, byte dpic
-)
-{
-	int i;
-	for (i = 0; i < MAXDLG&&DSS[i] != nullptr; i++);
-
-	if (i < MAXDLG)
-	{
-		RLCPicture* pic = new RLCPicture;
-		DSS[i] = pic;
-		if (pActive != pPassive)
-		{
-			pic->MouseOverActive = true;
-		}
-		pic->NeedToDraw = true;
-		pic->Parent = Parent;
-		pic->x = BaseX + x;
-		pic->y = BaseY + y;
-		pic->x1 = pic->x + GetRLCWidth( *pPassive, ppic );
-		pic->y1 = pic->y + GetRLCHeight( *pPassive, ppic );
-		pic->ActivePicture = pActive;
-		pic->apic = apic;
-		pic->PassivePicture = pPassive;
-		pic->ppic = ppic;
-		pic->DisabledPicture = pDisabled;
-		pic->dpic = dpic;
-		pic->OnDraw = &Picture_OnDraw;
-		pic->OnMouseOver = &Picture_OnMouseOver;
-		pic->Enabled = true;
-		pic->Active = false;
-		return pic;
-	}
-	return nullptr;
-}
-//------------end of the class Picture
-#endif // _WIN32
 
 
 //------------class TextButton
@@ -4440,193 +4161,6 @@ void ComboBox::AddComplexLine( char* Text )
 	} while (!All);
 	free( Tmp );
 }
-//---------------end of ComboBox-------------//
-#ifdef _WIN32
-//-----------------WinComboBox---------------//
-bool WinComboBox_OnDraw( SimpleDialog* SD )
-{
-	WinComboBox* CB = (WinComboBox*) SD;
-	if (!CB->Visible)return false;
-	if (!CB->NLines)return false;
-	bool CanChoose = GetSDLTickCount() - CB->LastChooseTime > 500;
-	if (!CB->CurBox)
-	{
-		int MouseOvList = mouseX >= CB->ListX0&&mouseX <= CB->ListX1&&mouseY >= CB->ListY0&&mouseY <= CB->ListY1;
-		if (!CB->Enabled)MouseOvList = false;
-		int Cur = -1;
-		int Ly = CB->y1 - CB->y;
-
-		if (CB->Enabled)
-		{
-			if (CanChoose || MouseOvList)
-			{
-				for (int i = 0; i < CB->NBox; i++)
-				{
-					if (CB->Group[i]->MouseOver)Cur = i;
-				};
-			}
-			else
-			{
-				for (int i = 0; i < CB->NBox; i++)
-				{
-					if (CB->Group[i]->ActiveLine != -1)
-						Cur = i;
-				};
-			};
-		};
-		if (Cur == -1)
-		{
-			if (!MouseOvList)
-			{
-				if (CanChoose)for (int i = 0; i < CB->NBox; i++)CB->Group[i]->ActiveLine = -1;
-			}
-			else
-			{
-				for (int i = 0; i < CB->NBox; i++)if (CB->Group[i]->ActiveLine != -1)Cur = i;
-				for (int i = 0; i < CB->NBox; i++)CB->Group[i]->ActiveLine = -1;
-				if (Cur != -1)
-				{
-					int yy = ( mouseY - CB->y ) / Ly;
-					CB->Group[Cur]->ActiveLine = yy;
-					if (Lpressed&&yy < CB->Group[Cur]->NLines)
-					{
-						CB->Group[Cur]->CurLine = yy;
-						CB->Group[Cur]->ActiveLine = -1;
-					};
-				};
-			};
-		}
-		else
-		{
-			if (CanChoose)
-			{
-				for (int i = 0; i < CB->NBox; i++)CB->Group[i]->ActiveLine = -1;
-				CB->Group[Cur]->ActiveLine = CB->Group[Cur]->CurLine;
-				CB->LastChooseTime = GetSDLTickCount();
-			};
-		};
-		for (int i = 0; i < CB->NBox; i++)
-		{
-			WinComboBox* WCB = CB->Group[i];
-			if (WCB->MouseOver)
-			{
-				ShowString( WCB->x, WCB->y, WCB->Message, WCB->ActiveFont );
-				if (Cur == -1)
-				{
-					ShowString( WCB->ListX0, WCB->y, WCB->Lines[WCB->CurLine], WCB->ActiveFont );
-				};
-			}
-			else
-			{
-				if (WCB->ActiveLine != -1 && MouseOvList)ShowString( WCB->x, WCB->y, WCB->Message, WCB->ActiveFont );
-				else ShowString( WCB->x, WCB->y, WCB->Message, WCB->PassiveFont );
-				if (Cur == -1)
-				{
-					ShowString( WCB->ListX0, WCB->y, WCB->Lines[WCB->CurLine], WCB->ActiveFont );
-				};
-			};
-			if (Cur == i)
-			{
-				for (int j = 0; j < WCB->NLines; j++)
-				{
-					if (j == WCB->ActiveLine)
-					{
-						ShowString( WCB->ListX0, WCB->ListY0 + j*Ly, WCB->Lines[j], WCB->ActiveFont );
-					}
-					else
-					{
-						ShowString( WCB->ListX0, WCB->ListY0 + j*Ly, WCB->Lines[j], WCB->PassiveFont );
-					};
-				};
-			};
-		};
-	};
-	return false;
-}
-
-bool WinComboBox_OnDestroy( SimpleDialog* SD )
-{
-	WinComboBox* CB = (WinComboBox*) SD;
-	CB->Clear();
-	return true;
-}
-
-WinComboBox* DialogsSystem::addWinComboBox(
-	SimpleDialog* Parent, char* pMessage, int x, int y, int Lx, int Ly,
-	int ListX, int ListY, int ListLx, int ListLy,
-	RLCFont* ActiveFont, RLCFont* PassiveFont,
-	WinComboBox** Group, int NInGroup, int CurBox
-)
-{
-	int i;
-	for (i = 0; i < MAXDLG&&DSS[i] != nullptr; i++);
-
-	if (i < MAXDLG)
-	{
-		WinComboBox* CB = new WinComboBox;
-		CB->NeedToDraw = true;
-		CB->Parent = Parent;
-		CB->x = x + BaseX;
-		CB->y = y + BaseY;
-		CB->x1 = CB->x + Lx - 1;
-		CB->y1 = CB->y + Ly - 1;
-		CB->ListX0 = ListX;
-		CB->ListY0 = ListY;
-		CB->ListX1 = ListX + ListLx - 1;
-		CB->ListY1 = ListY + ListLy - 1;
-		CB->ActiveFont = ActiveFont;
-		CB->PassiveFont = PassiveFont;
-		CB->Group = Group;
-		CB->NBox = NInGroup;
-		CB->CurLine = 0;
-		CB->ActiveLine = -1;
-		CB->Lines = nullptr;
-		CB->NLines = 0;
-		CB->Message = pMessage;
-		CB->CurBox = CurBox;
-		CB->OnDraw = &WinComboBox_OnDraw;
-		CB->Destroy = &WinComboBox_OnDestroy;
-		CB->Active = false;
-		CB->Enabled = true;
-		CB->Visible = true;
-		CB->LastChooseTime = 0;
-		DSS[i] = CB;
-		return CB;
-	}
-	return nullptr;
-}
-
-void WinComboBox::AddLine( char* Text )
-{
-	if (Lines)
-	{
-		Lines = (char**) realloc( Lines, ( NLines + 1 ) * sizeof(char*) );
-		Lines[NLines] = new char[strlen( Text ) + 1];
-		strcpy( Lines[NLines], Text );
-		NLines++;
-	}
-	else
-	{
-		Lines = (char**) malloc( sizeof(char*) );
-		Lines[0] = new char[strlen( Text ) + 1];
-		strcpy( Lines[0], Text );
-		NLines++;
-	}
-}
-
-void WinComboBox::Clear()
-{
-	if (Lines)
-	{
-		for (int i = 0; i < NLines; i++)free( Lines[i] );
-		free( Lines );
-		Lines = nullptr;
-		NLines = 0;
-		CurLine = 0;
-	}
-}
-//--------------end of WinComboBox-----------//
-#endif // _WIN32
 
 //-----------------PageControl---------------//
 bool GP_PageControl_OnDraw( SimpleDialog* SD )
@@ -5065,9 +4599,6 @@ SQPicture::SQPicture( char* Name )
 //-----end of pictures
 //--------------Handling dialog system----------------//
 void MFix();
-#ifdef _WIN32
-void RedrawGameBackground();
-#endif // _WIN32
 void DrawSD( SimpleDialog* SD )
 {
 	int DY = 0;
@@ -5090,17 +4621,6 @@ void DialogsSystem::ProcessDialogs()
 	{
 		return;
 	}
-
-#ifdef _WIN32
-	if (MUSTDRAW)
-	{
-		MUSTDRAW = false;
-
-		RedrawGameBackground();
-
-		MarkToDraw();
-	}
-#endif // _WIN32
 
 	bool UseMouse = true;
 	// Dropdown routing: while a combo's list is dropped open (ActiveParent),
@@ -5312,7 +4832,6 @@ void DialogsSystem::ProcessDialogs()
 		Hint = DefaultHint;
 	}
 
-#ifdef _WIN32
 	if (Hint && HintFont)
 	{
 		if (HintX == -1)
@@ -5456,7 +4975,6 @@ void DialogsSystem::ProcessDialogs()
 			} while (c);
 		};
 	};
-#endif // _WIN32
 
 	PopWindow( &TW );
 
@@ -5466,9 +4984,6 @@ void DialogsSystem::ProcessDialogs()
 void RedrawOffScreenMouse();
 void OnMouseMoveRedraw();
 void PostRedrawMouse();
-void SERROR();
-void SERROR1();
-void SERROR2();
 extern bool InGame;
 extern bool RecordMode;
 
@@ -5519,13 +5034,6 @@ void DialogsSystem::CloseDialogs()
 			{
 				free( Hint );
 			}
-#ifdef _WIN32
-			// Where this is used?
-			if (SD->AllocPtr)
-			{
-				free( SD->AllocPtr );
-			}
-#endif // _WIN32
 			SD->AllocPtr = nullptr;
 			if (SD->Destroy)
 			{

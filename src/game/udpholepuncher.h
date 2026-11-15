@@ -27,5 +27,4 @@ private:
 	sockaddr_in server_addr_;
 };
 
-//IntExplorer.dll
-DLLIMPORT char* GetAccessKey( int Index );
+

@@ -1422,6 +1422,9 @@ void Brigade::Rospusk()
 			OneObject* OB = Group[mid];
 			if ( OB&&OB->Serial == MembSN[i] )
 			{
+				// returning to normal duty: pool Check* callbacks re-task
+				// only units without DoNotCall
+				OB->DoNotCall = false;
 				if ( OB->newMons->Peasant )
 				{
 					RemoveOne( i, &CT->Free );

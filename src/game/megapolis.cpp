@@ -45,6 +45,7 @@ void BuildWithSelected( byte NI, word ObjID, byte OrdType );
 bool FindPortPlace( Nation* NT, int *xx, int *yy );
 bool FindOilSpot( int *x, int *y, int r );
 void SmartGamer( City* CT );
+void AllowBuilder( Brigade* BR );
 int DHAPROB;
 int DRECLPROB;
 int DDIVPROB;
@@ -1173,13 +1174,6 @@ void City::EnumProp()
 			if ( NU->Individual || NU->StageUp )
 			{
 				OneObject* POB = Group[Producer[i]];
-#ifdef CONQUEST
-				if ( NU->StageUp )
-				{
-					byte st = ( POB->StageState >> ( NU->Level * 3 ) ) & 7;
-					OKK = POB->Ready&&st != 2 && NU->Enabled;
-				};
-#endif
 				if ( NU->Individual )OKK = POB->Ready&&POB->SingleUpgLevel == NU->Level&&NU->Enabled;
 			}
 			else
@@ -2183,6 +2177,41 @@ void City::HandleBrigades( int pNP )
 void ProduceByAI( byte nat, word Producer, word ID );
 void CmdAddBuildObj( byte NI, word ObjID );
 int SmartCreationUnit( byte NI, int NIndex, int x, int y );
+void FindUnitPosition( int* x, int* y, NewMonster* NM );
+
+// A worker whose own footprint cells are barred in MFIELDS (a building/wall/
+// tree was placed over it) can never path anywhere and PUSE keeps it out of
+// re-tasking - walk it out to the nearest free cell, using the same
+// SetUnlimited/SendTo/ClearUnlimited sequence as newborn units in
+// OneObject::Produce (UnlimitedMotion lets it move through the bars).
+void City::UnboxWorkers()
+{
+	Brigade* pools[5] = { &Free, &OnField, &OnWood, &OnStone, &Builders };
+	for ( int p = 0; p < 5; p++ )
+	{
+		Brigade* BR = pools[p];
+		for ( int i = 0; i < BR->NMemb; i++ )
+		{
+			word MID = BR->Memb[i];
+			if ( MID == 0xFFFF )continue;
+			OneObject* OB = Group[MID];
+			if ( !OB || OB->Serial != BR->MembSN[i] )continue;
+			if ( !OB->newMons->Peasant || OB->UnlimitedMotion )continue;
+			// only units that stand still and are really boxed in: a moving
+			// unit bars its own current cell, so CheckBar is true for it too
+			if ( OB->InMotion || OB->BackMotion || OB->StandTime < 30 )continue;
+			if ( rando() >= 3000 )continue; // spread over ticks
+			if ( !CheckBar( OB->x, OB->y, OB->Lx, OB->Lx ) )continue;
+			int dx = OB->RealX >> 4;
+			int dy = OB->RealY >> 4;
+			FindUnitPosition( &dx, &dy, OB->newMons );
+			OB->SetOrderedUnlimitedMotion( 0 );
+			OB->NewMonsterSendTo( dx << 4, dy << 4, 128 + 16, 2 );
+			OB->ClearOrderedUnlimitedMotion( 2 );
+			OB->UnlimitedMotion = true;
+		};
+	};
+};
 
 extern int tmtmt;
 int CURRENTAINATION;
@@ -2231,6 +2260,7 @@ void City::ProcessCreation()
 		HandleConstructions();
 		HandleFields();
 		HandleBrigades( Free.NMemb + OnField.NMemb + OnWood.NMemb + OnStone.NMemb );
+		UnboxWorkers();
 
 		if ( AI_MINES_CPTURE )
 		{
@@ -2862,6 +2892,45 @@ void City::ExecuteBrigades()
 			rando();
 			if ( BRIG->BOrder&&BRIG->BOrder->BLink )BRIG->BOrder->BLink( BRIG );
 			rando();
+			// Stranded brigade: order deleted/timed out without disbanding
+			// (e.g. B_LocalSendToLink timeout), its army is gone, or its BOrder
+			// keeps refreshing while every member stands orderless (the
+			// capture-mine walk loop). Members keep DoNotCall=1, so nothing
+			// re-tasks them - return them to the city pools (named pools are
+			// the last 11 slots; mine-defender brigades keep a
+			// "[Protect mines]" order and live war brigades an enabled army).
+			bool armyGone = BRIG->ArmyID == 0xFFFF || !ARMS[BRIG->ArmyID].Enabled;
+			bool protectOrder = BRIG->BOrder && BRIG->BOrder->Message
+				&& !strcmp( BRIG->BOrder->Message, "[Protect mines]" );
+			if ( i < MaxBrig - 11 && armyGone && !BRIG->WarType && !protectOrder
+				&& BRIG->NMemb && !BRIG->BrigDelay )
+			{
+				bool stranded = !BRIG->BOrder;
+				if ( !stranded )
+				{
+					// BOrder present but nobody moves: all members orderless
+					// and standing for a long time
+					stranded = true;
+					for ( int j = 0; j < BRIG->NMemb; j++ )
+					{
+						word MID = BRIG->Memb[j];
+						if ( MID == 0xFFFF )continue;
+						OneObject* OB = Group[MID];
+						if ( OB && OB->Serial == BRIG->MembSN[j]
+							&& ( OB->LocalOrder || OB->StandTime < 100 ) )
+						{
+							stranded = false;
+							break;
+						};
+					};
+				};
+				if ( stranded )
+				{
+					AllowBuilder( BRIG );
+					BRIG->DeleteBOrder();
+					BRIG->Rospusk();
+				};
+			};
 			if ( i < MaxBrig - 11 && BRIG->ArmyID == 0xFFFF && BRIG->NMemb == 0 && !BRIG->BOrder )
 			{
 				BRIG->DeleteAll();
@@ -4583,6 +4652,10 @@ public:
 	int ydest;
 	int time;
 };
+//Total enemy manpower (sum of ArmyInfo::N) of all enemy armies whose bounding
+//box comes within 10 top cells of area Top. Used to compare enemy strength near
+//a map area against the AI army's own force. NOTE: the EINF test is inverted
+//(returns 0 when enemy info exists), so in practice this always yields 0.
 int GetTopDanger( int Top, byte NI )
 {
 	if ( GNFO.EINF[NI] )return 0;
@@ -4606,6 +4679,8 @@ int GetTopDanger( int Top, byte NI )
 	};
 	return EnForces;
 };
+//Same as above but with an explicit radius r (in top cells, Area coords are
+//pre-divided by 4). Same inverted EINF guard: always returns 0 in practice.
 int GetTopDanger( int Top, int r, int NI )
 {
 	if ( GNFO.EINF[NI] )return 0;
@@ -4708,6 +4783,9 @@ DWORD AnalyseArmyPosition(City* CT,AI_Army* ARM,int xp,int yp){
 word GetNextGreCell( byte NI, int F, int Start );
 word GetNextDivCell( byte NI, int F, int Start );
 bool HandleArchers( AI_Army* ARM, int R );
+//Returns true if any enemy army is within rmin top cells of ARM's position
+//(rmin=5, or 3 for Spec==2 armies) — i.e. the enemy is close enough to start
+//a battle right now. EnForces/MaxForce/MaxForceX/Y are computed but unused.
 bool CheckArmyDanger( AI_Army* ARM )
 {
 	bool DoBitva = 0;
@@ -4749,6 +4827,15 @@ bool CheckArmyDanger( AI_Army* ARM )
 	};
 	return DoBitva;
 };
+//Per-tick handler of the AI_Army "MakeBattle" order (army marching to attack).
+//Merges with a touching same-Spec army, then: computes own strength MyForce
+//(sum of unit Force values; set to 100000 when >3800 or >200 members),
+//retreats via a defence army if local enemy forces (within Endst) beat it,
+//switches to Bitva when an enemy is within rmin, picks the next top area
+//toward the enemy (Spec==2 grenadier armies route via GetNextGreCell, others
+//via FindNearestEnemy/walls), refuses to enter areas whose danger exceeds the
+//limits (GetTopDanger > MyForce, or InflMap tower danger >1 here / >2 ahead),
+//and otherwise LocalSendTo's the next area.
 void ArmyMakeBattleLink( AI_Army* ARM )
 {
 	if ( PeaceTimeLeft )return;
@@ -5077,6 +5164,9 @@ void ArmyMakeBattleLink( AI_Army* ARM )
 		ARM->LocalSendTo( ( AR->x << 6 ) + 32, ( AR->y << 6 ) + 32, 128 + 64, 1 );
 	};
 };
+//Per-tick handler of the diversion army order: like ArmyMakeBattleLink but
+//routes via GetNextDivCell (Spec==1) or straight at walls/nearest enemy, and
+//sends grenadiers ahead to bash walls and capture buildings.
 void ArmyMakeDiversiaLink( AI_Army* ARM )
 {
 	rando();
@@ -5294,6 +5384,9 @@ void SHIP_DIVERSIA( AI_Army* ARM )
 
 bool FastSearchGreAttObject( int* x, int* y, int r, byte NI );
 
+//If the army contains grenadier brigades (BrigadeType==6) and a free attack
+//cell exists within radius 35 of the army (FastSearchGreAttObject), order
+//every grenadier to detach and demolish enemy buildings via GrenaderSuperman.
 void AI_Army::SendGrenaders()
 {
 	int x0 = x >> 6;
@@ -6264,6 +6357,9 @@ void SmartGamer( City* CT )
 	};
 
 };
+//Clears the Zombi flag on every member of the army's brigades, returning the
+//units to normal AI (they retaliate on their own, re-enter formations, etc.).
+//Called when the army starts fighting or capturing, not while marching.
 void AI_Army::ClearZombi()
 {
 	for ( int i = 0; i < NExBrigs; i++ )
@@ -6283,6 +6379,11 @@ void AI_Army::ClearZombi()
 		};
 	};
 };
+//Sets the Zombi flag on every member of the army's brigades. A "zombi" unit is
+//under direct army control while marching: it does not retaliate by itself
+//(nation.cpp damage handler), skips formation logic, and artillery switches to
+//AI targeting (newmon.cpp); being hit still wakes the army into Bitva.
+//See also Brigade formation code (brigade.cpp), which sets Zombi on join.
 void AI_Army::SetZombi()
 {
 	for ( int i = 0; i < NExBrigs; i++ )
@@ -6310,6 +6411,9 @@ void AI_Army::SetZombi()
 
 
 
+//Returns the UpgradeLevel of the first danger object (enemy towers, DINF list)
+//whose distance to (x,y,z) plus 2*dz fits into its MaxR+128, else 0.
+//CURRENTAINATION is the nation whose AI is being processed this tick.
 int CheckPositionForDanger( int x, int y, int z )
 {
 	EnemyInfo* EIN = GNFO.EINF[CURRENTAINATION];
@@ -6324,6 +6428,10 @@ int CheckPositionForDanger( int x, int y, int z )
 	return 0;
 };
 byte GetDangValue( int x, int y );
+//Danger byte at top cell (x,y) from the InflMap of the nation being processed
+//(low byte = accumulated tower damage, see EnemyInfo::ProcessTow). The GetDangValue
+//term v is currently disabled and always 0. Returns 0 outside the map or when
+//there is no enemy info. Callers compare against small thresholds (>1, >2).
 int FastCheckPosDanger( int x, int y )
 {
 	if ( x > 0 && y > 0 && x < TopLx&&y < TopLx )
@@ -6335,6 +6443,10 @@ int FastCheckPosDanger( int x, int y )
 	}
 	else return 0;
 };
+//Max FastCheckPosDanger (InflMap tower danger) over a grid of sample points
+//covering the army's brigades: grid spacing odis=4 top cells around (xp>>6,
+//yp>>6), each brigade's point snapped to a valid area by CheckTopPos and
+//sampled at 4 offsets (x1±2, y1±2/+1). xp/yp are pixel coords of an area center.
 int AI_Army::GetArmyDanger( int xp, int yp )
 {
 	int MaxDang = 0;
@@ -6376,6 +6488,8 @@ int AI_Army::GetArmyDanger( int xp, int yp )
 	};
 	return MaxDang;
 };
+//Move to the area linked from the current one with the lowest GetArmyDanger
+//(Prefers danger 0). Used when the army must not stand in a dangerous spot.
 void AI_Army::SendToMostSafePosition()
 {
 	if ( TopPos == -1 || TopPos >= 0xFFFE )return;
@@ -6405,6 +6519,9 @@ Smps:
 	};
 };
 //-----------------------Search object for the grenader's attack----------------------//
+//Topological distance between two top cells: direct Norma when same/adjacent
+//areas, otherwise via MotionLinks gate areas plus LinksDist between them.
+//0xFFFF if either point is off-map or the areas are disconnected.
 int GetTopDistance( int xa, int ya, int xb, int yb )
 {
 	int Top1 = SafeTopRef( xa, ya );
@@ -6424,6 +6541,10 @@ int GetTopDistance( int xa, int ya, int xb, int yb )
 };
 
 
+//Search the rings Rarr[0..count) around cell (x,y) for an enemy-side cell
+//(nation NI) whose SafeCellInfo is free (BusyIndex==0xFFFF) and topologically
+//close (GetTopDistance < count*2). On success writes the best cell into x,y and
+//returns true. Used to find demolition targets for grenadiers.
 bool SearchGreAttObject( int* x, int* y, int count, byte NI )
 {
 	int MinTopR = 10000000;
@@ -6475,6 +6596,8 @@ bool SearchGreAttObject( int* x, int* y, int count, byte NI )
 	}
 }
 
+//Same as SearchGreAttObject but scans only one ring per call (ring index =
+//tmtmt % count), so over successive ticks all rings are covered.
 bool FastSearchGreAttObject( int* x, int* y, int count, byte NI )
 {
 	int rr = tmtmt % count;
@@ -6555,6 +6678,10 @@ AI_Army* GetNearestArmy( int x, int y, City* CT )
 
 word SearchVictim( OneObject* OBJ, int R0, int R1 );
 
+//Per-order handler of a grenadier's demolition order (OrderType 99, AttackXY):
+//attack any victim within 250 px; else attack the building registered at the
+//AttackXY safe cell (or path to its edge); else pick a new attack cell via
+//SearchGreAttObject(40) or join the nearest friendly AI army.
 void GrenaderSupermanLink( OneObject* OBJ )
 {
 	word vic = SearchVictim( OBJ, 0, 250 );
@@ -6663,6 +6790,10 @@ void GrenaderSupermanLink( OneObject* OBJ )
 	}
 }
 
+//Detach a grenadier/archer from its brigade and send it to demolish an enemy
+//building: finds a free attack cell within 30 rings via SearchGreAttObject and
+//gives an AttackXY order (DoLink=GrenaderSupermanLink, PrioryLevel 254/255).
+//No-op for units already on an unlimited-motion order or with a current enemy.
 void GrenaderSuperman( OneObject* OB )
 {
 	if ( OB->UnlimitedMotion )
@@ -6672,7 +6803,9 @@ void GrenaderSuperman( OneObject* OB )
 
 	byte use = OB->newMons->Usage;
 
-	if ( use != GrenaderID || use != ArcherID )
+	//Only grenadiers (GrenaderID=0x0B) and archers (ArcherID=0x20) get
+	//demolition orders; everyone else returns.
+	if ( use != GrenaderID && use != ArcherID )
 	{
 		return;
 	}

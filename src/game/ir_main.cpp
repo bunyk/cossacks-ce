@@ -16,7 +16,6 @@
 // conversion functions keep the record format byte-identical. The
 // FILETIME/LARGE_INTEGER math on time deltas is also part of the
 // original behavior and is replicated via time_t.
-#ifndef _WIN32
 struct SYSTEMTIME
 {
 	word wYear;
@@ -99,7 +98,6 @@ static bool FileTimeToSystemTime( const FILETIME* ft, SYSTEMTIME* st )
 	st->wDayOfWeek = t->tm_wday;
 	return true;
 }
-#endif // !_WIN32
 
 #define DOTRACE
 
@@ -1096,14 +1094,7 @@ int CurrentGame::GetAddScore()
 
 int GetLogRank()
 {
-	if (LOGIN.Logged)
-	{
-		return LOGIN.Rank;
-	}
-	else
-	{
-		return 0;
-	}
+	return 0;
 }
 
 void CheckExistingSaves()
@@ -1114,13 +1105,6 @@ void CheckExistingSaves()
 	CURIGAME.LoadGameFromFile();
 	CURIGAME.Active = 0;
 }
-
-DLLEXPORT void ExplorerOpenRef( int Index, char* ref );
-#ifndef _WIN32
-// Exported for the IChat lobby DLL; without it (lobby not ported) there
-// is nobody to call it, the in-engine calls below only mark streams
-void ExplorerOpenRef( int Index, char* ref ) { (void)Index; (void)ref; }
-#endif // !_WIN32
 
 void DontMakeRaiting()
 {
@@ -1520,12 +1504,9 @@ bool TestHash1( char* s )
 	return true;
 }
 
-int GetGSC_Profile();
-
-//Returns GetGSC_Profile()
 int GetMyProfile()
 {
-	return GetGSC_Profile();
+	return 0;
 }
 
 void SetBrokenState()

@@ -17,7 +17,6 @@ public:
 	int Size;
 	int MaxSize;
 	int Pos;
-	int LastSentPos;
 	char MapName[64];
 	char RecName[64];
 	void StartRecord(char* MapName);
@@ -28,7 +27,6 @@ public:
 	void AddShort(short v);
 	void AddBuf(byte* Data,int Size);
 	void ReadStream(char* Name);
-	void TryToFlushNetworkStream(bool Final);
 	bool Extract();
 	void Save();
 	void RunRecordedGame(char* Name);

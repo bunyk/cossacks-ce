@@ -17,14 +17,6 @@
 #include "mapdiscr.h"
 #include "virtscreen.h"
 
-#ifdef _WIN32
-#include "mode.h"
-#include "fog.h"
-#include "gsound.h"
-#include "fonts.h"
-
-#endif // _WIN32
-
 //Dimensions of possible screen resolutions
 DLLEXPORT int ModeLX[32];
 DLLEXPORT int ModeLY[32];
@@ -32,10 +24,6 @@ SDL_DisplayMode SDLDisplayModes[32];
 
 //Number of possible screen resolutions
 DLLEXPORT int NModes = 0;
-
-void SERROR();
-void SERROR1();
-void SERROR2();
 
 void InitRLCWindows();
 
@@ -90,7 +78,6 @@ DLLEXPORT byte GetPaletteColor( int r, int g, int b )
 
 //typedef byte barr[ScreenSizeX*ScreenSizeY];
 void* offScreenPtr;
-extern void* ScreenPtr; // is defined fastdraw.cpp
 
 extern void yield();
 
@@ -539,8 +526,6 @@ void LoadPalette( LPCSTR lpFileName )
 		}
 	}
 }
-
-void CBar( int x, int y, int Lx, int Ly, unsigned char c );
 
 void SetDarkPalette()
 {
