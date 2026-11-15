@@ -45,6 +45,7 @@ void BuildWithSelected( byte NI, word ObjID, byte OrdType );
 bool FindPortPlace( Nation* NT, int *xx, int *yy );
 bool FindOilSpot( int *x, int *y, int r );
 void SmartGamer( City* CT );
+void AllowBuilder( Brigade* BR );
 int DHAPROB;
 int DRECLPROB;
 int DDIVPROB;
@@ -2176,6 +2177,41 @@ void City::HandleBrigades( int pNP )
 void ProduceByAI( byte nat, word Producer, word ID );
 void CmdAddBuildObj( byte NI, word ObjID );
 int SmartCreationUnit( byte NI, int NIndex, int x, int y );
+void FindUnitPosition( int* x, int* y, NewMonster* NM );
+
+// A worker whose own footprint cells are barred in MFIELDS (a building/wall/
+// tree was placed over it) can never path anywhere and PUSE keeps it out of
+// re-tasking - walk it out to the nearest free cell, using the same
+// SetUnlimited/SendTo/ClearUnlimited sequence as newborn units in
+// OneObject::Produce (UnlimitedMotion lets it move through the bars).
+void City::UnboxWorkers()
+{
+	Brigade* pools[5] = { &Free, &OnField, &OnWood, &OnStone, &Builders };
+	for ( int p = 0; p < 5; p++ )
+	{
+		Brigade* BR = pools[p];
+		for ( int i = 0; i < BR->NMemb; i++ )
+		{
+			word MID = BR->Memb[i];
+			if ( MID == 0xFFFF )continue;
+			OneObject* OB = Group[MID];
+			if ( !OB || OB->Serial != BR->MembSN[i] )continue;
+			if ( !OB->newMons->Peasant || OB->UnlimitedMotion )continue;
+			// only units that stand still and are really boxed in: a moving
+			// unit bars its own current cell, so CheckBar is true for it too
+			if ( OB->InMotion || OB->BackMotion || OB->StandTime < 30 )continue;
+			if ( rando() >= 3000 )continue; // spread over ticks
+			if ( !CheckBar( OB->x, OB->y, OB->Lx, OB->Lx ) )continue;
+			int dx = OB->RealX >> 4;
+			int dy = OB->RealY >> 4;
+			FindUnitPosition( &dx, &dy, OB->newMons );
+			OB->SetOrderedUnlimitedMotion( 0 );
+			OB->NewMonsterSendTo( dx << 4, dy << 4, 128 + 16, 2 );
+			OB->ClearOrderedUnlimitedMotion( 2 );
+			OB->UnlimitedMotion = true;
+		};
+	};
+};
 
 extern int tmtmt;
 int CURRENTAINATION;
@@ -2224,6 +2260,7 @@ void City::ProcessCreation()
 		HandleConstructions();
 		HandleFields();
 		HandleBrigades( Free.NMemb + OnField.NMemb + OnWood.NMemb + OnStone.NMemb );
+		UnboxWorkers();
 
 		if ( AI_MINES_CPTURE )
 		{
@@ -2855,6 +2892,45 @@ void City::ExecuteBrigades()
 			rando();
 			if ( BRIG->BOrder&&BRIG->BOrder->BLink )BRIG->BOrder->BLink( BRIG );
 			rando();
+			// Stranded brigade: order deleted/timed out without disbanding
+			// (e.g. B_LocalSendToLink timeout), its army is gone, or its BOrder
+			// keeps refreshing while every member stands orderless (the
+			// capture-mine walk loop). Members keep DoNotCall=1, so nothing
+			// re-tasks them - return them to the city pools (named pools are
+			// the last 11 slots; mine-defender brigades keep a
+			// "[Protect mines]" order and live war brigades an enabled army).
+			bool armyGone = BRIG->ArmyID == 0xFFFF || !ARMS[BRIG->ArmyID].Enabled;
+			bool protectOrder = BRIG->BOrder && BRIG->BOrder->Message
+				&& !strcmp( BRIG->BOrder->Message, "[Protect mines]" );
+			if ( i < MaxBrig - 11 && armyGone && !BRIG->WarType && !protectOrder
+				&& BRIG->NMemb && !BRIG->BrigDelay )
+			{
+				bool stranded = !BRIG->BOrder;
+				if ( !stranded )
+				{
+					// BOrder present but nobody moves: all members orderless
+					// and standing for a long time
+					stranded = true;
+					for ( int j = 0; j < BRIG->NMemb; j++ )
+					{
+						word MID = BRIG->Memb[j];
+						if ( MID == 0xFFFF )continue;
+						OneObject* OB = Group[MID];
+						if ( OB && OB->Serial == BRIG->MembSN[j]
+							&& ( OB->LocalOrder || OB->StandTime < 100 ) )
+						{
+							stranded = false;
+							break;
+						};
+					};
+				};
+				if ( stranded )
+				{
+					AllowBuilder( BRIG );
+					BRIG->DeleteBOrder();
+					BRIG->Rospusk();
+				};
+			};
 			if ( i < MaxBrig - 11 && BRIG->ArmyID == 0xFFFF && BRIG->NMemb == 0 && !BRIG->BOrder )
 			{
 				BRIG->DeleteAll();

@@ -571,6 +571,7 @@ public:
 	void MakeZasev();
 	void MakeSlowZasev();
 	void HandleBrigades( int NP );
+	void UnboxWorkers();
 	void RegisterNewUnit( OneObject* OB );
 	int  GetFreeBrigade();
 	void ExecuteBrigades();

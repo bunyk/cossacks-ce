@@ -521,10 +521,11 @@ bool OneObject::CreatePrePath(int x1, int y1)
 	MotionField* MFI = &MFIELDS[LockType];
 	if (GLock)MFI->BClrBar(x, y, Lx);
 	bool InLocked = MFI->CheckBar(x, y, Lx, Lx);
-	if (InLocked&&PathX) {
-		if (GLock)MFI->BSetBar(x, y, Lx);
-		return false;
-	};
+	// No early bail-out when InLocked&&PathX: the blocked-this-tick retry in NewMon.cpp
+	// calls CreatePrePath with PathX always set, so bailing here meant a unit standing in a
+	// blocked cell (flush against a building or boxed in by other units) could never recover
+	// and stayed frozen in place forever. Fall through to the InLocked block below, which
+	// reallocates the path around the obstacle.
 	int sdx = x1 - x;
 	int	sdy = y1 - y;
 	int	Cum = 0;
@@ -598,21 +599,45 @@ bool OneObject::CreatePrePath(int x1, int y1)
 
 	Pps--;
 
+	bool escapeFromLocked = false;
 	if (InLocked)
 	{
 		int uu;
 		for (uu = 0; uu < Pps&&MFI->CheckBar(pxx[uu], pyy[uu], Lx, Lx); uu++);
 		if (uu >= Pps)
 		{
-			return false;
+			// No clear cell on the direct line to the target: instead of giving up, step to
+			// the free neighbour cell closest to the target. If boxed in on all 8 sides,
+			// fall through to the wall-following trace seeded at our own position (Rpp=0).
+			int bestDir = -1, bestScore = 0x7fffffff;
+			for (int d = 0; d < 8; d++) {
+				int nx = x + nidrx[d], ny = y + nidry[d];
+				if (MFI->CheckBar(nx, ny, Lx, Lx)) continue;
+				int score = abs(nx - x1) + abs(ny - y1);
+				if (score < bestScore) { bestScore = score; bestDir = d; }
+			}
+			if (bestDir >= 0) {
+				if (PathX) { free(PathX); PathX = nullptr; }
+				if (PathY) { free(PathY); PathY = nullptr; }
+				PathX = new short;
+				PathY = new short;
+				PathX[0] = (short)(x + nidrx[bestDir]);
+				PathY[0] = (short)(y + nidry[bestDir]);
+				NIPoints = 1;
+				return true;
+			}
+			escapeFromLocked = true;
 		}
-
-		PathX = new short;
-		PathY = new short;
-		PathX[0] = pxx[uu];
-		PathY[0] = pyy[uu];
-		NIPoints = 1;
-		return true;
+		else {
+			if (PathX) { free(PathX); PathX = nullptr; }
+			if (PathY) { free(PathY); PathY = nullptr; }
+			PathX = new short;
+			PathY = new short;
+			PathX[0] = pxx[uu];
+			PathY[0] = pyy[uu];
+			NIPoints = 1;
+			return true;
+		}
 	}
 
 	int RVisPos = 0;
@@ -638,17 +663,23 @@ bool OneObject::CreatePrePath(int x1, int y1)
 	int Lcum = 0;
 	int Lcum1 = 0;
 	bool Rvis, Lvis;
-	//Проверяем прямую проходимость
 	int uu;
-	for (uu = 1; uu < Pps && !MFI->CheckBar(pxx[uu], pyy[uu], Lx, Lx); uu++);
-	if (uu == Pps)return false;
-	//Идем, пока не упремся в стенку
-	for (uu = 1; uu < Pps && !MFI->CheckBar(pxx[uu] - 1, pyy[uu] - 1, Lx + 2, Lx + 2); uu++);
-	Rpp = uu;
+	if (escapeFromLocked) {
+		// Already standing against the obstacle: the wall starts at our own position
+		// (line index 0), so there is nothing to search for.
+		Rpp = 0;
+	} else {
+		//Проверяем прямую проходимость
+		for (uu = 1; uu < Pps && !MFI->CheckBar(pxx[uu], pyy[uu], Lx, Lx); uu++);
+		if (uu == Pps)return false;
+		//Идем, пока не упремся в стенку
+		for (uu = 1; uu < Pps && !MFI->CheckBar(pxx[uu] - 1, pyy[uu] - 1, Lx + 2, Lx + 2); uu++);
+		Rpp = uu;
+	}
 	Rtx = pxx[Rpp];
 	Rty = pyy[Rpp];
-	int Rppm = uu;
-	int Lppm = uu;
+	int Rppm = Rpp;
+	int Lppm = Rpp;
 	// Если dx>dy,то на каждом шагу dx изменяетя строго на 1
 	if (Rtx != x1 || Rty != y1) {
 		//LLock[y][x]=false;
@@ -916,10 +947,10 @@ bool OneObject::CreatePrePath2(int x1, int y1) {
 	MotionField* MFI = &MFIELDS[LockType];
 	if (GLock)MFI->BClrBar(x, y, Lx);
 	bool InLocked = MFI->CheckBar(x, y, Lx, Lx);
-	if (InLocked&&PathX) {
-		if (GLock)MFI->BClrBar(x, y, Lx);
-		return false;
-	};
+	// No early bail-out when InLocked&&PathX: the blocked-this-tick retry in NewMon.cpp
+	// calls with PathX always set, so bailing here froze any unit standing in a blocked
+	// cell (flush against a building or boxed in) forever. Fall through to the InLocked
+	// block below, which reallocates the path around the obstacle.
 	int sdx = x1 - x;
 	int	sdy = y1 - y;
 	int	Cum = 0;
@@ -995,16 +1026,43 @@ bool OneObject::CreatePrePath2(int x1, int y1) {
 	}
 	Pps--;
 	//assert(Pps<MaxP);
+	bool escapeFromLocked = false;
 	if (InLocked) {
 		int uu;
 		for (uu = 0; uu < Pps&&MFI->CheckBar(pxx[uu], pyy[uu], Lx, Lx); uu++);
-		if (uu >= Pps)return false;
-		PathX = new short;
-		PathY = new short;
-		PathX[0] = pxx[uu];
-		PathY[0] = pyy[uu];
-		NIPoints = 1;
-		return true;
+		if (uu >= Pps) {
+			// No clear cell on the direct line to the target: step to the free neighbour
+			// cell closest to the target instead of giving up. If boxed in on all 8 sides,
+			// fall through to the wall-following trace seeded at our own position (Rpp=0).
+			int bestDir = -1, bestScore = 0x7fffffff;
+			for (int d = 0; d < 8; d++) {
+				int nx = x + nidrx[d], ny = y + nidry[d];
+				if (MFI->CheckBar(nx, ny, Lx, Lx)) continue;
+				int score = abs(nx - x1) + abs(ny - y1);
+				if (score < bestScore) { bestScore = score; bestDir = d; }
+			}
+			if (bestDir >= 0) {
+				if (PathX) { free(PathX); PathX = nullptr; }
+				if (PathY) { free(PathY); PathY = nullptr; }
+				PathX = new short;
+				PathY = new short;
+				PathX[0] = (short)(x + nidrx[bestDir]);
+				PathY[0] = (short)(y + nidry[bestDir]);
+				NIPoints = 1;
+				return true;
+			}
+			escapeFromLocked = true;
+		}
+		else {
+			if (PathX) { free(PathX); PathX = nullptr; }
+			if (PathY) { free(PathY); PathY = nullptr; }
+			PathX = new short;
+			PathY = new short;
+			PathX[0] = pxx[uu];
+			PathY[0] = pyy[uu];
+			NIPoints = 1;
+			return true;
+		}
 	};
 	bool RightPrefer = true;
 	int Rtx;//current point 
@@ -1027,17 +1085,23 @@ bool OneObject::CreatePrePath2(int x1, int y1) {
 	int Lcum = 0;
 	int Lcum1 = 0;
 	bool Rvis, Lvis;
-	//Проверяем прямую проходимость
 	int uu;
-	for (uu = 1; uu < Pps && !MFI->CheckBar(pxx[uu], pyy[uu], Lx, Lx); uu++);
-	if (uu == Pps)return false;
-	//Идем, пока не упремся в стенку
-	for (uu = 1; uu < Pps && !MFI->CheckBar(pxx[uu] - 1, pyy[uu] - 1, Lx + 2, Lx + 2); uu++);
-	Rpp = uu;
+	if (escapeFromLocked) {
+		// Already standing against the obstacle: the wall starts at our own position
+		// (line index 0), so there is nothing to search for.
+		Rpp = 0;
+	} else {
+		//Проверяем прямую проходимость
+		for (uu = 1; uu < Pps && !MFI->CheckBar(pxx[uu], pyy[uu], Lx, Lx); uu++);
+		if (uu == Pps)return false;
+		//Идем, пока не упремся в стенку
+		for (uu = 1; uu < Pps && !MFI->CheckBar(pxx[uu] - 1, pyy[uu] - 1, Lx + 2, Lx + 2); uu++);
+		Rpp = uu;
+	}
 	Rtx = pxx[Rpp];
 	Rty = pyy[Rpp];
-	int Rppm = uu;
-	int Lppm = uu;
+	int Rppm = Rpp;
+	int Lppm = Rpp;
 	// Если dx>dy,то на каждом шагу dx изменяетя строго на 1
 	if (Rtx != x1 || Rty != y1) {
 		//LLock[y][x]=false;

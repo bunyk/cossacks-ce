@@ -841,6 +841,128 @@ static void ScaleMouseToLogical(int* x, int* y)
 	}
 }
 
+// Debug helper (Ctrl+` in game): dump the selected units' full state and a
+// per-nation census of motion-locked (UnlimitedMotion) units to stdout.
+// Used to investigate frozen AI workers - PUSE() excludes such units from
+// every city pool, so if their ClearUnlimited order is lost they stand
+// forever.
+extern ReportFn* ORDLIST[32]; // loadsave.cpp order-kind table
+static const char* DBG_ORDNAME[32] = {
+	"BuildObj", "ProduceObj", "AttackObj", "TakeRes", "PerformUpgrade",
+	"GoToMine", "LeaveMine", "TakeResFromSprite", "NewMonsterSendTo",
+	"DeleteBlock", "SetUnlimited", "ClearUnlimited", "WaterSendTo",
+	"Absorb", "LeaveShip", "BuildWall", "WaterAttack", "LeaveTransport",
+	"GoToTransport", "Fishing", "CreateGates", "SmartSendTo",
+	"AI_AttackPoint", "GrenaderSuperman", "GotoFinePosition",
+	"PreciseSendTo", "RotUnit", "Patrol", "RotateShipAndDie", "SearchArmy",
+	"NewAttackPoint", "MakeOneShot"
+};
+static const char* DBG_OrderName( ReportFn* fn )
+{
+	for ( int i = 0; i < 32; i++ )if ( ORDLIST[i] == fn )return DBG_ORDNAME[i];
+	return "?";
+}
+extern City CITY[8];
+extern PlayerInfo PINFO[8];
+bool CheckBar( int x, int y, int Lx, int Ly );
+static const char* DBG_PoolName( City* CT, word brig )
+{
+	if ( brig == 0xFFFF )return "none";
+	struct { Brigade* B; const char* N; } pools[] = {
+		{ &CT->Free, "Free" }, { &CT->OnField, "OnField" }, { &CT->OnWood, "OnWood" },
+		{ &CT->OnStone, "OnStone" }, { &CT->Builders, "Builders" }, { &CT->FreeArmy, "FreeArmy" },
+		{ &CT->Guards, "Guards" }, { &CT->Defenders, "Defenders" }, { &CT->Agressors, "Agressors" },
+		{ &CT->Settlers, "Settlers" }
+	};
+	for ( auto& p : pools )if ( p.B->ID == brig )return p.N;
+	return "Brigs[]";
+}
+void DumpSelectedUnits()
+{
+	printf( "=== DumpSelectedUnits: MyNation=%d NSL=%d ===\n", MyNation, NSL[MyNation] );
+	for ( int i = 0; i < 8; i++ )
+	{
+		if ( NATIONS[i].NMask || PINFO[i].name[0] )
+		{
+			City* CT = &CITY[i];
+			printf( "  nation %d: name='%s' AI=%d Difficulty=%d pools Free=%u OnField=%u OnWood=%u OnStone=%u Builders=%u FreeArmy=%u Guards=%u Defenders=%u Agressors=%u\n",
+				i, PINFO[i].name, int( NATIONS[i].AI_Enabled ), CITY[i].Difficulty,
+				CT->Free.ID, CT->OnField.ID, CT->OnWood.ID, CT->OnStone.ID, CT->Builders.ID,
+				CT->FreeArmy.ID, CT->Guards.ID, CT->Defenders.ID, CT->Agressors.ID );
+		}
+	}
+	int umc[8] = { 0 }, umNoOrd[8] = { 0 };
+	for ( int i = 0; i < ULIMIT; i++ )
+	{
+		OneObject* OB = Group[i];
+		if ( OB && OB->UnlimitedMotion )
+		{
+			umc[OB->NNUM]++;
+			if ( !OB->LocalOrder )umNoOrd[OB->NNUM]++;
+		}
+	}
+	for ( int i = 0; i < 8; i++ )
+	{
+		if ( umc[i] )
+		{
+			printf( "  nation %d: UID_PEASANT=%u UnlimitedMotion units=%d (no orders=%d)\n",
+				i, NATIONS[i].UID_PEASANT, umc[i], umNoOrd[i] );
+			// list up to 20 motion-locked units without orders (the frozen candidates)
+			int shown = 0;
+			for ( int k = 0; k < ULIMIT && shown < 20; k++ )
+			{
+				OneObject* OB = Group[k];
+				if ( OB && OB->NNUM == i && OB->UnlimitedMotion && !OB->LocalOrder )
+				{
+					printf( "    frozen? idx=%u NIndex=%u peasant=%d pos=(%d,%d) NInside=%d Brig=%u DoNotCall=%d\n",
+						OB->Index, OB->NIndex, int( OB->NIndex == NATIONS[i].UID_PEASANT ),
+						OB->x, OB->y, OB->NInside, OB->BrigadeID, int( OB->DoNotCall ) );
+					shown++;
+				}
+			}
+		}
+	}
+	int N = NSL[MyNation];
+	word* smn = Selm[MyNation];
+	word* ssn = SerN[MyNation];
+	for ( int j = 0; j < N; j++ )
+	{
+		word MID = smn[j];
+		if ( MID == 0xFFFF )continue;
+		OneObject* OB = Group[MID];
+		if ( !OB || OB->Serial != ssn[j] )
+		{
+			printf( "  sel[%d] MID=%u STALE\n", j, MID );
+			continue;
+		}
+		printf( "  sel[%d] idx=%u nat=%d NIndex=%u pos=(%d,%d) real=(%d,%d) Lx=%d\n",
+			j, OB->Index, OB->NNUM, OB->NIndex, OB->x, OB->y, OB->RealX, OB->RealY, OB->Lx );
+		printf( "    UM=%d DoNotCall=%d InArmy=%d Sdoxlo=%d Hidden=%d NewBld=%d NInside=%d EnemyID=%u Brig=%u(%s) BrIdx=%u\n",
+			int( OB->UnlimitedMotion ), int( OB->DoNotCall ), int( OB->InArmy ), OB->Sdoxlo,
+			int( OB->Hidden ), int( OB->NewBuilding ), OB->NInside, OB->EnemyID,
+			OB->BrigadeID, DBG_PoolName( &CITY[OB->NNUM], OB->BrigadeID ), OB->BrIndex );
+		printf( "    PUSE=%d (UM=%d boxed=%d) peasant=%d UID_PEASANT=%u\n",
+			int( OB->UnlimitedMotion || CheckBar( OB->x, OB->y, OB->Lx, OB->Lx ) ),
+			int( OB->UnlimitedMotion ), int( CheckBar( OB->x, OB->y, OB->Lx, OB->Lx ) ),
+			int( OB->NIndex == NATIONS[OB->NNUM].UID_PEASANT ), NATIONS[OB->NNUM].UID_PEASANT );
+		if ( OB->BrigadeID != 0xFFFF )
+		{
+			Brigade* BR = &CITY[OB->NNUM].Brigs[OB->BrigadeID];
+			printf( "    brigade %u: Enabled=%d NMemb=%d BOrder=%s msg='%s' BrigDelay=%d WarType=%d ArmyID=%u CFN=%s\n",
+				OB->BrigadeID, int( BR->Enabled ), BR->NMemb, BR->BOrder ? "yes" : "NO",
+				BR->BOrder ? ( BR->BOrder->Message ? BR->BOrder->Message : "" ) : "",
+				BR->BrigDelay, BR->WarType, BR->ArmyID, BR->CFN ? "yes" : "no" );
+		}
+		int no = 0;
+		for ( Order1* OR = OB->LocalOrder; OR; OR = OR->NextOrder )
+		{
+			printf( "    order[%d] type=%d %s\n", no++, OR->OrderType, DBG_OrderName( OR->DoLink ) );
+		}
+		if ( !no )printf( "    (no orders)\n" );
+	}
+	fflush( stdout );
+}
+
 SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 {
 	static BYTE phase = 0;
@@ -1015,6 +1137,13 @@ SDL_AppResult SDL_AppEvent(void* appstate, SDL_Event* event)
 		if (LastKey == SDLK_F11)
 		{
 			SaveScreen();
+		}
+
+		// Debug: Ctrl+PrintScreen dumps selected units + UnlimitedMotion census to stdout
+		if (LastKey == SDLK_PRINTSCREEN)
+		{
+			const bool* ks = SDL_GetKeyboardState( NULL );
+			if ( ks[SDL_SCANCODE_LCTRL] || ks[SDL_SCANCODE_RCTRL] )DumpSelectedUnits();
 		}
 
 		/*
